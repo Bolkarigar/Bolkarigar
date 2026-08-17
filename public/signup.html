@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="hi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BolKarigar AI - Sign Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="bolkarigar.css">
+  <style>
+    :root {
+      --primary-blue: #3b82f6;
+      --hover-blue: #2563eb;
+      --card-bg: #1e1e2e;
+      --border-color: #333;
+      --text-white: #ffffff;
+      --text-gray: #9ca3af;
+      --success-green: #10b981;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #11111b;
+      color: var(--text-white);
+    }
+
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: var(--primary-blue);
+      filter: blur(120px);
+      top: 10%;
+      left: 10%;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 40px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      backdrop-filter: blur(10px);
+      animation: fadeInUp 0.5s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-card h2 { 
+      margin: 0 0 10px 0; 
+      font-size: 28px; 
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #fff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-card p { color: var(--text-gray); margin-bottom: 30px; font-size: 14px; }
+    
+    .input-group { margin-bottom: 22px; text-align: left; }
+    .input-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #e5e7eb; }
+    
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: rgba(0, 0, 0, 0.25);
+      color: #fff;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      cursor: pointer;
+      color: var(--text-gray);
+      user-select: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .toggle-password:hover { color: #fff; }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary-blue);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      margin-top: 10px;
+    }
+    .login-btn:hover { 
+      background: var(--hover-blue); 
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .error-msg { 
+      color: #ef4444; 
+      margin-top: 15px; 
+      font-size: 14px; 
+      display: none; 
+      background: rgba(239, 68, 68, 0.1);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .success-msg { 
+      color: var(--success-green); 
+      margin-top: 15px; 
+      font-size: 14px; 
+      display: none; 
+      background: rgba(16, 185, 129, 0.1);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .footer-text {
+      margin-top: 25px;
+      font-size: 14px;
+      color: var(--text-gray);
+    }
+    .footer-text a {
+      color: var(--primary-blue);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .footer-text a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="login-card">
+      <h2>Naya Account Banayein</h2>
+      <p>🎁 <strong>3 din FREE Pro trial</strong> — poora app try karein, credit card ki zaroorat nahi</p>
+      
+      <form id="signupForm">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" required placeholder="User name chunein">
+        </div>
+        <div class="input-group">
+          <label for="email">Email ID</label>
+          <input type="email" id="email" required placeholder="example@gmail.com">
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" required placeholder="••••••••">
+            <span class="toggle-password" id="eyeIcon">SHOW</span>
+          </div>
+        </div>
+        
+        <button type="submit" class="login-btn">Register Karein</button>
+        <p class="error-msg" id="errorMsg"></p>
+        <p class="success-msg" id="successMsg"></p>
+      </form>
+
+      <div class="footer-text">
+        Pehle se account hai? <a href="loginpage.html">Sign In karein</a>
+        &nbsp;|&nbsp; <a href="pricing.html">Plans & Trial</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Signup execution
+    document.getElementById("signupForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      
+      const errorEl = document.getElementById("errorMsg");
+      const successEl = document.getElementById("successMsg");
+
+      errorEl.style.display = "none";
+      successEl.style.display = "none";
+
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+        const result = await response.json();
+
+        if (!response.ok) throw new Error(result.error || "Signup fail ho gaya");
+
+        successEl.textContent = result.message;
+        successEl.style.display = "block";
+
+        // 2 Second baad direct login page par bhej dega
+        setTimeout(() => {
+          window.location.href = "loginpage.html";
+        }, 2000);
+
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = "block";
+      }
+    });
+
+    // Password Eye Show/Hide Toggle
+    const passwordInput = document.getElementById("password");
+    const eyeIcon = document.getElementById("eyeIcon");
+
+    eyeIcon.addEventListener("click", function () {
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        eyeIcon.textContent = "HIDE";
+      } else {
+        passwordInput.type = "password";
+        eyeIcon.textContent = "SHOW";
+      }
+    });
+  </script>
+</body>
+</html>
