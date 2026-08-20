@@ -59,7 +59,7 @@ async function getEnvVars(serviceId) {
   const list = Array.isArray(data) ? data : data.envVars || data.items || [];
   return list.map((e) => ({
     key: e.envVar?.key || e.key,
-    value: e.envVar?.value || e.value
+    value: e.envVar?.value ?? e.value ?? ''
   }));
 }
 
@@ -69,7 +69,11 @@ async function setEnvVars(serviceId, updates) {
   for (const [key, value] of Object.entries(updates)) {
     if (value != null && value !== '') map.set(key, value);
   }
-  const envVars = [...map.entries()].map(([key, value]) => ({ key, value }));
+  // Render PUT rejects empty values — optional blanks become single space
+  const envVars = [...map.entries()].map(([key, value]) => ({
+    key,
+    value: value === '' || value == null ? ' ' : String(value)
+  }));
   await api(`/services/${serviceId}/env-vars`, {
     method: 'PUT',
     body: JSON.stringify(envVars)
