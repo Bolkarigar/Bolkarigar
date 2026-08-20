@@ -162,6 +162,47 @@ async function callGeminiChat(userMessage) {
   throw lastErr || new Error('Gemini models unavailable');
 }
 
+// Voice parse — structured JSON from natural Hindi (Pro + Business, no chat plan gate)
+async function callGeminiVoiceParse(text) {
+  const prompt = `You are BolKarigar voice parser. Extract shop command from Hindi/Hinglish.
+Return ONLY valid JSON (no markdown, no explanation).
+Input: "${String(text).replace(/"/g, '\\"').slice(0, 500)}"
+Schema: {"intent":"invoice|todo|nav|none","customer":"","product":"","price":0,"qty":1,"state":"","pin":"","save":true}
+Rules: "Ram ne laptop liya 25000 ka Haryana pincode 123456" -> invoice, save true. Pin is 6 digits. State = Indian state name.`;
+  let lastErr = null;
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const raw = result.response.text().trim().replace(/^```json\s*|```$/g, '').trim();
+      const parsed = JSON.parse(raw);
+      return parsed;
+    } catch (err) {
+      lastErr = err;
+      logger.info(`[Voice Parse] ${modelName} fail:`, err.message);
+    }
+  }
+  throw lastErr || new Error('Voice parse unavailable');
+}
+
+app.post('/api/voice/parse', authenticateToken, async (req, res) => {
+  try {
+    const text = String(req.body?.text || '').trim();
+    if (!text) return res.status(400).json({ success: false, error: 'Text required' });
+
+    const apiKey = process.env.GEMINI_API_KEY || '';
+    if (!isValidGeminiApiKey(apiKey)) {
+      return res.json({ success: false, localOnly: true, error: 'Gemini key missing' });
+    }
+
+    const parsed = await callGeminiVoiceParse(text);
+    return res.json({ success: true, parsed });
+  } catch (err) {
+    logger.error('Voice parse error:', err.message);
+    return res.json({ success: false, error: err.message });
+  }
+});
+
 // AI Endpoint: Live Chat
 app.post('/api/ai/chat', authenticateToken, requireBusinessPlan, async (req, res) => {
   try {

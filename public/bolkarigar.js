@@ -245,7 +245,11 @@ function applyRoleBasedUI(me) {
 
   if (typeof window.bkInitDevPlanToggle === "function") window.bkInitDevPlanToggle();
   if (typeof window.bkUpdateDevPlanToggle === "function") window.bkUpdateDevPlanToggle(me);
+
+  if (typeof window.renderHelpModules === "function") window.renderHelpModules(me);
 }
+
+window.bkCanAccessTab = bkCanAccessTab;
 
 async function loadServerData() {
   try {
@@ -260,6 +264,8 @@ async function loadServerData() {
       else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} din bache`, "info");
       window._bkAccountInfo = me;
       applyRoleBasedUI(me);
+
+      // Voice auto-start band — user khud Voice ON karega (repeat / mic noise se bachne ke liye)
 
       if (me.subscription?.isExpired) {
         const paywallText = document.getElementById("subscriptionPaywallText");
@@ -897,6 +903,20 @@ let isRestarting = false;
 let consecutiveFailures = 0;
 let interimStableTimer = null;
 let lastInterimText = "";
+let lastVoiceHandled = { key: "", at: 0 };
+let voicePausedForInput = false;
+let voiceUtteranceBuffer = "";
+let voiceUtteranceFlushTimer = null;
+const VOICE_FLUSH_MS = 1500;
+
+function flushVoiceBuffer() {
+  voiceUtteranceFlushTimer = null;
+  const text = voiceUtteranceBuffer.trim();
+  voiceUtteranceBuffer = "";
+  const hint = document.getElementById("voiceBufferHint");
+  if (hint) hint.textContent = "";
+  if (text) handleSpeech(text);
+}
 const MAX_BACKOFF_MS = 8000;
 const FATAL_ERRORS = ["not-allowed", "audio-capture", "service-not-allowed"];
 
@@ -1029,6 +1049,23 @@ window.addEventListener("resize", () => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeMobileSidebar();
+});
+
+document.addEventListener("focusin", (e) => {
+  if (e.target && e.target.matches("input, textarea, select, [contenteditable='true']")) {
+    voicePausedForInput = true;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+});
+document.addEventListener("focusout", (e) => {
+  if (e.target && e.target.matches("input, textarea, select, [contenteditable='true']")) {
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (!active || !active.matches("input, textarea, select, [contenteditable='true']")) {
+        voicePausedForInput = false;
+      }
+    }, 200);
+  }
 });
 
 function normalize(text) {
@@ -1945,19 +1982,27 @@ function clearActivePanelForm() {
   showCommand("Is panel mein clear karne ke liye kuch nahi hai.");
 }
 
-// Text-to-speech helper — AI ke jawab bolne ke liye
-function speakText(text) {
+// Text-to-speech helper — sirf chhote jawab (repeat / lamba text nahi)
+let _lastSpeakText = "";
+let _lastSpeakAt = 0;
+function speakText(text, forceShort) {
   try {
     if (!("speechSynthesis" in window) || !text) return;
+    const msg = String(text).trim();
+    if (msg.length > 140 && !forceShort) return;
+    const now = Date.now();
+    if (msg === _lastSpeakText && now - _lastSpeakAt < 5000) return;
+    _lastSpeakText = msg;
+    _lastSpeakAt = now;
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
+    const utter = new SpeechSynthesisUtterance(msg);
     utter.lang = "hi-IN";
-    utter.rate = 1.0;
+    utter.rate = 1.05;
     const voices = window.speechSynthesis.getVoices();
     const hindiVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
     if (hindiVoice) utter.voice = hindiVoice;
     window.speechSynthesis.speak(utter);
-  } catch (e) { /* silent fail — TTS optional hai */ }
+  } catch (e) { /* silent */ }
 }
 
 // -------------------------------------------------------------------
@@ -1978,6 +2023,8 @@ const ACCOUNTING_MODULE_ANSWER =
 function isInformationalQuestion(text) {
   const norm = normalizeFaqText(text);
   if (!norm) return false;
+  if (window.bkVoiceController?.isSaleSentence?.(norm)) return false;
+  if (/\b(liya|liye|kharida|khareeda|bill banao|add karo|add kar|save karo|invoice kholo|kholo|jodo)\b/.test(norm)) return false;
   if (norm.includes('?')) return true;
 
   const questionMarkers = [
@@ -2231,12 +2278,24 @@ function matchAppFaq(rawText) {
 // quota bhi bahut kam use hota hai.
 async function handleSpeech(rawText) {
   if (!rawText || !rawText.trim()) return;
+  if (voicePausedForInput) return;
 
   const raw = rawText.trim();
+  const dedupeKey = normalize(raw);
+  const now = Date.now();
+  if (dedupeKey.length < 4) return;
+  if (dedupeKey === lastVoiceHandled.key && now - lastVoiceHandled.at < 3000) return;
+  lastVoiceHandled = { key: dedupeKey, at: now };
+
   const text = normalize(raw);
   console.log("Processing Input:", text);
 
   try {
+    if (window.bkVoiceController?.tryFastAction) {
+      const fastHandled = await window.bkVoiceController.tryFastAction(raw);
+      if (fastHandled) return;
+    }
+
     if (isInformationalQuestion(raw)) {
       const faqReply = matchAppFaq(raw);
       if (faqReply) {
@@ -2368,13 +2427,11 @@ async function handleSpeech(rawText) {
 
       // Step C: Fallback (Offline FAQ) agar API down ho ya internet na ho
       const faqAnswer = matchAppFaq(raw);
-      const reply = faqAnswer || "Yeh maine samjha nahi. Aap bol sakte ho jaise 'invoice khol do', 'expense add karo' ya koi general sawal pooch sakte ho.";
-
+      const reply = faqAnswer || "Samjha nahi. Try: 'invoice kholo' ya 'Ram ne laptop liya 25000 ka'.";
       showCommand(reply);
       if (document.getElementById("aiReplyBox")) {
         document.getElementById("aiReplyBox").innerText = reply;
       }
-      speakText(reply);
     }
 
   } catch (err) {
@@ -2396,7 +2453,7 @@ function createRecognition() {
   }
 
   const rec = new SpeechRecognition();
-  rec.lang = "en-IN";
+  rec.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
   rec.continuous = true;
   rec.interimResults = true;
   rec.maxAlternatives = 1;
@@ -2405,7 +2462,10 @@ function createRecognition() {
     lastActivityTime = Date.now();
     consecutiveFailures = 0;
     setStatus("Listening...");
-    if (voiceToggle) voiceToggle.textContent = "Voice: ON";
+    if (voiceToggle) {
+      voiceToggle.textContent = "Voice: ON";
+      voiceToggle.classList.add("voice-active");
+    }
     if (startVoiceBtn) startVoiceBtn.textContent = "Listening...";
   };
 
@@ -2425,26 +2485,20 @@ function createRecognition() {
     if (finalText.trim()) {
       clearTimeout(interimStableTimer);
       lastInterimText = "";
-      handleSpeech(finalText.trim());
+      voiceUtteranceBuffer += (voiceUtteranceBuffer ? " " : "") + finalText.trim();
+      if (voiceTranscript) voiceTranscript.value = voiceUtteranceBuffer;
+      const hint = document.getElementById("voiceBufferHint");
+      if (hint) hint.textContent = "Sun raha hoon… poora boliye, " + (VOICE_FLUSH_MS / 1000) + " sec rukne par process hoga";
+      setStatus("Sun raha hoon: " + voiceUtteranceBuffer.slice(0, 70) + (voiceUtteranceBuffer.length > 70 ? "…" : ""));
+      clearTimeout(voiceUtteranceFlushTimer);
+      voiceUtteranceFlushTimer = setTimeout(flushVoiceBuffer, VOICE_FLUSH_MS);
     } else if (interim.trim()) {
       const calcPanelActive = document.getElementById("calcPanel")?.classList.contains("active");
       const cleanExpr = extractCalcExpression(interim.trim());
       if (calcPanelActive && cleanExpr && document.getElementById("calcDisplay")) {
         document.getElementById("calcDisplay").value = cleanExpr;
       }
-      setStatus("Sun raha hoon: " + interim.trim());
-
-      const trimmedInterim = interim.trim();
-      if (trimmedInterim !== lastInterimText) {
-        lastInterimText = trimmedInterim;
-        clearTimeout(interimStableTimer);
-        interimStableTimer = setTimeout(() => {
-          if (lastInterimText === trimmedInterim) {
-            handleSpeech(trimmedInterim);
-            lastInterimText = "";
-          }
-        }, 700);
-      }
+      setStatus("Sun raha hoon: " + interim.trim().slice(0, 60) + (interim.length > 60 ? "…" : ""));
     }
   };
 
@@ -2454,7 +2508,10 @@ function createRecognition() {
       stopWatchdog();
       clearTimeout(restartTimer);
       isRestarting = false;
-      if (voiceToggle) voiceToggle.textContent = "Voice: OFF";
+      if (voiceToggle) {
+        voiceToggle.textContent = "Voice: OFF";
+        voiceToggle.classList.remove("voice-active");
+      }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
       setStatus("Mic band ho gaya (" + event.error + "). Browser mein mic permission check karo.");
       return;
@@ -2472,7 +2529,10 @@ function createRecognition() {
     if (voiceOn) {
       restartRecognition();
     } else {
-      if (voiceToggle) voiceToggle.textContent = "Voice: OFF";
+      if (voiceToggle) {
+        voiceToggle.textContent = "Voice: OFF";
+        voiceToggle.classList.remove("voice-active");
+      }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
       setStatus("Voice stopped.");
     }
@@ -2483,11 +2543,15 @@ function createRecognition() {
 
 function startVoice() {
   voiceOn = true;
+  localStorage.setItem("bk_voice_auto", "1");
   recognition = createRecognition();
   if (!recognition) return;
-  if (voiceToggle) voiceToggle.textContent = "Voice: ON";
+  if (voiceToggle) {
+    voiceToggle.textContent = "Voice: ON";
+    voiceToggle.classList.add("voice-active");
+  }
   if (startVoiceBtn) startVoiceBtn.textContent = "Listening...";
-  setStatus("Voice enabled. बोलो: open todo list.");
+  setStatus("Voice ON — poora sentence ek saath boliye, 1.5 sec rukne par kaam hoga.");
   consecutiveFailures = 0;
   isRestarting = false;
   try {
@@ -2499,14 +2563,20 @@ function startVoice() {
 
 function stopVoice() {
   voiceOn = false;
+  localStorage.setItem("bk_voice_auto", "0");
   isRestarting = false;
   consecutiveFailures = 0;
   clearTimeout(restartTimer);
+  clearTimeout(voiceUtteranceFlushTimer);
+  voiceUtteranceBuffer = "";
   stopWatchdog();
   if (recognition) {
     try { recognition.stop(); } catch {}
   }
-  if (voiceToggle) voiceToggle.textContent = "Voice: OFF";
+  if (voiceToggle) {
+    voiceToggle.textContent = "Voice: OFF";
+    voiceToggle.classList.remove("voice-active");
+  }
   if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
   setStatus("Voice stopped.");
 }

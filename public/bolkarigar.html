@@ -76,12 +76,12 @@
     </div>
   </header>
 
-  <!-- DEV ONLY: testing ke baad is poora block + dev-plan-toggle.js hata dena -->
+  <!-- DEV: ₹349 / ₹699 plan test bar (localhost par auto; live par ?devPlan=1 ya DEV_PLAN_TOGGLE=true) -->
   <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
-    <span class="dev-plan-toggle-label">🧪 TEST UI</span>
+    <span class="dev-plan-toggle-label">🧪 TEST UI — Plan Switch</span>
     <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">₹349 Pro</button>
     <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹699 Business</button>
-    <span id="devPlanActiveLabel" class="dev-plan-active-label"></span>
+    <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad switch karein</span>
   </div>
 
   <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
@@ -107,7 +107,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Voice + Business Utility</p>
         <h2>Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
-        <p>Voice ON karke bolo: “open todo list”, “open gallery”, “open qr tool”, “overview”, “dark mode on”, “dark mode off”.</p>
+        <p>Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye 2 piece bill banao”, “todo me kal cement lana likho”, “udhar khata kholo”, “dark mode on”.</p>
         <div class="hero-badges">
           <span>Voice Ready</span>
           <span>Invoice Tools</span>
@@ -245,7 +245,7 @@
           <div class="panel-header"><div><p class="eyebrow">Speech input</p><h3>Voice Command Panel</h3></div></div>
           <div class="voice-grid">
             <div class="mini-card"><h4>Try commands</h4><p>“Open todo list”</p><p>“Open qr tool”</p><p>“Dark mode on”</p><p>“Overview”</p></div>
-            <div class="mini-card"><h4>Voice status</h4><p id="voiceStatus">Voice system ready.</p></div>
+            <div class="mini-card"><h4>Voice status</h4><p id="voiceStatus">Voice system ready.</p><p id="voiceBufferHint" class="voice-buffer-hint"></p></div>
           </div>
           <div class="btn-row">
             <button id="startVoiceBtn" type="button">Start Listening</button>
@@ -1013,151 +1013,14 @@
   <div class="panel-header">
     <div>
       <p class="eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
-      <h3>❓ App Modules & Buttons Manual (सभी मॉड्युल्स की जानकारी)</h3>
+      <h3>❓ App Modules & Buttons Manual (आपके प्लान के मॉड्युल्स)</h3>
+      <p id="helpPlanBadge" class="help-plan-badge pro">Modules load ho rahe hain...</p>
     </div>
   </div>
 
-  <!-- MODULE BY MODULE EXPLANATION -->
-<div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-
-  <!-- 1. OVERVIEW -->
-  <div class="manual-card mini-card" id="card-1" style="border-left: 4px solid #3b82f6;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #3b82f6; margin: 0;">📊 1. Overview (Dashboard / डैशबोर्ड)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-1', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> यह आपका AI Accountant है। यहाँ आपके बिज़नेस का कुल बिक्री (Total Sales), कुल खर्चा (Expenses), पेंडिंग उधार (Pending Udhar) और मुनाफ़ा (Net Profit) एक नज़र में दिखाई देता है।</p>
-      <p><b>🇬🇧 English:</b> This is your AI Accountant dashboard showing real-time business metrics like Total Sales, Expenses, Net Profit, and Outstanding Balance.</p>
-    </div>
+  <div id="helpModulesList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+    <p class="helper-text">Aapka plan load hone ke baad yahan modules dikhenge.</p>
   </div>
-
-  <!-- 2. VOICE AI -->
-  <div class="manual-card mini-card" id="card-2" style="border-left: 4px solid #a855f7;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #a855f7; margin: 0;">🎙️ 2. Voice AI (बोलकर चलाने के लिए)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-2', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> Top Bar से Voice ON करके आप बिना टाइप किए ऐप को कंट्रोल कर सकते हैं। जैसे बोलें—<i>"Open Invoice"</i>, <i>"Open Udhar Khata"</i> या <i>"Dark Mode On"</i>।</p>
-      <p><b>🇬🇧 English:</b> Turn Voice ON in the top bar to navigate using speech commands like <i>"Open Invoice"</i>, <i>"Open Udhar Khata"</i>, or <i>"Dark Mode On"</i>.</p>
-    </div>
-  </div>
-
-  <!-- 3. PROJECTS -->
-  <div class="manual-card mini-card" id="card-3" style="border-left: 4px solid #eab308;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #eab308; margin: 0;">🏗️ 3. Projects (साइट और ठेकेदारी वर्क)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-3', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> अलग-अलग क्लाइंट्स की साइट/प्रोजेक्ट्स की लोकेशन, बजट और लेबर/मटीरियल के दैनिक खर्चों को अलग-अलग ट्रैक करने के लिए।</p>
-      <p><b>🇬🇧 English:</b> Manage client site projects, location tracking, project budgets, and vendor/material daily expenses.</p>
-    </div>
-  </div>
-
-  <!-- 4. INVENTORY -->
-  <div class="manual-card mini-card" id="card-4" style="border-left: 4px solid #10b981;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #10b981; margin: 0;">📦 4. Inventory (स्टॉक और सामान)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-4', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> दुकान या गोदाम में कितना सामान/स्टॉक बचा है और उसकी कुल कीमत (Stock Value) कितनी है, उसे ट्रैक करने के लिए।</p>
-      <p><b>🇬🇧 English:</b> Track available product stock items, quantities, unit prices, and total inventory value.</p>
-    </div>
-  </div>
-
-  <!-- 5. UDHAR KHATA -->
-  <div class="manual-card mini-card" id="card-5" style="border-left: 4px solid #ef4444;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #ef4444; margin: 0;">📖 5. Udhar Khata (ग्राहक खाता / Ledger)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-5', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> किस ग्राहक के पास कितना पैसा बाकी (Pending) है और कितना प्राप्त (Received) हो चुका है, उसकी पूरी लेज़र सूची यहाँ दिखेगी।</p>
-      <p><b>🇬🇧 English:</b> View customer ledger accounts, total pending receivables, received payments, and complete transaction logs.</p>
-    </div>
-  </div>
-
-  <!-- 6. INVOICE GENERATOR -->
-  <div class="manual-card mini-card" id="card-6" style="border-left: 4px solid #06b6d4;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #06b6d4; margin: 0;">📑 6. Invoice Generator (बिलिंग और Tally Sync)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-6', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> 
-        • <b>Add Item:</b> टेबल में सामान जोड़ने के लिए।<br>
-        • <b>Download:</b> बिल की PDF फाइल पाने के लिए।<br>
-        • <b>WhatsApp Share:</b> ग्राहक को WhatsApp पर बिल भेजने के लिए।<br>
-        • <b> Sync to Tally (मुख्य):</b> लैपटॉप के Tally सॉफ्टवेयर में 1-सेकंड में सेल्स एंट्री भेजने के लिए।
-      </p>
-      <p><b>🇬🇧 English:</b> Create invoices with GST slabs (0%-28%), download PDF, share via WhatsApp, and click <b>Sync to Tally</b> to automatically record sales vouchers in Tally Prime.</p>
-    </div>
-  </div>
-
-  <!-- 7. GALLERY -->
-  <div class="manual-card mini-card" id="card-7" style="border-left: 4px solid #ec4899;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #ec4899; margin: 0;">🎨 7. Gallery (पोर्टफोलियो / कैटलॉग)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-7', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> अपने पिछले किए गए काम, फर्नीचर डिज़ाइन या लकड़ी के सामान की फोटो ग्राहकों को दिखाने के लिए डिजिटल कैटलॉग।</p>
-      <p><b>🇬🇧 English:</b> Digital product portfolio catalog to showcase completed work photos or design catalogs to clients.</p>
-    </div>
-  </div>
-
-  <!-- 8. TODO -->
-  <div class="manual-card mini-card" id="card-8" style="border-left: 4px solid #8b5cf6;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #8b5cf6; margin: 0;">📝 8. Todo (काम की लिस्ट / Task Manager)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-8', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> आज के ज़रूरी काम, साइट की रिमाइंडर लिस्ट या कारीगरों को दिए गए काम की सूची बनाकर मार्क (Mark Complete) करें।</p>
-      <p><b>🇬🇧 English:</b> Create daily task checklists, site reminders, and work-assignment lists for workers.</p>
-    </div>
-  </div>
-
-  <!-- 9. QR TOOL -->
-  <div class="manual-card mini-card" id="card-9" style="border-left: 4px solid #f97316;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #f97316; margin: 0;">🔲 9. QR Tool (पेमेंट और लिंक QR)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-9', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> पेमेंट लेने के लिए अपनी UPI ID का instant QR कोड बनाएं और ग्राहक को दिखाकर तुरंत पैसे प्राप्त करें।</p>
-      <p><b>🇬🇧 English:</b> Generate instant UPI payment QR codes or custom link QR codes to collect payments directly.</p>
-    </div>
-  </div>
-
-  <!-- 10. CALCULATOR & CONVERTER -->
-  <div class="manual-card mini-card" id="card-10" style="border-left: 4px solid #14b8a6;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #14b8a6; margin: 0;">🧮 10 & 11. Calculator & Converter (हिसाब और नाप-तौल)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-10', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> साइट पर त्वरित गणितीय गणना के लिए कैलकुलेटर और फीट-इंच, वजन (Kg) या तापमान को बदलने के लिए यूनिट कन्वर्टर।</p>
-      <p><b>🇬🇧 English:</b> On-site financial calculator and measurement unit converter (Length, Weight, Temperature) for quick estimations.</p>
-    </div>
-  </div>
-
-  <!-- 12. NOTES & MEDIA -->
-  <div class="manual-card mini-card" id="card-12" style="border-left: 4px solid #64748b;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <h4 style="color: #64748b; margin: 0;">📑 12. Notes & Media Tools (नोट्स और पर्ची स्कैनर)</h4>
-      <button type="button" class="speak-card-btn" onclick="speakCardText('card-12', this)">🔊 Suno</button>
-    </div>
-    <div class="card-text">
-      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> साइट की बातें या रेट लिस्ट लिखकर सेव करें और ख़रीदे गए सामान की रसीद/पर्ची की फोटो सुरक्षित रखें।</p>
-      <p><b>🇬🇧 English:</b> Save quick text notes, site reminders, and scan/upload material purchase receipt images.</p>
-    </div>
-  </div>
-
-</div>
 
   <!-- SUPPORT FOOTER -->
   <div class="mini-card" style="text-align: center; margin-top: 15px; padding: 18px;">
@@ -1293,9 +1156,11 @@
   </div>
 
   <script src="responsive-ui.js?v=20260820r4"></script>
-  <script src="bolkarigar.js?v=20260820r5"></script>
+  <script src="help-modules.js?v=20260820h1"></script>
+  <script src="voice-controller.js?v=20260820v4"></script>
+  <script src="bolkarigar.js?v=20260820v3"></script>
   <script src="subscription-ui.js?v=20260814v7"></script>
-  <script src="dev-plan-toggle.js?v=20260814v7"></script>
+  <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>
   <script src="bolkarigar-pro.js?v=20260814v3"></script>
   <script src="live-features-ui.js?v=20260814v3"></script>

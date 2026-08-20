@@ -1,6 +1,5 @@
 /**
  * Dev UI — top bar se ₹349 Pro / ₹699 Business switch (testing only).
- * Baad me is file + HTML bar hata dena.
  */
 (function () {
   const API = () => window.location.origin;
@@ -8,7 +7,14 @@
 
   function isLocalHost() {
     const h = location.hostname;
-    return h === "localhost" || h === "127.0.0.1";
+    return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
+  }
+
+  function isDevPlanForced() {
+    if (isLocalHost()) return true;
+    if (new URLSearchParams(location.search).get("devPlan") === "1") return true;
+    if (localStorage.getItem("bk_dev_plan") === "1") return true;
+    return false;
   }
 
   function updateHighlight(me) {
@@ -24,6 +30,10 @@
 
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
+    if (!getToken()) {
+      alert("Pehle login karein — phir ₹349 / ₹699 test kar sakte hain.");
+      return;
+    }
     try {
       const res = await fetch(`${API()}/api/dev/switch-plan`, {
         method: "POST",
@@ -57,18 +67,25 @@
     const bar = document.getElementById("devPlanToggleBar");
     if (!bar) return;
 
-    let enabled = isLocalHost();
-    try {
-      const res = await fetch(`${API()}/api/dev/plan-toggle`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        enabled = !!data.enabled;
-      }
-    } catch (_) { /* ignore */ }
+    let enabled = isDevPlanForced();
 
-    if (!enabled) return;
+    if (!enabled) {
+      try {
+        const res = await fetch(`${API()}/api/dev/plan-toggle`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          enabled = !!data.enabled;
+        }
+      } catch (_) { /* ignore */ }
+    }
+
+    if (!enabled) {
+      bar.classList.add("hidden");
+      document.body.classList.remove("has-dev-plan-toggle");
+      return;
+    }
 
     bar.classList.remove("hidden");
     document.body.classList.add("has-dev-plan-toggle");

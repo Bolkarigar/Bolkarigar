@@ -50,7 +50,8 @@ const SUBSCRIPTION_EXEMPT_PATHS = [
   '/api/payment/create-order',
   '/api/payment/verify',
   '/api/dev/plan-toggle',
-  '/api/dev/switch-plan'
+  '/api/dev/switch-plan',
+  '/api/voice/parse'
 ];
 
 function addDays(date, days) {

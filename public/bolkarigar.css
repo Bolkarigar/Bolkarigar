@@ -854,6 +854,24 @@ textarea.form-input {
   border-color: var(--accent);
 }
 
+.voice-btn.voice-active {
+  background: #16a34a !important;
+  color: #fff !important;
+  animation: voicePulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+}
+@keyframes voicePulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.15); }
+}
+
+.voice-buffer-hint {
+  font-size: 0.85rem;
+  color: #16a34a;
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+
 .speak-card-btn {
   flex-shrink: 0;
   padding: 6px 12px;
@@ -865,6 +883,27 @@ textarea.form-input {
   cursor: pointer;
   font-weight: 600;
 }
+
+.help-plan-badge {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.help-plan-badge.pro {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+.help-plan-badge.business {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
 .manual-card > div:first-child {
   display: flex;
   justify-content: space-between;
@@ -1086,16 +1125,19 @@ textarea.form-input {
 
 /* DEV ONLY — plan UI toggle bar (testing) */
 .dev-plan-toggle {
+  position: sticky;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 8px 16px;
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.15));
-  border-bottom: 2px dashed rgba(245, 158, 11, 0.55);
+  padding: 10px 16px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.35), rgba(234, 88, 12, 0.25));
+  border-bottom: 2px dashed rgba(245, 158, 11, 0.75);
   font-size: 13px;
-  z-index: 1200;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .dev-plan-toggle.hidden { display: none; }
 .dev-plan-toggle-label {
