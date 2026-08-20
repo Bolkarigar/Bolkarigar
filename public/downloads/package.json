@@ -1,0 +1,17 @@
+{
+  "name": "bolkarigar-tally-agent",
+  "version": "1.0.0",
+  "description": "BolKarigar Desktop Agent — Tally Prime ko cloud app se connect karta hai",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "build-exe": "pkg agent.js --targets node18-win-x64 --output BolKarigarTallyAgent.exe"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}

@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="hi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>BolKarigar AI Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="stylesheet" href="bolkarigar.css?v=20260820r5">
+</head>
+<body>
+  <script>
+    // Purani cache / service worker hatao — naya UI load ho
+    (function () {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister(); });
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function (keys) {
+          keys.filter(function (k) { return k.indexOf('bolkarigar-') === 0; }).forEach(function (k) { caches.delete(k); });
+        });
+      }
+    })();
+  </script>
+  <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" aria-label="Menu kholen" aria-expanded="false" aria-controls="appSidebar">
+      <span class="mobile-menu-icon" aria-hidden="true"></span>
+    </button>
+    <div class="brand-wrap">
+      <div class="brand-mark">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="8" y="8" width="48" height="48" rx="14" fill="none" stroke="currentColor" stroke-width="5"></rect>
+          <path d="M18 39V23h13c5 0 8.5 2.9 8.5 8s-3.5 8-8.5 8H18z" fill="none" stroke="currentColor" stroke-width="4"></path>
+          <path d="M26 23v16" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+          <path d="M42 22c5 4 5 16 0 20" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <div>
+        <p class="eyebrow">Hindi Voice-First Contractor Tool</p>
+        <h1>BolKarigar AI Dashboard</h1>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div id="staffModeBanner" class="staff-mode-banner hidden" role="status">
+        <span class="staff-mode-dot"></span>
+        <span id="staffModeText">Staff Mode</span>
+      </div>
+      <div class="clock-box">
+        <span>Live time</span>
+        <strong id="clock">00:00:00</strong>
+      </div>
+      <button id="voiceToggle" class="theme-btn voice-btn" type="button">Voice: OFF</button>
+      <!-- 🟢 NAYA: Business Profile Settings — Invoice tab se nikaal ke
+           alag modal button banaya, "owner-only-plan" class se ye
+           automatically staff accounts ke liye hide ho jayega -->
+      <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button">🏢 Business Profile</button>
+      <!-- 🟢 LIVE AI — BolKarigar Smart AI Assistant button (naya feature). Pasand na aaye to yeh <button> line hata do. -->
+      <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);">🤖 AI Assistant</button>
+      <!-- 🟢 LIVE AI button END -->
+      <button id="themeToggle" class="theme-btn" type="button">Light</button>
+      <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;">Logout</button>
+    </div>
+  </header>
+
+  <!-- DEV ONLY: testing ke baad is poora block + dev-plan-toggle.js hata dena -->
+  <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
+    <span class="dev-plan-toggle-label">🧪 TEST UI</span>
+    <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">₹349 Pro</button>
+    <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹699 Business</button>
+    <span id="devPlanActiveLabel" class="dev-plan-active-label"></span>
+  </div>
+
+  <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
+    <span id="subscriptionBannerText"></span>
+    <button type="button" id="subscriptionBannerAction" class="subscription-banner-btn owner-only-plan">Mera Plan</button>
+  </div>
+
+  <div id="subscriptionPaywall" class="subscription-paywall hidden">
+    <div class="subscription-paywall-card">
+      <h3>⏰ Free Trial Khatam</h3>
+      <p id="subscriptionPaywallText">Aapke 3 din ka Pro trial khatam ho gaya. App use karne ke liye plan renew karein.</p>
+      <p class="helper-text">Staff/Cashier ko alag se kharidne ki zaroorat nahi — sirf malik plan leta hai.</p>
+      <div class="btn-row" style="justify-content:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
+        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">💳 Pro — ₹349 / month</button>
+        <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹699 / month</button>
+      </div>
+      <p class="helper-text" style="margin-top:12px;">Test Mode: <strong>UPI recommended</strong> — <code>success@razorpay</code> (card kabhi international error de sakta hai)</p>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Voice + Business Utility</p>
+        <h2>Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
+        <p>Voice ON karke bolo: “open todo list”, “open gallery”, “open qr tool”, “overview”, “dark mode on”, “dark mode off”.</p>
+        <div class="hero-badges">
+          <span>Voice Ready</span>
+          <span>Invoice Tools</span>
+          <span>Project Tracking</span>
+          <span>Responsive UI</span>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-card"><span>Modules</span><strong>20+</strong></div>
+        <div class="stat-card"><span>Voice Parsing</span><strong>Yes</strong></div>
+        <div class="stat-card"><span>Auto Mic</span><strong>Toggle</strong></div>
+      </div>
+    </section>
+
+    <section class="dashboard-layout">
+      <aside id="appSidebar" class="sidebar" aria-label="App navigation">
+        <div class="sidebar-nav-scroll">
+          <div class="nav-group">
+            <p class="nav-group-label">Main</p>
+            <button class="tab-btn active" data-tab="overviewPanel" type="button">🏠 Overview</button>
+            <button class="tab-btn" data-tab="invoicePanel" type="button">🧾 Invoice</button>
+            <button class="tab-btn" data-tab="voicePanel" type="button">🎤 Voice AI</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Business</p>
+            <button class="tab-btn" data-tab="projectPanel" type="button">📁 Projects</button>
+            <button class="tab-btn" data-tab="inventoryPanel" type="button">📦 Inventory</button>
+            <button class="tab-btn" data-tab="totalSalesPanel" type="button">📊 Total Sales</button>
+            <button class="tab-btn" data-tab="contractorPanel" type="button">👷 Contractor</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Accounting</p>
+            <button class="tab-btn" data-tab="ledgerPanel" type="button">📖 Udhar Khata</button>
+            <button class="tab-btn" data-tab="khataLedgersPanel" type="button">📒 Ledgers</button>
+            <button class="tab-btn" data-tab="khataItemsPanel" type="button">📦 Stock Items</button>
+            <button class="tab-btn" data-tab="khataVoucherPanel" type="button">🧾 New Voucher</button>
+            <button class="tab-btn" data-tab="khataDaybookPanel" type="button">📅 Day Book</button>
+            <button class="tab-btn" data-tab="reportsProPanel" type="button">📈 Reports Pro</button>
+            <button class="tab-btn" data-tab="bankReconPanel" type="button">🏦 Bank Recon</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Tools</p>
+            <button class="tab-btn" data-tab="galleryPanel" type="button">🖼️ Gallery</button>
+            <button class="tab-btn" data-tab="todoPanel" type="button">✅ Todo</button>
+            <button class="tab-btn" data-tab="qrPanel" type="button">📱 QR Tool</button>
+            <button class="tab-btn" data-tab="calcPanel" type="button">🔢 Calculator</button>
+            <button class="tab-btn" data-tab="converterPanel" type="button">🔄 Converter</button>
+            <button class="tab-btn" data-tab="notesPanel" type="button">📝 Notes</button>
+            <button class="tab-btn" data-tab="mediaPanel" type="button">📷 Media</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Settings</p>
+            <button class="tab-btn" data-tab="staffPanel" type="button">👥 Staff</button>
+            <button class="tab-btn owner-only-plan" data-tab="myPlanPanel" type="button">💳 My Plan</button>
+            <button class="tab-btn" data-tab="companiesPanel" type="button">🏢 Companies</button>
+            <button class="tab-btn" data-tab="helpPanel" type="button">❓ Help</button>
+            <button id="installAppBtn" class="tab-btn sidebar-install-btn" type="button">📱 Install App</button>
+          </div>
+        </div>
+
+        <details class="sidebar-tally-card">
+          <summary>💻 Tally Sync Agent</summary>
+          <div class="sidebar-tally-body">
+            <p class="helper-text">Cloud server par Tally sync ke liye apne PC par Agent chalao.</p>
+            <a href="/downloads/BolKarigarTallyAgent.exe" download class="tally-dl-link">📥 Download Agent (.exe)</a>
+            <p class="helper-text" style="margin-top:8px;">Pairing Token:</p>
+            <div class="tally-token-row">
+              <code id="agentTokenDisplay">Loading...</code>
+              <button type="button" id="copyAgentTokenBtn" class="tally-copy-btn">Copy</button>
+            </div>
+            <button type="button" id="regenerateAgentTokenBtn" class="tally-reset-btn">⚠️ Reset Token</button>
+          </div>
+        </details>
+      </aside>
+
+      <section class="panel-area">
+        <!-- OVERVIEW PANEL WITH AI ACCOUNTANT CARDS -->
+        <section class="panel active" id="overviewPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Dashboard Summary</p>
+              <h3>AI Accountant & Business Overview</h3>
+            </div>
+          </div>
+          <div id="dataStatusBanner" class="hidden" style="margin-bottom:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);font-size:13px;line-height:1.5;"></div>
+          
+          <!-- AI Accountant Cards -->
+    <div class="grid-2" style="margin-bottom: 20px;">
+  <!-- Total Sales -->
+  <div class="mini-card" style="border-left: 4px solid #10b981; background: var(--card2);">
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Sales (बिक्री)</p>
+    <h2 id="totalSalesVal" style="color: #10b981; margin: 5px 0;">₹0.00</h2>
+  </div>
+
+  <!-- Total Expense (ID fix kar di gayi hai: totalExpenseVal) -->
+  <div class="mini-card" style="border-left: 4px solid #ef4444; background: var(--card2);">
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Expense (खर्चा)</p>
+    <h2 id="totalExpenseVal" style="color: #ef4444; margin: 5px 0;">₹0.00</h2>
+  </div>
+
+  <!-- Net Profit / Loss -->
+  <div class="mini-card" style="border-left: 4px solid #3b82f6; background: var(--card2);">
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Net Profit / Loss (मुनाफा/घाटा)</p>
+    <h2 id="netProfitVal" style="color: #3b82f6; margin: 5px 0;">₹0.00</h2>
+  </div>
+
+  <!-- Total Udhar -->
+  <div class="mini-card" style="border-left: 4px solid #f59e0b; background: var(--card2);">
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Udhar (कुल बकाया)</p>
+    <h2 id="totalUdharVal" style="color: #f59e0b; margin: 5px 0;">₹0.00</h2>
+  </div>
+</div>
+
+          <div id="lowStockAlertBox" class="hidden" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.1);font-size:13px;"></div>
+
+          <p class="nav-group-label" style="margin:16px 0 8px;">📅 Aaj ka Hisaab (Daily Summary)</p>
+          <div class="grid-2" style="margin-bottom:12px;">
+            <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #f59e0b;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Udhar Sale</p><h3 id="dailyCreditVal" style="margin:4px 0;color:#f59e0b;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #3b82f6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Collection</p><h3 id="dailyCollectionsVal" style="margin:4px 0;color:#3b82f6;">₹0.00</h3></div>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Aaj ke bills: <strong id="dailyInvoiceCount">0</strong> &nbsp;|&nbsp; <button type="button" id="refreshDailyBtn" class="secondary" style="padding:4px 10px;font-size:12px;">🔄 Refresh</button></p>
+
+          <div class="overview-grid">
+            <div class="mini-card"><h4>Voice Command</h4><p>Mic se command bolkar tabs open karo aur bills banao.</p></div>
+            <div class="mini-card"><h4>Project Tracker</h4><p>Customer, site, budget aur status ke saath project save karo.</p></div>
+            <div class="mini-card"><h4>Expense + Invoice</h4><p>Rate, quantity aur total automatic calculate hota hai.</p></div>
+            <div class="mini-card"><h4>Utility Pack</h4><p>Todo, notes, QR, calculator, converter aur media tools included hain.</p></div>
+          </div>
+        </section>
+
+        <!-- VOICE PANEL -->
+        <section class="panel" id="voicePanel">
+          <div class="panel-header"><div><p class="eyebrow">Speech input</p><h3>Voice Command Panel</h3></div></div>
+          <div class="voice-grid">
+            <div class="mini-card"><h4>Try commands</h4><p>“Open todo list”</p><p>“Open qr tool”</p><p>“Dark mode on”</p><p>“Overview”</p></div>
+            <div class="mini-card"><h4>Voice status</h4><p id="voiceStatus">Voice system ready.</p></div>
+          </div>
+          <div class="btn-row">
+            <button id="startVoiceBtn" type="button">Start Listening</button>
+            <button id="stopVoiceBtn" class="secondary" type="button">Stop</button>
+            <button id="sampleInvoiceCmdBtn" class="secondary" type="button">Sample Invoice</button>
+            <button id="sampleProjectCmdBtn" class="secondary" type="button">Sample Project</button>
+            <button id="sampleExpenseCmdBtn" class="secondary" type="button">Sample Expense</button>
+          </div>
+          <textarea id="voiceTranscript" rows="4" placeholder="Voice transcript will appear here..."></textarea>
+          <div class="grid-2">
+            <input type="text" id="voiceCustomer" placeholder="Parsed customer name" />
+            <input type="text" id="voiceProduct" placeholder="Parsed product / item" />
+            <input type="number" id="voicePrice" placeholder="Parsed price / amount" />
+            <input type="number" id="voiceQty" placeholder="Parsed quantity" />
+            <input type="text" id="voiceProject" placeholder="Parsed project name" />
+            <input type="text" id="voiceVendor" placeholder="Parsed vendor / source" />
+          </div>
+          <div class="btn-row">
+            <button id="fillVoiceToInvoiceBtn" type="button">Fill Invoice</button>
+            <button id="fillVoiceToProjectBtn" type="button">Fill Project</button>
+            <button id="fillVoiceToExpenseBtn" type="button">Fill Expense</button>
+            <button id="clearVoiceBtn" class="secondary" type="button">Clear Voice</button>
+          </div>
+          <div class="result-box" id="voiceResult">Parsed voice data will appear here.</div>
+        </section>
+
+        <!-- PROJECT PANEL -->
+        <section class="panel" id="projectPanel"><div class="panel-header"><div><p class="eyebrow">Client work</p><h3>Project Tracker</h3></div></div><div class="grid-2"><input type="text" id="projectName" placeholder="Project name" /><input type="text" id="projectCustomer" placeholder="Customer name" /><input type="text" id="projectSite" placeholder="Site / location" /><input type="number" id="projectBudget" placeholder="Budget" /><select id="projectStatus"><option value="planning">Planning</option><option value="running">Running</option><option value="completed">Completed</option></select><input type="text" id="projectNote" placeholder="Short note" /></div><div class="btn-row"><button id="addProjectBtn" type="button">Add Project</button><button id="clearProjectBtn" class="secondary" type="button">Clear Projects</button></div><p class="helper-text" id="projectStatusText">Projects will appear below.</p><div id="projectList" class="project-list"></div><div class="expense-box"><h4>Quick Expense Entry</h4><div class="grid-2"><input type="text" id="expenseTitle" placeholder="Expense title" /><input type="text" id="expenseVendor" placeholder="Vendor name" /><input type="number" id="expenseAmount" placeholder="Amount" /><input type="text" id="expenseProjectLink" placeholder="Project reference" /></div><div class="btn-row"><button id="addExpenseBtn" type="button">Add Expense</button><button id="clearExpenseBtn" class="secondary" type="button">Clear Expenses</button></div><div class="table-wrap"><table><thead><tr><th>Title</th><th>Vendor</th><th>Amount</th><th>Project</th></tr></thead><tbody id="expenseBody"></tbody></table></div></div></section>
+
+        <!-- INVENTORY / STOCK PANEL — Vyapar-style professional tracker -->
+        <section class="panel" id="inventoryPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Stock Management</p>
+              <h3>📦 Smart Inventory Tracker</h3>
+              <p class="helper-text">Invoice / voucher se stock auto update — HSN, GST, godown &amp; low-stock alert (India standard)</p>
+            </div>
+            <button type="button" id="invRefreshBtn" class="secondary">🔄 Refresh</button>
+          </div>
+
+          <div class="inv-stats-grid" id="invStatsGrid">
+            <div class="inv-stat-card"><span>Total Items</span><strong id="invStatTotal">0</strong></div>
+            <div class="inv-stat-card"><span>Stock Value (Cost)</span><strong id="invStatValue">₹0</strong></div>
+            <div class="inv-stat-card"><span>Sale Value</span><strong id="invStatSale">₹0</strong></div>
+            <div class="inv-stat-card warn"><span>Low Stock</span><strong id="invStatLow">0</strong></div>
+            <div class="inv-stat-card danger"><span>Out of Stock</span><strong id="invStatOut">0</strong></div>
+          </div>
+
+          <div class="inv-form-card">
+            <h4 id="invFormTitle">➕ Naya Item Add Karein</h4>
+            <input type="hidden" id="invEditId" value="" />
+            <div class="grid-2 inv-form-grid">
+              <label class="inv-field inv-field-span2">
+                <span class="inv-label">Item Name *</span>
+                <input type="text" id="invItemName" placeholder="e.g. Birla Putty 20kg, Cement 50kg" />
+              </label>
+
+              <label class="inv-field inv-field-span2">
+                <span class="inv-label">Unit</span>
+                <div class="inv-chip-group" id="invUnitChips" role="group" aria-label="Unit select">
+                  <button type="button" class="inv-chip active" data-value="Pcs">Pcs</button>
+                  <button type="button" class="inv-chip" data-value="Kg">Kg</button>
+                  <button type="button" class="inv-chip" data-value="Box">Box</button>
+                  <button type="button" class="inv-chip" data-value="Bag">Bag</button>
+                  <button type="button" class="inv-chip" data-value="Ltr">Ltr</button>
+                  <button type="button" class="inv-chip" data-value="Mtr">Mtr</button>
+                  <button type="button" class="inv-chip" data-value="Dozen">Dozen</button>
+                  <button type="button" class="inv-chip" data-value="Quintal">Quintal</button>
+                </div>
+                <input type="hidden" id="invUnit" value="Pcs" />
+              </label>
+
+              <label class="inv-field">
+                <span class="inv-label">HSN Code</span>
+                <input type="text" id="invHsn" placeholder="e.g. 2523" maxlength="8" />
+              </label>
+
+              <label class="inv-field">
+                <span class="inv-label">GST %</span>
+                <div class="inv-chip-group inv-chip-group-compact" id="invGstChips" role="group" aria-label="GST select">
+                  <button type="button" class="inv-chip active" data-value="0">0%</button>
+                  <button type="button" class="inv-chip" data-value="5">5%</button>
+                  <button type="button" class="inv-chip" data-value="12">12%</button>
+                  <button type="button" class="inv-chip" data-value="18">18%</button>
+                  <button type="button" class="inv-chip" data-value="28">28%</button>
+                </div>
+                <input type="hidden" id="invGst" value="0" />
+              </label>
+
+              <label class="inv-field">
+                <span class="inv-label">Purchase Rate (₹)</span>
+                <input type="number" id="invPurchase" placeholder="Cost price" min="0" step="0.01" />
+              </label>
+              <label class="inv-field">
+                <span class="inv-label">Selling Rate (₹)</span>
+                <input type="number" id="invSelling" placeholder="Sale price" min="0" step="0.01" />
+              </label>
+              <label class="inv-field">
+                <span class="inv-label">Opening Qty</span>
+                <input type="number" id="invOpening" placeholder="Stock quantity" min="0" step="0.01" />
+              </label>
+              <label class="inv-field">
+                <span class="inv-label">Low Stock Alert</span>
+                <input type="number" id="invReorder" placeholder="Alert qty" min="0" value="5" />
+              </label>
+              <label class="inv-field">
+                <span class="inv-label">Godown</span>
+                <input type="text" id="invGodown" placeholder="Main Godown" value="Main Godown" />
+              </label>
+              <label class="inv-field">
+                <span class="inv-label">Batch No</span>
+                <input type="text" id="invBatch" placeholder="Optional" />
+              </label>
+            </div>
+            <div class="btn-row">
+              <button type="button" id="invSaveBtn">💾 Save Item</button>
+              <button type="button" id="invCancelEditBtn" class="secondary hidden">Cancel Edit</button>
+            </div>
+          </div>
+
+          <div class="inv-toolbar">
+            <input type="search" id="invSearch" placeholder="🔍 Item, HSN, godown search..." />
+            <div class="inv-filter-chips" id="invFilterChips" role="group" aria-label="Stock filter">
+              <button type="button" class="inv-chip active" data-filter="all">Sab</button>
+              <button type="button" class="inv-chip" data-filter="low">Low</button>
+              <button type="button" class="inv-chip" data-filter="out">Out</button>
+              <button type="button" class="inv-chip" data-filter="ok">In Stock</button>
+            </div>
+            <input type="hidden" id="invFilter" value="all" />
+          </div>
+
+          <div class="table-wrap inv-table-wrap">
+            <table class="inv-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>HSN</th>
+                  <th>Unit</th>
+                  <th>Qty</th>
+                  <th>Purchase ₹</th>
+                  <th>Sale ₹</th>
+                  <th>Stock Value</th>
+                  <th>GST%</th>
+                  <th>Godown</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryBody">
+                <tr><td colspan="11">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- NEW: UDHAR KHATA / LEDGER PANEL -->
+        <section class="panel" id="ledgerPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounts Receivable</p>
+              <h3>📖 Udhar Khata (Customer Ledger)</h3>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Total Billed</th>
+                  <th>Received</th>
+                  <th>Pending Udhar</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerBody">
+                <!-- Data populated dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- LEDGERS PANEL -->
+        <section class="panel" id="khataLedgersPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounting</p>
+              <h3>📒 Ledgers (Party / Customer)</h3>
+            </div>
+          </div>
+          <div class="grid-2">
+            <input id="ledgerNameInput" placeholder="Party / Ledger Name" />
+            <select id="ledgerGroupInput">
+              <option>Sundry Debtor</option>
+              <option>Sundry Creditor</option>
+              <option>Cash</option>
+              <option>Bank</option>
+              <option>Expense</option>
+              <option>Income</option>
+              <option>Capital</option>
+              <option>Fixed Asset</option>
+            </select>
+            <input id="ledgerMobileInput" placeholder="Mobile (optional)" />
+            <input id="ledgerGstinInput" placeholder="GSTIN (optional)" />
+            <input id="ledgerOpeningInput" type="number" placeholder="Opening Balance" />
+          </div>
+          <button id="addLedgerBtn" type="button">➕ Add Ledger</button>
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead><tr><th>Name</th><th>Group</th><th>Mobile</th><th>Balance</th><th>Action</th></tr></thead>
+              <tbody id="khataLedgersBody"></tbody>
+            </table>
+          </div>
+          <div class="khata-pagination">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="khataLedgersPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+              </select>
+              <span id="khataLedgersPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="khataLedgersPrevBtn" type="button">Previous</button>
+              <span id="khataLedgersPageIndicator" class="khata-page-indicator"></span>
+              <button id="khataLedgersNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- STOCK ITEMS PANEL -->
+        <section class="panel" id="khataItemsPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounting</p>
+              <h3>📦 Stock / Items</h3>
+            </div>
+          </div>
+          <div class="grid-2">
+            <input id="itemNameInput" placeholder="Item Name" />
+            <input id="itemUnitInput" placeholder="Unit (Pcs/Kg/Box...)" />
+            <input id="itemHsnInput" placeholder="HSN Code (optional)" />
+            <input id="itemGstRateInput" type="number" placeholder="GST %" />
+            <input id="itemPurchasePriceInput" type="number" placeholder="Purchase Price" />
+            <input id="itemSellingPriceInput" type="number" placeholder="Selling Price" />
+            <input id="itemOpeningStockInput" type="number" placeholder="Opening Stock Qty" />
+            <input id="itemGodownInput" placeholder="Godown (e.g. Main Godown)" />
+            <input id="itemBatchInput" placeholder="Batch No (optional)" />
+          </div>
+          <button id="addItemBtn" type="button">➕ Add Item</button>
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead><tr><th>Item</th><th>Unit</th><th>Purchase ₹</th><th>Selling ₹</th><th>Stock Qty</th><th>Action</th></tr></thead>
+              <tbody id="khataItemsBody"></tbody>
+            </table>
+          </div>
+          <div class="khata-pagination">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="khataItemsPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+              </select>
+              <span id="khataItemsPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="khataItemsPrevBtn" type="button">Previous</button>
+              <span id="khataItemsPageIndicator" class="khata-page-indicator"></span>
+              <button id="khataItemsNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- NEW VOUCHER PANEL -->
+        <section class="panel" id="khataVoucherPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounting</p>
+              <h3>🧾 New Voucher</h3>
+              <p class="helper-text">Tally / Vyapar style — Sales, Purchase (GST bill), Payment, Receipt</p>
+            </div>
+          </div>
+
+          <div class="voucher-form-card">
+            <label class="voucher-label" for="voucherTypeInput">Voucher Type *</label>
+            <select id="voucherTypeInput" class="voucher-type-select">
+              <option value="Sales">Sales (F8)</option>
+              <option value="Purchase">Purchase (F9) — Stock + Supplier Bill</option>
+              <option value="Payment">Payment (F5)</option>
+              <option value="Receipt">Receipt (F6)</option>
+              <option value="Journal">Journal</option>
+              <option value="Contra">Contra (Cash ↔ Bank)</option>
+              <option value="Debit Note">Debit Note</option>
+              <option value="Credit Note">Credit Note</option>
+            </select>
+
+            <!-- Purchase Bill — India GST standard (Vyapar/Tally) -->
+            <div id="voucherPurchaseFields" class="voucher-purchase-section hidden">
+              <p class="voucher-section-title">📥 Purchase Bill Details (GST India)</p>
+              <div class="grid-2">
+                <label class="voucher-field">
+                  <span class="voucher-label">Supplier Invoice No. *</span>
+                  <input type="text" id="voucherBillNoInput" placeholder="e.g. INV-2026-001" maxlength="32" />
+                </label>
+                <label class="voucher-field">
+                  <span class="voucher-label">Bill Date</span>
+                  <input type="date" id="voucherDateInput" />
+                </label>
+                <label class="voucher-field">
+                  <span class="voucher-label">Supplier GSTIN</span>
+                  <input type="text" id="voucherSupplierGstinInput" placeholder="15 digit GSTIN (optional)" maxlength="15" />
+                </label>
+                <label class="voucher-field">
+                  <span class="voucher-label">Payment Mode</span>
+                  <select id="voucherPaymentModeInput">
+                    <option value="Credit">Credit / Udhar (Sundry Creditor)</option>
+                    <option value="Cash">Cash — Paid</option>
+                    <option value="Bank">Bank — Paid</option>
+                    <option value="UPI">UPI — Paid</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid-2 voucher-party-grid">
+              <label class="voucher-field voucher-field-span2" id="voucherPartyField">
+                <span class="voucher-label" id="voucherPartyLabel">Party / Ledger *</span>
+                <select id="voucherPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+              </label>
+              <label class="voucher-field voucher-field-span2 hidden" id="voucherSecondaryWrap">
+                <span class="voucher-label">Second Ledger (Journal / Contra) *</span>
+                <select id="voucherSecondaryInput"><option value="">-- Select Second Ledger --</option></select>
+              </label>
+            </div>
+
+            <div id="voucherStockFields" class="grid-2 voucher-stock-grid">
+              <label class="voucher-field voucher-field-span2">
+                <span class="voucher-label">Stock Item (Sales / Purchase)</span>
+                <select id="voucherItemInput"><option value="">-- Select Item --</option></select>
+              </label>
+              <label class="voucher-field">
+                <span class="voucher-label">Quantity</span>
+                <input id="voucherQtyInput" type="number" min="0" step="0.01" placeholder="Qty" />
+              </label>
+              <label class="voucher-field">
+                <span class="voucher-label" id="voucherRateLabel">Rate ₹</span>
+                <input id="voucherRateInput" type="number" min="0" step="0.01" placeholder="Rate per unit" />
+              </label>
+              <label class="voucher-field" id="voucherGstField">
+                <span class="voucher-label">GST %</span>
+                <select id="voucherGstInput">
+                  <option value="0">0%</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18" selected>18%</option>
+                  <option value="28">28%</option>
+                </select>
+              </label>
+              <label class="voucher-field">
+                <span class="voucher-label">Total Amount ₹ *</span>
+                <input id="voucherAmountInput" type="number" min="0" step="0.01" placeholder="Auto from Qty × Rate + GST" />
+              </label>
+            </div>
+
+            <label class="voucher-field" style="margin-top:10px;">
+              <span class="voucher-label">Narration / Note</span>
+              <textarea id="voucherNoteInput" placeholder="e.g. Cement 50 bags — godown main" rows="2"></textarea>
+            </label>
+
+            <button id="saveVoucherBtn" type="button">💾 Save Voucher</button>
+            <p class="helper-text" id="voucherStatusText"></p>
+          </div>
+        </section>
+
+        <!-- DAY BOOK PANEL -->
+        <section class="panel" id="khataDaybookPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounting</p>
+              <h3>📅 Day Book</h3>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Party</th><th>Amount</th><th>Note</th><th>Sync</th></tr></thead>
+              <tbody id="khataDaybookBody"></tbody>
+            </table>
+          </div>
+          <div class="khata-pagination">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="khataDaybookPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+              </select>
+              <span id="khataDaybookPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="khataDaybookPrevBtn" type="button">Previous</button>
+              <span id="khataDaybookPageIndicator" class="khata-page-indicator"></span>
+              <button id="khataDaybookNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 🟢 TOTAL SALES HISTORY PANEL — permanent record, kabhi delete nahi
+             hota (Invoice draft table se bilkul alag) -->
+        <section class="panel" id="totalSalesPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Permanent Record</p>
+              <h3>📊 Total Sales History (2 Years Archive)</h3>
+            </div>
+            <input type="text" id="salesSearchInput" class="panel-search-input" placeholder="🔍 Naam ya Invoice No..." />
+          </div>
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th><th>Invoice No</th><th>Customer Name</th><th>Product</th>
+                  <th>Qty</th><th>Total Amount</th><th>Payment Type</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="salesHistoryBody">
+                <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-pagination-bar">
+            <span id="salesPaginationInfo" class="helper-text"></span>
+            <div class="btn-row">
+              <button id="salesPrevBtn" type="button">Previous</button>
+              <span id="salesPageIndicator" style="padding:8px 14px;font-weight:700;"></span>
+              <button id="salesNextBtn" type="button">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 🟢 REPORTS PRO — GSTR, P&L, Balance Sheet, Ageing, Cash Flow -->
+        <section class="panel" id="reportsProPanel">
+          <div class="panel-header"><div><p class="eyebrow">Professional Reports</p><h3>📈 Reports Pro</h3></div></div>
+          <div class="grid-2" style="margin-bottom:12px;">
+            <select id="reportMonth"><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>
+            <input id="reportYear" type="number" placeholder="Year" value="2026" />
+          </div>
+          <div class="btn-row" id="reportTabs">
+            <button class="report-tab-btn active" data-report="pl" type="button">P&L</button>
+            <button class="report-tab-btn" data-report="bs" type="button">Balance Sheet</button>
+            <button class="report-tab-btn" data-report="ageing" type="button">Ageing</button>
+            <button class="report-tab-btn" data-report="cashflow" type="button">Cash Flow</button>
+            <button class="report-tab-btn" data-report="gstr1" type="button">GSTR-1</button>
+            <button class="report-tab-btn" data-report="gstr3b" type="button">GSTR-3B</button>
+          </div>
+          <div class="btn-row"><button id="loadReportBtn" type="button">Load Report</button><button id="importTallyBtn" class="secondary" type="button">⬇ Import from Tally</button></div>
+          <div id="reportOutput" class="table-wrap" style="margin-top:15px; padding:12px;"></div>
+        </section>
+
+        <!-- 🟢 CONTRACTOR — Labour, RA Bill, Material Slip -->
+        <section class="panel" id="contractorPanel">
+          <div class="panel-header"><div><p class="eyebrow">Construction / Contractor</p><h3>👷 Contractor Tools</h3></div></div>
+          <div class="btn-row">
+            <button class="contractor-subtab-btn active" data-sub="labourSub" type="button">Labour Attendance</button>
+            <button class="contractor-subtab-btn" data-sub="raBillSub" type="button">RA Bill</button>
+            <button class="contractor-subtab-btn" data-sub="materialSlipSub" type="button">Material Slip</button>
+          </div>
+          <div class="contractor-subpanel active" id="labourSub">
+            <div class="grid-2">
+              <input id="labourNameInput" placeholder="Worker Name" />
+              <input id="labourProjectInput" placeholder="Project Name" />
+              <select id="labourStatusInput"><option>Present</option><option>Absent</option><option>Half Day</option><option>Overtime</option></select>
+              <input id="labourWageInput" type="number" placeholder="Daily Wage ₹" />
+            </div>
+            <button id="addLabourBtn" type="button">➕ Mark Attendance</button>
+            <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Date</th><th>Worker</th><th>Project</th><th>Status</th><th>Wage</th><th></th></tr></thead><tbody id="labourBody"></tbody></table></div>
+          </div>
+          <div class="contractor-subpanel" id="raBillSub">
+            <div class="grid-2">
+              <input id="raProjectInput" placeholder="Project Name" />
+              <input id="raClientInput" placeholder="Client Name" />
+              <input id="raWorkInput" placeholder="Work Description" />
+              <input id="raAmountInput" type="number" placeholder="Amount ₹" />
+            </div>
+            <button id="addRABillBtn" type="button">➕ Create RA Bill</button>
+            <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Bill No</th><th>Project</th><th>Client</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody id="raBillBody"></tbody></table></div>
+          </div>
+          <div class="contractor-subpanel" id="materialSlipSub">
+            <div class="grid-2">
+              <input id="msProjectInput" placeholder="Project Name" />
+              <input id="msItemInput" placeholder="Material Name" />
+              <input id="msQtyInput" type="number" placeholder="Quantity" />
+              <input id="msIssuedToInput" placeholder="Issued To (Mistri/Team)" />
+            </div>
+            <button id="addMaterialSlipBtn" type="button">➕ Issue Material Slip</button>
+            <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Slip No</th><th>Project</th><th>Item</th><th>Qty</th><th>Issued To</th><th></th></tr></thead><tbody id="materialSlipBody"></tbody></table></div>
+          </div>
+        </section>
+
+        <!-- 🟢 STAFF / MULTI-USER -->
+        <section class="panel" id="staffPanel">
+          <div class="panel-header"><div><p class="eyebrow">Team Management</p><h3>👥 Staff & Cashier Login</h3></div></div>
+          <p class="helper-text">Role ke hisaab se invite code generate karein — staff khud role choose nahi kar sakta (professional security).</p>
+          <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
+            <select id="inviteRoleSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+              <option value="cashier">Cashier — bill, udhar payment</option>
+              <option value="manager">Manager — reports, khata, tally</option>
+              <option value="staff">Staff — sirf bill + dekhna</option>
+            </select>
+            <button id="generateInviteBtn" type="button">🔑 Generate Invite Code</button>
+            <span>Code: <strong id="staffInviteCode">—</strong> <span id="staffInviteRoleLabel" class="beta-tag"></span></span>
+          </div>
+          <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr></thead><tbody id="staffListBody"></tbody></table></div>
+        </section>
+
+        <!-- MY PLAN (Owner only — pricing login se pehle dekhein) -->
+        <section class="panel" id="myPlanPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Subscription</p>
+              <h3>💳 Mera Plan</h3>
+            </div>
+          </div>
+          <div class="mini-card" style="margin-bottom:16px;">
+            <h4 id="myPlanStatus" style="margin:0 0 10px;">Loading...</h4>
+            <ul id="myPlanDetails" class="helper-text" style="line-height:1.8;padding-left:18px;"></ul>
+            <p id="myPlanStaffNote" class="helper-text" style="margin-top:12px;"></p>
+          </div>
+          <div id="myPlanRenewBox" class="mini-card" style="margin-bottom:16px;border:1px solid rgba(59,130,246,.35);">
+            <h4 style="margin:0 0 10px;">Plan Renew / Upgrade</h4>
+            <p class="helper-text" style="margin-bottom:12px;">Secure payment via Razorpay — UPI, Card, Netbanking</p>
+            <div class="btn-row" style="flex-wrap:wrap;gap:10px;">
+              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">💳 Pro Dukaan — ₹349 / 30 din</button>
+              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹699 / 30 din</button>
+            </div>
+          </div>
+          <div class="btn-row" style="flex-wrap:wrap;">
+            <a href="pricing.html" target="_blank" rel="noopener" class="secondary" style="padding:10px 16px;border-radius:8px;text-decoration:none;">📋 Plan Details (Website)</a>
+            <button type="button" id="refreshPlanBtn">🔄 Status Refresh</button>
+          </div>
+          <p class="helper-text" style="margin-top:14px;">Professional apps ki tarah: <strong>sirf malik plan kharidta hai</strong>. Staff/Cashier/Manager ko aap invite code dein — unhe alag payment nahi.</p>
+        </section>
+
+        <!-- 🟢 BANK RECONCILIATION -->
+        <section class="panel" id="bankReconPanel">
+          <div class="panel-header"><div><p class="eyebrow">Banking</p><h3>🏦 Bank Reconciliation</h3></div></div>
+          <div class="live-notice-banner">CSV import available — format: Date, Description, Debit, Credit. Auto-matching next update me.</div>
+          <div class="btn-row" style="margin-bottom:12px;">
+            <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
+            <span class="helper-text">Bank statement CSV upload karein</span>
+          </div>
+          <div class="grid-2">
+            <input id="bankDescInput" placeholder="Statement Description" />
+            <input id="bankDebitInput" type="number" placeholder="Debit ₹" />
+            <input id="bankCreditInput" type="number" placeholder="Credit ₹" />
+          </div>
+          <button id="addBankEntryBtn" type="button">➕ Add Bank Statement Entry</button>
+          <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Matched</th></tr></thead><tbody id="bankReconBody"></tbody></table></div>
+        </section>
+
+        <!-- 🟢 MULTI-COMPANY -->
+        <section class="panel" id="companiesPanel">
+          <div class="panel-header"><div><p class="eyebrow">Multi Business</p><h3>🏢 Companies</h3></div></div>
+          <div class="live-notice-banner">Beta — multiple companies add/switch kar sakte hain. Active company profile me sync hoti hai.</div>
+          <div class="grid-2">
+            <input id="coNameInput" placeholder="Company Name" />
+            <input id="coGstinInput" placeholder="GSTIN" />
+            <input id="coAddressInput" placeholder="Address" style="grid-column:1/-1" />
+          </div>
+          <button id="addCompanyBtn" type="button">➕ Add Company</button>
+          <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Company</th><th>GSTIN</th><th>Status</th><th>Action</th></tr></thead><tbody id="companiesBody"></tbody></table></div>
+        </section>
+
+
+        <!-- INVOICE PANEL -->
+ <!-- INVOICE PANEL WITH ACTION HEADER -->
+<!-- INVOICE PANEL WITH GST OPTION -->
+<section class="panel" id="invoicePanel">
+
+  <!-- INVOICE GENERATOR SECTION (SABBHI FIELDS AB ISKE ANDAR HAIN) -->
+  <div id="invoiceGeneratorSection" style="margin-top: 20px;">
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Sales helper</p>
+        <h3>Invoice Generator</h3>
+      </div>
+    </div>
+    
+    <!-- Grid layout mein GST Option -->
+    <div class="grid-2">
+      <input type="text" id="customerName" placeholder="Customer / Buyer name *" />
+      <div>
+        <input type="text" id="customerGstin" placeholder="Buyer GSTIN (optional, B2B ke liye)" maxlength="15" />
+        <small id="gstinHint" style="display:block; margin-top:3px; font-size:11px;"></small>
+      </div>
+      <input type="text" id="customerAddress" placeholder="Buyer address *" />
+     <!-- 🟢 SEARCHABLE BUYER STATE DROPDOWN -->
+<div class="custom-select-wrapper">
+  <label style="font-size: 11px; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 4px;">Buyer State / राज्य</label>
+  
+  <div class="custom-select-trigger" id="buyerStateTrigger" onclick="toggleStateDropdown()">
+    <span id="selectedStateText">-- Select Buyer State --</span>
+    <span class="arrow-icon">▼</span>
+  </div>
+
+  <div class="custom-select-dropdown" id="buyerStateDropdown">
+    <div class="select-search-box">
+      <input type="text" id="stateSearchInput" placeholder="🔍 Search state name..." oninput="filterStates()" autocomplete="off" />
+    </div>
+    <ul class="select-options-list" id="stateOptionsList">
+      <!-- Options JavaScript se populate honge -->
+    </ul>
+  </div>
+</div>
+<!-- Hidden input to hold selected value for JS/GST Calculation -->
+<input type="hidden" id="buyerState" value="" />
+<input type="text" id="buyerPincode" placeholder="Buyer Pincode (6 digit) *" maxlength="6" inputmode="numeric" />
+      <input type="text" id="productName" placeholder="Product name *" />
+      <input type="text" id="productHsn" placeholder="HSN/SAC code (optional)" />
+      <input type="number" id="productPrice" placeholder="Price (Excl. GST) *" min="0" step="0.01" />
+      <input type="number" id="productQty" placeholder="Quantity *" min="1" step="1" />
+
+      <!-- GST Dropdown Field -->
+      <select id="productGst" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card2); color: inherit;">
+        <option value="0">GST @ 0%</option>
+        <option value="5">GST @ 5%</option>
+        <option value="12">GST @ 12%</option>
+        <option value="18" selected>GST @ 18%</option>
+        <option value="28">GST @ 28%</option>
+      </select>
+      <select id="invoicePaymentType" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card2); color: inherit;">
+        <option value="Cash">💵 Cash (Paid)</option>
+        <option value="Credit">📖 Credit / Udhar</option>
+        <option value="UPI">📱 UPI (Paid)</option>
+        <option value="Bank">🏦 Bank (Paid)</option>
+      </select>
+    </div>
+<!-- 👇 E-WAY BILL SECTION KO YAHAN MOVED KARO 👇 -->
+<div class="eway-bill-section">
+  <label class="eway-bill-label">E-Way Bill & Transport Details (Optional)</label>
+  <div class="eway-bill-row">
+    <input type="text" id="ewayBillNo" placeholder="E-Way Bill No." />
+    <input type="text" id="vehicleNo" placeholder="Vehicle No. (e.g. HR36AB1234)" />
+    <input type="number" id="distanceKm" class="eway-distance-input" placeholder="Distance (KM)" />
+  </div>
+</div>
+    <!-- ⚙️ ACCOUNTING PREFERENCE SWITCH -->
+    <div id="accModeSection" class="acc-mode-section">
+      <strong style="font-size: 14px; color: var(--muted);">⚙️ Accounting Mode:</strong>
+      
+      <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: var(--text);">
+        <input type="radio" name="accMode" value="inbuilt" checked onclick="toggleTallyBtn(false)">
+        <span>BolKarigar Khata (In-House)</span>
+      </label>
+
+      <label id="tallyAccModeOption" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: var(--text);">
+        <input type="radio" name="accMode" value="tally" onclick="toggleTallyBtn(true)">
+        <span>Tally Prime (Laptop Integration)</span>
+      </label>
+    </div>
+
+    <div class="btn-row" style="margin-top:15px;">
+      <button id="addInvoiceBtn" type="button">Add item</button>
+      <button class="secondary" id="downloadInvoiceBtn" type="button">Download</button>
+      <button id="whatsappShareBtn" type="button" style="background:#25D366; color:white;">WhatsApp Share</button>
+      
+      <button id="tallySyncBtn" type="button" style="background:#0078D7; color:white; font-weight:bold; display:none;">
+        📊 Sync to Tally
+      </button>
+    </div>
+    
+    <p class="helper-text" id="invoiceStatus">Fill details and add items.</p>
+    
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>GST</th>
+            <th>Total (Incl. GST)</th>
+            <th style="text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceBody"></tbody>
+      </table>
+    </div>
+
+    <button 
+      type="button" 
+      onclick="printTallyBill()" 
+      style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 15px;">
+      🖨️ Print Tally Bill
+    </button>
+    <button type="button" onclick="printThermalBill()" style="background:#6366f1;color:#fff;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin-top:15px;margin-left:8px;">
+      🧾 Thermal Print (58mm)
+    </button>
+    <div class="invoice-total">Grand Total: ₹<span id="grandTotal">0.00</span></div>
+  </div>
+  <!-- INVOICE GENERATOR END -->
+
+</section>
+
+
+        <!-- GALLERY PANEL -->
+        <section class="panel" id="galleryPanel">
+          <div class="panel-header"><div><p class="eyebrow">Products</p><h3>Product Gallery</h3></div></div>
+          <div class="btn-row">
+            <input type="file" id="galleryFileInput" accept="image/*" style="display:none" />
+            <button id="galleryUploadBtn" type="button">📷 Upload Photo</button>
+          </div>
+          <p class="helper-text" id="galleryStatusText">Apni product photos yahan upload karein.</p>
+          <div class="gallery-viewer"><img id="mainGalleryImage" src="" alt="Main product preview" style="display:none" /></div>
+          <div class="gallery-thumbs" id="galleryThumbs"></div>
+        </section>
+
+        <!-- TODO PANEL -->
+        <section class="panel" id="todoPanel"><div class="panel-header"><div><p class="eyebrow">Task manager</p><h3>Todo Manager</h3></div></div><input type="text" id="todoInput" placeholder="Add a task..." /><div class="btn-row"><button id="addTodoBtn" type="button">Add task</button><button class="secondary" id="clearTodoBtn" type="button">Clear all</button></div><p class="helper-text" id="todoStatus">Your tasks will appear below.</p><ul id="todoList" class="todo-list"></ul></section>
+
+        <!-- QR PANEL -->
+        <section class="panel" id="qrPanel"><div class="panel-header"><div><p class="eyebrow">QR sharing</p><h3>QR Generator</h3></div></div><input type="text" id="qrInput" placeholder="Enter text or URL..." /><div class="btn-row"><button id="generateQrBtn" type="button">Generate QR</button><button class="secondary" id="clearQrBtn" type="button">Clear</button></div><div class="qr-box" id="qrCodeBox"></div></section>
+
+        <!-- CALCULATOR PANEL -->
+        <section class="panel" id="calcPanel"><div class="panel-header"><div><p class="eyebrow">Quick math</p><h3>Calculator</h3></div></div><input type="text" id="calcDisplay" readonly placeholder="0" /><div class="calc-grid btn-row"><button class="calc-btn" type="button">7</button><button class="calc-btn" type="button">8</button><button class="calc-btn" type="button">9</button><button class="calc-btn op" type="button">/</button><button class="calc-btn" type="button">4</button><button class="calc-btn" type="button">5</button><button class="calc-btn" type="button">6</button><button class="calc-btn op" type="button">*</button><button class="calc-btn" type="button">1</button><button class="calc-btn" type="button">2</button><button class="calc-btn" type="button">3</button><button class="calc-btn op" type="button">-</button><button class="calc-btn" type="button">0</button><button class="calc-btn" type="button">.</button><button id="calcEquals" class="calc-btn equal" type="button">=</button><button class="calc-btn op" type="button">+</button><button id="calcClear" class="calc-btn danger wide" type="button">Clear</button></div></section>
+
+        <!-- CONVERTER PANEL -->
+        <section class="panel" id="converterPanel"><div class="panel-header"><div><p class="eyebrow">Units</p><h3>Unit Converter</h3></div></div><select id="unitType" class="btn-row"><option value="length">Length</option><option value="weight">Weight</option><option value="temperature">Temperature</option></select><input type="number" id="unitInput" placeholder="Enter value" /><div class="grid-2 " style="margin-top: 10px;"><select id="fromUnit"></select><select id="toUnit"></select></div><div class="btn-row"><button id="convertBtn" type="button">Convert</button></div><div class="result-box" id="convertResult">Converted value will appear here.</div></section>
+
+        <!-- NOTES PANEL -->
+        <section class="panel" id="notesPanel"><div class="panel-header"><div><p class="eyebrow">Personal notes</p><h3>Notes Saver</h3></div></div><textarea id="notesInput" rows="8" placeholder="Write your notes here..."></textarea><div class="btn-row"><button id="saveNotesBtn" type="button">Download notes</button><button class="secondary" id="clearNotesBtn" type="button">Clear notes</button></div><div class="result-box" id="notesStatus">No notes saved yet.</div></section>
+
+        <!-- MEDIA & SCANNER PANEL -->
+        <section class="panel" id="mediaPanel">
+          <div class="panel-header"><div><p class="eyebrow">Preview and search</p><h3>Media Tools & Parchi Scanner</h3></div></div>
+          <div class="media-grid">
+            <div class="scanner-box">
+              <input type="file" id="imageInput" accept="image/*" />
+              <div id="previewContainer" style="margin-top: 15px; border: 2px dashed #444; padding: 10px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <span id="previewPlaceholder" style="color: #888;">Image preview or OCR scan status will appear here.</span>
+                <img id="previewImage" src="" alt="Parchi Preview" style="max-width: 100%; max-height: 250px; display: none; margin-top: 10px; border-radius: 8px;" />
+              </div>
+            </div>
+            <div>
+              <h4>Search Filter</h4>
+              <input type="text" id="searchInput" placeholder="Search items..." />
+              <ul class="search-list" id="searchList"><li>Wall Panel</li><li>Temple Frame</li><li>Wood Partition</li><li>Ceiling Design</li><li>Decor Frame</li><li>Custom Name Plate</li><li>Wooden Jali</li><li>Gift Box</li></ul>
+            </div>
+          </div>
+        </section>
+<!-- HELP & TUTORIAL PANEL -->
+<!-- HELP & TUTORIAL PANEL (ALL MODULES GUIDE) -->
+<section class="panel" id="helpPanel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Tools & Backup</p>
+      <h3>🔧 Data Backup & CA Export</h3>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-bottom:20px;flex-wrap:wrap;">
+    <button type="button" id="downloadBackupBtn">📥 Full Backup (JSON)</button>
+    <button type="button" id="downloadCaPackBtn" class="secondary">📦 CA Export Pack</button>
+  </div>
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
+      <h3>❓ App Modules & Buttons Manual (सभी मॉड्युल्स की जानकारी)</h3>
+    </div>
+  </div>
+
+  <!-- MODULE BY MODULE EXPLANATION -->
+<div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+
+  <!-- 1. OVERVIEW -->
+  <div class="manual-card mini-card" id="card-1" style="border-left: 4px solid #3b82f6;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #3b82f6; margin: 0;">📊 1. Overview (Dashboard / डैशबोर्ड)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-1', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> यह आपका AI Accountant है। यहाँ आपके बिज़नेस का कुल बिक्री (Total Sales), कुल खर्चा (Expenses), पेंडिंग उधार (Pending Udhar) और मुनाफ़ा (Net Profit) एक नज़र में दिखाई देता है।</p>
+      <p><b>🇬🇧 English:</b> This is your AI Accountant dashboard showing real-time business metrics like Total Sales, Expenses, Net Profit, and Outstanding Balance.</p>
+    </div>
+  </div>
+
+  <!-- 2. VOICE AI -->
+  <div class="manual-card mini-card" id="card-2" style="border-left: 4px solid #a855f7;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #a855f7; margin: 0;">🎙️ 2. Voice AI (बोलकर चलाने के लिए)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-2', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> Top Bar से Voice ON करके आप बिना टाइप किए ऐप को कंट्रोल कर सकते हैं। जैसे बोलें—<i>"Open Invoice"</i>, <i>"Open Udhar Khata"</i> या <i>"Dark Mode On"</i>।</p>
+      <p><b>🇬🇧 English:</b> Turn Voice ON in the top bar to navigate using speech commands like <i>"Open Invoice"</i>, <i>"Open Udhar Khata"</i>, or <i>"Dark Mode On"</i>.</p>
+    </div>
+  </div>
+
+  <!-- 3. PROJECTS -->
+  <div class="manual-card mini-card" id="card-3" style="border-left: 4px solid #eab308;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #eab308; margin: 0;">🏗️ 3. Projects (साइट और ठेकेदारी वर्क)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-3', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> अलग-अलग क्लाइंट्स की साइट/प्रोजेक्ट्स की लोकेशन, बजट और लेबर/मटीरियल के दैनिक खर्चों को अलग-अलग ट्रैक करने के लिए।</p>
+      <p><b>🇬🇧 English:</b> Manage client site projects, location tracking, project budgets, and vendor/material daily expenses.</p>
+    </div>
+  </div>
+
+  <!-- 4. INVENTORY -->
+  <div class="manual-card mini-card" id="card-4" style="border-left: 4px solid #10b981;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #10b981; margin: 0;">📦 4. Inventory (स्टॉक और सामान)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-4', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> दुकान या गोदाम में कितना सामान/स्टॉक बचा है और उसकी कुल कीमत (Stock Value) कितनी है, उसे ट्रैक करने के लिए।</p>
+      <p><b>🇬🇧 English:</b> Track available product stock items, quantities, unit prices, and total inventory value.</p>
+    </div>
+  </div>
+
+  <!-- 5. UDHAR KHATA -->
+  <div class="manual-card mini-card" id="card-5" style="border-left: 4px solid #ef4444;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #ef4444; margin: 0;">📖 5. Udhar Khata (ग्राहक खाता / Ledger)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-5', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> किस ग्राहक के पास कितना पैसा बाकी (Pending) है और कितना प्राप्त (Received) हो चुका है, उसकी पूरी लेज़र सूची यहाँ दिखेगी।</p>
+      <p><b>🇬🇧 English:</b> View customer ledger accounts, total pending receivables, received payments, and complete transaction logs.</p>
+    </div>
+  </div>
+
+  <!-- 6. INVOICE GENERATOR -->
+  <div class="manual-card mini-card" id="card-6" style="border-left: 4px solid #06b6d4;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #06b6d4; margin: 0;">📑 6. Invoice Generator (बिलिंग और Tally Sync)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-6', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> 
+        • <b>Add Item:</b> टेबल में सामान जोड़ने के लिए।<br>
+        • <b>Download:</b> बिल की PDF फाइल पाने के लिए।<br>
+        • <b>WhatsApp Share:</b> ग्राहक को WhatsApp पर बिल भेजने के लिए।<br>
+        • <b> Sync to Tally (मुख्य):</b> लैपटॉप के Tally सॉफ्टवेयर में 1-सेकंड में सेल्स एंट्री भेजने के लिए।
+      </p>
+      <p><b>🇬🇧 English:</b> Create invoices with GST slabs (0%-28%), download PDF, share via WhatsApp, and click <b>Sync to Tally</b> to automatically record sales vouchers in Tally Prime.</p>
+    </div>
+  </div>
+
+  <!-- 7. GALLERY -->
+  <div class="manual-card mini-card" id="card-7" style="border-left: 4px solid #ec4899;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #ec4899; margin: 0;">🎨 7. Gallery (पोर्टफोलियो / कैटलॉग)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-7', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> अपने पिछले किए गए काम, फर्नीचर डिज़ाइन या लकड़ी के सामान की फोटो ग्राहकों को दिखाने के लिए डिजिटल कैटलॉग।</p>
+      <p><b>🇬🇧 English:</b> Digital product portfolio catalog to showcase completed work photos or design catalogs to clients.</p>
+    </div>
+  </div>
+
+  <!-- 8. TODO -->
+  <div class="manual-card mini-card" id="card-8" style="border-left: 4px solid #8b5cf6;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #8b5cf6; margin: 0;">📝 8. Todo (काम की लिस्ट / Task Manager)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-8', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> आज के ज़रूरी काम, साइट की रिमाइंडर लिस्ट या कारीगरों को दिए गए काम की सूची बनाकर मार्क (Mark Complete) करें।</p>
+      <p><b>🇬🇧 English:</b> Create daily task checklists, site reminders, and work-assignment lists for workers.</p>
+    </div>
+  </div>
+
+  <!-- 9. QR TOOL -->
+  <div class="manual-card mini-card" id="card-9" style="border-left: 4px solid #f97316;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #f97316; margin: 0;">🔲 9. QR Tool (पेमेंट और लिंक QR)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-9', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> पेमेंट लेने के लिए अपनी UPI ID का instant QR कोड बनाएं और ग्राहक को दिखाकर तुरंत पैसे प्राप्त करें।</p>
+      <p><b>🇬🇧 English:</b> Generate instant UPI payment QR codes or custom link QR codes to collect payments directly.</p>
+    </div>
+  </div>
+
+  <!-- 10. CALCULATOR & CONVERTER -->
+  <div class="manual-card mini-card" id="card-10" style="border-left: 4px solid #14b8a6;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #14b8a6; margin: 0;">🧮 10 & 11. Calculator & Converter (हिसाब और नाप-तौल)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-10', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> साइट पर त्वरित गणितीय गणना के लिए कैलकुलेटर और फीट-इंच, वजन (Kg) या तापमान को बदलने के लिए यूनिट कन्वर्टर।</p>
+      <p><b>🇬🇧 English:</b> On-site financial calculator and measurement unit converter (Length, Weight, Temperature) for quick estimations.</p>
+    </div>
+  </div>
+
+  <!-- 12. NOTES & MEDIA -->
+  <div class="manual-card mini-card" id="card-12" style="border-left: 4px solid #64748b;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h4 style="color: #64748b; margin: 0;">📑 12. Notes & Media Tools (नोट्स और पर्ची स्कैनर)</h4>
+      <button type="button" class="speak-card-btn" onclick="speakCardText('card-12', this)">🔊 Suno</button>
+    </div>
+    <div class="card-text">
+      <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> साइट की बातें या रेट लिस्ट लिखकर सेव करें और ख़रीदे गए सामान की रसीद/पर्ची की फोटो सुरक्षित रखें।</p>
+      <p><b>🇬🇧 English:</b> Save quick text notes, site reminders, and scan/upload material purchase receipt images.</p>
+    </div>
+  </div>
+
+</div>
+
+  <!-- SUPPORT FOOTER -->
+  <div class="mini-card" style="text-align: center; margin-top: 15px; padding: 18px;">
+    <h4 style="margin: 0 0 4px 0;">Need Support? / सहायता चाहिए?</h4>
+    <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">Direct Chat with Team / हमारी सपोर्ट टीम से सीधा संपर्क करें</p>
+    <a href="https://wa.me/919999999999?text=Help%20needed%20in%20BolKarigar%20App" target="_blank" style="display: inline-block; background: #22c55e; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+      💬 Contact WhatsApp Support
+    </a>
+  </div>
+</section>
+      </section>
+    </section>
+
+    
+  </main>
+<script>
+    function toggleTallyBtn(showTally) {
+      const tallyBtn = document.getElementById('tallySyncBtn');
+      if (tallyBtn) {
+        tallyBtn.style.display = showTally ? 'inline-block' : 'none';
+      }
+    }
+  </script>
+  <!-- ================================================================== -->
+  <!-- 🟢 LIVE AI — BolKarigar Smart AI Assistant widget (NAYA FEATURE)     -->
+  <!-- Pasand na aaye to yeh poora <div id="liveAiWidget">...</div> block   -->
+  <!-- (yahan se "LIVE AI widget END" comment tak) delete kar dena.        -->
+  <!-- ================================================================== -->
+  <div id="liveAiWidget" class="live-ai-widget hidden">
+    <div class="live-ai-header">
+      <div class="live-ai-title">🤖 BolKarigar AI <span id="liveAiStatusDot" class="live-ai-dot"></span></div>
+      <div class="live-ai-header-actions">
+        <button id="liveAiClearBtn" type="button" title="Chat clear karo">🗑️</button>
+        <button id="liveAiCloseBtn" type="button" title="Band karo">✕</button>
+      </div>
+    </div>
+    <div id="liveAiMessages" class="live-ai-messages">
+      <div class="live-ai-msg live-ai-msg-bot">
+        Namaste! Main BolKarigar AI hoon 🙂 Aap mujhse type ya bol kar poochh sakte ho, aur main app ke andar kaam bhi kar sakta hoon — jaise "todo me likho kal cement lana hai" ya "invoice khol do".
+      </div>
+    </div>
+    <div id="liveAiTyping" class="live-ai-typing hidden">AI soch raha hai...</div>
+    <div class="live-ai-input-row">
+      <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Bol kar poochho">🎤</button>
+      <input id="liveAiInput" type="text" placeholder="Kuch poochho ya command bolo..." autocomplete="off" />
+      <button id="liveAiSendBtn" type="button" class="live-ai-send-btn">Bhejo</button>
+    </div>
+  </div>
+  <!-- 🟢 LIVE AI widget END -->
+
+  <!-- Udhar Payment Modal -->
+  <div id="udharPaymentModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:400px;text-align:left;">
+      <h3 style="margin-bottom:16px;">💰 Record Payment</h3>
+      <input id="payCustomerName" placeholder="Customer Name" />
+      <input id="payAmount" type="number" placeholder="Amount ₹" style="margin-top:8px;" />
+      <select id="payMode" style="margin-top:8px;"><option>Cash</option><option>UPI</option><option>Bank</option><option>Cheque</option></select>
+      <input id="payNote" placeholder="Note (optional)" style="margin-top:8px;" />
+      <div class="btn-row"><button id="savePaymentBtn" type="button">Save Payment</button><button id="closePaymentModal" class="secondary" type="button">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- Udhar Detail View Modal -->
+  <div id="udharDetailModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:720px;width:95%;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 id="udharDetailTitle" style="margin:0;font-size:18px;">📖 Customer Detail</h3>
+        <button type="button" id="closeUdharDetailBtn" class="secondary" style="padding:6px 12px;">✕ Close</button>
+      </div>
+      <div class="table-wrap" style="max-height:50vh;overflow:auto;">
+        <table>
+          <thead><tr><th>Date / Item</th><th>Qty</th><th>Amount</th><th>Paid</th><th>Pending</th></tr></thead>
+          <tbody id="udharDetailBody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button type="button" id="udharDetailPayBtn" class="secondary">💰 Record Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 NAYA: Business Profile Settings — ab alag modal mein hai, Invoice
+       tab se nikaal diya gaya. "🏢 Business Profile" button (topbar mein)
+       isse kholta hai. Sirf owner ko button dikhta hai. -->
+  <div id="businessProfileModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:640px;width:95%;text-align:left;">
+      <div class="profile-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin:0;">🏢 Business Profile Settings</h3>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" id="btnEditProfile" onclick="toggleEditProfile(true)" style="display: none; background: #374151; color: #fff; border: 1px solid #4b5563; padding: 6px 14px; border-radius: 6px; cursor: pointer;">
+            ✏️ Edit Profile
+          </button>
+          <button type="button" id="closeBusinessProfileModal" class="secondary" style="padding:6px 12px;">✕ Close</button>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="form-group">
+          <label>Company / Firm Name <span style="color:red">*</span></label>
+          <input type="text" id="setupCompanyName" class="form-input" placeholder="e.g. Lokansh Ltd">
+        </div>
+
+        <div class="form-group">
+          <label>GSTIN Number <span style="color:red">*</span></label>
+          <input type="text" id="setupCompanyGstin" class="form-input" placeholder="e.g. 06AAAAA0000A1Z5">
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="text" id="setupCompanyPhone" class="form-input" placeholder="e.g. +91 9876543210">
+        </div>
+
+        <div class="form-group">
+          <label>UPI ID (Invoice QR ke liye)</label>
+          <input type="text" id="setupCompanyUpi" class="form-input" placeholder="e.g. shop@paytm">
+        </div>
+
+        <div class="form-group">
+          <label>State & Pincode</label>
+          <input type="text" id="setupCompanyState" class="form-input" placeholder="e.g. Haryana - 123401">
+        </div>
+
+        <div class="form-group full-width">
+          <label>Full Address <span style="color:red">*</span></label>
+          <textarea id="setupCompanyAddress" class="form-input" rows="2" placeholder="e.g. Plot No 42, Industrial Area, Rewari"></textarea>
+        </div>
+      </div>
+
+      <button type="button" id="btnSaveProfile" class="btn-save-profile" onclick="saveCompanyProfile(event)">
+        💾 Save Business Profile
+      </button>
+    </div>
+  </div>
+
+  <script src="responsive-ui.js?v=20260820r4"></script>
+  <script src="bolkarigar.js?v=20260820r5"></script>
+  <script src="subscription-ui.js?v=20260814v7"></script>
+  <script src="dev-plan-toggle.js?v=20260814v7"></script>
+  <script src="inventory-ui.js?v=20260814v7"></script>
+  <script src="bolkarigar-pro.js?v=20260814v3"></script>
+  <script src="live-features-ui.js?v=20260814v3"></script>
+
+  <!-- Hindi Onboarding Wizard (pehli baar login) -->
+  <div id="onboardingModal" class="modal-overlay hidden" style="z-index:9999;">
+    <div class="modal-box" style="max-width:480px;text-align:left;">
+      <p id="onboardProgress" style="color:#94a3b8;font-size:12px;margin-bottom:8px;">Step 1 / 3</p>
+      <div class="onboard-step" data-step="1">
+        <h3>👋 BolKarigar me swagat hai!</h3>
+        <p>Yeh app aapki dukaan ke liye bill, udhar khata, GST report aur Tally sync karti hai. Pehle business profile setup karein.</p>
+      </div>
+      <div class="onboard-step hidden" data-step="2">
+        <h3>🧾 Invoice kaise banayein?</h3>
+        <p>Invoice tab → Profile save → Customer + Product daalein → Add → Print ya WhatsApp share karein.</p>
+      </div>
+      <div class="onboard-step hidden" data-step="3">
+        <h3>👥 Staff / Cashier</h3>
+        <p>Staff panel se invite code banao. Cashier sirf bill aur udhar payment kar sakta hai — poora access nahi milega.</p>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button type="button" id="onboardSkipBtn" class="modal-btn btn-cancel">Baad me</button>
+        <button type="button" id="onboardNextBtn" class="modal-btn btn-submit">Aage →</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
