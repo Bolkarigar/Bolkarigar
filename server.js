@@ -17,6 +17,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // 🟢 IMPORT COMPREHENSIVE SYSTEM PROMPT
 const { BOLKARIGAR_SYSTEM_PROMPT } = require('./system-prompt.js');
 const { getOfflineAiReply, isValidGeminiApiKey } = require('./ai-offline.js');
+const { callVoiceParse } = require('./voice-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
@@ -162,41 +163,23 @@ async function callGeminiChat(userMessage) {
   throw lastErr || new Error('Gemini models unavailable');
 }
 
-// Voice parse — structured JSON from natural Hindi (Pro + Business, no chat plan gate)
-async function callGeminiVoiceParse(text) {
-  const prompt = `You are BolKarigar voice parser. Extract shop command from Hindi/Hinglish.
-Return ONLY valid JSON (no markdown, no explanation).
-Input: "${String(text).replace(/"/g, '\\"').slice(0, 500)}"
-Schema: {"intent":"invoice|todo|nav|none","customer":"","product":"","price":0,"qty":1,"state":"","pin":"","save":true}
-Rules: "Ram ne laptop liya 25000 ka Haryana pincode 123456" -> invoice, save true. Pin is 6 digits. State = Indian state name.`;
-  let lastErr = null;
-  for (const modelName of GEMINI_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const raw = result.response.text().trim().replace(/^```json\s*|```$/g, '').trim();
-      const parsed = JSON.parse(raw);
-      return parsed;
-    } catch (err) {
-      lastErr = err;
-      logger.info(`[Voice Parse] ${modelName} fail:`, err.message);
-    }
-  }
-  throw lastErr || new Error('Voice parse unavailable');
-}
-
+// Voice parse — structured JSON from natural Hindi (Pro + Business)
 app.post('/api/voice/parse', authenticateToken, async (req, res) => {
   try {
     const text = String(req.body?.text || '').trim();
     if (!text) return res.status(400).json({ success: false, error: 'Text required' });
 
-    const apiKey = process.env.GEMINI_API_KEY || '';
-    if (!isValidGeminiApiKey(apiKey)) {
-      return res.json({ success: false, localOnly: true, error: 'Gemini key missing' });
+    const openaiKey = process.env.OPENAI_API_KEY || '';
+    const geminiKey = process.env.GEMINI_API_KEY || '';
+    const hasOpenai = openaiKey.startsWith('sk-') && openaiKey.length > 20;
+    const hasGemini = isValidGeminiApiKey(geminiKey);
+
+    if (!hasOpenai && !hasGemini) {
+      return res.json({ success: false, localOnly: true, error: 'AI key missing — OPENAI_API_KEY ya GEMINI_API_KEY set karein' });
     }
 
-    const parsed = await callGeminiVoiceParse(text);
-    return res.json({ success: true, parsed });
+    const { parsed, provider, model } = await callVoiceParse(text);
+    return res.json({ success: true, parsed, provider, model });
   } catch (err) {
     logger.error('Voice parse error:', err.message);
     return res.json({ success: false, error: err.message });
