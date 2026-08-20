@@ -715,10 +715,25 @@ document.getElementById("addInvoiceBtn")?.addEventListener("click", executeInvoi
 // Window Load setup
 window.addEventListener("load", () => {
   recognition = createRecognition();
-  loadServerData(); 
-  openPanel("overviewPanel");
+  loadServerData();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const openPanelId = urlParams.get("openPanel");
+  const planFromUrl = urlParams.get("plan");
+  if (openPanelId && document.getElementById(openPanelId)) {
+    openPanel(openPanelId);
+    if (openPanelId === "myPlanPanel" && planFromUrl && typeof window.buyBolKarigarPlan === "function") {
+      setTimeout(() => {
+        if (planFromUrl === "business" || planFromUrl === "pro") {
+          window.buyBolKarigarPlan(planFromUrl);
+        }
+      }, 1500);
+    }
+  } else {
+    openPanel("overviewPanel");
+  }
   
-  setupImageScanner(); 
+  setupImageScanner();
 
   const wsBtn = document.getElementById("whatsappShareBtn");
   if (wsBtn) wsBtn.addEventListener("click", triggerWhatsAppShare);

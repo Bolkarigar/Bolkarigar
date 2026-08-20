@@ -429,11 +429,15 @@
 
     // 4. Forgot Password Dynamic Request
     document.getElementById("submitForgotBtn").addEventListener("click", async () => {
-      const email = document.getElementById("resetEmail").value;
+      const email = document.getElementById("resetEmail").value.trim().toLowerCase();
       if (!email || !email.includes("@")) {
         alert("Kripya ek valid email address enter karein.");
         return;
       }
+
+      const submitBtn = document.getElementById("submitForgotBtn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Bhej rahe hain...";
 
       try {
         const response = await fetch('/api/auth/forgot-password', {
@@ -442,16 +446,24 @@
           body: JSON.stringify({ email })
         });
         const result = await response.json();
-        alert(result.message || result.error);
 
-        // Step 1 (email) se Step 2 (OTP + naya password) pe le jao
+        if (!response.ok) {
+          alert(result.error || "OTP bhejne mein dikkat aayi. Email sahi hai? Spam folder bhi check karein.");
+          return;
+        }
+
+        alert(result.message || "Agar yeh email registered hai, to OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.");
+
         resetEmailForOtp = email;
         document.getElementById("otpSentToText").textContent = `Aapke email (${email}) pe 6-digit OTP bheja gaya hai. Wo yahan daalein.`;
         forgotModal.classList.remove("active");
         document.getElementById("resetEmail").value = "";
         setNewPasswordModal.classList.add("active");
       } catch (e) {
-        alert("Something went wrong!");
+        alert("Server se connect nahi ho paya. Internet check karke dobara try karein.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "OTP Bhejo";
       }
     });
 

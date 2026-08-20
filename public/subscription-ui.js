@@ -100,8 +100,32 @@
 
   async function buyBolKarigarPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
+    const planLabel = planId === "business" ? "Business ₹699" : "Pro ₹349";
+
+    if (!getToken()) {
+      window.location.href = `signup.html?plan=${planId}`;
+      return;
+    }
+
     try {
-      if (typeof showToast === "function") showToast("⌛ Payment page khul rahi hai...");
+      if (typeof showToast === "function") showToast("⌛ Payment check ho rahi hai...");
+
+      const cfgRes = await fetch(`${API_URL}/api/payment/config`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      const cfg = await cfgRes.json().catch(() => ({}));
+
+      if (!cfgRes.ok) {
+        throw new Error(cfg.error || "Payment config load nahi hui.");
+      }
+
+      if (!cfg.configured) {
+        const msg = `Online payment (${planLabel}) abhi setup ho rahi hai. Aapka 3 din FREE trial chal raha hai. Turant help: support@bolkarigar.com`;
+        if (typeof showToast === "function") showToast(msg, "error");
+        else alert(msg);
+        if (typeof openPanel === "function") openPanel("myPlanPanel");
+        return;
+      }
 
       await loadRazorpayScript();
 

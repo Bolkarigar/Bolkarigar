@@ -21,6 +21,7 @@ const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
+const { isEmailConfigured, sendPasswordResetOtp } = require('./email-service');
 const {
   getSubscriptionForUser,
   setupSubscription,
@@ -456,7 +457,10 @@ app.post('/api/auth/signup', async (req, res) => {
   }
   recordAuthAction(rlKey);
   try {
-    const { username, email, password } = req.body;
+    const username = String(req.body.username || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
+    const requestedPlan = ['pro', 'business', 'starter'].includes(req.body.plan) ? req.body.plan : 'pro';
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email aur password teeno zaroori hain.' });
@@ -480,7 +484,7 @@ app.post('/api/auth/signup', async (req, res) => {
       email,
       password: hashedPassword,
       role: 'owner',
-      plan: 'pro',
+      plan: requestedPlan === 'business' ? 'pro' : requestedPlan,
       subscriptionStatus: 'trial',
       trialStartedAt: now,
       trialEndsAt,
@@ -488,9 +492,14 @@ app.post('/api/auth/signup', async (req, res) => {
     });
     await UserData.create({ userId: newUser._id });
 
+    const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
+
     res.status(201).json({
       message: `Account ban gaya! 3 din ka FREE Pro trial shuru — ${trialEndsAt.toLocaleDateString('en-IN')} tak full access.`,
-      trialEndsAt
+      trialEndsAt,
+      token,
+      username: newUser.username,
+      plan: requestedPlan
     });
   } catch (err) {
     logger.error('Signup error', { err: err.message, stack: err.stack, ip: req.ip });
@@ -623,47 +632,43 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
   recordAuthAction(rlKey);
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
     if (!email) return res.json(genericMsg);
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
     if (user) {
-      // 🟢 OTP-based reset: 6-digit code, sirf 10 minute valid, sirf hash
-      // store karte hain (plaintext kabhi DB mein nahi).
-      const otp = String(crypto.randomInt(100000, 1000000)); // 100000-999999
+      if (!isEmailConfigured()) {
+        return res.status(503).json({
+          error: 'Password reset email abhi server par setup nahi hai. Support: support@bolkarigar.com — ya Render me SMTP/Resend keys add karein.'
+        });
+      }
+
+      const otp = String(crypto.randomInt(100000, 1000000));
       const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
       user.resetTokenHash = otpHash;
-      user.resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minute valid
-      user.resetOtpAttempts = 0; // naya OTP aane par purane failed attempts reset
+      user.resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      user.resetOtpAttempts = 0;
       await user.save();
 
-      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        try {
-          const nodemailer = require('nodemailer');
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: false,
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      try {
+        const delivery = await sendPasswordResetOtp(user.email, otp);
+        if (!delivery.sent) {
+          return res.status(503).json({
+            error: 'OTP email bhej nahi paya. Thodi der baad try karein ya support@bolkarigar.com par contact karein.'
           });
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
-            to: user.email,
-            subject: 'BolKarigar — Password Reset OTP',
-            text: `Aapka password reset OTP hai: ${otp}\n\nYeh 10 minute ke liye valid hai. Agar aapne yeh request nahi ki, is email ko ignore karein.`
-          });
-        } catch (mailErr) {
-          logger.error('Reset OTP email bhejne mein error (SMTP configured hai lekin fail hua):', mailErr.message);
-          logger.info(`[Password Reset] Fallback — ${user.email} ke liye OTP:\n${otp}`);
         }
-      } else {
-        // SMTP configured nahi hai — dev/testing ke liye OTP console mein print karo.
-        logger.info(`[Password Reset] SMTP configured nahi hai. ${user.email} ke liye OTP:\n${otp}`);
+      } catch (mailErr) {
+        logger.error('Reset OTP email error:', mailErr.message);
+        user.resetTokenHash = null;
+        user.resetTokenExpiry = null;
+        await user.save();
+        return res.status(503).json({
+          error: 'Email bhejne mein error aaya. Email sahi hai? Spam folder check karein ya baad mein try karein.'
+        });
       }
     }
 
-    // Chahe user mila ho ya na mila ho, hamesha SAME response — email enumeration se bachne ke liye.
-    return res.json(genericMsg);
+    return res.json({ ...genericMsg, emailDelivered: true });
   } catch (err) {
     logger.error('Forgot-password error:', err);
     return res.json(genericMsg); // crash ki jagah bhi generic message hi dete hain
@@ -673,7 +678,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 // Naya route: OTP verify karke asal mein password change karta hai.
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
       return res.status(400).json({ error: 'Email, OTP aur naya password zaroori hain.' });
     }
@@ -691,7 +697,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
     const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
     const user = await User.findOne({
-      email,
+      email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
       resetTokenHash: otpHash,
       resetTokenExpiry: { $gt: new Date() }
     });
@@ -2220,9 +2226,18 @@ setupSubscription({ app, User, authenticateToken });
 setupRazorpayPayments({ app, mongoose, User, authenticateToken });
 setupDevPlanToggle({ app, User, authenticateToken });
 
+// Explicit HTML routes (static ke baad bhi safe fallback)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpage.html')));
+['/loginpage.html', '/signup.html', '/pricing.html', '/bolkarigar.html'].forEach((page) => {
+  app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
+});
+
 // --- Catch-all Fallback Route (Sabse Niche) ---
 app.use('/downloads', express.static(path.join(__dirname, 'public', 'downloads')));
 app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API route nahi mila.' });
+  }
   res.sendFile(path.join(__dirname, 'public', 'loginpage.html'));
 });
 

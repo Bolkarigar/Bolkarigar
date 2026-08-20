@@ -187,7 +187,7 @@
   <div class="login-container">
     <div class="login-card">
       <h2>Naya Account Banayein</h2>
-      <p>🎁 <strong>3 din FREE Pro trial</strong> — poora app try karein, credit card ki zaroorat nahi</p>
+      <p id="planBanner">🎁 <strong>3 din FREE Pro trial</strong> — poora app try karein, credit card ki zaroorat nahi</p>
       
       <form id="signupForm">
         <div class="input-group">
@@ -219,40 +219,69 @@
   </div>
 
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedPlan = urlParams.get("plan") || "pro";
+    const planLabels = {
+      starter: "Starter (Free)",
+      pro: "Pro Dukaan — ₹349/month (pehle 3 din trial)",
+      business: "Business — ₹699/month (trial ke baad upgrade)"
+    };
+    const planBanner = document.getElementById("planBanner");
+    if (planBanner && planLabels[selectedPlan]) {
+      planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan]}</strong><br>🎁 Signup par <strong>3 din FREE Pro trial</strong> automatic milega.`;
+    }
+
+    if (localStorage.getItem("bk_token")) {
+      window.location.href = "bolkarigar.html?openPanel=myPlanPanel";
+    }
+
     // Signup execution
     document.getElementById("signupForm").addEventListener("submit", async function(e) {
       e.preventDefault();
-      const username = document.getElementById("username").value;
-      const email = document.getElementById("email").value;
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
       const password = document.getElementById("password").value;
       
       const errorEl = document.getElementById("errorMsg");
       const successEl = document.getElementById("successMsg");
+      const submitBtn = this.querySelector('button[type="submit"]');
 
       errorEl.style.display = "none";
       successEl.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Account bana rahe hain...";
 
       try {
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email, password })
+          body: JSON.stringify({ username, email, password, plan: selectedPlan })
         });
         const result = await response.json();
 
         if (!response.ok) throw new Error(result.error || "Signup fail ho gaya");
 
-        successEl.textContent = result.message;
+        successEl.textContent = result.message + " App khul rahi hai...";
         successEl.style.display = "block";
 
-        // 2 Second baad direct login page par bhej dega
-        setTimeout(() => {
-          window.location.href = "loginpage.html";
-        }, 2000);
+        if (result.token) {
+          localStorage.setItem("bk_token", result.token);
+          localStorage.setItem("bk_user", result.username || username);
+          setTimeout(() => {
+            const panel = selectedPlan === "business" ? "myPlanPanel" : "";
+            window.location.href = panel
+              ? `bolkarigar.html?openPanel=${panel}&plan=${selectedPlan}&_=${Date.now()}`
+              : `bolkarigar.html?_=${Date.now()}`;
+          }, 1200);
+        } else {
+          setTimeout(() => { window.location.href = "loginpage.html"; }, 2000);
+        }
 
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Register Karein";
       }
     });
 
