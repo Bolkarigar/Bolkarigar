@@ -142,7 +142,14 @@ app.post("/api/ask", authenticateToken, requireBusinessPlan, async (req, res) =>
 
 // System Prompt for Chat Bot — now using the comprehensive prompt from system-prompt.js
 const AI_SYSTEM_PROMPT = BOLKARIGAR_SYSTEM_PROMPT;
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-3-flash-preview',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash'
+];
 
 async function callGeminiChat(userMessage) {
   let lastErr = null;

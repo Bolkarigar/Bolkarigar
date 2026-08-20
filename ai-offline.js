@@ -112,7 +112,8 @@ function getOfflineAiReply(message) {
 function isValidGeminiApiKey(key) {
   if (!key || !String(key).trim()) return false;
   const k = String(key).trim();
-  return k.startsWith('AIza') && k.length >= 30;
+  // AIza... = Google AI Studio | AQ.... = newer Gemini API keys
+  return (k.startsWith('AIza') || k.startsWith('AQ.')) && k.length >= 20;
 }
 
 module.exports = { getOfflineAiReply, isValidGeminiApiKey, APP_FEATURES_OVERVIEW, OFFLINE_FAQ };

@@ -7,7 +7,14 @@ const { isValidGeminiApiKey } = require('./ai-offline');
 
 const VOICE_PARSE_SCHEMA = `{"intent":"invoice|todo|nav|payment|none","customer":"","product":"","price":0,"qty":1,"state":"","pin":"","save":true}`;
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-3-flash-preview',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash'
+];
 const OPENAI_MODELS = ['gpt-4o-mini', 'gpt-4o'];
 
 function buildVoicePrompt(text) {
