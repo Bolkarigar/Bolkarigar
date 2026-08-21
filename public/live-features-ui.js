@@ -15,7 +15,7 @@
     const el = document.getElementById('todayDateLabel');
     if (!el) return;
     const now = new Date();
-    el.textContent = now.toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    el.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   async function loadDailySummary() {

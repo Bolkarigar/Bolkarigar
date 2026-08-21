@@ -2651,7 +2651,6 @@ function galleryImageUrl(fileId) {
   const api = typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : API_URL;
   return `${api}/api/gallery/image/${fileId}?token=${encodeURIComponent(getToken())}`;
 }
-}
 const galleryStatusText = document.getElementById("galleryStatusText");
 const galleryUploadBtn = document.getElementById("galleryUploadBtn");
 const galleryFileInput = document.getElementById("galleryFileInput");
