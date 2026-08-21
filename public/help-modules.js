@@ -144,6 +144,15 @@
       english: "Manage contractors, labor payments, work details, and site-wise assignments."
     },
     {
+      id: "payrollPanel",
+      panelId: "payrollPanel",
+      plans: ["business"],
+      color: "#7c3aed",
+      title: "💼 Staff Payroll & Hajri (वेतन / हाजरी)",
+      hindi: "Dukaan staff ki daily hajri mark karein — Present, Half-day, Paid/Unpaid leave. Month-end par salary auto calculate, advance minus, salary slip print/WhatsApp.",
+      english: "Mark daily staff attendance, auto-calculate monthly salary with leaves and advances, print payslips."
+    },
+    {
       id: "reportsProPanel",
       panelId: "reportsProPanel",
       plans: ["business"],

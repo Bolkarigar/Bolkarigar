@@ -23,7 +23,10 @@ const PERMISSIONS = {
   INVENTORY_WRITE: 'inventory.write',
   PROJECTS_WRITE: 'projects.write',
   EXPENSES_WRITE: 'expenses.write',
-  BANK_RECON: 'bank.recon'
+  BANK_RECON: 'bank.recon',
+  PAYROLL_VIEW: 'payroll.view',
+  PAYROLL_MANAGE: 'payroll.manage',
+  ATTENDANCE_SELF: 'attendance.self'
 };
 
 const ROLE_PERMISSIONS = {
@@ -73,6 +76,7 @@ const TAB_ACCESS = {
   notesPanel: ['owner', 'manager', 'cashier', 'staff'],
   mediaPanel: ['owner', 'manager', 'cashier', 'staff'],
   staffPanel: ['owner'],
+  payrollPanel: ['owner', 'manager', 'cashier', 'staff'],
   companiesPanel: ['owner'],
   helpPanel: ['owner', 'manager', 'cashier', 'staff']
 };

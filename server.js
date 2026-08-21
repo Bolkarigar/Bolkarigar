@@ -19,6 +19,7 @@ const { BOLKARIGAR_SYSTEM_PROMPT } = require('./system-prompt.js');
 const { getOfflineAiReply, isValidGeminiApiKey } = require('./ai-offline.js');
 const { callVoiceParse } = require('./voice-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
+const { setupPayrollFeatures } = require('./payroll-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
@@ -32,6 +33,8 @@ const {
 const { setupRazorpayPayments } = require('./razorpay-payments');
 const { setupDevPlanToggle } = require('./dev-plan-toggle');
 const logger = require('./logger');
+
+let payrollHelpers = null;
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -309,7 +312,8 @@ const businessProfileSchema = new mongoose.Schema({
   // account ke saath pair karta hai — taaki cloud backend jaan sake ki
   // konsa agent connection kis dukaandaar/company ka hai.
   agentToken: { type: String, default: null },
-  invoiceCounter: { type: Number, default: 0 }
+  invoiceCounter: { type: Number, default: 0 },
+  payrollViewerRole: { type: String, enum: ['manager', 'cashier'], default: 'manager' }
 });
 
 // 🟢 Real Gallery — user ki apni uploaded photos (pehle sirf fake random
@@ -623,6 +627,14 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     const salesCount = await SalesHistory.countDocuments({ userId: dataId });
     const role = user?.ownerId ? (user?.role || 'staff') : 'owner';
     const subscription = await getSubscriptionForUser(User, user);
+    let payroll = null;
+    if (subscription?.fullAccess && payrollHelpers?.buildPayrollContext) {
+      try {
+        payroll = await payrollHelpers.buildPayrollContext(user);
+      } catch (payErr) {
+        logger.warn('Payroll context warning:', payErr.message);
+      }
+    }
     res.json({
       username: user?.username,
       email: user?.email,
@@ -633,6 +645,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       tabs: rbac.TAB_ACCESS,
       roleLabel: rbac.ROLE_LABELS[role] || role,
       subscription,
+      payroll,
       hasTodos: (hasData?.todos?.length || 0) > 0,
       salesCount,
       invoicesCount: (hasData?.invoices?.length || 0)
@@ -2248,6 +2261,11 @@ setupProFeatures({
   app, mongoose, authenticateToken, JWT_SECRET, rbac, requireBusinessPlan,
   models: { User, SalesHistory, Ledger, Voucher, Item, BusinessProfile },
   helpers: { relayXmlToTally, resolveTallyCompanyName, tallyXmlEscape, findOrCreateCustomerLedger }
+});
+
+payrollHelpers = setupPayrollFeatures({
+  app, mongoose, authenticateToken, rbac, requireBusinessPlan,
+  models: { User, BusinessProfile }
 });
 
 setupLiveFeatures({

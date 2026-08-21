@@ -140,6 +140,13 @@ function bkCanAccessTab(me, tabId) {
   if (sub && !sub.fullAccess && Array.isArray(sub.allowedTabs)) {
     if (!sub.allowedTabs.includes(tabId)) return false;
   }
+  if (tabId === "payrollPanel") {
+    if (!sub?.fullAccess) return false;
+    if (!me?.isStaff) return true;
+    if (me.payroll?.canViewSalary || me.payroll?.canManage) return true;
+    if (me.payroll?.isLinkedEmployee) return true;
+    return false;
+  }
   if (!me?.isStaff) return true;
   const role = me.role || "staff";
   const tabs = me.tabs || {};
@@ -247,6 +254,9 @@ function applyRoleBasedUI(me) {
   if (typeof window.bkUpdateDevPlanToggle === "function") window.bkUpdateDevPlanToggle(me);
 
   if (typeof window.renderHelpModules === "function") window.renderHelpModules(me);
+  if (typeof window.BolKarigarPayroll?.setPayrollViewMode === "function") {
+    window.BolKarigarPayroll.setPayrollViewMode();
+  }
 }
 
 window.bkCanAccessTab = bkCanAccessTab;

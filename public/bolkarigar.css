@@ -1096,6 +1096,40 @@ textarea.form-input {
 .khata-subpanel.active { display: block; }
 .contractor-subpanel { display: none; margin-top: 16px; }
 .contractor-subpanel.active { display: block; }
+.payroll-subpanel { display: none; margin-top: 16px; }
+.payroll-subpanel.active { display: block; }
+.payroll-subtab-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.payroll-subtab-btn.active {
+  background: linear-gradient(135deg, #8b5cf6, #38bdf8);
+  color: #fff;
+  border-color: transparent;
+}
+.payroll-summary-bar {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  margin-bottom: 12px;
+}
+.payroll-no-access {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+}
+.payroll-self-mark.active {
+  background: #22c55e !important;
+  color: #fff !important;
+}
 .hidden { display: none !important; }
 #udharPaymentModal:not(.hidden),
 #udharDetailModal:not(.hidden) { display: flex !important; }

@@ -141,6 +141,7 @@
             <button class="tab-btn" data-tab="inventoryPanel" type="button">📦 Inventory</button>
             <button class="tab-btn" data-tab="totalSalesPanel" type="button">📊 Total Sales</button>
             <button class="tab-btn" data-tab="contractorPanel" type="button">👷 Contractor</button>
+            <button class="tab-btn plan-business-only" data-tab="payrollPanel" type="button">💼 Staff Payroll</button>
           </div>
           <div class="nav-group">
             <p class="nav-group-label">Accounting</p>
@@ -749,6 +750,117 @@
           </div>
         </section>
 
+        <!-- 🟢 PAYROLL — Employee Hajri & Monthly Salary (Business ₹699) -->
+        <section class="panel" id="payrollPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Business Plan — ₹699</p>
+              <h3>💼 Staff Payroll & Hajri</h3>
+            </div>
+          </div>
+          <p class="helper-text">Dukaan/office staff ki monthly salary, daily hajri, half-day, leave aur advance — auto calculate.</p>
+
+          <div id="payrollNoAccess" class="hidden payroll-no-access">
+            <p>⚠️ Yeh module sirf <strong>Business plan (₹699)</strong> me hai. Owner se upgrade karwayein, ya owner se apna employee profile link karwayein.</p>
+          </div>
+
+          <div class="payroll-self-only" id="payrollSelfSection" style="display:none;">
+            <div class="mini-card" id="payrollSelfBox" style="margin-bottom:16px;"></div>
+          </div>
+
+          <div class="payroll-manager-only">
+            <div class="btn-row payroll-subtabs" style="margin-bottom:14px;flex-wrap:wrap;">
+              <button class="payroll-subtab-btn active" data-sub="payrollEmpSub" type="button">👤 Employees</button>
+              <button class="payroll-subtab-btn" data-sub="payrollAttSub" type="button">📅 Daily Hajri</button>
+              <button class="payroll-subtab-btn" data-sub="payrollSalSub" type="button">💰 Monthly Salary</button>
+              <button class="payroll-subtab-btn owner-only-plan" data-sub="payrollSetSub" type="button">⚙️ Settings</button>
+            </div>
+
+            <div class="payroll-subpanel active" id="payrollEmpSub">
+              <div class="grid-2">
+                <input id="payrollEmpName" placeholder="Employee Name *" />
+                <input id="payrollEmpPhone" placeholder="Phone" />
+                <input id="payrollEmpDesignation" placeholder="Designation (Cashier, Helper...)" />
+                <input id="payrollEmpSalary" type="number" placeholder="Monthly Salary ₹ *" />
+                <select id="payrollEmpWeeklyOff">
+                  <option value="0">Weekly Off: Sunday</option>
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                  <option value="6">Saturday</option>
+                </select>
+                <select id="payrollLinkUser"><option value="">— App login link (optional) —</option></select>
+              </div>
+              <button id="payrollAddEmpBtn" type="button">➕ Add Employee</button>
+              <div class="table-wrap" style="margin-top:14px;">
+                <table>
+                  <thead><tr><th>Name</th><th>Phone</th><th>Salary</th><th>Weekly Off</th><th>App Link</th><th></th></tr></thead>
+                  <tbody id="payrollEmployeeBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="payroll-subpanel" id="payrollAttSub">
+              <div class="btn-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
+                <label>Date: <input id="payrollAttDate" type="date" /></label>
+                <button id="payrollLoadAttBtn" type="button" class="secondary">Reload</button>
+                <button id="payrollSaveAttBtn" type="button">💾 Save Hajri</button>
+              </div>
+              <div class="table-wrap" style="margin-top:12px;">
+                <table>
+                  <thead><tr><th>Employee</th><th>Role</th><th>Status</th><th>Note</th></tr></thead>
+                  <tbody id="payrollAttendanceBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="payroll-subpanel" id="payrollSalSub">
+              <div class="btn-row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                <select id="payrollMonth">
+                  <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                  <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                  <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                  <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select>
+                <input id="payrollYear" type="number" placeholder="Year" style="width:100px;" />
+                <button id="payrollLoadSalaryBtn" type="button">📊 Calculate Salary</button>
+              </div>
+              <div class="grid-2" style="margin-bottom:14px;">
+                <select id="payrollAdvanceEmp"><option value="">Advance — Employee select</option></select>
+                <input id="payrollAdvanceAmt" type="number" placeholder="Advance Amount ₹" />
+                <input id="payrollAdvanceNote" placeholder="Advance note (optional)" />
+                <button id="payrollAddAdvanceBtn" type="button" class="secondary">➕ Record Advance</button>
+              </div>
+              <div id="payrollSalaryOutput" class="table-wrap"></div>
+            </div>
+
+            <div class="payroll-subpanel" id="payrollSetSub">
+              <p class="helper-text">Salary module kisko dikhe — Manager ya Cashier (ek hi role dekhega, owner hamesha dekhega).</p>
+              <div class="btn-row" style="align-items:center;gap:12px;flex-wrap:wrap;">
+                <select id="payrollViewerRole">
+                  <option value="manager">Manager — salary dekhega</option>
+                  <option value="cashier">Cashier — salary dekhega</option>
+                </select>
+                <button id="payrollSaveSettingsBtn" type="button">Save Setting</button>
+              </div>
+              <p id="payrollViewerHint" class="helper-text" style="margin-top:10px;"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Payroll salary slip modal -->
+        <div id="payrollSlipModal" class="modal hidden">
+          <div class="modal-content" style="max-width:640px;">
+            <div id="payrollSlipBody"></div>
+            <div class="modal-actions">
+              <button type="button" id="payrollSlipCloseBtn" class="modal-btn btn-cancel">Close</button>
+              <button type="button" class="modal-btn btn-submit" onclick="window.print()">🖨️ Print</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 🟢 STAFF / MULTI-USER -->
         <section class="panel" id="staffPanel">
           <div class="panel-header"><div><p class="eyebrow">Team Management</p><h3>👥 Staff & Cashier Login</h3></div></div>
@@ -1167,6 +1279,7 @@
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>
   <script src="bolkarigar-pro.js?v=20260814v3"></script>
+  <script src="payroll-ui.js?v=20260821p1"></script>
   <script src="live-features-ui.js?v=20260821m2"></script>
 
   <!-- Hindi Onboarding Wizard (pehli baar login) -->
