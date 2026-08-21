@@ -179,8 +179,31 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     return PayrollEmployee.findOne({ ownerId, linkedUserId: userId, isActive: true });
   }
 
+  const HAJRI_STAFF_ROLES = ['cashier', 'manager', 'staff'];
+
+  /** Auto employee profile for invite-code staff (cashier/manager/staff) — hajri ke liye */
+  async function ensureStaffEmployeeRecord(user) {
+    if (!user?.ownerId) return null;
+    const role = user.role || 'staff';
+    if (!HAJRI_STAFF_ROLES.includes(role)) return null;
+    const ownerId = String(user.ownerId);
+    let emp = await PayrollEmployee.findOne({ ownerId, linkedUserId: user._id, isActive: true });
+    if (emp) return emp;
+    const roleLabel = { cashier: 'Cashier', manager: 'Manager', staff: 'Staff' }[role] || 'Staff';
+    emp = await PayrollEmployee.create({
+      ownerId,
+      name: user.username || roleLabel,
+      designation: roleLabel,
+      monthlySalary: 0,
+      weeklyOff: 0,
+      linkedUserId: user._id,
+      joinDate: user.createdAt || new Date()
+    });
+    return emp;
+  }
+
   async function buildPayrollContext(user) {
-    if (!user) return { canManage: false, canViewSalary: false, isLinkedEmployee: false, employeeId: null, viewerRole: 'manager' };
+    if (!user) return { canManage: false, canViewSalary: false, canMarkHajri: false, isLinkedEmployee: false, employeeId: null, viewerRole: 'manager' };
     const ownerId = user.ownerId ? String(user.ownerId) : String(user._id);
     const settings = await getPayrollSettings(ownerId);
 
@@ -188,6 +211,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
       return {
         canManage: true,
         canViewSalary: true,
+        canMarkHajri: false,
         isLinkedEmployee: false,
         employeeId: null,
         viewerRole: settings.payrollViewerRole
@@ -199,10 +223,12 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     const isViewer = role === settings.payrollViewerRole;
     const canManage = isViewer && (role === 'manager' || role === 'cashier');
     const canViewSalary = canManage;
+    const canMarkHajri = HAJRI_STAFF_ROLES.includes(role) && !!linked;
 
     return {
       canManage,
       canViewSalary,
+      canMarkHajri,
       isLinkedEmployee: !!linked,
       employeeId: linked ? String(linked._id) : null,
       viewerRole: settings.payrollViewerRole
@@ -229,10 +255,11 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   async function payrollContextMiddleware(req, res, next) {
     try {
       const user = await User.findById(req.user.id);
-      req.payrollContext = await buildPayrollContext(user);
       if (user?.ownerId) {
+        await ensureStaffEmployeeRecord(user);
         req.linkedEmployee = await getLinkedEmployee(user._id, String(user.ownerId));
       }
+      req.payrollContext = await buildPayrollContext(user);
       next();
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -349,8 +376,9 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   app.get('/api/payroll/attendance', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
     const dateKey = req.query.date || todayKey();
     const canManage = req.payrollContext?.canManage || req.payrollContext?.canViewSalary;
+    const canSelf = req.payrollContext?.canMarkHajri;
 
-    if (!canManage && !req.payrollContext?.isLinkedEmployee) {
+    if (!canManage && !canSelf) {
       return res.status(403).json({ error: 'Attendance access nahi hai.' });
     }
 
@@ -542,7 +570,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   });
 
   console.log('✓ BolKarigar Payroll loaded (Employee Hajri & Salary — Business plan)');
-  return { buildPayrollContext, PayrollEmployee, PayrollAttendance, PayrollAdvance, calcMonthlySalary, STATUS_LABELS, WEEKDAY_NAMES };
+  return { buildPayrollContext, ensureStaffEmployeeRecord, PayrollEmployee, PayrollAttendance, PayrollAdvance, calcMonthlySalary, STATUS_LABELS, WEEKDAY_NAMES };
 }
 
 module.exports = { setupPayrollFeatures, ATTENDANCE_STATUSES, STATUS_LABELS, calcMonthlySalary };

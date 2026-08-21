@@ -621,7 +621,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('username email role ownerId plan subscriptionStatus trialEndsAt planExpiresAt');
+    const user = await User.findById(req.user.id).select('username email role ownerId plan subscriptionStatus trialEndsAt planExpiresAt createdAt');
     const dataId = dataUid(req);
     const hasData = await UserData.findOne({ userId: dataId });
     const salesCount = await SalesHistory.countDocuments({ userId: dataId });
@@ -630,6 +630,9 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     let payroll = null;
     if (subscription?.fullAccess && payrollHelpers?.buildPayrollContext) {
       try {
+        if (user?.ownerId && payrollHelpers.ensureStaffEmployeeRecord) {
+          await payrollHelpers.ensureStaffEmployeeRecord(user);
+        }
         payroll = await payrollHelpers.buildPayrollContext(user);
       } catch (payErr) {
         logger.warn('Payroll context warning:', payErr.message);

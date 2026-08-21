@@ -51,7 +51,48 @@
   }
   function isSelfView() {
     const m = me();
-    return !!(m?.isStaff && m?.payroll?.isLinkedEmployee);
+    if (!m?.isStaff || isManagerView()) return false;
+    return !!(m.payroll?.canMarkHajri || ['cashier', 'manager', 'staff'].includes(m.role || ''));
+  }
+
+  function updatePayrollNavLabel() {
+    const tab = document.querySelector('.tab-btn[data-tab="payrollPanel"]');
+    const header = document.querySelector('#payrollPanel .panel-header h3');
+    if (tab) {
+      tab.textContent = isSelfView() ? '📅 Meri Hajri' : '💼 Staff Payroll';
+    }
+    if (header) {
+      header.textContent = isSelfView() ? '📅 Meri Hajri' : '💼 Staff Payroll & Hajri';
+    }
+  }
+
+  function buildSlipWhatsAppText(slip, month, year) {
+    const s = slip;
+    const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return [
+      '*BolKarigar — Salary Slip*',
+      `Name: ${s.employee.name}`,
+      `Role: ${s.employee.designation}`,
+      `Month: ${monthNames[month] || month} ${year}`,
+      `Working Days: ${s.workingDays}`,
+      `Earned Days: ${s.earnedDays}`,
+      `Monthly Salary: ₹${Number(s.employee.monthlySalary).toFixed(2)}`,
+      `Gross: ₹${s.grossSalary.toFixed(2)}`,
+      `Advance: ₹${s.totalAdvances.toFixed(2)}`,
+      `*Net Pay: ₹${s.netPayable.toFixed(2)}*`,
+      '— BolKarigar App'
+    ].join('\n');
+  }
+
+  function shareSlipWhatsApp() {
+    const data = window._lastPayrollSlip;
+    if (!data?.slip) return toast('Pehle salary slip kholein', 'error');
+    const text = encodeURIComponent(buildSlipWhatsAppText(data.slip, data.month, data.year));
+    const phone = (data.slip.employee.phone || '').replace(/\D/g, '');
+    const url = phone.length >= 10
+      ? `https://wa.me/91${phone.slice(-10)}?text=${text}`
+      : `https://wa.me/?text=${text}`;
+    window.open(url, '_blank');
   }
 
   function monthYearInputs() {
@@ -63,6 +104,7 @@
   function setPayrollViewMode() {
     const manager = isManagerView();
     const selfOnly = isSelfView() && !manager;
+    updatePayrollNavLabel();
     document.querySelectorAll('.payroll-manager-only').forEach((el) => {
       el.style.display = manager ? '' : 'none';
     });
@@ -240,15 +282,17 @@
       <details><summary>Daily breakdown</summary>
         <table style="margin-top:8px;"><thead><tr><th>Date</th><th>Day</th><th>Status</th><th>Earned</th></tr></thead><tbody>${rows}</tbody></table>
       </details>`;
+    window._lastPayrollSlip = { slip: s, month, year };
     modal.classList.remove('hidden');
   }
 
   async function loadSelfAttendance() {
     const box = document.getElementById('payrollSelfBox');
     if (!box) return;
+    box.innerHTML = '<p>Loading...</p>';
     const data = await apiGet('/api/payroll/me');
     if (!data.employee) {
-      box.innerHTML = '<p class="helper-text">Aapka employee profile abhi link nahi hai. Owner se Staff Payroll me link karwayein.</p>';
+      box.innerHTML = '<p class="helper-text">Hajri profile load nahi hui. Dubara login karein ya owner se contact karein.</p>';
       return;
     }
     const att = await apiGet('/api/payroll/attendance');
@@ -257,10 +301,13 @@
       `<button type="button" class="theme-btn payroll-self-mark ${cur === o.v ? 'active' : ''}" data-status="${o.v}">${o.l}</button>`
     ).join(' ');
     box.innerHTML = `
-      <p><strong>${esc(data.employee.name)}</strong> — Aaj ki hajri mark karein (${att.date || 'today'})</p>
+      <p><strong>${esc(data.employee.name)}</strong> (${esc(data.employee.designation)}) — Aaj ki hajri</p>
+      <p class="helper-text">Date: ${att.date || 'today'} | Tap karke mark karein</p>
       <div class="btn-row" style="flex-wrap:wrap;gap:8px;margin:12px 0;">${btns}</div>
-      <p class="helper-text">Current: <strong>${cur || 'Not marked'}</strong></p>
-      <button type="button" id="payrollViewMySlipBtn" class="secondary">📄 Meri Salary Slip</button>`;
+      <p class="helper-text">Aaj ki status: <strong>${cur ? cur.replace('_', ' ') : 'Abhi mark nahi hui'}</strong></p>
+      <div class="btn-row" style="gap:8px;flex-wrap:wrap;">
+        <button type="button" id="payrollViewMySlipBtn" class="secondary">📄 Meri Salary Slip</button>
+      </div>`;
     box.querySelectorAll('.payroll-self-mark').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const res = await apiPost('/api/payroll/attendance/self', { status: btn.dataset.status });
@@ -355,11 +402,12 @@
     document.getElementById('payrollSlipCloseBtn')?.addEventListener('click', () => {
       document.getElementById('payrollSlipModal')?.classList.add('hidden');
     });
+    document.getElementById('payrollSlipWhatsAppBtn')?.addEventListener('click', shareSlipWhatsApp);
 
     document.querySelectorAll('.tab-btn[data-tab="payrollPanel"]').forEach((btn) => {
       btn.addEventListener('click', loadPayrollPanel);
     });
   });
 
-  window.BolKarigarPayroll = { loadPayrollPanel, setPayrollViewMode };
+  window.BolKarigarPayroll = { loadPayrollPanel, setPayrollViewMode, shareSlipWhatsApp };
 })();

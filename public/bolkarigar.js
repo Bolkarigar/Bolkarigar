@@ -144,7 +144,8 @@ function bkCanAccessTab(me, tabId) {
     if (!sub?.fullAccess) return false;
     if (!me?.isStaff) return true;
     if (me.payroll?.canViewSalary || me.payroll?.canManage) return true;
-    if (me.payroll?.isLinkedEmployee) return true;
+    if (me.payroll?.canMarkHajri || me.payroll?.isLinkedEmployee) return true;
+    if (["cashier", "manager", "staff"].includes(me.role || "")) return true;
     return false;
   }
   if (!me?.isStaff) return true;
