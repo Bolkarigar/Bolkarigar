@@ -129,12 +129,18 @@
   html[data-theme="light"] .topbar { background: rgba(255,255,255,.85); }
   .brand-wrap { display: flex; align-items: center; gap: 12px; }
   .brand-mark {
-    width: 44px; height: 44px; border-radius: 14px;
-    display: grid; place-items: center;
-    background: rgba(56,189,248,.14);
-    color: var(--accent2);
+    width: 44px; height: 44px; border-radius: 12px;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: transparent;
   }
-  .brand-mark svg { width: 28px; height: 28px; }
+  .brand-mark-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: inherit;
+  }
   .eyebrow {
     margin: 0;
     font-size: 11px;
@@ -1937,12 +1943,8 @@ body.sidebar-open .sidebar-tally-card {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    display: grid;
-    place-items: center;
-    font-weight: 800;
-    font-size: 14px;
-    color: #fff;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    display: block;
+    object-fit: cover;
     flex-shrink: 0;
   }
   .sidebar-close-btn {
@@ -2042,7 +2044,6 @@ body.sidebar-open .sidebar-tally-card {
     max-width: 100%;
   }
   .brand-mark { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
-  .brand-mark svg { width: 22px; height: 22px; }
 
   .top-actions {
     grid-column: 1 / -1;
@@ -2215,7 +2216,7 @@ body.sidebar-open .sidebar-tally-card {
   h1 { font-size: 13px; }
   .panel-header h3 { font-size: 14px; }
 
-  .brand-mark { width: 32px; height: 32px; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 8px; }
 
   /* Topbar icon-only buttons */
   .top-actions #businessProfileBtn,
