@@ -16,7 +16,7 @@ const SERVICE_NAME = process.env.RENDER_SERVICE_NAME || 'bolkarigar';
 const ENV_UPDATES = {
   GEMINI_API_KEY: GEMINI_KEY,
   VOICE_AI_PROVIDER: 'gemini',
-  DEV_PLAN_TOGGLE: 'true'
+  DEV_PLAN_TOGGLE: 'false'
 };
 
 async function api(path, options = {}) {
