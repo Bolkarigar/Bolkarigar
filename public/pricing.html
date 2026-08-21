@@ -1,140 +1,281 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>BolKarigar — Pricing & Free Trial</title>
-  <style>
-    * { box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
-    body { margin: 0; background: #0f172a; color: #e2e8f0; padding: 24px; }
-    h1 { text-align: center; margin-bottom: 8px; }
-    .sub { text-align: center; color: #94a3b8; margin-bottom: 12px; max-width: 640px; margin-left: auto; margin-right: auto; }
-    .trial-badge { text-align: center; margin-bottom: 28px; }
-    .trial-badge span { display: inline-block; background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; padding:8px 18px; border-radius:999px; font-weight:700; font-size:14px; }
-    .staff-note { max-width: 720px; margin: 0 auto 28px; padding: 16px 18px; border-radius: 12px; border: 1px solid #a855f744; background: #a855f715; font-size: 14px; line-height: 1.6; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; }
-    .card.featured { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e44; }
-    .price { font-size: 2rem; font-weight: 800; color: #22c55e; margin: 12px 0; }
-    ul { padding-left: 18px; line-height: 1.8; color: #cbd5e1; font-size: 14px; }
-    .btn { display: block; text-align: center; margin-top: 16px; padding: 12px; border-radius: 10px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; border: none; cursor: pointer; width: 100%; font-size: 15px; }
-    .btn.green { background: #22c55e; }
-    .btn.gold { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .back { display: block; text-align: center; margin-top: 32px; color: #94a3b8; }
-    .conditions { max-width: 720px; margin: 32px auto 0; font-size: 13px; color: #94a3b8; line-height: 1.7; }
-    .logged-in-note { max-width: 720px; margin: 0 auto 20px; padding: 12px 16px; border-radius: 10px; background: #22c55e22; border: 1px solid #22c55e55; text-align: center; display: none; }
-    @media (max-width: 640px) {
-      body { padding: 16px 14px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-      h1 { font-size: 1.5rem; }
-      .sub { font-size: 14px; }
-      .card { padding: 18px; }
-      .price { font-size: 1.65rem; }
-      .staff-note { padding: 14px; font-size: 13px; }
-      .conditions { font-size: 12px; }
-    }
-  </style>
-</head>
-<body>
-  <h1>BolKarigar Pricing</h1>
-  <p class="sub">Professional dukaan software — pehle <strong>3 din FREE Pro trial</strong>, phir monthly plan.</p>
-  <div class="trial-badge"><span>🎁 3 Din Free Pro Trial — Credit Card Ki Zaroorat Nahi</span></div>
-
-  <div id="loggedInNote" class="logged-in-note">
-    ✅ Aap logged in hain — plan kharidne ke liye app me <strong>My Plan</strong> khulega.
-  </div>
-
-  <div class="staff-note">
-    <strong>👥 Staff / Cashier / Manager?</strong><br>
-    Aapko <strong>alag se app kharidne ki zaroorat nahi</strong>. Dukaan ke malik se <strong>invite code</strong> lein.
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <h3>🆓 Starter</h3>
-      <div class="price">₹0</div>
-      <p style="color:#94a3b8;font-size:13px;">/ month — sirf 1 owner</p>
-      <ul>
-        <li>Invoice + GST bill</li>
-        <li>Udhar Khata</li>
-        <li>Basic reports</li>
-        <li>50 invoices/month</li>
-      </ul>
-      <button type="button" class="btn js-plan-btn" data-plan="starter" data-action="signup">Sign Up Free</button>
-    </div>
-    <div class="card featured">
-      <h3>⭐ Pro Dukaan</h3>
-      <div class="price">₹349</div>
-      <p style="color:#94a3b8;font-size:13px;">/ month — sirf owner</p>
-      <ul>
-        <li>Overview + Invoice + Inventory</li>
-        <li>Udhar Khata + Ledgers</li>
-        <li>Stock Items + Voucher + Day Book</li>
-        <li>Gallery + Todo + Help</li>
-      </ul>
-      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="trial">🎁 3 Din Free Trial — ₹349/plan baad me</button>
-    </div>
-    <div class="card">
-      <h3>🏢 Business</h3>
-      <div class="price">₹699</div>
-      <p style="color:#94a3b8;font-size:13px;">/ month — 5 staff FREE</p>
-      <ul>
-        <li><strong>App ki saari cheezein</strong></li>
-        <li>Tally sync + Voice AI</li>
-        <li>Reports Pro + GSTR + Staff (5)</li>
-        <li>Contractor + Bank Recon + Backup</li>
-      </ul>
-      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="pay">💳 Business — ₹699 / month</button>
-    </div>
-  </div>
-
-  <div class="conditions">
-    <strong>Trial conditions:</strong>
-    <ul>
-      <li>Naya owner account = 3 din Pro trial automatic</li>
-      <li>1 email = 1 dukaan trial</li>
-      <li>Payment Razorpay se — UPI / Card / Netbanking</li>
-      <li>Staff accounts malik ke plan se linked — alag payment nahi</li>
-    </ul>
-  </div>
-
-  <a class="back" href="loginpage.html">← Wapas Login</a>
-
-  <script>
-    (function () {
-      const token = localStorage.getItem("bk_token") || localStorage.getItem("token");
-      if (token) {
-        document.getElementById("loggedInNote").style.display = "block";
-      }
-
-      function goSignup(plan) {
-        window.location.href = "signup.html?plan=" + encodeURIComponent(plan);
-      }
-
-      function goAppPlan(plan) {
-        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan=" + encodeURIComponent(plan);
-      }
-
-      document.querySelectorAll(".js-plan-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const plan = btn.dataset.plan || "pro";
-          const action = btn.dataset.action || "signup";
-
-          if (token) {
-            goAppPlan(plan);
-            return;
-          }
-
-          if (action === "signup" || action === "trial") {
-            goSignup(plan);
-            return;
-          }
-
-          if (action === "pay") {
-            goSignup("business");
-          }
-        });
-      });
-    })();
-  </script>
-</body>
-</html>
+<!DOCTYPE html>
+
+<html lang="hi">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <title>BolKarigar — Pricing & Free Trial</title>
+  <script src="native-config.js?v=1"></script>
+
+  <style>
+
+    * { box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
+
+    body { margin: 0; background: #0f172a; color: #e2e8f0; padding: 24px; }
+
+    h1 { text-align: center; margin-bottom: 8px; }
+
+    .sub { text-align: center; color: #94a3b8; margin-bottom: 12px; max-width: 640px; margin-left: auto; margin-right: auto; }
+
+    .trial-badge { text-align: center; margin-bottom: 28px; }
+
+    .trial-badge span { display: inline-block; background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; padding:8px 18px; border-radius:999px; font-weight:700; font-size:14px; }
+
+    .staff-note { max-width: 720px; margin: 0 auto 28px; padding: 16px 18px; border-radius: 12px; border: 1px solid #a855f744; background: #a855f715; font-size: 14px; line-height: 1.6; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; }
+
+    .card.featured { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e44; }
+
+    .price { font-size: 2rem; font-weight: 800; color: #22c55e; margin: 12px 0; }
+
+    ul { padding-left: 18px; line-height: 1.8; color: #cbd5e1; font-size: 14px; }
+
+    .btn { display: block; text-align: center; margin-top: 16px; padding: 12px; border-radius: 10px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; border: none; cursor: pointer; width: 100%; font-size: 15px; }
+
+    .btn.green { background: #22c55e; }
+
+    .btn.gold { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .back { display: block; text-align: center; margin-top: 32px; color: #94a3b8; }
+
+    .conditions { max-width: 720px; margin: 32px auto 0; font-size: 13px; color: #94a3b8; line-height: 1.7; }
+
+    .logged-in-note { max-width: 720px; margin: 0 auto 20px; padding: 12px 16px; border-radius: 10px; background: #22c55e22; border: 1px solid #22c55e55; text-align: center; display: none; }
+
+    @media (max-width: 640px) {
+
+      body { padding: 16px 14px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+
+      h1 { font-size: 1.5rem; }
+
+      .sub { font-size: 14px; }
+
+      .card { padding: 18px; }
+
+      .price { font-size: 1.65rem; }
+
+      .staff-note { padding: 14px; font-size: 13px; }
+
+      .conditions { font-size: 12px; }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h1>BolKarigar Pricing</h1>
+
+  <p class="sub">Professional dukaan software — pehle <strong>3 din FREE Pro trial</strong>, phir monthly plan.</p>
+
+  <div class="trial-badge"><span>🎁 3 Din Free Pro Trial — Credit Card Ki Zaroorat Nahi</span></div>
+
+
+
+  <div id="loggedInNote" class="logged-in-note">
+
+    ✅ Aap logged in hain — plan kharidne ke liye app me <strong>My Plan</strong> khulega.
+
+  </div>
+
+
+
+  <div class="staff-note">
+
+    <strong>👥 Staff / Cashier / Manager?</strong><br>
+
+    Aapko <strong>alag se app kharidne ki zaroorat nahi</strong>. Dukaan ke malik se <strong>invite code</strong> lein.
+
+  </div>
+
+
+
+  <div class="grid">
+
+    <div class="card">
+
+      <h3>🆓 Starter</h3>
+
+      <div class="price">₹0</div>
+
+      <p style="color:#94a3b8;font-size:13px;">/ month — sirf 1 owner</p>
+
+      <ul>
+
+        <li>Invoice + GST bill</li>
+
+        <li>Udhar Khata</li>
+
+        <li>Basic reports</li>
+
+        <li>50 invoices/month</li>
+
+      </ul>
+
+      <button type="button" class="btn js-plan-btn" data-plan="starter" data-action="signup">Sign Up Free</button>
+
+    </div>
+
+    <div class="card featured">
+
+      <h3>⭐ Pro Dukaan</h3>
+
+      <div class="price">₹349</div>
+
+      <p style="color:#94a3b8;font-size:13px;">/ month — sirf owner</p>
+
+      <ul>
+
+        <li>Overview + Invoice + Inventory</li>
+
+        <li>Udhar Khata + Ledgers</li>
+
+        <li>Stock Items + Voucher + Day Book</li>
+
+        <li>Gallery + Todo + Help</li>
+
+      </ul>
+
+      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="trial">🎁 3 Din Free Trial — ₹349/plan baad me</button>
+
+    </div>
+
+    <div class="card">
+
+      <h3>🏢 Business</h3>
+
+      <div class="price">₹699</div>
+
+      <p style="color:#94a3b8;font-size:13px;">/ month — 5 staff FREE</p>
+
+      <ul>
+
+        <li><strong>App ki saari cheezein</strong></li>
+
+        <li>Tally sync + Voice AI</li>
+
+        <li>Reports Pro + GSTR + Staff (5)</li>
+
+        <li>Contractor + Bank Recon + Backup</li>
+
+      </ul>
+
+      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="pay">💳 Business — ₹699 / month</button>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="conditions">
+
+    <strong>Trial conditions:</strong>
+
+    <ul>
+
+      <li>Naya owner account = 3 din Pro trial automatic</li>
+
+      <li>1 email = 1 dukaan trial</li>
+
+      <li>Payment Razorpay se — UPI / Card / Netbanking</li>
+
+      <li>Staff accounts malik ke plan se linked — alag payment nahi</li>
+
+    </ul>
+
+  </div>
+
+
+
+  <a class="back" href="loginpage.html">← Wapas Login</a>
+
+
+
+  <script>
+
+    (function () {
+
+      const token = localStorage.getItem("bk_token") || localStorage.getItem("token");
+
+      if (token) {
+
+        document.getElementById("loggedInNote").style.display = "block";
+
+      }
+
+
+
+      function goSignup(plan) {
+
+        window.location.href = "signup.html?plan=" + encodeURIComponent(plan);
+
+      }
+
+
+
+      function goAppPlan(plan) {
+
+        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan=" + encodeURIComponent(plan);
+
+      }
+
+
+
+      document.querySelectorAll(".js-plan-btn").forEach((btn) => {
+
+        btn.addEventListener("click", () => {
+
+          const plan = btn.dataset.plan || "pro";
+
+          const action = btn.dataset.action || "signup";
+
+
+
+          if (token) {
+
+            goAppPlan(plan);
+
+            return;
+
+          }
+
+
+
+          if (action === "signup" || action === "trial") {
+
+            goSignup(plan);
+
+            return;
+
+          }
+
+
+
+          if (action === "pay") {
+
+            goSignup("business");
+
+          }
+
+        });
+
+      });
+
+    })();
+
+  </script>
+  <script src="capacitor-app.js?v=1"></script>
+</body>
+
+</html>
+

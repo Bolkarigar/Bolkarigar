@@ -1615,6 +1615,8 @@ app.get('/api/gallery/image/:fileId', async (req, res) => {
     if (!galleryBucket) return res.status(503).send('Not ready');
 
     res.set('Content-Type', photo.contentType || 'image/jpeg');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'private, max-age=3600');
     galleryBucket.openDownloadStream(new mongoose.Types.ObjectId(req.params.fileId))
       .on('error', () => res.status(404).send('Not found'))
       .pipe(res);

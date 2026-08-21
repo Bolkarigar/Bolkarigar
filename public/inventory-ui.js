@@ -3,7 +3,7 @@
  * HSN, GST, godown, batch, low-stock alerts, stock adjust
  */
 (function () {
-  const API = () => window.API_URL || window.location.origin;
+  const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));
   const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
   const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 

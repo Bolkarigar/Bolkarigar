@@ -1,5 +1,5 @@
 (function () {
-  const API_URL = window.location.origin;
+  const API_URL = window.API_URL || window.location.origin;
   const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
 
   let razorpayScriptLoaded = false;

@@ -6,7 +6,7 @@ if ('caches' in window) {
 }
 
 // API Base configuration
-const API_URL = window.location.origin;
+const API_URL = (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));
 const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
 
 function getAccountingMode() {
@@ -1027,6 +1027,8 @@ function openMobileSidebar() {
   document.body.classList.add("sidebar-open");
   mobileMenuBtn?.setAttribute("aria-expanded", "true");
   sidebarOverlay?.setAttribute("aria-hidden", "false");
+  const scroll = appSidebar?.querySelector(".sidebar-nav-scroll");
+  if (scroll) scroll.scrollTop = 0;
 }
 
 function closeMobileSidebar() {
@@ -1041,6 +1043,7 @@ function toggleMobileSidebar() {
 }
 
 mobileMenuBtn?.addEventListener("click", toggleMobileSidebar);
+document.getElementById("sidebarCloseBtn")?.addEventListener("click", closeMobileSidebar);
 sidebarOverlay?.addEventListener("click", closeMobileSidebar);
 
 window.addEventListener("resize", () => {
@@ -2645,7 +2648,9 @@ const galleryThumbsBox = document.getElementById("galleryThumbs");
 // aata list API mein) — <img> tag Authorization header nahi bhej sakta,
 // isliye token ko query param mein bhejte hain (server isse accept karta hai).
 function galleryImageUrl(fileId) {
-  return `${API_URL}/api/gallery/image/${fileId}?token=${encodeURIComponent(getToken())}`;
+  const api = typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : API_URL;
+  return `${api}/api/gallery/image/${fileId}?token=${encodeURIComponent(getToken())}`;
+}
 }
 const galleryStatusText = document.getElementById("galleryStatusText");
 const galleryUploadBtn = document.getElementById("galleryUploadBtn");
@@ -2669,6 +2674,12 @@ function renderGalleryThumbs(photos) {
     const img = document.createElement("img");
     img.className = "thumb";
     img.src = galleryImageUrl(photo.fileId);
+    img.crossOrigin = 'anonymous';
+    img.loading = 'lazy';
+    img.onerror = function () {
+      this.alt = 'Photo load nahi hui — internet check karein';
+      this.style.opacity = '0.5';
+    };
     img.alt = photo.caption || "Product photo";
     img.loading = "lazy";
 

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
+  <script src="native-config.js?v=1"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -231,6 +232,8 @@
       planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan]}</strong><br>🎁 Signup par <strong>3 din FREE Pro trial</strong> automatic milega.`;
     }
 
+    const BK_API = () => window.API_URL || window.location.origin;
+
     if (localStorage.getItem("bk_token")) {
       window.location.href = "bolkarigar.html?openPanel=myPlanPanel";
     }
@@ -252,7 +255,7 @@
       submitBtn.textContent = "Account bana rahe hain...";
 
       try {
-        const response = await fetch('/api/auth/signup', {
+        const response = await fetch(`${BK_API()}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password, plan: selectedPlan })
@@ -299,5 +302,6 @@
       }
     });
   </script>
+  <script src="capacitor-app.js?v=1"></script>
 </body>
 </html>

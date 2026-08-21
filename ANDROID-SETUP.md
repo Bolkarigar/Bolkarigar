@@ -26,13 +26,13 @@ https://bolkarigar-production.up.railway.app
 Project folder mein `capacitor.config.ts` file kholo, aur ye line dhoondo:
 
 ```ts
-url: 'https://REPLACE-WITH-YOUR-LIVE-SERVER-URL.com',
+url: 'https://bolkarigar.onrender.com',
 ```
 
 Ise apne asli Railway/Render URL se replace karo:
 
 ```ts
-url: 'https://bolkarigar-production.up.railway.app',
+url: 'https://bolkarigar.onrender.com',
 ```
 
 Save karo, fir terminal mein:

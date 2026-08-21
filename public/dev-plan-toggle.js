@@ -2,7 +2,7 @@
  * Dev UI — top bar se ₹349 Pro / ₹699 Business switch (testing only).
  */
 (function () {
-  const API = () => window.location.origin;
+  const API = () => window.API_URL || window.location.origin;
   const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
 
   function isLocalHost() {

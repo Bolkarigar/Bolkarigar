@@ -16,7 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260820r5">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260821m1">
+  <script src="native-config.js?v=1"></script>
 </head>
 <body>
   <script>
@@ -51,7 +52,8 @@
       </div>
       <div>
         <p class="eyebrow">Hindi Voice-First Contractor Tool</p>
-        <h1>BolKarigar AI Dashboard</h1>
+        <h1 class="brand-title-main">BolKarigar</h1>
+        <p class="brand-title-sub">AI Dashboard</p>
       </div>
     </div>
     <div class="top-actions">
@@ -124,6 +126,13 @@
 
     <section class="dashboard-layout">
       <aside id="appSidebar" class="sidebar" aria-label="App navigation">
+        <div class="sidebar-mobile-header">
+          <div class="sidebar-mobile-brand">
+            <span class="sidebar-brand-icon">BK</span>
+            <strong>BolKarigar</strong>
+          </div>
+          <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Menu band karein">✕</button>
+        </div>
         <div class="sidebar-nav-scroll">
           <div class="nav-group">
             <p class="nav-group-label">Main</p>
@@ -223,7 +232,7 @@
 
           <div id="lowStockAlertBox" class="hidden" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.1);font-size:13px;"></div>
 
-          <p class="nav-group-label" style="margin:16px 0 8px;">📅 Aaj ka Hisaab (Daily Summary)</p>
+          <p class="nav-group-label" style="margin:16px 0 8px;">Aaj ka Hisaab (Daily Summary) — <span id="todayDateLabel" style="color:#38bdf8;font-weight:600;"></span></p>
           <div class="grid-2" style="margin-bottom:12px;">
             <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
             <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
@@ -1158,12 +1167,12 @@
   <script src="responsive-ui.js?v=20260820r4"></script>
   <script src="help-modules.js?v=20260820h1"></script>
   <script src="voice-controller.js?v=20260820v4"></script>
-  <script src="bolkarigar.js?v=20260820v3"></script>
+  <script src="bolkarigar.js?v=20260821m1"></script>
   <script src="subscription-ui.js?v=20260814v7"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>
   <script src="bolkarigar-pro.js?v=20260814v3"></script>
-  <script src="live-features-ui.js?v=20260814v3"></script>
+  <script src="live-features-ui.js?v=20260821m1"></script>
 
   <!-- Hindi Onboarding Wizard (pehli baar login) -->
   <div id="onboardingModal" class="modal-overlay hidden" style="z-index:9999;">
@@ -1187,5 +1196,6 @@
       </div>
     </div>
   </div>
+  <script src="capacitor-app.js?v=1"></script>
 </body>
 </html>

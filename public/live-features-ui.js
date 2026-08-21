@@ -2,13 +2,20 @@
  * BolKarigar — Live feature UI (daily summary, alerts, backup, onboarding, bank CSV)
  */
 (function () {
-  const API = () => window.API_URL || '';
+  const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));
   const token = () => localStorage.getItem('bk_token') || localStorage.getItem('token') || '';
   const hdr = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` });
 
   function toast(msg, type) {
     if (typeof window.showToast === 'function') window.showToast(msg, type);
     else console.log(msg);
+  }
+
+  function updateTodayDateLabel() {
+    const el = document.getElementById('todayDateLabel');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   async function loadDailySummary() {
@@ -98,8 +105,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    updateTodayDateLabel();
     setTimeout(() => { loadDailySummary(); loadLowStockAlerts(); }, 800);
     showOnboardingIfNeeded();
+    setInterval(updateTodayDateLabel, 60000);
 
     document.getElementById('refreshDailyBtn')?.addEventListener('click', () => {
       loadDailySummary();
@@ -119,5 +128,5 @@
     });
   });
 
-  window.BolKarigarLive = { loadDailySummary, loadLowStockAlerts };
+  window.BolKarigarLive = { loadDailySummary, loadLowStockAlerts, updateTodayDateLabel };
 })();

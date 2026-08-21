@@ -2,7 +2,7 @@
  * BolKarigar Pro — Frontend for professional features
  */
 (function () {
-  const API = () => window.API_URL || '';
+  const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
   const token = () => localStorage.getItem('bk_token') || localStorage.getItem('token') || '';
   const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` });
 
