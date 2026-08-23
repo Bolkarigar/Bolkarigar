@@ -25,21 +25,54 @@
     else alert(msg);
   }
 
+  async function parseApiResponse(r) {
+    const text = await r.text();
+    try {
+      const data = JSON.parse(text);
+      if (!r.ok && data.success === undefined) data.success = false;
+      if (!r.ok && !data.error) data.error = `Server error (${r.status})`;
+      return data;
+    } catch {
+      return {
+        success: false,
+        error: r.status === 404
+          ? 'Payroll API nahi mili — server restart karein (npm start).'
+          : `Server ne sahi jawab nahi diya (${r.status}). Page refresh ya dubara login karein.`
+      };
+    }
+  }
+
   async function apiGet(path) {
-    const r = await fetch(`${API()}${path}`, { headers: headers() });
-    return r.json();
+    try {
+      const r = await fetch(`${API()}${path}`, { headers: headers() });
+      return await parseApiResponse(r);
+    } catch (e) {
+      return { success: false, error: e.message || 'Network error — server check karein.' };
+    }
   }
   async function apiPost(path, body) {
-    const r = await fetch(`${API()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body || {}) });
-    return r.json();
+    try {
+      const r = await fetch(`${API()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body || {}) });
+      return await parseApiResponse(r);
+    } catch (e) {
+      return { success: false, error: e.message || 'Network error — server check karein.' };
+    }
   }
   async function apiPut(path, body) {
-    const r = await fetch(`${API()}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body || {}) });
-    return r.json();
+    try {
+      const r = await fetch(`${API()}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body || {}) });
+      return await parseApiResponse(r);
+    } catch (e) {
+      return { success: false, error: e.message || 'Network error — server check karein.' };
+    }
   }
   async function apiDelete(path) {
-    const r = await fetch(`${API()}${path}`, { method: 'DELETE', headers: headers() });
-    return r.json();
+    try {
+      const r = await fetch(`${API()}${path}`, { method: 'DELETE', headers: headers() });
+      return await parseApiResponse(r);
+    } catch (e) {
+      return { success: false, error: e.message || 'Network error — server check karein.' };
+    }
   }
 
   function me() { return window._bkAccountInfo || null; }
@@ -135,11 +168,12 @@
     const body = document.getElementById('payrollEmployeeBody');
     if (!body) return;
     body.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-    const data = await apiGet('/api/payroll/employees');
-    if (!data.success) {
-      body.innerHTML = `<tr><td colspan="6">${esc(data.error || 'Error')}</td></tr>`;
-      return;
-    }
+    try {
+      const data = await apiGet('/api/payroll/employees');
+      if (!data.success) {
+        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(data.error || 'Employee list load nahi hui')}</td></tr>`;
+        return;
+      }
     if (!data.employees?.length) {
       body.innerHTML = '<tr><td colspan="6">Koi employee nahi. Neeche add karein.</td></tr>';
       populateAdvanceSelect();
@@ -163,16 +197,57 @@
         loadEmployees();
       });
     });
-    populateAdvanceSelect();
+      populateAdvanceSelect();
+    } catch (e) {
+      body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(e.message || 'Employee list load fail')}</td></tr>`;
+    }
   }
 
-  async function populateStaffLinkSelect() {
+  async function populateStaffLinkSelect(force) {
     const sel = document.getElementById('payrollLinkUser');
-    if (!sel || sel.dataset.loaded) return;
+    const hint = document.getElementById('payrollLinkHint');
+    if (!sel) return;
+    if (sel.dataset.loaded && !force) return;
+    if (force) delete sel.dataset.loaded;
+
+    sel.innerHTML = '<option value="">Loading staff...</option>';
     const data = await apiGet('/api/payroll/staff-users');
-    if (!data.success) return;
-    sel.innerHTML = '<option value="">— App login link (optional) —</option>' +
-      (data.users || []).map((u) => `<option value="${u.id}" ${u.alreadyLinked ? 'disabled' : ''}>${esc(u.username)} (${u.role})${u.alreadyLinked ? ' — linked' : ''}</option>`).join('');
+    if (!data.success) {
+      sel.innerHTML = '<option value="">— App login link (optional) —</option>';
+      if (hint) hint.textContent = data.error || 'Staff list load nahi hui. Dubara try karein.';
+      return;
+    }
+    const users = data.users || [];
+    const available = users.filter((u) => !u.alreadyLinked);
+    const linked = users.filter((u) => u.alreadyLinked);
+
+    let html = '<option value="">— App login link (optional) —</option>';
+    if (available.length) {
+      html += '<optgroup label="Link kar sakte hain">';
+      html += available.map((u) => `<option value="${u.id}">${esc(u.username)} (${u.role})</option>`).join('');
+      html += '</optgroup>';
+    }
+    if (linked.length) {
+      html += '<optgroup label="Pehle se linked (auto)">';
+      html += linked.map((u) => {
+        const tag = u.linkedEmployeeName ? ` → ${esc(u.linkedEmployeeName)}` : '';
+        return `<option value="" disabled>${esc(u.username)} (${u.role}) — linked ✓${tag}</option>`;
+      }).join('');
+      html += '</optgroup>';
+    }
+    sel.innerHTML = html;
+
+    if (hint) {
+      if (!users.length) {
+        hint.textContent = 'Pehle Staff tab se invite code se staff account banao.';
+      } else if (!available.length) {
+        hint.textContent = `Saare staff linked hain: ${linked.map((u) => u.username).join(', ')}. Employee list me pehle se dikhenge — dubara link ki zaroorat nahi.`;
+      } else if (linked.length) {
+        hint.textContent = `Linked: ${linked.map((u) => u.username).join(', ')}. Neeche se naya staff link karein.`;
+      } else {
+        hint.textContent = 'Optional — staff app login ko employee se link karein.';
+      }
+    }
     sel.dataset.loaded = '1';
   }
 
@@ -257,6 +332,10 @@
     });
   }
 
+  function closePayrollSlipModal() {
+    document.getElementById('payrollSlipModal')?.classList.add('hidden');
+  }
+
   async function showSalarySlip(employeeId) {
     const { month, year } = monthYearInputs();
     const data = await apiGet(`/api/payroll/salary/${employeeId}?month=${month}&year=${year}`);
@@ -328,7 +407,10 @@
         btn.classList.add('active');
         document.getElementById(btn.dataset.sub)?.classList.add('active');
         const sub = btn.dataset.sub;
-        if (sub === 'payrollEmpSub') loadEmployees();
+        if (sub === 'payrollEmpSub') {
+          loadEmployees();
+          populateStaffLinkSelect(true);
+        }
         if (sub === 'payrollAttSub') loadDailyAttendance();
         if (sub === 'payrollSalSub') loadSalarySummary();
         if (sub === 'payrollSetSub') loadPayrollSettings();
@@ -341,7 +423,7 @@
     setPayrollViewMode();
     if (isManagerView()) {
       await loadPayrollSettings();
-      populateStaffLinkSelect();
+      populateStaffLinkSelect(true);
       const active = document.querySelector('.payroll-subtab-btn.active')?.dataset.sub;
       if (active === 'payrollEmpSub' || !active) loadEmployees();
       if (active === 'payrollAttSub') loadDailyAttendance();
@@ -374,7 +456,9 @@
         document.getElementById('payrollEmpName').value = '';
         document.getElementById('payrollEmpPhone').value = '';
         document.getElementById('payrollEmpSalary').value = '';
+        document.getElementById('payrollLinkUser').value = '';
         loadEmployees();
+        populateStaffLinkSelect(true);
       }
     });
 
@@ -399,8 +483,10 @@
       loadPayrollSettings();
     });
 
-    document.getElementById('payrollSlipCloseBtn')?.addEventListener('click', () => {
-      document.getElementById('payrollSlipModal')?.classList.add('hidden');
+    document.getElementById('payrollSlipCloseBtn')?.addEventListener('click', closePayrollSlipModal);
+    document.getElementById('payrollSlipPrintBtn')?.addEventListener('click', () => window.print());
+    document.getElementById('payrollSlipModal')?.addEventListener('click', (e) => {
+      if (e.target?.id === 'payrollSlipModal') closePayrollSlipModal();
     });
     document.getElementById('payrollSlipWhatsAppBtn')?.addEventListener('click', shareSlipWhatsApp);
 
@@ -409,5 +495,5 @@
     });
   });
 
-  window.BolKarigarPayroll = { loadPayrollPanel, setPayrollViewMode, shareSlipWhatsApp };
+  window.BolKarigarPayroll = { loadPayrollPanel, setPayrollViewMode, shareSlipWhatsApp, closePayrollSlipModal };
 })();

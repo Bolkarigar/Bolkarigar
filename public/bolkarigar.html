@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260821m1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260823m1">
   <script src="native-config.js?v=1"></script>
 </head>
 <body>
@@ -792,6 +792,7 @@
                   <option value="6">Saturday</option>
                 </select>
                 <select id="payrollLinkUser"><option value="">— App login link (optional) —</option></select>
+                <p id="payrollLinkHint" class="helper-text payroll-link-hint">Staff app login link (optional) — invite wale staff auto-link ho jate hain.</p>
               </div>
               <button id="payrollAddEmpBtn" type="button">➕ Add Employee</button>
               <div class="table-wrap" style="margin-top:14px;">
@@ -849,18 +850,6 @@
             </div>
           </div>
         </section>
-
-        <!-- Payroll salary slip modal -->
-        <div id="payrollSlipModal" class="modal hidden">
-          <div class="modal-content" style="max-width:640px;">
-            <div id="payrollSlipBody"></div>
-            <div class="modal-actions">
-              <button type="button" id="payrollSlipCloseBtn" class="modal-btn btn-cancel">Close</button>
-              <button type="button" id="payrollSlipWhatsAppBtn" class="modal-btn btn-submit" style="background:#25D366;">📲 WhatsApp Share</button>
-              <button type="button" class="modal-btn btn-submit" onclick="window.print()">🖨️ Print</button>
-            </div>
-          </div>
-        </div>
 
         <!-- 🟢 STAFF / MULTI-USER -->
         <section class="panel" id="staffPanel">
@@ -1275,13 +1264,25 @@
   <script src="responsive-ui.js?v=20260820r4"></script>
   <script src="help-modules.js?v=20260820h1"></script>
   <script src="voice-controller.js?v=20260820v4"></script>
-  <script src="bolkarigar.js?v=20260821m2"></script>
+  <script src="bolkarigar.js?v=20260823m1"></script>
   <script src="subscription-ui.js?v=20260814v7"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>
   <script src="bolkarigar-pro.js?v=20260814v3"></script>
-  <script src="payroll-ui.js?v=20260821p2"></script>
+  <script src="payroll-ui.js?v=20260823p1"></script>
   <script src="live-features-ui.js?v=20260821m2"></script>
+
+  <!-- Payroll salary slip — body level overlay (har panel par nahi dikhe) -->
+  <div id="payrollSlipModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Salary slip">
+    <div class="modal-box" style="max-width:640px;text-align:left;">
+      <div id="payrollSlipBody"></div>
+      <div class="modal-actions">
+        <button type="button" id="payrollSlipCloseBtn" class="modal-btn btn-cancel">Close</button>
+        <button type="button" id="payrollSlipWhatsAppBtn" class="modal-btn btn-submit" style="background:#25D366;">📲 WhatsApp Share</button>
+        <button type="button" id="payrollSlipPrintBtn" class="modal-btn btn-submit">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Hindi Onboarding Wizard (pehli baar login) -->
   <div id="onboardingModal" class="modal-overlay hidden" style="z-index:9999;">

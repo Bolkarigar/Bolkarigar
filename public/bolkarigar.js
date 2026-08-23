@@ -135,6 +135,14 @@ function bkHasPerm(me, perm) {
   return perms.includes("*") || perms.includes(perm);
 }
 
+function bkStaffFallbackTab(me) {
+  if (me?.role === "staff" && bkCanAccessTab(me, "payrollPanel")) return "payrollPanel";
+  if (bkCanAccessTab(me, "overviewPanel")) return "overviewPanel";
+  if (bkCanAccessTab(me, "invoicePanel")) return "invoicePanel";
+  const first = [...document.querySelectorAll(".tab-btn[data-tab]")].find((btn) => btn.style.display !== "none");
+  return first?.dataset.tab || "invoicePanel";
+}
+
 function bkCanAccessTab(me, tabId) {
   const sub = me?.subscription;
   if (sub && !sub.fullAccess && Array.isArray(sub.allowedTabs)) {
@@ -145,7 +153,7 @@ function bkCanAccessTab(me, tabId) {
     if (!me?.isStaff) return true;
     if (me.payroll?.canViewSalary || me.payroll?.canManage) return true;
     if (me.payroll?.canMarkHajri || me.payroll?.isLinkedEmployee) return true;
-    if (["cashier", "manager", "staff"].includes(me.role || "")) return true;
+    if (me.role === "staff") return true;
     return false;
   }
   if (!me?.isStaff) return true;
@@ -170,7 +178,10 @@ function applyRoleBasedUI(me) {
   if (me.isStaff && banner) {
     banner.classList.remove("hidden");
     const label = me.roleLabel || role;
-    if (bannerText) bannerText.textContent = `${label} Mode — Limited Access`;
+    const msg = role === "staff"
+      ? `${label} Mode — Meri Hajri + Tools`
+      : `${label} Mode — Limited Access`;
+    if (bannerText) bannerText.textContent = msg;
   } else if (banner) {
     banner.classList.add("hidden");
   }
@@ -239,8 +250,20 @@ function applyRoleBasedUI(me) {
   }
 
   const activeTab = document.querySelector(".tab-btn.active[data-tab]");
-  if (activeTab && !bkCanAccessTab(me, activeTab.dataset.tab)) {
-    openPanel("overviewPanel");
+  const activeId = activeTab?.dataset.tab;
+  if (!activeId || !bkCanAccessTab(me, activeId)) {
+    openPanel(bkStaffFallbackTab(me));
+  }
+
+  document.body.classList.toggle("role-staff-limited", !!(me.isStaff && me.role === "staff"));
+
+  if (me.role === "staff") {
+    document.getElementById("voiceToggle")?.style.setProperty("display", "none");
+    document.getElementById("liveAiToggle")?.style.setProperty("display", "none");
+    document.getElementById("devPlanToggleBar")?.classList.add("hidden");
+  } else {
+    document.getElementById("voiceToggle")?.style.removeProperty("display");
+    document.getElementById("liveAiToggle")?.style.removeProperty("display");
   }
 
   document.querySelectorAll(".owner-only-plan").forEach((el) => {
@@ -998,10 +1021,10 @@ function openPanel(id) {
   const me = window._bkAccountInfo;
   if (me && !bkCanAccessTab(me, id)) {
     showToast("Aapke role me yeh section allowed nahi hai.", "error");
-    // 🟢 FIX: fallback ab role ke hisaab se — Overview sirf owner ke liye
-    // hai, isliye staff/manager/cashier ko Invoice panel pe bhejte hain
-    // (jo sabke liye open hai), warna infinite-blocked situation ban jaati.
-    id = bkCanAccessTab(me, "overviewPanel") ? "overviewPanel" : "invoicePanel";
+    id = bkStaffFallbackTab(me);
+  }
+  if (typeof window.BolKarigarPayroll?.closePayrollSlipModal === "function") {
+    window.BolKarigarPayroll.closePayrollSlipModal();
   }
   panels.forEach(panel => panel.classList.toggle("active", panel.id === id));
   tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
@@ -1011,6 +1034,9 @@ function openPanel(id) {
   }
   if (id === "bankReconPanel" || id === "companiesPanel") {
     showToast("Yeh feature jald aa raha hai — abhi basic entry save hoti hai, auto-match nahi.", "info");
+  }
+  if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
+    window.BolKarigarPayroll.loadPayrollPanel();
   }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {

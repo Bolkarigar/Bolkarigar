@@ -42,7 +42,7 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.PROJECTS_WRITE
   ],
   staff: [
-    PERMISSIONS.INVOICE_CREATE, PERMISSIONS.UDHAR_VIEW, PERMISSIONS.KHATA_READ
+    PERMISSIONS.ATTENDANCE_SELF
   ]
 };
 
@@ -55,17 +55,17 @@ const ROLE_LABELS = {
 
 const TAB_ACCESS = {
   overviewPanel: ['owner'],
-  invoicePanel: ['owner', 'manager', 'cashier', 'staff'],
-  voicePanel: ['owner', 'manager', 'cashier', 'staff'],
+  invoicePanel: ['owner', 'manager', 'cashier'],
+  voicePanel: ['owner', 'manager', 'cashier'],
   projectPanel: ['owner', 'manager', 'cashier'],
-  inventoryPanel: ['owner', 'manager', 'cashier', 'staff'],
+  inventoryPanel: ['owner', 'manager', 'cashier'],
   totalSalesPanel: ['owner', 'manager', 'cashier'],
   contractorPanel: ['owner', 'manager'],
-  ledgerPanel: ['owner', 'manager', 'cashier', 'staff'],
-  khataLedgersPanel: ['owner', 'manager', 'cashier', 'staff'],
-  khataItemsPanel: ['owner', 'manager', 'cashier', 'staff'],
-  khataVoucherPanel: ['owner', 'manager', 'cashier', 'staff'],
-  khataDaybookPanel: ['owner', 'manager', 'cashier', 'staff'],
+  ledgerPanel: ['owner', 'manager', 'cashier'],
+  khataLedgersPanel: ['owner', 'manager', 'cashier'],
+  khataItemsPanel: ['owner', 'manager', 'cashier'],
+  khataVoucherPanel: ['owner', 'manager', 'cashier'],
+  khataDaybookPanel: ['owner', 'manager', 'cashier'],
   reportsProPanel: ['owner', 'manager'],
   bankReconPanel: ['owner'],
   galleryPanel: ['owner', 'manager', 'cashier', 'staff'],

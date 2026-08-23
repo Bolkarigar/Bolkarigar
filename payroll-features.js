@@ -291,17 +291,19 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     res.json({ success: true, employees });
   });
 
-  app.get('/api/payroll/staff-users', authenticateToken, biz, ownerMiddleware, requireOwner, async (req, res) => {
-    const staffUsers = await User.find({ ownerId: req.ownerId }).select('username role _id');
-    const linked = await PayrollEmployee.find({ ownerId: req.ownerId, linkedUserId: { $ne: null } }).select('linkedUserId');
-    const linkedIds = new Set(linked.map((e) => String(e.linkedUserId)));
+  app.get('/api/payroll/staff-users', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, requirePayrollManage, async (req, res) => {
+    const ownerOid = req.ownerId;
+    const staffUsers = await User.find({ ownerId: ownerOid }).select('username role _id').sort({ username: 1 });
+    const linked = await PayrollEmployee.find({ ownerId: ownerOid, linkedUserId: { $ne: null }, isActive: true }).select('linkedUserId name');
+    const linkedMap = new Map(linked.map((e) => [String(e.linkedUserId), e.name]));
     res.json({
       success: true,
       users: staffUsers.map((u) => ({
         id: u._id,
         username: u.username,
-        role: u.role,
-        alreadyLinked: linkedIds.has(String(u._id))
+        role: u.role || 'staff',
+        alreadyLinked: linkedMap.has(String(u._id)),
+        linkedEmployeeName: linkedMap.get(String(u._id)) || null
       }))
     });
   });
