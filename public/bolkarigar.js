@@ -2108,6 +2108,68 @@ function cleanSearchTerm(val) {
     .trim();
 }
 
+/** Voice meta — search query se hatao (english mein karo, etc.) */
+function stripSearchMeta(text) {
+  return String(text || "")
+    .replace(/(?:english|hindi|inglish|angrezi|angrez|in\s*english|in\s*hindi|इंग्लिश|हिंदी|अंग्रेजी|angreji)/gi, " ")
+    .replace(/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल|karo|kero|kar|kro|kijiye|करो|कर|करके|karke|कीजिए|likho|लिखो)/gi, " ")
+    .replace(/(?:naam|name|नाम|ko|ke|ka|ki|me|mein|main|men|में|for|se|bolo|please|wala|wali)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const DEVANAGARI_ROMAN = {
+  "अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo", "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au",
+  "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "ng", "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "ny",
+  "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n", "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+  "प": "p", "फ": "ph", "फ़": "f", "ब": "b", "भ": "bh", "म": "m", "य": "y", "र": "r", "ल": "l", "व": "v",
+  "श": "sh", "ष": "sh", "स": "s", "ह": "h", "क्ष": "ksh", "त्र": "tr", "ज्ञ": "gy",
+  "ा": "a", "ि": "i", "ी": "i", "ु": "u", "ू": "u", "े": "e", "ै": "ai", "ो": "o", "ौ": "au",
+  "ं": "n", "ँ": "n", "ः": "h", "्": "", "़": ""
+};
+
+const SEARCH_NAME_ALIASES = {
+  lakshmi: "laxmi", laksmi: "laxmi", laxmi: "laxmi", lakshamee: "laxmi", lkshmi: "laxmi",
+  vikrant: "vikrant", vikram: "vikram", ramesh: "ramesh", suresh: "suresh",
+  lucky: "lucky", lakhi: "lucky"
+};
+
+function transliterateDevanagari(text) {
+  let out = "";
+  const src = String(text || "");
+  for (let i = 0; i < src.length;) {
+    const two = src.slice(i, i + 2);
+    if (DEVANAGARI_ROMAN[two]) { out += DEVANAGARI_ROMAN[two]; i += 2; continue; }
+    const one = src[i];
+    if (DEVANAGARI_ROMAN[one]) { out += DEVANAGARI_ROMAN[one]; i += 1; continue; }
+    if (/[A-Za-z0-9]/.test(one)) out += one;
+  }
+  return out.replace(/(.)\1+/g, "$1").trim();
+}
+
+function applySearchAliases(term) {
+  const key = String(term || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (SEARCH_NAME_ALIASES[key]) return SEARCH_NAME_ALIASES[key];
+  if (/kshmi|laksh/.test(key)) return "laxmi";
+  return key || String(term || "").toLowerCase();
+}
+
+/** Hindi/English voice se DB-friendly English search term */
+function normalizeSearchKeyword(raw) {
+  let s = stripSearchMeta(cleanSearchTerm(raw));
+  if (/[\u0900-\u097F]/.test(s)) s = transliterateDevanagari(s);
+  if (!s) {
+    const devWords = String(raw || "").match(/[\u0900-\u097F]{2,}/gu);
+    if (devWords?.length) s = transliterateDevanagari(devWords[devWords.length - 1]);
+  }
+  if (!s) {
+    const latin = String(raw || "").match(/[A-Za-z][A-Za-z0-9]{1,}/g);
+    if (latin?.length) s = latin.find((w) => !/^(english|hindi|search|name|naam)$/i.test(w)) || latin[0];
+  }
+  s = applySearchAliases(s);
+  return String(s || "").replace(/\s+/g, " ").trim();
+}
+
 function parseSearchQuery(raw) {
   const t = (window.bkVoiceController?.cleanUtterance || stripSpeechPunctuation)(raw);
   const n = normalize(t);
@@ -2118,30 +2180,42 @@ function parseSearchQuery(raw) {
 
   const hasSearchVerb = /(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n);
   const hasNameSearch = /(?:naam|name|नाम)\s+.+/i.test(n) && hasSearchVerb;
-  if (!hasSearchVerb && !hasNameSearch) return null;
+  const hasMetaName = /(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|में)?/i.test(n) &&
+    (/[\u0900-\u097F]{2,}/.test(t) || /[A-Za-z]{2,}/.test(t));
+  if (!hasSearchVerb && !hasNameSearch && !hasMetaName) return null;
 
-  let m = t.match(/(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल)\s+(?:for|me|m|में|kar|karo|kero|कर|करो)?\s*(.+?)(?:\s+(?:karo|kero|kar|kro|करो|कर|do|de|दो|kijiye|कीजिए)|$)/i);
+  let m = t.match(/(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|main|में)?\s*(?:kar|karo|kero|करो|कर|करके)?\s*(?:do|de|दो)?\s*(.+)$/iu);
   if (m) {
-    const q = cleanSearchTerm(m[1]);
+    const q = normalizeSearchKeyword(m[1]);
+    if (q) return { query: q, clear: false };
+  }
+
+  m = t.match(/(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल)\s+(?:for|me|m|में|kar|karo|kero|कर|करो)?\s*(.+?)(?:\s+(?:karo|kero|kar|kro|करो|कर|do|de|दो|kijiye|कीजिए)|$)/i);
+  if (m) {
+    const q = normalizeSearchKeyword(m[1]);
     if (q) return { query: q, clear: false };
   }
 
   m = t.match(/(?:naam|name|नाम)\s+(.+?)\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)/i);
   if (m) {
-    const q = cleanSearchTerm(m[1]);
+    const q = normalizeSearchKeyword(m[1]);
     if (q) return { query: q, clear: false };
   }
 
   m = t.match(/(.+?)\s+(?:ko\s+)?(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल)\s*(?:karo|kero|kar|kro|करो|कर|kijiye|कीजिए|do|de|दो)?/i);
   if (m) {
-    const q = cleanSearchTerm(m[1]);
+    const q = normalizeSearchKeyword(m[1]);
     if (q) return { query: q, clear: false };
   }
 
-  const stripped = cleanSearchTerm(
-    t.replace(/(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल|karo|kero|kar|kro|करो|कर|kijiye|कीजिए)/gi, " ")
-  );
-  if (stripped && stripped.length >= 2) return { query: stripped, clear: false };
+  m = t.match(/([\u0900-\u097F]{2,}|[A-Za-z][A-Za-z0-9]{1,})\s*(?:ko\s+)?(?:search|सर्च|खोज|खोजो)/i);
+  if (m) {
+    const q = normalizeSearchKeyword(m[1]);
+    if (q) return { query: q, clear: false };
+  }
+
+  const q = normalizeSearchKeyword(t);
+  if (q && q.length >= 2) return { query: q, clear: false };
 
   return null;
 }

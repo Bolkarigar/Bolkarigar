@@ -305,6 +305,8 @@
     if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return true;
     if (/(?:naam|name|नाम)\s+.+\s*(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
     if (/.+\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)\s*(?:karo|kero|kar|kro|करो|कर|kijiye|कीजिए)?$/i.test(n)) return true;
+    if (/(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|में)/i.test(n) && /[\u0900-\u097F]{2,}|[A-Za-z]{2,}/.test(text)) return true;
+    if (/^[\u0900-\u097F]{2,}\s*(?:khojo|खोजो|dikhao|दिखाओ)/i.test(n)) return true;
     return false;
   }
 
