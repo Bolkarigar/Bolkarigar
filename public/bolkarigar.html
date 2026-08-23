@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260823m1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260823m2">
   <script src="native-config.js?v=1"></script>
 </head>
 <body>
@@ -129,21 +129,24 @@
           <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Menu band karein">✕</button>
         </div>
         <div class="sidebar-nav-scroll">
-          <div class="nav-group">
+          <div class="nav-group nav-group-main">
             <p class="nav-group-label">Main</p>
             <button class="tab-btn active" data-tab="overviewPanel" type="button">🏠 Overview</button>
             <button class="tab-btn" data-tab="invoicePanel" type="button">🧾 Invoice</button>
             <button class="tab-btn" data-tab="voicePanel" type="button">🎤 Voice AI</button>
           </div>
-          <div class="nav-group">
+          <div class="nav-group nav-group-business">
             <p class="nav-group-label">Business</p>
             <button class="tab-btn" data-tab="projectPanel" type="button">📁 Projects</button>
             <button class="tab-btn" data-tab="inventoryPanel" type="button">📦 Inventory</button>
             <button class="tab-btn" data-tab="totalSalesPanel" type="button">📊 Total Sales</button>
             <button class="tab-btn" data-tab="contractorPanel" type="button">👷 Contractor</button>
-            <button class="tab-btn plan-business-only" data-tab="payrollPanel" type="button">💼 Staff Payroll</button>
           </div>
-          <div class="nav-group">
+          <div class="nav-group nav-group-hajri plan-business-only">
+            <p class="nav-group-label">Hajri</p>
+            <button class="tab-btn" data-tab="payrollPanel" type="button">💼 Staff Payroll</button>
+          </div>
+          <div class="nav-group nav-group-accounting">
             <p class="nav-group-label">Accounting</p>
             <button class="tab-btn" data-tab="ledgerPanel" type="button">📖 Udhar Khata</button>
             <button class="tab-btn" data-tab="khataLedgersPanel" type="button">📒 Ledgers</button>
@@ -153,7 +156,7 @@
             <button class="tab-btn" data-tab="reportsProPanel" type="button">📈 Reports Pro</button>
             <button class="tab-btn" data-tab="bankReconPanel" type="button">🏦 Bank Recon</button>
           </div>
-          <div class="nav-group">
+          <div class="nav-group nav-group-tools">
             <p class="nav-group-label">Tools</p>
             <button class="tab-btn" data-tab="galleryPanel" type="button">🖼️ Gallery</button>
             <button class="tab-btn" data-tab="todoPanel" type="button">✅ Todo</button>
@@ -163,7 +166,7 @@
             <button class="tab-btn" data-tab="notesPanel" type="button">📝 Notes</button>
             <button class="tab-btn" data-tab="mediaPanel" type="button">📷 Media</button>
           </div>
-          <div class="nav-group">
+          <div class="nav-group nav-group-settings">
             <p class="nav-group-label">Settings</p>
             <button class="tab-btn" data-tab="staffPanel" type="button">👥 Staff</button>
             <button class="tab-btn owner-only-plan" data-tab="myPlanPanel" type="button">💳 My Plan</button>
@@ -1264,7 +1267,7 @@
   <script src="responsive-ui.js?v=20260820r4"></script>
   <script src="help-modules.js?v=20260820h1"></script>
   <script src="voice-controller.js?v=20260820v4"></script>
-  <script src="bolkarigar.js?v=20260823m1"></script>
+  <script src="bolkarigar.js?v=20260823m2"></script>
   <script src="subscription-ui.js?v=20260814v7"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>

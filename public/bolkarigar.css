@@ -401,6 +401,10 @@
   }
   body.role-staff-limited .hero { display: none !important; }
   body.role-staff-limited .sidebar-tally-card { display: none !important; }
+  body.role-staff-limited .nav-group-main,
+  body.role-staff-limited .nav-group-business,
+  body.role-staff-limited .nav-group-accounting { display: none !important; }
+  body.role-staff-limited .nav-group-settings .nav-group-label { display: none; }
   .modal-box {
     background: var(--card2);
     border: 1px solid var(--border);
