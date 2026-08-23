@@ -18,7 +18,7 @@
     { panel: "voicePanel", words: ["voice ai", "voice panel", "वॉइस", "माइक"] },
     { panel: "projectPanel", words: ["project", "projects", "site", "प्रोजेक्ट", "साइट", "ठेकेदारी"] },
     { panel: "inventoryPanel", words: ["inventory", "stock", "स्टॉक", "इन्वेंटरी", "सामान"] },
-    { panel: "totalSalesPanel", words: ["total sales", "sales history", "बिक्री", "sales report"] },
+    { panel: "totalSalesPanel", words: ["total sales", "total sale", "sales history", "sale history", "बिक्री", "कुल बिक्री", "टोटल सेल्स", "सेल्स", "sales report", "bikri report"] },
     { panel: "contractorPanel", words: ["contractor", "mazdoor", "labour", "ठेकेदार", "मजदूर"] },
     { panel: "payrollPanel", words: ["payroll", "hajri", "salary", "staff payroll", "वेतन", "हाजरी", "मेरी हाजरी"] },
     { panel: "ledgerPanel", words: ["udhar khata", "udhar", "credit", "उधार", "उधार खाता"] },
@@ -52,6 +52,7 @@
   function cleanUtterance(raw) {
     return stripPunct(raw)
       .replace(/\biss\s*ko\b|\bisko\b|\bus\s*ko\b|\bthis\s+is\b|\bye\b|\bwo\b/gi, " ")
+      .replace(/(?:इसको|उसको|मुझे|मेरे\s*को|ये|वो)\s*/gi, " ")
       .replace(/\b([a-zA-Z\u0900-\u097F]{2,20})\s+n\s+(?=ek\b)/gi, "$1 ne ")
       .replace(/\b([a-zA-Z\u0900-\u097F]{2,20})\s+n\s+/gi, "$1 ne ")
       .replace(/\s+/g, " ")
@@ -158,7 +159,7 @@
   }
 
   function isOpen(text) {
-    return /\b(open|kholo|khol|show|dikhao|dikha|go to|jao|ले जाओ|खोल|दिखा|दिखाओ)\b/.test(text);
+    return /(?:\b(open|kholo|khol|show|dikhao|dikha|go to|jao)\b|खोलो|खोल|दिखाओ|दिखा|ले जाओ|देखो|देख)/i.test(text);
   }
 
   function isQuestion(text) {
@@ -291,8 +292,91 @@
 
   function looksLikeProjectUtterance(text) {
     const n = norm(text);
-    return /(?:project|naam|name|customer|grahak|site|side|budget|प्रोजेक्ट|नाम|कस्टमर|ग्राहक|साइट|साइड|बजट|लोकेशन|रखो|rakho|हमारा)/i.test(n) &&
-      !/(?:product|item|invoice|bill|qty|price|hsn|gst)\b/.test(n);
+    if (/(?:total\s*sale|sales?\s+history|बिक्री|टोटल\s*सेल|कुल\s*बिक्री|expense|kharcha|खर्च|vendor|वेंडर|quick\s*expense)/i.test(n)) return false;
+    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return false;
+    return /(?:project|प्रोजेक्ट|(?:^|\s)(?:naam|नाम)(?:\s|$)|customer|grahak|कस्टमर|ग्राहक|(?:^|\s)(?:site|side|साइट|साइड)(?:\s|$)|budget|बजट|लोकेशन|रखो|rakho|हमारा)/i.test(n) &&
+      !/(?:product|item|invoice|bill|qty|price|hsn|gst)\b/.test(n) &&
+      !/(?:^|\s)name\s+search|naam\s+search|नाम\s+.+\s*(?:search|सर्च|खोज)/i.test(n);
+  }
+
+  function looksLikeSearchUtterance(text) {
+    const n = norm(cleanUtterance(text));
+    if (/(?:search\s*clear|clear\s*search|सर्च\s*हटा|खोज\s*हटा|खोज\s*साफ)/i.test(n)) return true;
+    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return true;
+    if (/(?:naam|name|नाम)\s+.+\s*(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
+    if (/.+\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)\s*(?:karo|kero|kar|kro|करो|कर|kijiye|कीजिए)?$/i.test(n)) return true;
+    return false;
+  }
+
+  function trySearchVoice(raw) {
+    if (!looksLikeSearchUtterance(raw)) return false;
+    if (typeof window.bkParseSearchQuery !== "function" || typeof window.bkVoiceSearch !== "function") return false;
+    const parsed = window.bkParseSearchQuery(raw);
+    if (!parsed) {
+      notify("Kya search karna hai? Jaise: laxmi search karo.", true);
+      return true;
+    }
+    return window.bkVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear });
+  }
+
+  function looksLikeExpenseUtterance(text) {
+    const n = norm(text);
+    return /(?:expense|kharcha|खर्च|खर्चा|vendor|वेंडर|supplier|quick\s*expense|expense\s+entry|राशि|दुकान|dukaan)/i.test(n) &&
+      !/(?:project\s+naam|project\s+name|प्रोजेक्ट\s+नाम)/i.test(n);
+  }
+
+  function parseExpenseFields(raw) {
+    const t = cleanUtterance(raw);
+    let title = extractTagged(t,
+      ["title", "expense title", "expense", "kharcha", "खर्च", "खर्चा"],
+      ["vendor", "वेंडर", "supplier", "amount", "राशि", "project", "प्रोजेक्ट", "add", "save"]);
+    let vendor = extractTagged(t,
+      ["vendor", "supplier", "dealer", "वेंडर", "सप्लायर", "दुकान", "dukaan"],
+      ["amount", "राशि", "project", "प्रोजेक्ट", "title", "expense", "add", "save"]);
+    let amount = "";
+    const am = t.match(/(?:amount|राशि|रुपये|रुपए|rs)\s*[:\-]?\s*(\d+(?:\.\d+)?)/iu) ||
+      t.match(/(\d+(?:\.\d+)?)\s*(?:rupaye|rupees|rs|rupya|रुपये|रुपए|का|के)\b/iu);
+    if (am) amount = am[1];
+    else amount = parseBudgetValue(t);
+    let project = extractTagged(t,
+      ["project", "प्रोजेक्ट", "site", "साइट", "project ref", "project reference"],
+      ["add", "save", "aur", "और", "vendor", "amount"]);
+    if (!title && vendor) title = vendor + " Bill";
+    return { title, vendor, amount, project, save: isAdd(t) };
+  }
+
+  async function tryExpenseVoice(raw) {
+    if (!looksLikeExpenseUtterance(raw)) return false;
+    const data = parseExpenseFields(raw);
+    const hasData = !!(data.title || data.vendor || data.amount || data.project);
+    const wantsAdd = isAdd(norm(raw)) || data.save;
+    if (!hasData && !wantsAdd) return false;
+    if (typeof window.handleExpenseSpeech === "function") {
+      await window.handleExpenseSpeech(raw, data);
+      return true;
+    }
+    return false;
+  }
+
+  function isExpenseIntent(t) {
+    return /(?:expense|kharcha|खर्च|vendor|वेंडर|quick\s*expense|expense\s+entry|राशि)/i.test(t);
+  }
+
+  function isProjectIntent(t) {
+    return /(?:project|प्रोजेक्ट|naam|नाम|customer|कस्टमर|site|साइट|budget|बजट)/i.test(t);
+  }
+
+  function hasExpenseFormData() {
+    const amount = document.getElementById("expenseAmount")?.value?.trim();
+    const vendor = document.getElementById("expenseVendor")?.value?.trim();
+    const title = document.getElementById("expenseTitle")?.value?.trim();
+    return !!(amount || vendor || title);
+  }
+
+  function hasProjectFormData() {
+    const name = document.getElementById("projectName")?.value?.trim();
+    const customer = document.getElementById("projectCustomer")?.value?.trim();
+    return !!(name || customer);
   }
 
   async function tryProjectVoice(raw) {
@@ -466,11 +550,11 @@
   }
 
   function matchNavigation(raw) {
-    const t = norm(raw);
+    const t = norm(cleanUtterance(raw));
     if (!t) return null;
 
-    const openHint = isOpen(t) || /\b(kholo|khol|open|show|dikhao|jao)\b/.test(t);
-    const shortNav = t.split(" ").length <= 8;
+    const openHint = isOpen(t) || /(?:kholo|khol|open|show|dikhao|jao|खोल)/i.test(t);
+    const shortNav = t.split(" ").length <= 10;
 
     let best = null;
     let bestLen = 0;
@@ -488,8 +572,21 @@
       }
     }
 
-    if (best && (openHint || shortNav || t.split(" ").length <= 4)) return best;
+    if (best && (openHint || shortNav)) return best;
+
+    if ((/total\s*sale|टोटल\s*सेल|कुल\s*बिक्री|sales?\s+history|बिक्री\s*रिपोर्ट/i.test(t) ||
+        (/(?:\bsales?\b|सेल्स?|बिक्री)/i.test(t) && openHint)) && canOpenTab("totalSalesPanel")) {
+      return { panel: "totalSalesPanel", words: ["Total Sales"] };
+    }
+
     return null;
+  }
+
+  function tryNavigateVoice(raw) {
+    const nav = matchNavigation(raw);
+    if (!nav) return false;
+    const label = nav.words[0];
+    return openTab(nav.panel, `${label} khol diya.`);
   }
 
   function tryTodoVoice(raw) {
@@ -566,14 +663,21 @@
 
   async function tryStandaloneSave(raw) {
     const t = norm(cleanUtterance(raw));
-    const short = t.split(/\s+/).length <= 6;
-    const addLike = /(?:add|save|jodo|jod|ऐड|जोड़|सेव|करो|कर दो|बनाओ|submit|confirm|karo|kero)/i.test(t);
+    const short = t.split(/\s+/).length <= 8;
+    const addLike = /(?:add|save|jodo|jod|ऐड|जोड़|सेव|करो|कर दो|बनाओ|submit|confirm|karo|kero|डालो|daal)/i.test(t);
     if (!short || !addLike) return false;
 
     const activePanel = document.querySelector(".panel.active")?.id;
-    if (activePanel === "projectPanel" && typeof window.bkSaveActiveProject === "function") {
-      await window.bkSaveActiveProject();
-      return true;
+    if (activePanel === "projectPanel") {
+      const expenseFirst = isExpenseIntent(t) || (hasExpenseFormData() && !isProjectIntent(t));
+      if (expenseFirst && typeof window.bkSaveActiveExpense === "function") {
+        await window.bkSaveActiveExpense();
+        return true;
+      }
+      if (typeof window.bkSaveActiveProject === "function") {
+        await window.bkSaveActiveProject();
+        return true;
+      }
     }
     if (activePanel === "invoicePanel") {
       document.getElementById("addInvoiceBtn")?.click();
@@ -603,20 +707,21 @@
       return true;
     }
 
+    if (tryNavigateVoice(cleaned)) return true;
+
+    if (trySearchVoice(cleaned)) return true;
+
     if (await tryStandaloneSave(cleaned)) return true;
 
     if (tryThemeVoice(cleaned)) return true;
     if (tryTodoVoice(cleaned)) return true;
+    if (await tryExpenseVoice(cleaned)) return true;
     if (await tryProjectVoice(cleaned)) return true;
     if (await fillAndAddInvoice(cleaned)) return true;
 
-    const nav = matchNavigation(cleaned);
-    if (nav) {
-      const label = nav.words[0];
-      return openTab(nav.panel, `${label} khol diya.`);
-    }
-
     if (tryFaqAnswer(cleaned)) return true;
+
+    if (typeof window.parseCommands === "function" && window.parseCommands(raw)) return true;
 
     return false;
   }
@@ -632,11 +737,17 @@
     cleanUtterance,
     parseSmartInvoice,
     parseProjectFields,
+    parseExpenseFields,
     parseFormWithAi,
     tryFastAction,
     processVoice,
     tryProjectVoice,
+    tryExpenseVoice,
+    tryNavigateVoice,
+    trySearchVoice,
     looksLikeProjectUtterance,
+    looksLikeExpenseUtterance,
+    looksLikeSearchUtterance,
     isSaleSentence,
     matchNavigation,
     NAV_INTENTS
