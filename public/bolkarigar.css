@@ -2408,3 +2408,176 @@ body.sidebar-open .sidebar-tally-card {
     min-height: 36px;
   }
 }
+
+/* ——— Official Payroll Salary Slip ——— */
+.payroll-slip-modal-box {
+  background: #fff !important;
+  color: #111 !important;
+}
+.payroll-slip-doc {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  color: #111;
+  line-height: 1.45;
+}
+.payroll-slip-header {
+  text-align: center;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #111;
+  padding-bottom: 10px;
+}
+.payroll-slip-co-name {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.payroll-slip-co-addr,
+.payroll-slip-co-meta {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #333;
+}
+.payroll-slip-title {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+.payroll-slip-info-table,
+.payroll-slip-ledger-table,
+.payroll-slip-daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.payroll-slip-info-table td,
+.payroll-slip-ledger-table th,
+.payroll-slip-ledger-table td,
+.payroll-slip-daily-table th,
+.payroll-slip-daily-table td {
+  border: 1px solid #222;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.payroll-slip-info-table .lbl {
+  width: 18%;
+  font-weight: 600;
+  background: #f5f5f5;
+}
+.payroll-slip-info-table .val {
+  width: 32%;
+}
+.payroll-slip-ledger-table th {
+  background: #f0f0f0;
+  font-size: 12px;
+  text-align: left;
+}
+.payroll-slip-ledger-table .amt {
+  text-align: right;
+  white-space: nowrap;
+  width: 18%;
+}
+.payroll-slip-total-row td {
+  background: #fafafa;
+}
+.payroll-slip-net-block {
+  border: 2px solid #111;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.payroll-slip-net-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.payroll-slip-net-amt {
+  font-size: 18px;
+}
+.payroll-slip-words {
+  margin: 0;
+  font-size: 12px;
+  color: #333;
+}
+.payroll-slip-footer {
+  margin-top: 8px;
+}
+.payroll-slip-note {
+  font-size: 11px;
+  color: #444;
+  margin: 0 0 20px;
+}
+.payroll-slip-sign-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  min-height: 60px;
+}
+.payroll-slip-sign {
+  text-align: right;
+  font-size: 12px;
+  border-top: 1px solid #111;
+  padding-top: 4px;
+  min-width: 180px;
+}
+.payroll-slip-daily {
+  margin-top: 14px;
+  font-size: 12px;
+}
+.payroll-slip-warning {
+  margin-top: 12px;
+  padding: 10px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 8px;
+  color: #9a3412;
+  font-size: 13px;
+}
+
+@media print {
+  body.printing-payroll-slip {
+    background: #fff !important;
+  }
+  body.printing-payroll-slip > *:not(#payrollSlipModal) {
+    display: none !important;
+  }
+  body.printing-payroll-slip #payrollSlipModal {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    background: #fff !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body.printing-payroll-slip #payrollSlipModal.hidden {
+    display: block !important;
+  }
+  body.printing-payroll-slip .payroll-slip-modal-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 12mm !important;
+    margin: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body.printing-payroll-slip .payroll-slip-actions,
+  body.printing-payroll-slip .payroll-slip-screen-only {
+    display: none !important;
+  }
+  body.printing-payroll-slip .payroll-slip-doc {
+    page-break-inside: avoid;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}

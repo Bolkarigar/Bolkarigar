@@ -517,18 +517,34 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
       year: Number(year)
     });
     const calc = calcMonthlySalary(employee, byDate, advances, year, month);
+    const lopDays = Math.max(0, Math.round((calc.workingDays - calc.earnedDays) * 100) / 100);
+    const lopDeduction = Math.round(lopDays * calc.perDayRate * 100) / 100;
     return {
       employee: {
         id: employee._id,
+        empCode: String(employee._id).slice(-6).toUpperCase(),
         name: employee.name,
         phone: employee.phone,
         designation: employee.designation,
         monthlySalary: employee.monthlySalary,
         weeklyOff: employee.weeklyOff,
-        weeklyOffLabel: WEEKDAY_NAMES[employee.weeklyOff ?? 0]
+        weeklyOffLabel: WEEKDAY_NAMES[employee.weeklyOff ?? 0],
+        joinDate: employee.joinDate || null
       },
       ...calc,
+      lopDays,
+      lopDeduction,
       advances
+    };
+  }
+
+  async function payrollCompanyProfile(ownerId) {
+    const profile = await BusinessProfile.findOne({ userId: ownerId });
+    return {
+      name: profile?.companyName || 'Business',
+      address: profile?.fullAddress || '',
+      phone: profile?.phone || '',
+      gstin: profile?.gstin || ''
     };
   }
 
@@ -560,7 +576,8 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     if (!emp) return res.status(404).json({ error: 'Employee nahi mila.' });
 
     const slip = await salaryForEmployee(emp, year, month);
-    res.json({ success: true, slip });
+    const company = await payrollCompanyProfile(req.ownerId);
+    res.json({ success: true, slip, company, month, year });
   });
 
   app.get('/api/payroll/me', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, async (req, res) => {

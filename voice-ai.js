@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { isValidGeminiApiKey } = require('./ai-offline');
 
-const VOICE_PARSE_SCHEMA = `{"intent":"invoice|todo|nav|payment|none","customer":"","product":"","price":0,"qty":1,"state":"","pin":"","save":true}`;
+const VOICE_PARSE_SCHEMA = `{"intent":"invoice|todo|nav|project|expense|payment|question|none","customer":"","product":"","price":0,"qty":1,"projectName":"","site":"","budget":0,"state":"","pin":"","panel":"","task":"","vendor":"","amount":0,"save":true}`;
 
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
@@ -24,8 +24,12 @@ Input: "${String(text).replace(/"/g, '\\"').slice(0, 500)}"
 Schema: ${VOICE_PARSE_SCHEMA}
 Rules:
 - "Ram ne laptop liya 25000 ka Haryana pincode 123456" -> intent invoice, save true
-- "todo me kal cement lana" -> intent todo, task text in product field or customer empty
-- "invoice kholo" -> intent nav, panel invoice
+- "todo me kal cement lana" -> intent todo, task in product field
+- "invoice kholo" -> intent nav, panel invoicePanel
+- "hajri kholo" -> intent nav, panel payrollPanel
+- "naam aman rakho customer nitin site gurgaon budget 25 lakh add karo" -> intent project, projectName Aman, customer Nitin, site Gurgaon, budget 2500000, save true
+- "vendor Sharma amount 4200 kharcha add" -> intent expense, vendor Sharma, amount 4200, save true
+- panel: overviewPanel, invoicePanel, todoPanel, payrollPanel, ledgerPanel, inventoryPanel, helpPanel
 - pin = 6 digits only. state = full Indian state name. price = number only.`;
 }
 

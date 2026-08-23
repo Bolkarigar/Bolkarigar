@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260823m2">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260823p2">
   <script src="native-config.js?v=1"></script>
 </head>
 <body>
@@ -104,7 +104,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Voice + Business Utility</p>
         <h2>Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
-        <p>Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye 2 piece bill banao”, “todo me kal cement lana likho”, “udhar khata kholo”, “dark mode on”.</p>
+        <p>Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye bill banao”, “todo me kal cement lana”, “hajri kholo”, “invoice kaise banate hain?” — jawab bhi sunoge, kaam bhi hoga.</p>
         <div class="hero-badges">
           <span>Voice Ready</span>
           <span>Invoice Tools</span>
@@ -1265,21 +1265,21 @@
   </div>
 
   <script src="responsive-ui.js?v=20260820r4"></script>
-  <script src="help-modules.js?v=20260820h1"></script>
-  <script src="voice-controller.js?v=20260820v4"></script>
-  <script src="bolkarigar.js?v=20260823m2"></script>
+  <script src="help-modules.js?v=20260823h1"></script>
+  <script src="voice-controller.js?v=20260823v8"></script>
+  <script src="bolkarigar.js?v=20260823v8"></script>
   <script src="subscription-ui.js?v=20260814v7"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>
   <script src="bolkarigar-pro.js?v=20260814v3"></script>
-  <script src="payroll-ui.js?v=20260823p1"></script>
+  <script src="payroll-ui.js?v=20260823p2"></script>
   <script src="live-features-ui.js?v=20260821m2"></script>
 
   <!-- Payroll salary slip — body level overlay (har panel par nahi dikhe) -->
   <div id="payrollSlipModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Salary slip">
-    <div class="modal-box" style="max-width:640px;text-align:left;">
+    <div class="modal-box payroll-slip-modal-box" style="max-width:820px;text-align:left;">
       <div id="payrollSlipBody"></div>
-      <div class="modal-actions">
+      <div class="modal-actions payroll-slip-actions">
         <button type="button" id="payrollSlipCloseBtn" class="modal-btn btn-cancel">Close</button>
         <button type="button" id="payrollSlipWhatsAppBtn" class="modal-btn btn-submit" style="background:#25D366;">📲 WhatsApp Share</button>
         <button type="button" id="payrollSlipPrintBtn" class="modal-btn btn-submit">🖨️ Print</button>

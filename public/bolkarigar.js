@@ -941,10 +941,27 @@ let lastVoiceHandled = { key: "", at: 0 };
 let voicePausedForInput = false;
 let voiceUtteranceBuffer = "";
 let voiceUtteranceFlushTimer = null;
-const VOICE_FLUSH_MS = 1500;
+let voiceRecPausedForTts = false;
+let voiceProcessingLock = false;
+const VOICE_FLUSH_MS = 2000;
+
+window._bkPauseVoiceForTts = function () {
+  voiceRecPausedForTts = true;
+  clearTimeout(voiceUtteranceFlushTimer);
+  voiceUtteranceBuffer = "";
+  try { if (recognition) recognition.stop(); } catch { /* */ }
+};
+
+window._bkResumeVoiceAfterTts = function () {
+  voiceRecPausedForTts = false;
+  if (voiceOn && !voicePausedForInput) {
+    setTimeout(() => { if (voiceOn && !voiceRecPausedForTts) restartRecognition(200); }, 500);
+  }
+};
 
 function flushVoiceBuffer() {
   voiceUtteranceFlushTimer = null;
+  if (voiceRecPausedForTts || voiceProcessingLock) return;
   const text = voiceUtteranceBuffer.trim();
   voiceUtteranceBuffer = "";
   const hint = document.getElementById("voiceBufferHint");
@@ -1112,9 +1129,12 @@ function normalize(text) {
   return String(text || "").toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function showCommand(msg) {
+function showCommand(msg, opts) {
   if (voiceResult) voiceResult.textContent = msg;
   if (voiceStatus) voiceStatus.textContent = msg;
+  if (opts?.speak === true && typeof window.bkVoiceSpeak === "function") {
+    window.bkVoiceSpeak(msg);
+  }
 }
 
 function openPanelByVoice(id, msg) {
@@ -1413,6 +1433,28 @@ function parseCommands(raw) {
     return true;
   }
 
+  if (text.includes("payroll") || text.includes("hajri") || text.includes("salary") || text.includes("वेतन") || text.includes("हाजरी")) {
+    return openPanelByVoice("payrollPanel", "Staff Payroll aur Hajri khol di.");
+  }
+  if (text.includes("contractor") || text.includes("mazdoor") || text.includes("ठेकेदार") || text.includes("मजदूर")) {
+    return openPanelByVoice("contractorPanel", "Contractor panel khol diya.");
+  }
+  if (text.includes("reports") || text.includes("gstr") || text.includes("रिपोर्ट")) {
+    return openPanelByVoice("reportsProPanel", "Reports Pro khol di.");
+  }
+  if (text.includes("bank recon") || text.includes("bank reconciliation") || text.includes("बैंक मिलान")) {
+    return openPanelByVoice("bankReconPanel", "Bank Reconciliation khol di.");
+  }
+  if (text.includes("staff panel") || text.includes("staff invite") || text.includes("कर्मचारी")) {
+    return openPanelByVoice("staffPanel", "Staff panel khol diya.");
+  }
+  if (text.includes("companies") || text.includes("multi company") || text.includes("कई फर्म")) {
+    return openPanelByVoice("companiesPanel", "Companies panel khol diya.");
+  }
+  if (text.includes("my plan") || text.includes("subscription") || text.includes("प्लान")) {
+    return openPanelByVoice("myPlanPanel", "My Plan khol diya.");
+  }
+
   return false;
 }
 
@@ -1460,11 +1502,14 @@ function stripSpeechPunctuation(text) {
 }
 
 function extractProjectData(rawText) {
+  if (window.bkVoiceController?.parseProjectFields) {
+    return window.bkVoiceController.parseProjectFields(rawText);
+  }
   const t = stripSpeechPunctuation(rawText);
   const budgetMatch = t.match(/(?:budget|बजट|amount)\s+(\d+(?:\.\d+)?)/i);
   const noteMatch = t.match(/(?:note|टिप्पणी|remark)\s+(.+?)$/i);
   return {
-    name: extractField(t, "project|प्रोजेक्ट|काम", PROJECT_STOP_WORDS),
+    name: extractField(t, "project|प्रोजेक्ट|काम|naam|नाम", PROJECT_STOP_WORDS),
     customer: extractFieldSmart(t, "customer|grahak|graahak|ग्राहक|client|कस्टमर|party|पार्टी|malik|मालिक", PROJECT_STOP_WORDS),
     site: extractFieldSmart(t, "site|साइट|location|जगह", PROJECT_STOP_WORDS),
     budget: budgetMatch ? budgetMatch[1].trim() : "",
@@ -1474,8 +1519,37 @@ function extractProjectData(rawText) {
 }
 
 function isAddCommand(text) {
-  return /\b(add|save|submit|create|confirm|done)\b|जोड़ो|जोड़ दो|सेव करो|सेव|बनाओ|जमा करो|पक्का करो/.test(text);
+  const t = String(text || "").toLowerCase();
+  if (/(?:^|\s)(?:add|save|submit|create|confirm|done|jodo|jod do|save karo|add karo|add kero|add kro|add kar do|add karke|add ker do|add kero)(?:\s|$)/i.test(t)) return true;
+  if (/ऐड\s*कर|ऐड\s*करो|जोड़ो|जोड़\s*दो|सेव\s*करो|बनाओ|जमा\s*करो|पक्का\s*करो|कर\s*दो|डाल\s*दो|daal\s*do/i.test(t)) return true;
+  if (/(?:^|\s)(?:karo|kero|kro|करो|कर\s*दो)(?:\s|$)/i.test(t) && /(?:add|save|jod|ऐड|जोड़|सेव|project|प्रोजेक्ट)/i.test(t)) return true;
+  return false;
 }
+
+function isStandaloneAddCommand(text) {
+  const t = normalize(text);
+  if (!isAddCommand(t)) return false;
+  return t.split(/\s+/).length <= 6;
+}
+
+async function saveActiveProjectFromVoice() {
+  const nameEl = document.getElementById("projectName");
+  const nameVal = nameEl?.value?.trim();
+  if (!nameVal) {
+    showCommand("Pehle project naam bolo ya form me naam likho.", { speak: true });
+    return false;
+  }
+  if (!document.getElementById("projectCustomer")?.value?.trim()) {
+    setField(document.getElementById("projectCustomer"), "N/A");
+  }
+  const success = await executeProjectAdd();
+  const msg = success
+    ? `Project save ho gaya: ${nameVal}.`
+    : "Project save nahi hua. Internet check karein ya dubara try karein.";
+  showCommand(msg, { speak: true });
+  return success;
+}
+window.bkSaveActiveProject = saveActiveProjectFromVoice;
 
 function looksLikeExpenseCommand(text) {
   return /\bvendor\b|वेंडर|\bexpense\b|kharcha|खर्च|खर्चा/.test(text);
@@ -1483,40 +1557,71 @@ function looksLikeExpenseCommand(text) {
 
 function looksLikeProjectCommand(text, data) {
   if (looksLikeExpenseCommand(text)) return false;
-  const hasProjectSignal = /\bproject\b|प्रोजेक्ट|\bsite\b|साइट|\bbudget\b|बजट|\bstatus\b|स्टेटस/.test(text);
+  const hasProjectSignal = /(?:project|प्रोजेक्ट|naam|नाम|name|customer|grahak|site|side|साइड|साइट|location|लोकेशन|budget|बजट|हमारा|रखो|rakho|status|स्टेटस)/i.test(text);
   const hasInvoiceSignal = /\bproduct\b|\bitem\b|प्रोडक्ट|\bquantity\b|\bqty\b|\bprice\b/.test(text);
   return hasProjectSignal && !hasInvoiceSignal && (data.name || data.customer || data.budget || data.site || data.status);
 }
 
-async function handleProjectSpeech(raw) {
+async function handleProjectSpeech(raw, preParsed) {
+  openPanel("projectPanel");
+  let data = preParsed || extractProjectData(raw);
+  if ((!data.name && !data.customer && !data.site) && window.bkVoiceController?.parseFormWithAi) {
+    const ai = await window.bkVoiceController.parseFormWithAi(raw, "project");
+    if (ai) data = { ...data, ...ai };
+  }
+
   const text = normalize(raw);
-  const data = extractProjectData(raw);
+  const hasNewFieldData = !!(data.name || data.customer || data.site || data.budget || data.note || data.status);
+  const wantsAdd = isAddCommand(text) || data.save;
 
-  if (data.name) setField(document.getElementById("projectName"), data.name);
-  if (data.customer) setField(document.getElementById("projectCustomer"), data.customer);
-  if (data.site) setField(document.getElementById("projectSite"), data.site);
-  if (data.budget) setField(document.getElementById("projectBudget"), data.budget);
-  if (data.note) setField(document.getElementById("projectNote"), data.note);
-  if (data.status) document.getElementById("projectStatus").value = data.status;
+  // Sirf "add karo" — form mat clear karo, seedha save
+  if (wantsAdd && !hasNewFieldData && isStandaloneAddCommand(text)) {
+    await saveActiveProjectFromVoice();
+    return true;
+  }
 
-  const summary = `Project: ${document.getElementById("projectName").value || "-"} | Customer: ${document.getElementById("projectCustomer").value || "-"} | Site: ${document.getElementById("projectSite").value || "-"} | Budget: ${document.getElementById("projectBudget").value || "-"} | Status: ${document.getElementById("projectStatus").value || "-"}`;
+  if (hasNewFieldData) {
+    ["projectName", "projectCustomer", "projectSite", "projectNote"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    if (data.name) setField(document.getElementById("projectName"), data.name);
+    if (data.customer) setField(document.getElementById("projectCustomer"), data.customer);
+    if (data.site) setField(document.getElementById("projectSite"), data.site);
+    if (data.budget) setField(document.getElementById("projectBudget"), data.budget);
+    if (data.note) setField(document.getElementById("projectNote"), data.note);
+    if (data.status) document.getElementById("projectStatus").value = data.status;
+  }
 
-  if (isAddCommand(text)) {
+  const parts = [];
+  if (data.name) parts.push(`naam ${data.name}`);
+  if (data.customer) parts.push(`customer ${data.customer}`);
+  if (data.site) parts.push(`site ${data.site}`);
+  if (data.budget) parts.push(`budget ${data.budget}`);
+
+  if (wantsAdd) {
     const nameVal = document.getElementById("projectName").value.trim();
     if (nameVal) {
       if (!document.getElementById("projectCustomer").value.trim()) {
         setField(document.getElementById("projectCustomer"), "N/A");
       }
       const success = await executeProjectAdd();
-      if(success) showCommand("Project save ho gaya. " + summary);
+      const msg = success
+        ? `Project save ho gaya. ${data.name || nameVal}, budget ${data.budget || document.getElementById("projectBudget")?.value || "0"} rupaye.`
+        : "Project save nahi hua. Dubara try karein.";
+      showCommand(msg, { speak: true });
     } else {
-      showCommand("Project add karne ke liye project ka naam bolo.");
+      showCommand("Project ka naam bolo, jaise naam Aman rakho.", { speak: true });
     }
-  } else {
-    showCommand("Project form bhara: " + summary + ". Bolo 'add karo' save karne ke liye.");
+  } else if (hasNewFieldData) {
+    showCommand(
+      `Samjha: ${parts.join(", ")}. Add karo boliye save ke liye.`,
+      { speak: true }
+    );
   }
   return true;
 }
+window.handleProjectSpeech = handleProjectSpeech;
 
 const EXPENSE_STOP_WORDS = ["vendor", "वेंडर", "amount", "budget", "बजट", "project", "प्रोजेक्ट", "add", "save", "जोड़ो", "सेव", "hai", "है"];
 
@@ -2022,28 +2127,43 @@ function clearActivePanelForm() {
   showCommand("Is panel mein clear karne ke liye kuch nahi hai.");
 }
 
-// Text-to-speech helper — sirf chhote jawab (repeat / lamba text nahi)
+// Text-to-speech — saaf Hindi jawab (voice ON par)
 let _lastSpeakText = "";
 let _lastSpeakAt = 0;
-function speakText(text, forceShort) {
+function speakText(text, forceShort, onDone) {
   try {
-    if (!("speechSynthesis" in window) || !text) return;
-    const msg = String(text).trim();
-    if (msg.length > 140 && !forceShort) return;
+    if (!("speechSynthesis" in window) || !text) { onDone?.(); return; }
+    let msg = String(text).trim()
+      .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")
+      .replace(/[✅❌📄🧾💼📅🤖🔊⚠️💡📲🖨️]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!msg) { onDone?.(); return; }
+    if (msg.length > 200 && !forceShort) msg = msg.slice(0, 197).trim() + "...";
     const now = Date.now();
-    if (msg === _lastSpeakText && now - _lastSpeakAt < 5000) return;
+    if (msg === _lastSpeakText && now - _lastSpeakAt < 8000) { onDone?.(); return; }
     _lastSpeakText = msg;
     _lastSpeakAt = now;
+    if (typeof window._bkPauseVoiceForTts === "function") window._bkPauseVoiceForTts();
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(msg);
-    utter.lang = "hi-IN";
-    utter.rate = 1.05;
+    utter.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
+    utter.rate = 1.02;
+    const finish = () => {
+      if (typeof window._bkResumeVoiceAfterTts === "function") window._bkResumeVoiceAfterTts();
+      onDone?.();
+    };
+    utter.onend = finish;
+    utter.onerror = finish;
     const voices = window.speechSynthesis.getVoices();
     const hindiVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
     if (hindiVoice) utter.voice = hindiVoice;
     window.speechSynthesis.speak(utter);
-  } catch (e) { /* silent */ }
+  } catch (e) {
+    onDone?.();
+  }
 }
+window.speakText = speakText;
 
 // -------------------------------------------------------------------
 // Offline FAQ Knowledge Base — app ke bare me common sawalon ke jawab.
@@ -2173,7 +2293,7 @@ function handleButtonVoiceCommand(text) {
     { phrases: ["add item", "item add", "item jodo", "stock add"], id: "addItemBtn" },
     { phrases: ["save voucher", "voucher save", "voucher jodo"], id: "saveVoucherBtn" },
     { phrases: ["add invoice", "invoice add", "item add karo", "bill add"], id: "addInvoiceBtn" },
-    { phrases: ["add project", "project save", "project jodo"], id: "addProjectBtn" },
+    { phrases: ["add project", "project save", "project jodo", "add karo", "add kar do", "add kero", "add ker do", "save karo", "project add karo", "ऐड करो", "ऐड कर दो", "जोड़ दो", "जोड़ो"], id: "addProjectBtn" },
     { phrases: ["add expense", "expense save", "kharcha jodo"], id: "addExpenseBtn" },
     { phrases: ["add todo", "todo add", "task add"], id: "addTodoBtn" },
     { phrases: ["add stock", "inventory add", "stock jodo"], id: "invSaveBtn" },
@@ -2308,6 +2428,8 @@ function matchAppFaq(rawText) {
   }
   return null;
 }
+window.matchAppFaq = matchAppFaq;
+window.isInformationalQuestion = isInformationalQuestion;
 
 // Smart AI Speech Handler
 // Pehle app ki apni (bahut detailed) command-samajhne wali engine try karta hai —
@@ -2318,20 +2440,25 @@ function matchAppFaq(rawText) {
 // quota bhi bahut kam use hota hai.
 async function handleSpeech(rawText) {
   if (!rawText || !rawText.trim()) return;
-  if (voicePausedForInput) return;
+  if (voicePausedForInput || voiceRecPausedForTts || voiceProcessingLock) return;
 
   const raw = rawText.trim();
   const dedupeKey = normalize(raw);
   const now = Date.now();
   if (dedupeKey.length < 4) return;
-  if (dedupeKey === lastVoiceHandled.key && now - lastVoiceHandled.at < 3000) return;
+  if (dedupeKey === lastVoiceHandled.key && now - lastVoiceHandled.at < 8000) return;
+
+  voiceProcessingLock = true;
   lastVoiceHandled = { key: dedupeKey, at: now };
 
   const text = normalize(raw);
   console.log("Processing Input:", text);
 
   try {
-    if (window.bkVoiceController?.tryFastAction) {
+    if (window.bkVoiceController?.processVoice) {
+      const voiceHandled = await window.bkVoiceController.processVoice(raw);
+      if (voiceHandled) return;
+    } else if (window.bkVoiceController?.tryFastAction) {
       const fastHandled = await window.bkVoiceController.tryFastAction(raw);
       if (fastHandled) return;
     }
@@ -2339,7 +2466,8 @@ async function handleSpeech(rawText) {
     if (isInformationalQuestion(raw)) {
       const faqReply = matchAppFaq(raw);
       if (faqReply) {
-        showCommand(faqReply);
+        showCommand(faqReply, { speak: true });
+        if (document.getElementById("aiReplyBox")) document.getElementById("aiReplyBox").innerText = faqReply;
         return;
       }
     }
@@ -2350,11 +2478,13 @@ async function handleSpeech(rawText) {
       return;
     }
 
-    // 2. Project (expense signal already excluded inside looksLikeProjectCommand)
-    const projectData = extractProjectData(raw);
-    if (looksLikeProjectCommand(text, projectData)) {
-      await handleProjectSpeech(raw);
-      return;
+    // 2. Project — voice-controller handle karta hai; yahan sirf fallback
+    if (!window.bkVoiceController?.looksLikeProjectUtterance?.(raw)) {
+      const projectData = extractProjectData(raw);
+      if (looksLikeProjectCommand(text, projectData)) {
+        await handleProjectSpeech(raw, projectData);
+        return;
+      }
     }
 
     // 3. Invoice (customer/product/price/qty, tally, whatsapp share)
@@ -2467,16 +2597,19 @@ async function handleSpeech(rawText) {
 
       // Step C: Fallback (Offline FAQ) agar API down ho ya internet na ho
       const faqAnswer = matchAppFaq(raw);
-      const reply = faqAnswer || "Samjha nahi. Try: 'invoice kholo' ya 'Ram ne laptop liya 25000 ka'.";
-      showCommand(reply);
+      const reply = faqAnswer || "Samjha nahi. Try karein: invoice kholo, ya Ram ne laptop 25000 ka bill banao.";
+      showCommand(reply, { speak: true });
       if (document.getElementById("aiReplyBox")) {
         document.getElementById("aiReplyBox").innerText = reply;
       }
+      speakText(reply, true);
     }
 
   } catch (err) {
     console.error("handleSpeech error:", err);
     showCommand("Kuch dikkat aayi, dobara try karo.");
+  } finally {
+    voiceProcessingLock = false;
   }
 }
 function setStatus(msg) {
@@ -2510,6 +2643,7 @@ function createRecognition() {
   };
 
   rec.onresult = (event) => {
+    if (voiceRecPausedForTts || voiceProcessingLock) return;
     lastActivityTime = Date.now();
     consecutiveFailures = 0;
     let interim = "";

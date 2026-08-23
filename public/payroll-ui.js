@@ -99,28 +99,201 @@
     }
   }
 
-  function buildSlipWhatsAppText(slip, month, year) {
+  function buildSlipWhatsAppText(slip, month, year, company) {
     const s = slip;
-    const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const co = company?.name || 'Business';
     return [
-      '*BolKarigar — Salary Slip*',
-      `Name: ${s.employee.name}`,
-      `Role: ${s.employee.designation}`,
+      `*${co} — Salary Slip*`,
       `Month: ${monthNames[month] || month} ${year}`,
-      `Working Days: ${s.workingDays}`,
-      `Earned Days: ${s.earnedDays}`,
-      `Monthly Salary: ₹${Number(s.employee.monthlySalary).toFixed(2)}`,
-      `Gross: ₹${s.grossSalary.toFixed(2)}`,
+      `Name: ${s.employee.name}`,
+      `Emp ID: ${s.employee.empCode || '—'}`,
+      `Designation: ${s.employee.designation}`,
+      `Working Days: ${s.workingDays} | Earned: ${s.earnedDays} | LOP: ${s.lopDays ?? 0}`,
+      `Basic Salary: ₹${Number(s.employee.monthlySalary).toFixed(2)}`,
+      `Gross Earned: ₹${s.grossSalary.toFixed(2)}`,
       `Advance: ₹${s.totalAdvances.toFixed(2)}`,
       `*Net Pay: ₹${s.netPayable.toFixed(2)}*`,
       '— BolKarigar App'
     ].join('\n');
   }
 
+  function fmtMoney(n) {
+    return `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return '—';
+    return dt.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function numberToWordsINR(amount) {
+    const n = Math.floor(Math.abs(Number(amount) || 0));
+    if (!n) return 'Rupees Zero Only';
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    function two(num) {
+      if (num < 20) return ones[num];
+      return `${tens[Math.floor(num / 10)]}${num % 10 ? ` ${ones[num % 10]}` : ''}`.trim();
+    }
+    function three(num) {
+      if (num < 100) return two(num);
+      return `${ones[Math.floor(num / 100)]} Hundred${num % 100 ? ` ${two(num % 100)}` : ''}`.trim();
+    }
+    function section(num, label) {
+      if (!num) return '';
+      return `${three(num)} ${label}`.trim();
+    }
+    const crore = Math.floor(n / 10000000);
+    const lakh = Math.floor((n % 10000000) / 100000);
+    const thousand = Math.floor((n % 100000) / 1000);
+    const hundred = n % 1000;
+    const parts = [
+      section(crore, 'Crore'),
+      section(lakh, 'Lakh'),
+      section(thousand, 'Thousand'),
+      section(hundred, '')
+    ].filter(Boolean);
+    return `Rupees ${parts.join(' ')} Only`;
+  }
+
+  function getLocalCompanyProfile() {
+    try {
+      return JSON.parse(localStorage.getItem('bolkarigar_company_profile')) || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function resolveCompanyProfile(apiCompany) {
+    const local = getLocalCompanyProfile();
+    return {
+      name: apiCompany?.name || local.name || 'Business',
+      address: apiCompany?.address || local.address || '',
+      phone: apiCompany?.phone || local.phone || '',
+      gstin: apiCompany?.gstin || local.gstin || ''
+    };
+  }
+
+  function renderOfficialSlipHTML(s, month, year, company) {
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const co = resolveCompanyProfile(company);
+    const lopDays = s.lopDays ?? Math.max(0, Math.round((s.workingDays - s.earnedDays) * 100) / 100);
+    const lopDeduction = s.lopDeduction ?? Math.round(lopDays * s.perDayRate * 100) / 100;
+    const totalDeductions = Math.round((lopDeduction + s.totalAdvances) * 100) / 100;
+    const rows = (s.dailyRows || []).filter((d) => d.status !== 'weekly_off').map((d) =>
+      `<tr><td>${esc(d.date)}</td><td>${esc(d.weekday)}</td><td>${esc(String(d.status).replace(/_/g, ' '))}</td><td style="text-align:right;">${d.earned}</td></tr>`
+    ).join('');
+
+    return `
+      <div class="payroll-slip-doc" id="payrollSlipPrintArea">
+        <div class="payroll-slip-header">
+          <h2 class="payroll-slip-co-name">${esc(co.name)}</h2>
+          ${co.address ? `<p class="payroll-slip-co-addr">${esc(co.address)}</p>` : ''}
+          ${co.gstin ? `<p class="payroll-slip-co-meta">GSTIN: ${esc(co.gstin)}${co.phone ? ` &nbsp;|&nbsp; Phone: ${esc(co.phone)}` : ''}</p>` : (co.phone ? `<p class="payroll-slip-co-meta">Phone: ${esc(co.phone)}</p>` : '')}
+          <p class="payroll-slip-title"><strong>Payslip for the month of ${monthNames[month] || month} / ${year}</strong></p>
+        </div>
+
+        <table class="payroll-slip-info-table">
+          <tbody>
+            <tr>
+              <td class="lbl">Emp ID</td><td class="val">${esc(s.employee.empCode || '—')}</td>
+              <td class="lbl">Employee Name</td><td class="val"><strong>${esc(s.employee.name)}</strong></td>
+            </tr>
+            <tr>
+              <td class="lbl">Phone</td><td class="val">${esc(s.employee.phone || '—')}</td>
+              <td class="lbl">Designation</td><td class="val">${esc(s.employee.designation)}</td>
+            </tr>
+            <tr>
+              <td class="lbl">NOD (Working Days)</td><td class="val">${s.workingDays}</td>
+              <td class="lbl">NDP (Paid Days)</td><td class="val">${s.earnedDays}</td>
+            </tr>
+            <tr>
+              <td class="lbl">DOJ</td><td class="val">${fmtDate(s.employee.joinDate)}</td>
+              <td class="lbl">Weekly Off</td><td class="val">${esc(s.employee.weeklyOffLabel || 'Sunday')}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Monthly Salary</td><td class="val">${fmtMoney(s.employee.monthlySalary)}</td>
+              <td class="lbl">LOP Days</td><td class="val">${lopDays}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Present</td><td class="val">${s.presentDays}</td>
+              <td class="lbl">Half Day / Leave</td><td class="val">${s.halfDays} / ${s.paidLeaves + s.unpaidLeaves}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="payroll-slip-ledger-table">
+          <thead>
+            <tr>
+              <th colspan="2">Earnings</th>
+              <th colspan="2">Deductions</th>
+            </tr>
+            <tr>
+              <th>Particulars</th><th style="text-align:right;">Amount (₹)</th>
+              <th>Particulars</th><th style="text-align:right;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Basic Salary</td><td class="amt">${fmtMoney(s.employee.monthlySalary)}</td>
+              <td>Loss of Pay (LOP)</td><td class="amt">${fmtMoney(lopDeduction)}</td>
+            </tr>
+            <tr>
+              <td>&nbsp;</td><td class="amt"></td>
+              <td>Advance Recovery</td><td class="amt">${fmtMoney(s.totalAdvances)}</td>
+            </tr>
+            <tr class="payroll-slip-total-row">
+              <td><strong>Total Earnings</strong></td><td class="amt"><strong>${fmtMoney(s.employee.monthlySalary)}</strong></td>
+              <td><strong>Total Deductions</strong></td><td class="amt"><strong>${fmtMoney(totalDeductions)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="payroll-slip-net-block">
+          <div class="payroll-slip-net-line">
+            <span><strong>Net Pay:</strong></span>
+            <span class="payroll-slip-net-amt"><strong>${fmtMoney(s.netPayable)}</strong></span>
+          </div>
+          <p class="payroll-slip-words"><em>In Words:</em> ${esc(numberToWordsINR(s.netPayable))}</p>
+        </div>
+
+        <div class="payroll-slip-footer">
+          <p class="payroll-slip-note">Per Day Rate: ${fmtMoney(s.perDayRate)} &nbsp;|&nbsp; Absent: ${s.absentDays} &nbsp;|&nbsp; Unpaid Leave: ${s.unpaidLeaves}</p>
+          <div class="payroll-slip-sign-row">
+            <span></span>
+            <span class="payroll-slip-sign">Authorised Signatory<br><small>${esc(co.name)}</small></span>
+          </div>
+        </div>
+
+        <details class="payroll-slip-daily payroll-slip-screen-only">
+          <summary>Daily Attendance Breakdown (screen only)</summary>
+          <table class="payroll-slip-daily-table">
+            <thead><tr><th>Date</th><th>Day</th><th>Status</th><th>Earned</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="4">No records</td></tr>'}</tbody>
+          </table>
+        </details>
+      </div>`;
+  }
+
+  function printSalarySlip() {
+    if (!document.getElementById('payrollSlipPrintArea')) {
+      toast('Pehle salary slip kholein', 'error');
+      return;
+    }
+    document.body.classList.add('printing-payroll-slip');
+    const cleanup = () => document.body.classList.remove('printing-payroll-slip');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    setTimeout(() => window.print(), 50);
+  }
+
   function shareSlipWhatsApp() {
     const data = window._lastPayrollSlip;
     if (!data?.slip) return toast('Pehle salary slip kholein', 'error');
-    const text = encodeURIComponent(buildSlipWhatsAppText(data.slip, data.month, data.year));
+    const text = encodeURIComponent(buildSlipWhatsAppText(data.slip, data.month, data.year, data.company));
     const phone = (data.slip.employee.phone || '').replace(/\D/g, '');
     const url = phone.length >= 10
       ? `https://wa.me/91${phone.slice(-10)}?text=${text}`
@@ -344,24 +517,14 @@
     const modal = document.getElementById('payrollSlipModal');
     const body = document.getElementById('payrollSlipBody');
     if (!modal || !body) return;
-    let rows = (s.dailyRows || []).filter((d) => d.status !== 'weekly_off').map((d) =>
-      `<tr><td>${esc(d.date)}</td><td>${esc(d.weekday)}</td><td>${esc(d.status)}</td><td>${d.earned}</td></tr>`
-    ).join('');
-    body.innerHTML = `
-      <h3 style="margin-top:0;">Salary Slip — ${esc(s.employee.name)}</h3>
-      <p>${month}/${year} | ${esc(s.employee.designation)} | Monthly: ₹${s.employee.monthlySalary.toFixed(2)}</p>
-      <div class="grid-2" style="margin:12px 0;">
-        <div class="mini-card">Working Days: <strong>${s.workingDays}</strong></div>
-        <div class="mini-card">Earned Days: <strong>${s.earnedDays}</strong></div>
-        <div class="mini-card">Per Day: <strong>₹${s.perDayRate.toFixed(2)}</strong></div>
-        <div class="mini-card">Gross: <strong>₹${s.grossSalary.toFixed(2)}</strong></div>
-        <div class="mini-card">Advance: <strong>₹${s.totalAdvances.toFixed(2)}</strong></div>
-        <div class="mini-card" style="border-left:4px solid #22c55e;">Net Pay: <strong>₹${s.netPayable.toFixed(2)}</strong></div>
-      </div>
-      <details><summary>Daily breakdown</summary>
-        <table style="margin-top:8px;"><thead><tr><th>Date</th><th>Day</th><th>Status</th><th>Earned</th></tr></thead><tbody>${rows}</tbody></table>
-      </details>`;
-    window._lastPayrollSlip = { slip: s, month, year };
+    const m = data.month || month;
+    const y = data.year || year;
+    body.innerHTML = renderOfficialSlipHTML(s, m, y, data.company);
+    if (s.earnedDays === 0 && s.workingDays > 0) {
+      body.insertAdjacentHTML('beforeend',
+        '<p class="payroll-slip-warning payroll-slip-screen-only">⚠️ Earned Days 0 — pehle Daily Attendance me Present/Half-day mark karein, tab salary calculate hogi.</p>');
+    }
+    window._lastPayrollSlip = { slip: s, month: m, year: y, company: data.company };
     modal.classList.remove('hidden');
   }
 
@@ -484,7 +647,7 @@
     });
 
     document.getElementById('payrollSlipCloseBtn')?.addEventListener('click', closePayrollSlipModal);
-    document.getElementById('payrollSlipPrintBtn')?.addEventListener('click', () => window.print());
+    document.getElementById('payrollSlipPrintBtn')?.addEventListener('click', printSalarySlip);
     document.getElementById('payrollSlipModal')?.addEventListener('click', (e) => {
       if (e.target?.id === 'payrollSlipModal') closePayrollSlipModal();
     });

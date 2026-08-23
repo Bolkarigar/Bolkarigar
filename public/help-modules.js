@@ -1,6 +1,6 @@
 /**
- * BolKarigar — Help panel modules (plan-based)
- * Pro ₹349 = PRO_PLAN_TABS ke modules | Business ₹699 = saari modules
+ * BolKarigar — Help panel modules
+ * Sirf wahi modules dikhte hain jo sidebar mein visible hain (bkCanAccessTab).
  */
 (function () {
   const HELP_MODULE_CATALOG = [
@@ -147,10 +147,21 @@
       id: "payrollPanel",
       panelId: "payrollPanel",
       plans: ["business"],
+      hideForStaff: true,
       color: "#7c3aed",
       title: "💼 Staff Payroll & Hajri (वेतन / हाजरी)",
       hindi: "Dukaan staff ki daily hajri mark karein — Present, Half-day, Paid/Unpaid leave. Month-end par salary auto calculate, advance minus, salary slip print/WhatsApp.",
       english: "Mark daily staff attendance, auto-calculate monthly salary with leaves and advances, print payslips."
+    },
+    {
+      id: "payrollSelfPanel",
+      panelId: "payrollPanel",
+      plans: ["business"],
+      staffOnly: true,
+      color: "#7c3aed",
+      title: "📅 Meri Hajri (मेरी हाजरी)",
+      hindi: "Apni daily attendance yahan mark karein — Present, Half-day, Paid Leave, Unpaid Leave ya Absent. Month-end par owner salary calculate karega.",
+      english: "Mark your own daily attendance — present, half-day, leave, or absent. Owner calculates salary at month-end."
     },
     {
       id: "reportsProPanel",
@@ -247,28 +258,28 @@
   const ALL_MODULES = [...HELP_MODULE_CATALOG, ...BUSINESS_ONLY_MODULES];
 
   function moduleVisibleForUser(mod, me) {
-    const sub = me?.subscription || {};
-    const isBusiness = !!sub.fullAccess;
+    if (!me) return false;
+    if (mod.ownerOnly && me.isStaff) return false;
+    if (mod.staffOnly && !(me.isStaff && me.role === "staff")) return false;
+    if (mod.hideForStaff && me.isStaff && me.role === "staff") return false;
 
-    if (mod.ownerOnly && me?.isStaff) return false;
-
-    if (isBusiness) {
-      if (mod.plans.includes("business") || mod.plans.includes("pro")) {
-        if (mod.panelId && me?.isStaff && typeof window.bkCanAccessTab === "function") {
-          return window.bkCanAccessTab(me, mod.panelId);
-        }
-        return true;
+    if (!mod.panelId) {
+      if (mod.id === "tallySync") {
+        if (me.isStaff && me.role === "staff") return false;
+        return !!me.subscription?.tallySync;
       }
       return false;
     }
 
-    if (!mod.plans.includes("pro")) return false;
-
-    const allowed = sub.allowedTabs;
-    if (mod.panelId && Array.isArray(allowed) && !allowed.includes(mod.panelId)) return false;
-    if (mod.panelId && me?.isStaff && typeof window.bkCanAccessTab === "function") {
+    if (typeof window.bkCanAccessTab === "function") {
       return window.bkCanAccessTab(me, mod.panelId);
     }
+
+    const sub = me.subscription || {};
+    if (sub.fullAccess) return mod.plans.includes("business") || mod.plans.includes("pro");
+    if (!mod.plans.includes("pro")) return false;
+    const allowed = sub.allowedTabs;
+    if (Array.isArray(allowed) && mod.panelId && !allowed.includes(mod.panelId)) return false;
     return true;
   }
 
@@ -282,8 +293,11 @@
     const modules = ALL_MODULES.filter((m) => moduleVisibleForUser(m, me));
 
     if (badge) {
-      const planLabel = isBusiness ? "Business Plan (₹699)" : "Pro Plan (₹349)";
-      badge.textContent = `${isBusiness ? "🏢" : "⭐"} ${planLabel} — ${modules.length} modules aapke plan mein`;
+      const isBusiness = !!sub.fullAccess;
+      const isStaffRole = me?.isStaff && me?.role === "staff";
+      let planLabel = isBusiness ? "Business Plan (₹699)" : "Pro Plan (₹349)";
+      if (isStaffRole) planLabel = "Staff Mode";
+      badge.textContent = `${isBusiness ? "🏢" : isStaffRole ? "👤" : "⭐"} ${planLabel} — ${modules.length} modules (sidebar jaisa)`;
       badge.className = isBusiness ? "help-plan-badge business" : "help-plan-badge pro";
     }
 
