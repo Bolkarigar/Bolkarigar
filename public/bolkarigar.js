@@ -347,6 +347,7 @@ async function loadServerData() {
     renderInvoice();
 
     calculateFinancials(state.invoices, state.expenses);
+    await refreshOverviewSalesFromHistory();
     await loadCompanyProfile();
     if (typeof window.enhanceMobileTables === "function") {
       window.enhanceMobileTables();
@@ -358,6 +359,7 @@ async function loadServerData() {
       state.invoices = savedLocal;
       renderInvoice();
       calculateFinancials(state.invoices, state.expenses);
+      await refreshOverviewSalesFromHistory();
       showToast("Server se load nahi hua — local backup data dikha rahe hain.", "error");
     }
   }
@@ -691,8 +693,15 @@ async function executeInvoiceAdd() {
 
   if (!product || Number.isNaN(price) || price <= 0) return false;
 
+  const baseTotal = price * qty;
+  const gstAmount = (baseTotal * gstRate) / 100;
+  const grandTotal = baseTotal + gstAmount;
+
   let updated = [...state.invoices];
-  const newItem = { customer, product, hsn, price, qty, gstRate, paymentType, paidAmount: isCredit ? 0 : (price * qty) };
+  const newItem = {
+    customer, product, hsn, price, qty, gstRate, paymentType,
+    paidAmount: isCredit ? 0 : grandTotal
+  };
   const isNewItem = editingIndex === -1;
 
   if (editingIndex > -1) {
@@ -747,6 +756,7 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
       })
     });
     refreshUdharKhata();
+    refreshOverviewSalesFromHistory();
   } catch (err) {
     console.error("Sales history record error:", err);
   }
@@ -956,8 +966,11 @@ window._bkPauseVoiceForTts = function () {
 
 window._bkResumeVoiceAfterTts = function () {
   voiceRecPausedForTts = false;
+  lastActivityTime = Date.now();
   if (voiceOn && !voicePausedForInput) {
-    setTimeout(() => { if (voiceOn && !voiceRecPausedForTts) restartRecognition(200); }, 500);
+    setTimeout(() => {
+      if (voiceOn && !voiceRecPausedForTts && !voiceProcessingLock) restartRecognition(400);
+    }, 600);
   }
 };
 
@@ -968,12 +981,13 @@ function flushVoiceBuffer() {
   voiceUtteranceBuffer = "";
   const hint = document.getElementById("voiceBufferHint");
   if (hint) hint.textContent = "";
-  if (text) handleSpeech(text);
+  if (text) void handleSpeech(text);
 }
 const MAX_BACKOFF_MS = 8000;
 const FATAL_ERRORS = ["not-allowed", "audio-capture", "service-not-allowed"];
 
 function restartRecognition(customDelay) {
+  if (voiceRecPausedForTts || voiceProcessingLock) return;
   if (isRestarting) return;
   isRestarting = true;
   clearTimeout(restartTimer);
@@ -983,7 +997,7 @@ function restartRecognition(customDelay) {
 
   restartTimer = setTimeout(() => {
     isRestarting = false;
-    if (!voiceOn) return;
+    if (!voiceOn || voiceRecPausedForTts || voiceProcessingLock) return;
     if (recognition) {
       try {
         recognition.onstart = null;
@@ -1009,7 +1023,8 @@ function restartRecognition(customDelay) {
 function startWatchdog() {
   clearInterval(watchdogInterval);
   watchdogInterval = setInterval(() => {
-    if (voiceOn && !isRestarting && Date.now() - lastActivityTime > 8000) {
+    if (voiceOn && !isRestarting && !voiceRecPausedForTts && !voiceProcessingLock &&
+        Date.now() - lastActivityTime > 8000) {
       setStatus("Mic dobara start ki ja rahi hai...");
       lastActivityTime = Date.now();
       restartRecognition(50);
@@ -1045,6 +1060,7 @@ function openPanel(id) {
   if (typeof window.BolKarigarPayroll?.closePayrollSlipModal === "function") {
     window.BolKarigarPayroll.closePayrollSlipModal();
   }
+  const wasAlreadyActive = document.querySelector(".panel.active")?.id === id;
   panels.forEach(panel => panel.classList.toggle("active", panel.id === id));
   tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
   if (id === "ledgerPanel" && typeof refreshUdharKhata === "function") refreshUdharKhata();
@@ -1057,8 +1073,8 @@ function openPanel(id) {
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
   }
-  if (id === "totalSalesPanel" && typeof window.bkRefreshSalesPanel === "function") {
-    window.bkRefreshSalesPanel({ resetPage: true });
+  if (id === "totalSalesPanel" && !wasAlreadyActive && typeof window.bkRefreshSalesPanel === "function") {
+    window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
   }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
@@ -1316,11 +1332,11 @@ function parseCommands(raw) {
     text.includes("media panel") || text.includes("media tools") || text.includes("image") ||
     text.includes("images") || text.includes("photo") || text.includes("photos") ||
     text.includes("picture") || text.includes("pictures") || text.includes("preview") ||
-    text.includes("image preview") || text.includes("search") || text.includes("search tool") ||
+    text.includes("image preview") || text.includes("search tool") ||
     text.includes("search panel") || text.includes("upload image") || text.includes("browse image") ||
     text.includes("मीडिया") || text.includes("मीडिया खोलो") || text.includes("फोटो") ||
     text.includes("तस्वीर") || text.includes("इमेज") || text.includes("पिक्चर") ||
-    text.includes("प्रिव्यू") || text.includes("खोज") || text.includes("सर्च")
+    text.includes("प्रिव्यू") || text.includes("मीडिया सर्च")
   ) {
     openPanel("mediaPanel");
     showCommand("Media Panel open kiya ja raha hai.");
@@ -2115,7 +2131,7 @@ function cleanSearchTerm(val) {
 function stripSearchMeta(text) {
   return String(text || "")
     .replace(/(?:english|hindi|inglish|angrezi|angrez|in\s*english|in\s*hindi|इंग्लिश|हिंदी|अंग्रेजी|angreji)/gi, " ")
-    .replace(/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल|karo|kero|kar|kro|kijiye|करो|कर|करके|karke|कीजिए|likho|लिखो)/gi, " ")
+    .replace(/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल|karo|kero|kar|kro|kijiye|करो|कर|करके|karke|कीजिए|likho|लिखो|kera|kera|bola|bolo|open|kholo)/gi, " ")
     .replace(/(?:naam|name|नाम|ko|ke|ka|ki|me|mein|main|men|में|for|se|bolo|please|wala|wali)/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -2144,8 +2160,11 @@ function transliterateDevanagari(text) {
     const two = src.slice(i, i + 2);
     if (DEVANAGARI_ROMAN[two]) { out += DEVANAGARI_ROMAN[two]; i += 2; continue; }
     const one = src[i];
+    if (!one) { i += 1; continue; }
     if (DEVANAGARI_ROMAN[one]) { out += DEVANAGARI_ROMAN[one]; i += 1; continue; }
-    if (/[A-Za-z0-9]/.test(one)) out += one;
+    if (/[A-Za-z0-9]/.test(one)) { out += one; i += 1; continue; }
+    if (/\s/.test(one)) { i += 1; continue; }
+    i += 1;
   }
   return out.replace(/(.)\1+/g, "$1").trim();
 }
@@ -2167,7 +2186,7 @@ function normalizeSearchKeyword(raw) {
   }
   if (!s) {
     const latin = String(raw || "").match(/[A-Za-z][A-Za-z0-9]{1,}/g);
-    if (latin?.length) s = latin.find((w) => !/^(english|hindi|search|name|naam)$/i.test(w)) || latin[0];
+    if (latin?.length) s = latin.find((w) => !/^(english|hindi|search|name|naam|kero|keri|kari|karen)$/i.test(w)) || latin[0];
   }
   s = applySearchAliases(s);
   return String(s || "").replace(/\s+/g, " ").trim();
@@ -2184,6 +2203,28 @@ function stripNavFromSearchText(text) {
     .trim();
 }
 
+/** Voice se naam nikaalo — regex fail hone par fallback */
+function extractVoiceSearchTerm(raw) {
+  let s = stripNavFromSearchText(
+    (window.bkVoiceController?.cleanUtterance || stripSpeechPunctuation)(raw)
+  );
+  const parts = s.split(/\s+/).filter(Boolean);
+  const stop = new Set([
+    "search", "सर्च", "खोज", "खोजो", "find", "filter", "ढूंढ", "ढूंड", "निकाल",
+    "karo", "kero", "keri", "kari", "karen", "kar", "kro", "kijiye", "करो", "कर", "कीजिए",
+    "naam", "name", "नाम", "ko", "ka", "ke", "ki", "me", "mein", "main", "for", "se",
+    "do", "de", "दो", "please", "bolo", "bola", "likho", "english", "hindi", "inglish"
+  ]);
+  const kept = parts.filter((w) => !stop.has(normalize(w)));
+  if (kept.length) return normalizeSearchKeyword(kept.join(" "));
+  return normalizeSearchKeyword(s);
+}
+
+function isValidSearchQuery(q) {
+  if (!q || q.length < 2) return false;
+  return !/^(kero|keri|kari|karo|kar|kro|search|naam|name|na|o|ko|ka|ke|ki)$/i.test(q);
+}
+
 function parseSearchQuery(raw) {
   const cleaned = (window.bkVoiceController?.cleanUtterance || stripSpeechPunctuation)(raw);
   const t = stripNavFromSearchText(cleaned);
@@ -2193,44 +2234,15 @@ function parseSearchQuery(raw) {
     return { query: "", clear: true };
   }
 
-  const hasSearchVerb = /(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n);
-  const hasNameSearch = /(?:naam|name|नाम)\s+.+/i.test(n) && hasSearchVerb;
-  const hasMetaName = /(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|में)?/i.test(n) &&
-    (/[\u0900-\u097F]{2,}/.test(t) || /[A-Za-z]{2,}/.test(t));
-  if (!hasSearchVerb && !hasNameSearch && !hasMetaName) return null;
+  const hasSearchIntent =
+    /(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n) ||
+    (/(?:naam|name|नाम)/i.test(n) && /(?:search|सर्च|खोज|karo|kero|keri|kari|करो)/i.test(n)) ||
+    (/^[\u0900-\u097F]{2,}\s*(?:khojo|खोजो|dikhao|दिखाओ)/i.test(n));
 
-  let m = t.match(/(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|main|में)?\s*(?:kar|karo|kero|करो|कर|करके)?\s*(?:do|de|दो)?\s*(.+)$/iu);
-  if (m) {
-    const q = normalizeSearchKeyword(m[1]);
-    if (q) return { query: q, clear: false };
-  }
+  if (!hasSearchIntent) return null;
 
-  m = t.match(/(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल)\s+(?:for|me|m|में|kar|karo|kero|कर|करो)?\s*(.+?)(?:\s+(?:karo|kero|kar|kro|करो|कर|do|de|दो|kijiye|कीजिए)|$)/i);
-  if (m) {
-    const q = normalizeSearchKeyword(m[1]);
-    if (q) return { query: q, clear: false };
-  }
-
-  m = t.match(/(?:naam|name|नाम)\s+(.+?)\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)/i);
-  if (m) {
-    const q = normalizeSearchKeyword(m[1]);
-    if (q) return { query: q, clear: false };
-  }
-
-  m = t.match(/(.+?)\s+(?:ko\s+)?(?:search|सर्च|खोज|खोजो|find|filter|ढूंढ|ढूंड|निकाल)\s*(?:karo|kero|kar|kro|करो|कर|kijiye|कीजिए|do|de|दो)?/i);
-  if (m) {
-    const q = normalizeSearchKeyword(m[1]);
-    if (q) return { query: q, clear: false };
-  }
-
-  m = t.match(/([\u0900-\u097F]{2,}|[A-Za-z][A-Za-z0-9]{1,})\s*(?:ko\s+)?(?:search|सर्च|खोज|खोजो)/i);
-  if (m) {
-    const q = normalizeSearchKeyword(m[1]);
-    if (q) return { query: q, clear: false };
-  }
-
-  const q = normalizeSearchKeyword(t);
-  if (q && q.length >= 2) return { query: q, clear: false };
+  const q = extractVoiceSearchTerm(raw);
+  if (isValidSearchQuery(q)) return { query: q, clear: false };
 
   return null;
 }
@@ -2266,21 +2278,34 @@ window.bkGetActiveSearchInput = getActiveSearchInput;
 async function applyVoiceSearch(query, opts) {
   const clear = opts?.clear === true || query === "";
   const forcePanel = opts?.panelId;
-  if (forcePanel && typeof openPanel === "function") {
+  const activeId = document.querySelector(".panel.active")?.id;
+  const targetPanel = forcePanel || activeId;
+  const value = clear ? "" : String(query || "").trim();
+
+  if (targetPanel === "totalSalesPanel" || activeId === "totalSalesPanel") {
+    if (activeId !== "totalSalesPanel" && typeof openPanel === "function") {
+      openPanel("totalSalesPanel");
+    }
+    if (typeof window._bkPauseVoiceForTts === "function") window._bkPauseVoiceForTts();
+    const inp = document.getElementById("salesSearchInput");
+    if (inp) inp.value = value;
+    if (typeof window.bkSetSalesSearch === "function") {
+      window.bkSetSalesSearch(value);
+      showCommand(clear ? "Total Sales search clear." : `Search: ${value}`, { speak: false });
+      setTimeout(() => {
+        if (typeof window._bkResumeVoiceAfterTts === "function") window._bkResumeVoiceAfterTts();
+      }, 1200);
+      return true;
+    }
+  }
+
+  if (forcePanel && forcePanel !== activeId && typeof openPanel === "function") {
     openPanel(forcePanel);
   }
-  const input = getActiveSearchInput(forcePanel);
+  const input = getActiveSearchInput(forcePanel || activeId);
   if (!input) {
     showCommand("Search box nahi mila. Pehle Total Sales, Inventory ya Media panel kholo.", { speak: true });
     return false;
-  }
-  const value = clear ? "" : String(query || "").trim();
-
-  if (input.id === "salesSearchInput" && typeof window.bkSetSalesSearch === "function") {
-    await window.bkSetSalesSearch(value);
-    const label = "Total Sales";
-    showCommand(clear ? `${label} search clear kar diya.` : `${label} me search: ${value}`, { speak: true });
-    return true;
   }
 
   setField(input, value);
@@ -2367,7 +2392,9 @@ function clearActivePanelForm() {
     return;
   }
   if (activeId === "totalSalesPanel") {
-    applyVoiceSearch("", { clear: true });
+    if (typeof window.bkSetSalesSearch === "function") {
+      window.bkSetSalesSearch("");
+    }
     return;
   }
   if (activeId === "inventoryPanel") {
@@ -2705,6 +2732,7 @@ async function handleSpeech(rawText) {
   if (dedupeKey === lastVoiceHandled.key && now - lastVoiceHandled.at < 3000) return;
 
   voiceProcessingLock = true;
+  lastActivityTime = Date.now();
   let voiceCommandSucceeded = false;
 
   const text = normalize(raw);
@@ -2956,19 +2984,23 @@ function createRecognition() {
       consecutiveFailures++;
       setStatus("Voice error: " + event.error + " — dobara try ho raha hai...");
     }
-    if (voiceOn) restartRecognition(quiet ? 200 : undefined);
+    if (voiceOn && !voiceRecPausedForTts && !voiceProcessingLock) {
+      restartRecognition(quiet ? 200 : undefined);
+    }
   };
 
   rec.onend = () => {
-    if (voiceOn) {
-      restartRecognition();
-    } else {
+    if (!voiceOn) {
       if (voiceToggle) {
         voiceToggle.textContent = "Voice: OFF";
         voiceToggle.classList.remove("voice-active");
       }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
       setStatus("Voice stopped.");
+      return;
+    }
+    if (!voiceRecPausedForTts && !voiceProcessingLock) {
+      restartRecognition();
     }
   };
 
@@ -3530,13 +3562,62 @@ async function handleTallyVoiceCommand() {
 })();
 
 // ================= FINANCIALS & LEDGER =================
+/** Invoice line ka bill amount — GST ke saath (customer ne jo pay kiya) */
+function getInvoiceLineGrandTotal(item) {
+  if (!item) return 0;
+  if (item.totalAmount != null && !Number.isNaN(parseFloat(item.totalAmount))) {
+    return parseFloat(item.totalAmount) || 0;
+  }
+  const base = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
+  let gstRate = parseFloat(item.gstRate);
+  if (Number.isNaN(gstRate)) gstRate = 18;
+  return base + (base * gstRate) / 100;
+}
+
+/** Permanent Sales History se Overview Total Sales — GST included totalAmount */
+async function refreshOverviewSalesFromHistory() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    let total = 0;
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const res = await fetch(`${API_URL}/api/sales?limit=100&page=${page}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!data.success) break;
+      (data.records || []).forEach((r) => {
+        total += parseFloat(r.totalAmount) ||
+          (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
+      });
+      totalPages = data.totalPages || 1;
+      page += 1;
+    } while (page <= totalPages);
+
+    const expenses = (state.expenses || []).reduce(
+      (a, e) => a + (parseFloat(e.amount) || 0), 0
+    );
+    const salesEl = document.getElementById("totalSalesVal");
+    if (salesEl) salesEl.textContent = `₹${total.toFixed(2)}`;
+    const netEl = document.getElementById("netProfitVal");
+    if (netEl) netEl.textContent = `₹${(total - expenses).toFixed(2)}`;
+    return total;
+  } catch (e) {
+    console.warn("Overview sales refresh:", e);
+    return null;
+  }
+}
+window.refreshOverviewSalesFromHistory = refreshOverviewSalesFromHistory;
+
 function calculateFinancials(salesList = [], expenseList = []) {
   let totalSales = 0;
   let totalExpenses = 0;
   let customerLedger = {};
 
   salesList.forEach(item => {
-    const amount = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
+    const amount = getInvoiceLineGrandTotal(item);
     totalSales += amount;
 
     const cust = item.customer || "General Customer";
@@ -3544,7 +3625,8 @@ function calculateFinancials(salesList = [], expenseList = []) {
       customerLedger[cust] = { billed: 0, paid: 0, pending: 0 };
     }
     customerLedger[cust].billed += amount;
-    const paidAmount = item.paidAmount || 0; 
+    const isCredit = item.paymentType === "Credit" || item.status === "Pending";
+    const paidAmount = isCredit ? 0 : (parseFloat(item.paidAmount) || amount);
     customerLedger[cust].paid += paidAmount;
     customerLedger[cust].pending = customerLedger[cust].billed - customerLedger[cust].paid;
   });
@@ -3696,7 +3778,7 @@ async function showUdharDetail(customerName) {
 
   // Local invoice draft fallback
   (state.invoices || []).filter(i => (i.customer || "General Customer") === customerName).forEach(r => {
-    const amt = (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
+    const amt = getInvoiceLineGrandTotal(r);
     const p = parseFloat(r.paidAmount) || 0;
     const already = rows.some(x => x.label.includes(r.product));
     if (!already) {
@@ -5290,19 +5372,34 @@ function getEWayBillDetails() {
   let currentPage = 1;
   let currentSearch = "";
   let currentTotalPages = 1;
+  let salesLoadToken = 0;
+  let salesAbort = null;
+  let salesLoading = false;
+  let salesSearchTimer = null;
 
   async function loadSalesHistory() {
     const body = document.getElementById("salesHistoryBody");
     if (!body) return;
-    body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Loading...</td></tr>";
+    const token = ++salesLoadToken;
+    if (salesAbort) {
+      try { salesAbort.abort(); } catch { /* */ }
+    }
+    salesAbort = new AbortController();
+    const signal = salesAbort.signal;
+    salesLoading = true;
+    if (!body.rows.length || body.textContent.includes("Loading")) {
+      body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Loading...</td></tr>";
+    }
     try {
       const params = new URLSearchParams({ page: currentPage, limit: 15 });
       if (currentSearch) params.set("search", currentSearch);
 
       const res = await fetch(`${API_URL}/api/sales?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}` },
+        signal
       });
       const data = await res.json();
+      if (token !== salesLoadToken) return;
       if (!data.success) throw new Error(data.error || "Load fail hua");
 
       currentTotalPages = data.totalPages || 1;
@@ -5330,13 +5427,23 @@ function getEWayBillDetails() {
       if (info) info.textContent = `Showing page ${data.page} of ${data.totalPages} (${data.total} total entries)`;
       const pageIndicator = document.getElementById("salesPageIndicator");
       if (pageIndicator) pageIndicator.textContent = String(data.page);
+      if (typeof window.enhanceMobileTables === "function") {
+        requestAnimationFrame(() => window.enhanceMobileTables(salesPanel));
+      }
     } catch (err) {
+      if (token !== salesLoadToken) return;
+      if (err?.name === "AbortError") return;
       body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>Error: ${err.message}</td></tr>`;
+    } finally {
+      if (token === salesLoadToken) salesLoading = false;
     }
   }
 
   window.bkRefreshSalesPanel = function (opts) {
     if (opts?.resetPage) currentPage = 1;
+    if (opts?.syncFromInput) {
+      currentSearch = document.getElementById("salesSearchInput")?.value?.trim() || "";
+    }
     if (opts?.search != null) {
       currentSearch = String(opts.search).trim();
       const inp = document.getElementById("salesSearchInput");
@@ -5345,12 +5452,15 @@ function getEWayBillDetails() {
     return loadSalesHistory();
   };
 
-  window.bkSetSalesSearch = async function (query) {
-    currentSearch = String(query || "").trim();
-    currentPage = 1;
+  window.bkSetSalesSearch = function (query) {
+    const next = String(query || "").trim();
     const inp = document.getElementById("salesSearchInput");
-    if (inp) inp.value = currentSearch;
-    await loadSalesHistory();
+    if (inp) inp.value = next;
+    if (next === currentSearch && !salesLoading) return true;
+    currentSearch = next;
+    currentPage = 1;
+    clearTimeout(salesSearchTimer);
+    salesSearchTimer = setTimeout(() => { loadSalesHistory(); }, 80);
     return true;
   };
 
