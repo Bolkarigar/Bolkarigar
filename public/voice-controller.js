@@ -310,7 +310,39 @@
     return false;
   }
 
-  function trySearchVoice(raw) {
+  function resolveSearchNavPanel(raw) {
+    const nav = matchNavigation(raw);
+    if (nav) return nav.panel;
+    const n = norm(cleanUtterance(raw));
+    if (/total\s*sale|टोटल\s*सेल|कुल\s*बिक्री|बिक्री/.test(n)) return "totalSalesPanel";
+    if (/inventory|इन्वेंटरी|स्टॉक|\bstock\b/.test(n)) return "inventoryPanel";
+    if (/media|gallery|गैलरी|फोटो/.test(n)) return "mediaPanel";
+    return null;
+  }
+
+  function isCompoundNavSearch(raw) {
+    if (!looksLikeSearchUtterance(raw)) return false;
+    const n = norm(cleanUtterance(raw));
+    return !!resolveSearchNavPanel(raw) ||
+      /(?:par|per)\s*(?:ja|jao|जा)|ja\s*kar|ja\s*ker|जा\s*कर|total\s*sale|टोटल|बिक्री/i.test(n);
+  }
+
+  async function tryCompoundNavSearch(raw) {
+    if (!isCompoundNavSearch(raw)) return false;
+    if (typeof window.bkParseSearchQuery !== "function" || typeof window.bkVoiceSearch !== "function") return false;
+    const parsed = window.bkParseSearchQuery(raw);
+    if (!parsed) return false;
+    const panel = resolveSearchNavPanel(raw) || "totalSalesPanel";
+    if (!canOpenTab(panel)) {
+      notify("Yeh feature aapke plan me allowed nahi hai.", true);
+      return true;
+    }
+    const q = parsed.clear ? "" : parsed.query;
+    notify(q ? `Total Sales khol kar "${q}" search kar raha hoon.` : "Panel khol diya.", true);
+    return window.bkVoiceSearch(q, { clear: parsed.clear, panelId: panel });
+  }
+
+  async function trySearchVoice(raw) {
     if (!looksLikeSearchUtterance(raw)) return false;
     if (typeof window.bkParseSearchQuery !== "function" || typeof window.bkVoiceSearch !== "function") return false;
     const parsed = window.bkParseSearchQuery(raw);
@@ -318,7 +350,14 @@
       notify("Kya search karna hai? Jaise: laxmi search karo.", true);
       return true;
     }
-    return window.bkVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear });
+    let panelId = resolveSearchNavPanel(raw);
+    if (!panelId && document.querySelector(".panel.active")?.id === "totalSalesPanel") {
+      panelId = "totalSalesPanel";
+    }
+    if (!panelId && !window.bkGetActiveSearchInput?.()) {
+      panelId = "totalSalesPanel";
+    }
+    return window.bkVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear, panelId });
   }
 
   function looksLikeExpenseUtterance(text) {
@@ -709,9 +748,11 @@
       return true;
     }
 
+    if (await tryCompoundNavSearch(cleaned)) return true;
+
     if (tryNavigateVoice(cleaned)) return true;
 
-    if (trySearchVoice(cleaned)) return true;
+    if (await trySearchVoice(cleaned)) return true;
 
     if (await tryStandaloneSave(cleaned)) return true;
 
@@ -746,6 +787,7 @@
     tryProjectVoice,
     tryExpenseVoice,
     tryNavigateVoice,
+    tryCompoundNavSearch,
     trySearchVoice,
     looksLikeProjectUtterance,
     looksLikeExpenseUtterance,

@@ -1057,6 +1057,9 @@ function openPanel(id) {
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
   }
+  if (id === "totalSalesPanel" && typeof window.bkRefreshSalesPanel === "function") {
+    window.bkRefreshSalesPanel({ resetPage: true });
+  }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
     requestAnimationFrame(() => {
@@ -2170,8 +2173,20 @@ function normalizeSearchKeyword(raw) {
   return String(s || "").replace(/\s+/g, " ").trim();
 }
 
+function stripNavFromSearchText(text) {
+  return String(text || "")
+    .replace(/(?:total\s*sales?|टोटल\s*सेल्स?|कुल\s*बिक्री|sales?\s+history|बिक्री\s*रिपोर्ट|बिक्री)/gi, " ")
+    .replace(/(?:inventory|इन्वेंटरी|स्टॉक|stock)/gi, " ")
+    .replace(/(?:par|per)\s*(?:ja|jao|जा|जाओ)/gi, " ")
+    .replace(/(?:ja\s*kar|ja\s*ker|जा\s*कर|chale?\s*jao|chalo|चलो|ले\s*जाओ)/gi, " ")
+    .replace(/(?:kholo|khol|open|show|dikhao|jao|खोलो|खोल|दिखाओ)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseSearchQuery(raw) {
-  const t = (window.bkVoiceController?.cleanUtterance || stripSpeechPunctuation)(raw);
+  const cleaned = (window.bkVoiceController?.cleanUtterance || stripSpeechPunctuation)(raw);
+  const t = stripNavFromSearchText(cleaned);
   const n = normalize(t);
 
   if (/(?:search\s*clear|clear\s*search|सर्च\s*हटा|खोज\s*हटा|खोज\s*साफ|सब\s*दिखा)/i.test(n)) {
@@ -2221,8 +2236,8 @@ function parseSearchQuery(raw) {
 }
 window.bkParseSearchQuery = parseSearchQuery;
 
-function getActiveSearchInput() {
-  const panelId = document.querySelector(".panel.active")?.id;
+function getActiveSearchInput(preferPanelId) {
+  const panelId = preferPanelId || document.querySelector(".panel.active")?.id;
   const byPanel = {
     totalSalesPanel: "salesSearchInput",
     inventoryPanel: "invSearch",
@@ -2241,19 +2256,33 @@ function getActiveSearchInput() {
   }
   const stateBox = document.getElementById("stateSearchInput");
   if (stateBox && stateBox.offsetParent !== null) return stateBox;
-  return document.getElementById("salesSearchInput") ||
-    document.getElementById("invSearch") ||
-    document.getElementById("searchInput");
+  if (preferPanelId === "totalSalesPanel") return document.getElementById("salesSearchInput");
+  if (preferPanelId === "inventoryPanel") return document.getElementById("invSearch");
+  if (preferPanelId === "mediaPanel") return document.getElementById("searchInput");
+  return null;
 }
+window.bkGetActiveSearchInput = getActiveSearchInput;
 
-function applyVoiceSearch(query, opts) {
+async function applyVoiceSearch(query, opts) {
   const clear = opts?.clear === true || query === "";
-  const input = getActiveSearchInput();
+  const forcePanel = opts?.panelId;
+  if (forcePanel && typeof openPanel === "function") {
+    openPanel(forcePanel);
+  }
+  const input = getActiveSearchInput(forcePanel);
   if (!input) {
     showCommand("Search box nahi mila. Pehle Total Sales, Inventory ya Media panel kholo.", { speak: true });
     return false;
   }
   const value = clear ? "" : String(query || "").trim();
+
+  if (input.id === "salesSearchInput" && typeof window.bkSetSalesSearch === "function") {
+    await window.bkSetSalesSearch(value);
+    const label = "Total Sales";
+    showCommand(clear ? `${label} search clear kar diya.` : `${label} me search: ${value}`, { speak: true });
+    return true;
+  }
+
   setField(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
   input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -2277,13 +2306,15 @@ function applyVoiceSearch(query, opts) {
 }
 window.bkVoiceSearch = applyVoiceSearch;
 
-function handleSearchSpeech(raw) {
+async function handleSearchSpeech(raw) {
   const parsed = parseSearchQuery(raw);
   if (!parsed) {
     showCommand("Kya search karna hai? Jaise: laxmi search karo, ya naam Vikrant search kero.", { speak: true });
     return true;
   }
-  applyVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear });
+  const panelId = /total\s*sale|टोटल|बिक्री|sales\s+history/i.test(normalize(raw))
+    ? "totalSalesPanel" : undefined;
+  await applyVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear, panelId });
   return true;
 }
 
@@ -2756,9 +2787,9 @@ async function handleSpeech(rawText) {
       if (handleGallerySpeech(raw)) return;
     }
 
-    // 10. Search box
-    if (looksLikeSearchCommand(text)) {
-      handleSearchSpeech(raw);
+    if (looksLikeSearchCommand(text) || window.bkVoiceController?.looksLikeSearchUtterance?.(raw)) {
+      await handleSearchSpeech(raw);
+      voiceCommandSucceeded = true;
       return;
     }
 
@@ -5262,6 +5293,7 @@ function getEWayBillDetails() {
 
   async function loadSalesHistory() {
     const body = document.getElementById("salesHistoryBody");
+    if (!body) return;
     body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Loading...</td></tr>";
     try {
       const params = new URLSearchParams({ page: currentPage, limit: 15 });
@@ -5276,7 +5308,10 @@ function getEWayBillDetails() {
       currentTotalPages = data.totalPages || 1;
 
       if (!data.records.length) {
-        body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Abhi koi sale record nahi hai.</td></tr>";
+        const emptyMsg = currentSearch
+          ? `Koi record nahi mila: "${escapeHtml(currentSearch)}"`
+          : "Abhi koi sale record nahi hai.";
+        body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>${emptyMsg}</td></tr>`;
       } else {
         body.innerHTML = data.records.map(r => `
           <tr>
@@ -5300,9 +5335,27 @@ function getEWayBillDetails() {
     }
   }
 
+  window.bkRefreshSalesPanel = function (opts) {
+    if (opts?.resetPage) currentPage = 1;
+    if (opts?.search != null) {
+      currentSearch = String(opts.search).trim();
+      const inp = document.getElementById("salesSearchInput");
+      if (inp) inp.value = currentSearch;
+    }
+    return loadSalesHistory();
+  };
+
+  window.bkSetSalesSearch = async function (query) {
+    currentSearch = String(query || "").trim();
+    currentPage = 1;
+    const inp = document.getElementById("salesSearchInput");
+    if (inp) inp.value = currentSearch;
+    await loadSalesHistory();
+    return true;
+  };
+
   document.querySelector('.tab-btn[data-tab="totalSalesPanel"]')?.addEventListener("click", () => {
     currentPage = 1;
-    loadSalesHistory();
   });
 
   let searchTimer = null;
