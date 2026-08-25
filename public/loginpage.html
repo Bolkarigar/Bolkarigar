@@ -340,12 +340,21 @@
     document.getElementById("resendOtpBtn").addEventListener("click", async () => {
       if (!resetEmailForOtp) return;
       try {
-        await fetch(`${BK_API()}/api/auth/forgot-password`, {
+        const response = await fetch(`${BK_API()}/api/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: resetEmailForOtp })
         });
-        alert("Agar email registered hai, to naya OTP bhej diya gaya hai.");
+        const result = await response.json();
+        if (!response.ok) {
+          alert(result.error || "OTP dubara bhejne mein dikkat aayi.");
+          return;
+        }
+        if (!result.emailDelivered) {
+          alert("Sirf registered email pe OTP aata hai. Signup wali email check karein.");
+          return;
+        }
+        alert("Naya OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.");
       } catch (e) {
         alert("Kuch galat ho gaya. Dobara try karein.");
       }
@@ -464,7 +473,13 @@
           return;
         }
 
-        alert(result.message || "Agar yeh email registered hai, to OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.");
+        const msg = result.message || "Agar yeh email registered hai, to OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.";
+        if (!result.emailDelivered) {
+          alert(msg + "\n\nNote: Sirf signup wali registered email pe hi OTP aata hai.");
+          return;
+        }
+
+        alert(msg);
 
         resetEmailForOtp = email;
         document.getElementById("otpSentToText").textContent = `Aapke email (${email}) pe 6-digit OTP bheja gaya hai. Wo yahan daalein.`;

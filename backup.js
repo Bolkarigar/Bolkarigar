@@ -26,7 +26,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const archiver = require('archiver');
-const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
 function timestamp() {
@@ -50,23 +49,23 @@ function zipFolder(sourceFolder, outputZipPath) {
 }
 
 async function sendBackupEmail(zipPath, zipSizeBytes, docCount, collectionCount) {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  const { createMailTransporter, isEmailConfigured } = require('./email-service');
+  if (!isEmailConfigured()) {
     logger.warn('[Backup] SMTP configured nahi hai — email nahi bhej sakta. Backup zip yahin hai (agla deploy hote hi delete ho jayega!):', { zipPath });
     return false;
   }
 
-  const toEmail = process.env.BACKUP_EMAIL_TO || process.env.SMTP_USER;
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-  });
+  const mail = createMailTransporter();
+  if (!mail) {
+    logger.warn('[Backup] SMTP transporter create nahi hua.');
+    return false;
+  }
 
+  const toEmail = process.env.BACKUP_EMAIL_TO || process.env.SMTP_USER;
   const sizeMB = (zipSizeBytes / (1024 * 1024)).toFixed(2);
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+  await mail.transporter.sendMail({
+    from: mail.from,
     to: toEmail,
     subject: `BolKarigar Backup — ${new Date().toLocaleDateString('en-IN')}`,
     text: `Automated daily backup.\n\nCollections: ${collectionCount}\nTotal documents: ${docCount}\nZip size: ${sizeMB} MB\n\nIse kisi safe jagah save karke rakho (Google Drive folder banake use dedicated rakho, taaki daily emails mein khoye na).`,

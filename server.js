@@ -23,7 +23,7 @@ const { setupPayrollFeatures } = require('./payroll-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
-const { isEmailConfigured, sendPasswordResetOtp } = require('./email-service');
+const { isEmailConfigured, sendPasswordResetOtp, verifyEmailTransport } = require('./email-service');
 const {
   getSubscriptionForUser,
   setupSubscription,
@@ -782,6 +782,7 @@ app.get('/api/health', (req, res) => {
     ok: true,
     version: 'live-ready-v1',
     mongo: mongoose.connection.readyState === 1,
+    emailConfigured: isEmailConfigured(),
     env: process.env.NODE_ENV || 'development'
   });
 });
@@ -2447,6 +2448,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 server.listen(PORT, () => {
   logger.info(`🚀 BolKarigar Core Engine Running on http://localhost:${PORT}`);
   logger.info(`📌 SERVER CODE VERSION: razorpay-v1`);
+  verifyEmailTransport().catch(() => {});
   if (process.env.RAZORPAY_KEY_ID) {
     const mode = process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_') ? 'TEST' : 'LIVE';
     logger.info(`💳 Razorpay: ${mode} mode configured`);
