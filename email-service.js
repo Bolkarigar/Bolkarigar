@@ -49,11 +49,30 @@ function isEmailConfigured() {
   return !!String(process.env.RESEND_API_KEY || '').trim();
 }
 
+const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 20000;
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    })
+  ]).finally(() => clearTimeout(timer));
+}
+
 function createMailTransporter() {
   const cfg = getSmtpConfig();
   if (!cfg) return null;
   const nodemailer = require('nodemailer');
-  return { transporter: nodemailer.createTransport(cfg.transport), from: cfg.from };
+  const transport = {
+    ...cfg.transport,
+    pool: false,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
+  };
+  return { transporter: nodemailer.createTransport(transport), from: cfg.from };
 }
 
 async function verifyEmailTransport() {
@@ -84,21 +103,25 @@ async function verifyEmailTransport() {
 
 async function sendViaSmtp({ to, subject, text, html }) {
   const mail = createMailTransporter();
-  if (!mail) throw new Error('SMTP configured nahi hai.');
+  if (!mail) throw new Error('SMTP is not configured.');
 
-  await mail.transporter.sendMail({
-    from: mail.from,
-    to,
-    subject,
-    text,
-    html: html || undefined
-  });
+  await withTimeout(
+    mail.transporter.sendMail({
+      from: mail.from,
+      to,
+      subject,
+      text,
+      html: html || undefined
+    }),
+    SMTP_SEND_TIMEOUT_MS,
+    'SMTP send'
+  );
 }
 
 async function sendViaResend({ to, subject, text, html }) {
   const fetch = require('node-fetch');
   const from = process.env.RESEND_FROM || 'BolKarigar <onboarding@resend.dev>';
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await withTimeout(fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -111,7 +134,7 @@ async function sendViaResend({ to, subject, text, html }) {
       text,
       html: html || undefined
     })
-  });
+  }), 15000, 'Resend API');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Resend API error ${res.status}: ${body}`);
@@ -144,19 +167,20 @@ function buildOtpEmail(otp) {
 async function sendPasswordResetOtp(email, otp) {
   const { subject, text, html } = buildOtpEmail(otp);
 
-  if (getSmtpConfig()) {
-    await sendViaSmtp({ to: email, subject, text, html });
-    logger.info(`[Password Reset] OTP email sent to ${email} via SMTP`);
-    return { sent: true, provider: 'smtp' };
-  }
-
+  // Resend (HTTPS) is more reliable on cloud hosts than Gmail SMTP port 587.
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({ to: email, subject, text, html });
     logger.info(`[Password Reset] OTP email sent to ${email} via Resend`);
     return { sent: true, provider: 'resend' };
   }
 
-  logger.warn(`[Password Reset] Email service configured nahi — OTP console par: ${email}`);
+  if (getSmtpConfig()) {
+    await sendViaSmtp({ to: email, subject, text, html });
+    logger.info(`[Password Reset] OTP email sent to ${email} via SMTP`);
+    return { sent: true, provider: 'smtp' };
+  }
+
+  logger.warn(`[Password Reset] Email service not configured — OTP logged for: ${email}`);
   logger.info(`[Password Reset OTP] ${email} => ${otp}`);
   return { sent: false, provider: null };
 }

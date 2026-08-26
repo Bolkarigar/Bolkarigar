@@ -744,7 +744,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         const delivery = await sendPasswordResetOtp(recipient, otp);
         if (!delivery.sent) {
           return res.status(503).json({
-            error: 'Could not send OTP email. Please try again later or contact support@bolkarigar.com.',
+            error: 'Could not send OTP email in time. Please try again in a minute. If this continues, contact support@bolkarigar.com.',
             emailDelivered: false
           });
         }
@@ -753,8 +753,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         user.resetTokenHash = null;
         user.resetTokenExpiry = null;
         await user.save();
+        const smtpTimeout = /timed out/i.test(mailErr.message);
         return res.status(503).json({
-          error: 'Error sending email. Please verify your email, check spam folder, or try again later.',
+          error: smtpTimeout
+            ? 'Email server took too long to respond. Please try again in 1–2 minutes.'
+            : 'Error sending email. Please verify your email, check spam folder, or try again later.',
           emailDelivered: false
         });
       }
