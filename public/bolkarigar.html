@@ -246,19 +246,19 @@
 
         <!-- VOICE PANEL -->
         <section class="panel" id="voicePanel">
-          <div class="panel-header"><div><p class="eyebrow">Speech input</p><h3>Voice Command Panel</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="voice.eyebrow">Speech input</p><h3 data-i18n="voice.title">Voice Command Panel</h3></div></div>
           <div class="voice-grid">
             <div class="mini-card"><h4>Try commands</h4><p>“Open todo list”</p><p>“Open qr tool”</p><p>“Dark mode on”</p><p>“Overview”</p></div>
             <div class="mini-card"><h4>Voice status</h4><p id="voiceStatus">Voice system ready.</p><p id="voiceBufferHint" class="voice-buffer-hint"></p></div>
           </div>
           <div class="btn-row">
-            <button id="startVoiceBtn" type="button">Start Listening</button>
-            <button id="stopVoiceBtn" class="secondary" type="button">Stop</button>
-            <button id="sampleInvoiceCmdBtn" class="secondary" type="button">Sample Invoice</button>
-            <button id="sampleProjectCmdBtn" class="secondary" type="button">Sample Project</button>
-            <button id="sampleExpenseCmdBtn" class="secondary" type="button">Sample Expense</button>
+            <button id="startVoiceBtn" type="button" data-i18n="voice.start">Start Listening</button>
+            <button id="stopVoiceBtn" class="secondary" type="button" data-i18n="voice.stop">Stop</button>
+            <button id="sampleInvoiceCmdBtn" class="secondary" type="button" data-i18n="voice.sampleInvoice">Sample Invoice</button>
+            <button id="sampleProjectCmdBtn" class="secondary" type="button" data-i18n="voice.sampleProject">Sample Project</button>
+            <button id="sampleExpenseCmdBtn" class="secondary" type="button" data-i18n="voice.sampleExpense">Sample Expense</button>
           </div>
-          <textarea id="voiceTranscript" rows="4" placeholder="Voice transcript will appear here..."></textarea>
+          <textarea id="voiceTranscript" rows="4" data-i18n-placeholder="voice.transcriptPh" placeholder="Voice transcript will appear here..."></textarea>
           <div class="grid-2">
             <input type="text" id="voiceCustomer" placeholder="Parsed customer name" />
             <input type="text" id="voiceProduct" placeholder="Parsed product / item" />
