@@ -370,11 +370,16 @@ function renderTodos() {
   const stat = document.getElementById("todoStatus");
   if (!list) return;
   list.innerHTML = "";
-  if (stat) stat.textContent = state.todos.length ? `${state.todos.length} task(s) added.` : "Your tasks will appear below.";
+  if (stat) {
+    stat.textContent = state.todos.length
+      ? (typeof bkT === 'function' ? bkT('todo.statusCount', { n: state.todos.length }) : `${state.todos.length} task(s) added.`)
+      : (typeof bkT === 'function' ? bkT('todo.statusEmpty') : 'Your tasks will appear below.');
+  }
   
+  const delLabel = typeof bkT === 'function' ? bkT('common.delete') : 'Delete';
   state.todos.forEach((todo, index) => {
     const li = document.createElement("li");
-    li.innerHTML = `<span>${escapeHtml(todo)}</span><button type="button" data-index="${index}" class="del-btn">Delete</button>`;
+    li.innerHTML = `<span>${escapeHtml(todo)}</span><button type="button" data-index="${index}" class="del-btn">${delLabel}</button>`;
     list.appendChild(li);
   });
 
