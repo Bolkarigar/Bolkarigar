@@ -670,23 +670,66 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 // .env mein SMTP settings di hui hain to real email jaayega; warna (jab
 // tak aap email service setup nahi karte) reset link server ke console
 // mein print hota hai taaki testing ke dauraan feature use ho sake.
+// --- Forgot-password helpers ---
+function escapeRegexForEmail(s) {
+  return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function maskEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  const at = e.indexOf('@');
+  if (at < 1) return 'your registered email';
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  if (!domain) return 'your registered email';
+  const maskedLocal = local.length <= 2
+    ? `${local[0] || '*'}***`
+    : `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local.slice(-1)}`;
+  return `${maskedLocal}@${domain}`;
+}
+
+async function findUserForPasswordReset(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  const exactRe = new RegExp(`^${escapeRegexForEmail(lower)}$`, 'i');
+  let user = await User.findOne({ email: exactRe });
+  if (!user && !raw.includes('@')) {
+    user = await User.findOne({ username: exactRe });
+  }
+  return user;
+}
+
 app.post('/api/auth/forgot-password', async (req, res) => {
-  const genericMsg = { message: 'If this email is registered, an OTP has been sent.' };
+  const notSent = {
+    message: 'No OTP was sent. Use the same email you used during Sign Up, or create an account first.',
+    emailDelivered: false
+  };
   const rlKey = `forgot:${req.ip}`;
   if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
-    // Yahan bhi generic message hi bhejte hain — enumeration/timing leak se bachne ke liye.
-    return res.json(genericMsg);
+    return res.json(notSent);
   }
   recordAuthAction(rlKey);
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
-    if (!email) return res.json(genericMsg);
+    if (!email) return res.json(notSent);
 
-    const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    const user = await findUserForPasswordReset(email);
     if (user) {
       if (!isEmailConfigured()) {
+        logger.error('[Forgot Password] SMTP not configured on server — OTP cannot be sent');
         return res.status(503).json({
-          error: 'Password reset email is not configured on the server. Contact support@bolkarigar.com — or add SMTP keys on Render.'
+          error: 'Password reset email is not set up on the server yet. Please contact support@bolkarigar.com.',
+          emailDelivered: false
+        });
+      }
+
+      const recipient = String(user.email || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+        logger.warn(`[Forgot Password] User "${user.username}" has invalid email on file`);
+        return res.status(400).json({
+          error: 'This account has no valid email saved. Contact support@bolkarigar.com.',
+          emailDelivered: false
         });
       }
 
@@ -698,10 +741,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       await user.save();
 
       try {
-        const delivery = await sendPasswordResetOtp(user.email, otp);
+        const delivery = await sendPasswordResetOtp(recipient, otp);
         if (!delivery.sent) {
           return res.status(503).json({
-            error: 'Could not send OTP email. Please try again later or contact support@bolkarigar.com.'
+            error: 'Could not send OTP email. Please try again later or contact support@bolkarigar.com.',
+            emailDelivered: false
           });
         }
       } catch (mailErr) {
@@ -710,16 +754,24 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         user.resetTokenExpiry = null;
         await user.save();
         return res.status(503).json({
-          error: 'Error sending email. Please verify your email, check spam folder, or try again later.'
+          error: 'Error sending email. Please verify your email, check spam folder, or try again later.',
+          emailDelivered: false
         });
       }
-      return res.json({ ...genericMsg, emailDelivered: true });
+      logger.info(`[Forgot Password] OTP sent to ${maskEmail(recipient)} for user "${user.username}"`);
+      return res.json({
+        message: 'OTP has been sent to your registered email.',
+        emailDelivered: true,
+        sentToMasked: maskEmail(recipient),
+        resetEmail: recipient
+      });
     }
 
-    return res.json(genericMsg);
+    logger.info('[Forgot Password] No matching account for reset request');
+    return res.json(notSent);
   } catch (err) {
     logger.error('Forgot-password error:', err);
-    return res.json(genericMsg); // crash ki jagah bhi generic message hi dete hain
+    return res.json(notSent);
   }
 });
 

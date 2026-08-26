@@ -285,9 +285,9 @@
   <div class="modal-overlay" id="forgotModal">
     <div class="modal-box">
       <h3>Reset Password</h3>
-      <p>Enter your registered email. We will send a 6-digit OTP.</p>
+      <p>Enter your registered email or username. We will send a 6-digit OTP to your signup email.</p>
       <div class="input-group" style="margin-bottom: 0;">
-        <input type="email" id="resetEmail" placeholder="example@gmail.com">
+        <input type="text" id="resetEmail" placeholder="Email or username" autocomplete="username">
       </div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" id="closeForgotBtn">Cancel</button>
@@ -300,7 +300,7 @@
   <div class="modal-overlay" id="setNewPasswordModal">
     <div class="modal-box">
       <h3>Verify OTP</h3>
-      <p id="otpSentToText" style="color: var(--text-gray);">A 6-digit OTP has been sent to your email. Enter it below.</p>
+      <p id="otpSentToText" style="color: var(--text-gray);">Enter the 6-digit OTP sent to your registered email.</p>
       <div class="input-group" style="margin-bottom: 10px;">
         <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; text-align: center; font-size: 18px;">
       </div>
@@ -334,20 +334,21 @@
 
     // Login page — always English (never show Hindi from old server responses)
     const LOGIN_MSG = {
-      otpSent: 'If this email is registered, an OTP has been sent. Please also check your Spam/Junk folder.',
+      otpSent: (masked) => `A 6-digit OTP has been sent to ${masked || 'your registered email'}. Please check inbox and Spam/Junk folder.`,
       otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
-      otpOnlyRegistered: 'OTP is sent only to your registered signup email. Please check that address.',
+      otpNotSent: 'No OTP was sent. This email or username is not registered, or you entered the wrong address. Use the same email from Sign Up, or create a new account.',
+      otpOnlyRegistered: 'OTP is sent only to your registered signup email.',
       passwordResetOk: 'Password reset successfully! You can now sign in with your new password.',
       wrongLogin: 'Wrong username or password!',
-      otpSentTo: (email) => `A 6-digit OTP has been sent to ${email}. Enter it below.`
+      otpSentTo: (masked) => `Enter the 6-digit OTP sent to ${masked || 'your registered email'}.`
     };
 
     function loginMsgEn(text, fallback) {
       if (!text || typeof text !== 'string') return fallback;
       const t = text.trim();
       const rules = [
-        [/agar yeh email registered/i, LOGIN_MSG.otpSent],
-        [/otp bhej diya|otp bhej diya gaya/i, LOGIN_MSG.otpSent],
+        [/agar yeh email registered/i, LOGIN_MSG.otpNotSent],
+        [/otp bhej diya|otp bhej diya gaya/i, LOGIN_MSG.otpNotSent],
         [/naya otp bhej/i, LOGIN_MSG.otpResent],
         [/sirf registered email/i, LOGIN_MSG.otpOnlyRegistered],
         [/password successfully reset ho gaya|password reset ho gaya/i, LOGIN_MSG.passwordResetOk],
@@ -391,7 +392,7 @@
           return;
         }
         if (!result.emailDelivered) {
-          alert(LOGIN_MSG.otpOnlyRegistered);
+          alert(LOGIN_MSG.otpNotSent);
           return;
         }
         alert(LOGIN_MSG.otpResent);
@@ -491,8 +492,8 @@
     // 4. Forgot Password Dynamic Request
     document.getElementById("submitForgotBtn").addEventListener("click", async () => {
       const email = document.getElementById("resetEmail").value.trim().toLowerCase();
-      if (!email || !email.includes("@")) {
-        alert("Please enter a valid email address.");
+      if (!email) {
+        alert("Please enter your registered email or username.");
         return;
       }
 
@@ -514,14 +515,14 @@
         }
 
         if (!result.emailDelivered) {
-          alert(LOGIN_MSG.otpSent + "\n\n" + LOGIN_MSG.otpOnlyRegistered);
+          alert(result.message || LOGIN_MSG.otpNotSent);
           return;
         }
 
-        alert(LOGIN_MSG.otpSent);
+        alert(LOGIN_MSG.otpSent(result.sentToMasked));
 
-        resetEmailForOtp = email;
-        document.getElementById("otpSentToText").textContent = LOGIN_MSG.otpSentTo(email);
+        resetEmailForOtp = result.resetEmail || email;
+        document.getElementById("otpSentToText").textContent = LOGIN_MSG.otpSentTo(result.sentToMasked);
         forgotModal.classList.remove("active");
         document.getElementById("resetEmail").value = "";
         setNewPasswordModal.classList.add("active");
