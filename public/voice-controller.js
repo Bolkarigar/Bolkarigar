@@ -131,13 +131,13 @@
     return true;
   }
 
-  function openTab(panelId, msg) {
+  function openTab(panelId, msg, speak) {
     if (!canOpenTab(panelId)) {
-      notify("Yeh feature aapke plan ya role me allowed nahi hai.", true);
+      notify("Yeh feature aapke plan ya role me allowed nahi hai.", speak === true);
       return false;
     }
     if (typeof openPanel === "function") openPanel(panelId);
-    notify(msg || "Khol diya.", true);
+    notify(msg || "Khol diya.", speak === true);
     return true;
   }
 
@@ -302,9 +302,10 @@
   function looksLikeSearchUtterance(text) {
     const n = norm(cleanUtterance(text));
     if (/(?:search\s*clear|clear\s*search|सर्च\s*हटा|खोज\s*हटा|खोज\s*साफ)/i.test(n)) return true;
-    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return true;
+    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल|kero|keri|kari)/i.test(n)) return true;
     if (/(?:naam|name|नाम)\s+.+\s*(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
-    if (/.+\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)\s*(?:karo|kero|kar|kro|करो|कर|kijiye|कीजिए)?$/i.test(n)) return true;
+    if (/.+\s+(?:naam|name|नाम)\s+(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
+    if (/.+\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)\s*(?:karo|kero|keri|kari|kar|kro|करो|कर|kijiye|कीजिए)?$/i.test(n)) return true;
     if (/(?:english|hindi|inglish|इंग्लिश|हिंदी|अंग्रेजी)\s*(?:mein|में)/i.test(n) && /[\u0900-\u097F]{2,}|[A-Za-z]{2,}/.test(text)) return true;
     if (/^[\u0900-\u097F]{2,}\s*(?:khojo|खोजो|dikhao|दिखाओ)/i.test(n)) return true;
     return false;
@@ -323,8 +324,9 @@
   function isCompoundNavSearch(raw) {
     if (!looksLikeSearchUtterance(raw)) return false;
     const n = norm(cleanUtterance(raw));
-    return !!resolveSearchNavPanel(raw) ||
-      /(?:par|per)\s*(?:ja|jao|जा)|ja\s*kar|ja\s*ker|जा\s*कर|total\s*sale|टोटल|बिक्री/i.test(n);
+    const hasNav = /total\s*sales?|टोटल\s*सेल|कुल\s*बिक्री|inventory|इन्वेंटरी|(?:par|per)\s*(?:ja|jao|जा)|ja\s*kar|ja\s*ker|जा\s*कर/i.test(n);
+    const hasSearch = /(?:search|सर्च|खोज|खोजो|naam|name|नाम)/i.test(n);
+    return hasNav && hasSearch;
   }
 
   async function tryCompoundNavSearch(raw) {
@@ -338,7 +340,6 @@
       return true;
     }
     const q = parsed.clear ? "" : parsed.query;
-    notify(q ? `Total Sales khol kar "${q}" search kar raha hoon.` : "Panel khol diya.", true);
     return window.bkVoiceSearch(q, { clear: parsed.clear, panelId: panel });
   }
 
@@ -351,13 +352,14 @@
       return true;
     }
     let panelId = resolveSearchNavPanel(raw);
-    if (!panelId && document.querySelector(".panel.active")?.id === "totalSalesPanel") {
-      panelId = "totalSalesPanel";
-    }
-    if (!panelId && !window.bkGetActiveSearchInput?.()) {
-      panelId = "totalSalesPanel";
-    }
-    return window.bkVoiceSearch(parsed.clear ? "" : parsed.query, { clear: parsed.clear, panelId });
+    const activeId = document.querySelector(".panel.active")?.id;
+    if (!panelId && activeId === "totalSalesPanel") panelId = "totalSalesPanel";
+    if (!panelId && activeId === "inventoryPanel") panelId = "inventoryPanel";
+    if (!panelId && !window.bkGetActiveSearchInput?.(activeId)) panelId = "totalSalesPanel";
+    return window.bkVoiceSearch(parsed.clear ? "" : parsed.query, {
+      clear: parsed.clear,
+      panelId: panelId === activeId ? undefined : panelId
+    });
   }
 
   function looksLikeExpenseUtterance(text) {
@@ -627,7 +629,7 @@
     const nav = matchNavigation(raw);
     if (!nav) return false;
     const label = nav.words[0];
-    return openTab(nav.panel, `${label} khol diya.`);
+    return openTab(nav.panel, `${label} khol diya.`, false);
   }
 
   function tryTodoVoice(raw) {

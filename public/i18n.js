@@ -1,6 +1,6 @@
 /**
- * BolKarigar — English + Hindi only (full UI parity)
- * Language selector hidden for now; default Hindi. Set localStorage bk_ui_lang = "en" for English.
+ * BolKarigar — English + Hindi (navbar 🌐 toggle)
+ * Default: Hindi. localStorage key: bk_ui_lang (en | hi)
  */
 (function (global) {
   const STORAGE_KEY = 'bk_ui_lang';
@@ -165,7 +165,67 @@
     'tally.hint': 'Run Agent on your PC for cloud Tally sync.',
     'tally.download': '📥 Download Agent (.exe)',
     'tally.token': 'Pairing Token:',
-    'tally.reset': '⚠️ Reset Token'
+    'tally.reset': '⚠️ Reset Token',
+    'project.eyebrow': 'Client work',
+    'project.title': 'Project Tracker',
+    'project.namePh': 'Project name',
+    'project.customerPh': 'Customer name',
+    'project.sitePh': 'Site / location',
+    'project.budgetPh': 'Budget',
+    'project.notePh': 'Short note',
+    'project.statusPlanning': 'Planning',
+    'project.statusRunning': 'Running',
+    'project.statusCompleted': 'Completed',
+    'project.add': 'Add Project',
+    'project.clear': 'Clear Projects',
+    'project.statusEmpty': 'Projects will appear below.',
+    'project.expenseTitle': 'Quick Expense Entry',
+    'project.expenseTitlePh': 'Expense title',
+    'project.expenseVendorPh': 'Vendor name',
+    'project.expenseAmountPh': 'Amount',
+    'project.expenseProjectPh': 'Project reference',
+    'project.addExpense': 'Add Expense',
+    'project.clearExpense': 'Clear Expenses',
+    'invoice.eyebrow': 'Sales helper',
+    'invoice.title': 'Invoice Generator',
+    'invoice.customerPh': 'Customer / Buyer name *',
+    'invoice.status': 'Fill details and add items.',
+    'inventory.eyebrow': 'Stock Management',
+    'inventory.title': 'Smart Inventory Tracker',
+    'inventory.hint': 'Stock auto-updates from invoice/voucher — HSN, GST, godown & low-stock alerts.',
+    'ledger.eyebrow': 'Accounts Receivable',
+    'ledger.title': '📖 Credit Ledger (Udhar Khata)',
+    'sales.eyebrow': 'Permanent Record',
+    'sales.title': '📊 Total Sales History (2 Years Archive)',
+    'reports.eyebrow': 'Professional Reports',
+    'reports.title': '📈 Reports Pro',
+    'contractor.eyebrow': 'Construction / Contractor',
+    'contractor.title': '👷 Contractor Tools',
+    'payroll.eyebrow': 'Business Plan — ₹699',
+    'payroll.title': '💼 Staff Payroll & Hajri',
+    'payroll.hint': 'Monthly salary, daily attendance, half-day, leave and advance — auto calculated.',
+    'staff.eyebrow': 'Team Management',
+    'staff.title': '👥 Staff & Cashier Login',
+    'staff.hint': 'Generate invite codes by role — staff cannot choose their own role.',
+    'myplan.eyebrow': 'Subscription',
+    'myplan.title': '💳 My Plan',
+    'bank.eyebrow': 'Banking',
+    'bank.title': '🏦 Bank Reconciliation',
+    'companies.eyebrow': 'Multi Business',
+    'companies.title': '🏢 Companies',
+    'media.eyebrow': 'Preview and search',
+    'media.title': 'Media Tools & Bill Scanner',
+    'help.eyebrow': 'Master User Guide',
+    'help.title': '❓ App Modules & Buttons Manual',
+    'help.loading': 'Modules will appear here after your plan loads.',
+    'accounting.eyebrow': 'Accounting',
+    'accounting.ledgers': '📒 Ledgers',
+    'accounting.stockItems': '📦 Stock Items',
+    'accounting.voucher': '🧾 New Voucher',
+    'accounting.daybook': '📅 Day Book',
+    'gallery.upload': '📷 Upload Photo',
+    'top.langToEn': 'Switch to English',
+    'top.langToHi': 'Switch to Hindi'
   };
 
   const HI = {
@@ -326,28 +386,88 @@
     'tally.hint': 'क्लाउड Tally सिंक के लिए अपने PC पर एजेंट चलाएं।',
     'tally.download': '📥 एजेंट डाउनलोड (.exe)',
     'tally.token': 'पेयरिंग टोकन:',
-    'tally.reset': '⚠️ टोकन रीसेट'
+    'tally.reset': '⚠️ टोकन रीसेट',
+    'project.eyebrow': 'क्लाइंट काम',
+    'project.title': 'प्रोजेक्ट ट्रैकर',
+    'project.namePh': 'प्रोजेक्ट का नाम',
+    'project.customerPh': 'ग्राहक का नाम',
+    'project.sitePh': 'साइट / लोकेशन',
+    'project.budgetPh': 'बजट',
+    'project.notePh': 'छोटा नोट',
+    'project.statusPlanning': 'प्लानिंग',
+    'project.statusRunning': 'चल रहा',
+    'project.statusCompleted': 'पूरा',
+    'project.add': 'प्रोजेक्ट जोड़ें',
+    'project.clear': 'प्रोजेक्ट साफ करें',
+    'project.statusEmpty': 'प्रोजेक्ट नीचे दिखेंगे।',
+    'project.expenseTitle': 'जल्दी खर्चा एंट्री',
+    'project.expenseTitlePh': 'खर्चे का शीर्षक',
+    'project.expenseVendorPh': 'विक्रेता का नाम',
+    'project.expenseAmountPh': 'राशि',
+    'project.expenseProjectPh': 'प्रोजेक्ट संदर्भ',
+    'project.addExpense': 'खर्चा जोड़ें',
+    'project.clearExpense': 'खर्चे साफ करें',
+    'invoice.eyebrow': 'बिक्री सहायक',
+    'invoice.title': 'इनवॉइस जनरेटर',
+    'invoice.customerPh': 'ग्राहक / खरीदार का नाम *',
+    'invoice.status': 'विवरण भरें और आइटम जोड़ें।',
+    'inventory.eyebrow': 'स्टॉक प्रबंधन',
+    'inventory.title': '📦 स्मार्ट इन्वेंटरी ट्रैकर',
+    'inventory.hint': 'इनवॉइस/वाउचर से स्टॉक ऑटो अपडेट — HSN, GST, गोदाम और कम स्टॉक अलर्ट।',
+    'ledger.eyebrow': 'प्राप्य खाते',
+    'ledger.title': '📖 उधार खाता',
+    'sales.eyebrow': 'स्थायी रिकॉर्ड',
+    'sales.title': '📊 कुल बिक्री इतिहास (2 साल आर्काइव)',
+    'reports.eyebrow': 'प्रोफेशनल रिपोर्ट्स',
+    'reports.title': '📈 रिपोर्ट्स प्रो',
+    'contractor.eyebrow': 'निर्माण / ठेकेदार',
+    'contractor.title': '👷 ठेकेदार टूल्स',
+    'payroll.eyebrow': 'बिज़नेस प्लान — ₹699',
+    'payroll.title': '💼 स्टाफ पेरोल और हाजरी',
+    'payroll.hint': 'मासिक वेतन, दैनिक हाजरी, आधा दिन, छुट्टी और एडवांस — ऑटो कैलकुलेट।',
+    'staff.eyebrow': 'टीम प्रबंधन',
+    'staff.title': '👥 स्टाफ और कैशियर लॉगिन',
+    'staff.hint': 'रोल के हिसाब से इनवाइट कोड बनाएं — स्टाफ खुद रोल नहीं चुन सकता।',
+    'myplan.eyebrow': 'सब्सक्रिप्शन',
+    'myplan.title': '💳 मेरा प्लान',
+    'bank.eyebrow': 'बैंकिंग',
+    'bank.title': '🏦 बैंक रिकॉन्सिलिएशन',
+    'companies.eyebrow': 'मल्टी बिज़नेस',
+    'companies.title': '🏢 कंपनियाँ',
+    'media.eyebrow': 'प्रीव्यू और खोज',
+    'media.title': 'मीडिया टूल और पर्ची स्कैनर',
+    'help.eyebrow': 'मास्टर यूज़र गाइड',
+    'help.title': '❓ ऐप मॉड्यूल और बटन मैनुअल',
+    'help.loading': 'आपका प्लान लोड होने के बाद यहाँ मॉड्यूल दिखेंगे।',
+    'accounting.eyebrow': 'लेखा',
+    'accounting.ledgers': '📒 लेजर',
+    'accounting.stockItems': '📦 स्टॉक आइटम',
+    'accounting.voucher': '🧾 नया वाउचर',
+    'accounting.daybook': '📅 डे बुक',
+    'gallery.upload': '📷 फोटो अपलोड',
+    'top.langToEn': 'अंग्रेजी में बदलें',
+    'top.langToHi': 'हिंदी में बदलें'
   };
 
   const STR = { en: EN, hi: HI };
 
-  function bkNormalizeLang() {
+  function bkGetLang() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== 'en') {
-      localStorage.setItem(STORAGE_KEY, 'hi');
-      return 'hi';
-    }
-    return 'en';
+    return saved === 'en' ? 'en' : 'hi';
   }
 
-  function bkGetLang() {
-    return bkNormalizeLang();
+  function bkNormalizeLang() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved !== 'en' && saved !== 'hi') {
+      localStorage.setItem(STORAGE_KEY, 'hi');
+    }
+    return bkGetLang();
   }
 
   function bkT(key, vars) {
     const L = bkGetLang();
-    const pack = STR[L] || STR.hi;
-    let text = (pack && pack[key]) || (STR.en && STR.en[key]) || key;
+    const pack = STR[L] || STR.en;
+    let text = (pack && pack[key]) || STR.en[key] || key;
     if (vars && typeof vars === 'object') {
       Object.keys(vars).forEach((k) => {
         text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(vars[k]));
@@ -362,7 +482,29 @@
     localStorage.setItem('bk_voice_lang', VOICE_LANG[lang] || 'hi-IN');
     document.documentElement.lang = lang;
     bkApplyI18n();
+    bkUpdateLangButton();
     document.dispatchEvent(new CustomEvent('bk:langchange', { detail: { lang } }));
+  }
+
+  function bkToggleLang() {
+    bkSetLang(bkGetLang() === 'hi' ? 'en' : 'hi');
+  }
+
+  function bkUpdateLangButton() {
+    const btn = document.getElementById('bkLangToggleBtn');
+    if (!btn) return;
+    const L = bkGetLang();
+    btn.textContent = L === 'hi' ? '🌐 EN' : '🌐 हिं';
+    btn.title = bkT(L === 'hi' ? 'top.langToEn' : 'top.langToHi');
+    btn.setAttribute('aria-label', btn.title);
+  }
+
+  function bkMountLangToggle() {
+    const btn = document.getElementById('bkLangToggleBtn');
+    if (!btn || btn.dataset.mounted) return;
+    btn.dataset.mounted = '1';
+    btn.addEventListener('click', () => bkToggleLang());
+    bkUpdateLangButton();
   }
 
   function bkApplyI18n(root) {
@@ -390,22 +532,30 @@
     const heroToggle = document.querySelector('.hero-stats .stat-card:nth-child(3) strong');
     if (heroYes) heroYes.textContent = bkT('hero.yes');
     if (heroToggle) heroToggle.textContent = bkT('hero.toggle');
+    bkUpdateLangButton();
   }
 
-  function bkInjectLangSelector() { /* hidden for now */ }
+  function bkInjectLangSelector() { bkMountLangToggle(); }
 
   global.BK_I18N_SUPPORTED = SUPPORTED;
   global.bkGetLang = bkGetLang;
   global.bkSetLang = bkSetLang;
+  global.bkToggleLang = bkToggleLang;
   global.bkT = bkT;
   global.bkApplyI18n = bkApplyI18n;
+  global.bkMountLangToggle = bkMountLangToggle;
+  global.bkUpdateLangButton = bkUpdateLangButton;
   global.bkInjectLangSelector = bkInjectLangSelector;
 
   bkNormalizeLang();
   document.documentElement.lang = bkGetLang();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => bkApplyI18n());
-  } else {
+  function bkInitI18n() {
     bkApplyI18n();
+    bkMountLangToggle();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bkInitI18n);
+  } else {
+    bkInitI18n();
   }
 })(typeof window !== 'undefined' ? window : global);

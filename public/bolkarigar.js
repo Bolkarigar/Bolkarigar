@@ -1064,6 +1064,13 @@ themeToggle?.addEventListener("click", () => {
   setTheme(next);
 });
 
+document.addEventListener("bk:langchange", () => {
+  if (typeof renderTodos === "function") renderTodos();
+  if (voiceToggle) voiceToggle.textContent = bkVoiceBtnLabel(voiceOn);
+  const mode = root.getAttribute("data-theme") || "dark";
+  setTheme(mode);
+});
+
 function openPanel(id) {
   const me = window._bkAccountInfo;
   if (me && !bkCanAccessTab(me, id)) {
@@ -3026,7 +3033,7 @@ function startVoice() {
   recognition = createRecognition();
   if (!recognition) return;
   if (voiceToggle) {
-    voiceToggle.textContent = "Voice: ON";
+    voiceToggle.textContent = bkVoiceBtnLabel(true);
     voiceToggle.classList.add("voice-active");
   }
   if (startVoiceBtn) startVoiceBtn.textContent = "Listening...";

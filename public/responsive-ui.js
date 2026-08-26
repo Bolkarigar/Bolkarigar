@@ -38,21 +38,24 @@
   }
 
   function bindObservers() {
-    document.querySelectorAll(".table-wrap").forEach((wrap) => {
+    document.querySelectorAll(".table-wrap:not([data-bk-skip-obs])").forEach((wrap) => {
       if (wrap.dataset.mobileObs) return;
       wrap.dataset.mobileObs = "1";
       const tbody = wrap.querySelector("tbody");
       if (!tbody) return;
       const obs = new MutationObserver(() => {
-        const table = wrap.querySelector("table");
-        if (table) {
-          table.querySelectorAll("tbody td[data-label]").forEach((td) => {
-            td.removeAttribute("data-label");
-          });
-          labelTable(table);
-        }
+        if (wrap.dataset.bkLabeling === "1") return;
+        wrap.dataset.bkLabeling = "1";
+        requestAnimationFrame(() => {
+          try {
+            const table = wrap.querySelector("table");
+            if (table) labelTable(table);
+          } finally {
+            delete wrap.dataset.bkLabeling;
+          }
+        });
       });
-      obs.observe(tbody, { childList: true, subtree: true });
+      obs.observe(tbody, { childList: true });
     });
   }
 

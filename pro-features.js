@@ -148,25 +148,25 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     try {
       const { username, email, password, inviteCode } = req.body;
       if (!username || !email || !password || !inviteCode) {
-        return res.status(400).json({ error: 'Username, email, password aur invite code zaroori hain.' });
+        return res.status(400).json({ error: 'Username, email, password and invite code are required.' });
       }
       const owner = await User.findOne({ staffInviteCode: inviteCode.toUpperCase() });
-      if (!owner) return res.status(400).json({ error: 'Galat invite code.' });
+      if (!owner) return res.status(400).json({ error: 'Invalid invite code.' });
       const ownerSub = await getSubscriptionForUser(User, owner);
       if (!ownerSub.isActive) {
         return res.status(402).json({
-          error: 'Is dukaan ka plan expire ho gaya. Malik se pehle subscription renew karwain, phir staff account banayein.'
+          error: 'This store subscription has expired. Ask the owner to renew before creating a staff account.'
         });
       }
       const exists = await User.findOne({ $or: [{ username }, { email }] });
-      if (exists) return res.status(400).json({ error: 'Username ya email pehle se hai.' });
+      if (exists) return res.status(400).json({ error: 'Username or email already exists.' });
       const staffRole = owner.staffInviteRole || 'staff';
       const hashed = await bcrypt.hash(password, 10);
       await User.create({ username, email, password: hashed, role: staffRole, ownerId: owner._id });
       res.status(201).json({
         success: true,
         role: staffRole,
-        message: `${staffRole} account ban gaya. Ab login karein — limited access hoga.`
+        message: `${staffRole} account created. You can now sign in with limited access.`
       });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });

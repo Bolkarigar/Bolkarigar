@@ -501,7 +501,7 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Username, email aur password teeno zaroori hain.' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password kam se kam 6 characters ka hona chahiye.' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Sahi email address daalein.' });
@@ -567,24 +567,24 @@ app.post('/api/auth/login', async (req, res) => {
   const rateLimitKey = `${req.ip}:${username}`;
 
   if (isRateLimited(rateLimitKey)) {
-    return res.status(429).json({ error: 'Bahut zyada galat attempts. 2 minute baad try karein.' });
+    return res.status(429).json({ error: 'Too many failed attempts. Please try again in 2 minutes.' });
   }
 
   try {
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database connect nahi hua. Server restart karein aur 10 second wait karein.' });
+      return res.status(503).json({ error: 'Database connection failed. Please restart the server and wait 10 seconds.' });
     }
 
     const user = await User.findOne({ username });
     if (!user) {
       recordFailedAttempt(rateLimitKey);
-      return res.status(400).json({ error: 'User nahi mila!' });
+      return res.status(400).json({ error: 'User not found!' });
     }
 
     const validPass = await bcrypt.compare(password, user.password);
     if (!validPass) {
       recordFailedAttempt(rateLimitKey);
-      return res.status(400).json({ error: 'Galat password!' });
+      return res.status(400).json({ error: 'Incorrect password!' });
     }
 
     clearAttempts(rateLimitKey);
@@ -671,7 +671,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 // tak aap email service setup nahi karte) reset link server ke console
 // mein print hota hai taaki testing ke dauraan feature use ho sake.
 app.post('/api/auth/forgot-password', async (req, res) => {
-  const genericMsg = { message: 'Agar yeh email registered hai, to OTP bhej diya gaya hai.' };
+  const genericMsg = { message: 'If this email is registered, an OTP has been sent.' };
   const rlKey = `forgot:${req.ip}`;
   if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
     // Yahan bhi generic message hi bhejte hain — enumeration/timing leak se bachne ke liye.
@@ -686,7 +686,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     if (user) {
       if (!isEmailConfigured()) {
         return res.status(503).json({
-          error: 'Password reset email abhi server par setup nahi hai. Support: support@bolkarigar.com — ya Render me SMTP/Resend keys add karein.'
+          error: 'Password reset email is not configured on the server. Contact support@bolkarigar.com — or add SMTP keys on Render.'
         });
       }
 
@@ -701,7 +701,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         const delivery = await sendPasswordResetOtp(user.email, otp);
         if (!delivery.sent) {
           return res.status(503).json({
-            error: 'OTP email bhej nahi paya. Thodi der baad try karein ya support@bolkarigar.com par contact karein.'
+            error: 'Could not send OTP email. Please try again later or contact support@bolkarigar.com.'
           });
         }
       } catch (mailErr) {
@@ -710,7 +710,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         user.resetTokenExpiry = null;
         await user.save();
         return res.status(503).json({
-          error: 'Email bhejne mein error aaya. Email sahi hai? Spam folder check karein ya baad mein try karein.'
+          error: 'Error sending email. Please verify your email, check spam folder, or try again later.'
         });
       }
       return res.json({ ...genericMsg, emailDelivered: true });
@@ -729,10 +729,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const { otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ error: 'Email, OTP aur naya password zaroori hain.' });
+      return res.status(400).json({ error: 'Email, OTP and new password are required.' });
     }
     if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'Password kam se kam 6 characters ka hona chahiye.' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     }
 
     // 🟢 Brute-force safety: OTP sirf 6-digit hai (10 lakh combinations),
@@ -740,7 +740,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     // sakta hai. 5 galat attempts ke baad OTP turant invalid kar dete hain.
     const rlKey = `reset-otp:${email}`;
     if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
-      return res.status(429).json({ error: 'Bahut zyada galat attempts. Dobara "Forgot Password" se naya OTP mangwayein.' });
+      return res.status(429).json({ error: 'Too many failed attempts. Please request a new OTP from Forgot Password.' });
     }
 
     const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
@@ -752,7 +752,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
     if (!user) {
       recordAuthAction(rlKey);
-      return res.status(400).json({ error: 'OTP galat ya expire ho chuka hai. Dobara "Forgot Password" try karein.' });
+      return res.status(400).json({ error: 'Invalid or expired OTP. Please try Forgot Password again.' });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
@@ -760,10 +760,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
     user.resetTokenExpiry = null;
     await user.save();
 
-    res.json({ message: 'Password successfully reset ho gaya! Ab naye password se login karein.' });
+    res.json({ message: 'Password reset successfully! You can now sign in with your new password.' });
   } catch (err) {
     logger.error('Reset-password error:', err);
-    res.status(500).json({ error: 'Password reset karne mein dikkat aayi.' });
+    res.status(500).json({ error: 'There was a problem resetting your password.' });
   }
 });
 

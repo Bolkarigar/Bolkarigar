@@ -18,7 +18,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <link rel="stylesheet" href="bolkarigar.css?v=20260826i18n">
   <script src="native-config.js?v=1"></script>
-  <script src="i18n.js?v=20260826b"></script>
+  <script src="i18n.js?v=20260826d"></script>
 </head>
 <body>
   <script>
@@ -64,6 +64,7 @@
       <button id="voiceToggle" class="theme-btn voice-btn" type="button" data-i18n="top.voiceOff">Voice: OFF</button>
       <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
       <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
+      <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle" type="button" title="Language">🌐 EN</button>
       <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
       <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
     </div>
@@ -248,8 +249,8 @@
         <section class="panel" id="voicePanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="voice.eyebrow">Speech input</p><h3 data-i18n="voice.title">Voice Command Panel</h3></div></div>
           <div class="voice-grid">
-            <div class="mini-card"><h4>Try commands</h4><p>“Open todo list”</p><p>“Open qr tool”</p><p>“Dark mode on”</p><p>“Overview”</p></div>
-            <div class="mini-card"><h4>Voice status</h4><p id="voiceStatus">Voice system ready.</p><p id="voiceBufferHint" class="voice-buffer-hint"></p></div>
+            <div class="mini-card"><h4 data-i18n="voice.tryTitle">Try commands</h4><p>“Open todo list”</p><p>“Open qr tool”</p><p>“Dark mode on”</p><p>“Overview”</p></div>
+            <div class="mini-card"><h4 data-i18n="voice.statusTitle">Voice status</h4><p id="voiceStatus" data-i18n="voice.statusReady">Voice system ready.</p><p id="voiceBufferHint" class="voice-buffer-hint"></p></div>
           </div>
           <div class="btn-row">
             <button id="startVoiceBtn" type="button" data-i18n="voice.start">Start Listening</button>
@@ -277,15 +278,15 @@
         </section>
 
         <!-- PROJECT PANEL -->
-        <section class="panel" id="projectPanel"><div class="panel-header"><div><p class="eyebrow">Client work</p><h3>Project Tracker</h3></div></div><div class="grid-2"><input type="text" id="projectName" placeholder="Project name" /><input type="text" id="projectCustomer" placeholder="Customer name" /><input type="text" id="projectSite" placeholder="Site / location" /><input type="number" id="projectBudget" placeholder="Budget" /><select id="projectStatus"><option value="planning">Planning</option><option value="running">Running</option><option value="completed">Completed</option></select><input type="text" id="projectNote" placeholder="Short note" /></div><div class="btn-row"><button id="addProjectBtn" type="button">Add Project</button><button id="clearProjectBtn" class="secondary" type="button">Clear Projects</button></div><p class="helper-text" id="projectStatusText">Projects will appear below.</p><div id="projectList" class="project-list"></div><div class="expense-box"><h4>Quick Expense Entry</h4><div class="grid-2"><input type="text" id="expenseTitle" placeholder="Expense title" /><input type="text" id="expenseVendor" placeholder="Vendor name" /><input type="number" id="expenseAmount" placeholder="Amount" /><input type="text" id="expenseProjectLink" placeholder="Project reference" /></div><div class="btn-row"><button id="addExpenseBtn" type="button">Add Expense</button><button id="clearExpenseBtn" class="secondary" type="button">Clear Expenses</button></div><div class="table-wrap"><table><thead><tr><th>Title</th><th>Vendor</th><th>Amount</th><th>Project</th></tr></thead><tbody id="expenseBody"></tbody></table></div></div></section>
+        <section class="panel" id="projectPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="project.eyebrow">Client work</p><h3 data-i18n="project.title">Project Tracker</h3></div></div><div class="grid-2"><input type="text" id="projectName" data-i18n-placeholder="project.namePh" placeholder="Project name" /><input type="text" id="projectCustomer" data-i18n-placeholder="project.customerPh" placeholder="Customer name" /><input type="text" id="projectSite" data-i18n-placeholder="project.sitePh" placeholder="Site / location" /><input type="number" id="projectBudget" data-i18n-placeholder="project.budgetPh" placeholder="Budget" /><select id="projectStatus"><option value="planning" data-i18n="project.statusPlanning">Planning</option><option value="running" data-i18n="project.statusRunning">Running</option><option value="completed" data-i18n="project.statusCompleted">Completed</option></select><input type="text" id="projectNote" data-i18n-placeholder="project.notePh" placeholder="Short note" /></div><div class="btn-row"><button id="addProjectBtn" type="button" data-i18n="project.add">Add Project</button><button id="clearProjectBtn" class="secondary" type="button" data-i18n="project.clear">Clear Projects</button></div><p class="helper-text" id="projectStatusText" data-i18n="project.statusEmpty">Projects will appear below.</p><div id="projectList" class="project-list"></div><div class="expense-box"><h4 data-i18n="project.expenseTitle">Quick Expense Entry</h4><div class="grid-2"><input type="text" id="expenseTitle" data-i18n-placeholder="project.expenseTitlePh" placeholder="Expense title" /><input type="text" id="expenseVendor" data-i18n-placeholder="project.expenseVendorPh" placeholder="Vendor name" /><input type="number" id="expenseAmount" data-i18n-placeholder="project.expenseAmountPh" placeholder="Amount" /><input type="text" id="expenseProjectLink" data-i18n-placeholder="project.expenseProjectPh" placeholder="Project reference" /></div><div class="btn-row"><button id="addExpenseBtn" type="button" data-i18n="project.addExpense">Add Expense</button><button id="clearExpenseBtn" class="secondary" type="button" data-i18n="project.clearExpense">Clear Expenses</button></div><div class="table-wrap"><table><thead><tr><th>Title</th><th>Vendor</th><th>Amount</th><th>Project</th></tr></thead><tbody id="expenseBody"></tbody></table></div></div></section>
 
         <!-- INVENTORY / STOCK PANEL — Vyapar-style professional tracker -->
         <section class="panel" id="inventoryPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Stock Management</p>
-              <h3>📦 Smart Inventory Tracker</h3>
-              <p class="helper-text">Invoice / voucher se stock auto update — HSN, GST, godown &amp; low-stock alert (India standard)</p>
+              <p class="eyebrow" data-i18n="inventory.eyebrow">Stock Management</p>
+              <h3 data-i18n="inventory.title">📦 Smart Inventory Tracker</h3>
+              <p class="helper-text" data-i18n="inventory.hint">Invoice / voucher se stock auto update — HSN, GST, godown &amp; low-stock alert (India standard)</p>
             </div>
             <button type="button" id="invRefreshBtn" class="secondary">🔄 Refresh</button>
           </div>
@@ -409,8 +410,8 @@
         <section class="panel" id="ledgerPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Accounts Receivable</p>
-              <h3>📖 Udhar Khata (Customer Ledger)</h3>
+              <p class="eyebrow" data-i18n="ledger.eyebrow">Accounts Receivable</p>
+              <h3 data-i18n="ledger.title">📖 Udhar Khata (Customer Ledger)</h3>
             </div>
           </div>
           <div class="table-wrap" style="margin-top: 15px;">
@@ -662,8 +663,8 @@
         <section class="panel" id="totalSalesPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Permanent Record</p>
-              <h3>📊 Total Sales History (2 Years Archive)</h3>
+              <p class="eyebrow" data-i18n="sales.eyebrow">Permanent Record</p>
+              <h3 data-i18n="sales.title">📊 Total Sales History (2 Years Archive)</h3>
             </div>
             <input type="text" id="salesSearchInput" class="panel-search-input" placeholder="🔍 Naam ya Invoice No..." />
           </div>
@@ -692,7 +693,7 @@
 
         <!-- 🟢 REPORTS PRO — GSTR, P&L, Balance Sheet, Ageing, Cash Flow -->
         <section class="panel" id="reportsProPanel">
-          <div class="panel-header"><div><p class="eyebrow">Professional Reports</p><h3>📈 Reports Pro</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="reports.eyebrow">Professional Reports</p><h3 data-i18n="reports.title">📈 Reports Pro</h3></div></div>
           <div class="grid-2" style="margin-bottom:12px;">
             <select id="reportMonth"><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select>
             <input id="reportYear" type="number" placeholder="Year" value="2026" />
@@ -711,7 +712,7 @@
 
         <!-- 🟢 CONTRACTOR — Labour, RA Bill, Material Slip -->
         <section class="panel" id="contractorPanel">
-          <div class="panel-header"><div><p class="eyebrow">Construction / Contractor</p><h3>👷 Contractor Tools</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="contractor.eyebrow">Construction / Contractor</p><h3 data-i18n="contractor.title">👷 Contractor Tools</h3></div></div>
           <div class="btn-row">
             <button class="contractor-subtab-btn active" data-sub="labourSub" type="button">Labour Attendance</button>
             <button class="contractor-subtab-btn" data-sub="raBillSub" type="button">RA Bill</button>
@@ -753,11 +754,11 @@
         <section class="panel" id="payrollPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Business Plan — ₹699</p>
-              <h3>💼 Staff Payroll & Hajri</h3>
+              <p class="eyebrow" data-i18n="payroll.eyebrow">Business Plan — ₹699</p>
+              <h3 data-i18n="payroll.title">💼 Staff Payroll & Hajri</h3>
             </div>
           </div>
-          <p class="helper-text">Dukaan/office staff ki monthly salary, daily hajri, half-day, leave aur advance — auto calculate.</p>
+          <p class="helper-text" data-i18n="payroll.hint">Dukaan/office staff ki monthly salary, daily hajri, half-day, leave aur advance — auto calculate.</p>
 
           <div id="payrollNoAccess" class="hidden payroll-no-access">
             <p>⚠️ Yeh module sirf <strong>Business plan (₹699)</strong> me hai. Owner se upgrade karwayein, ya owner se apna employee profile link karwayein.</p>
@@ -852,8 +853,8 @@
 
         <!-- 🟢 STAFF / MULTI-USER -->
         <section class="panel" id="staffPanel">
-          <div class="panel-header"><div><p class="eyebrow">Team Management</p><h3>👥 Staff & Cashier Login</h3></div></div>
-          <p class="helper-text">Role ke hisaab se invite code generate karein — staff khud role choose nahi kar sakta (professional security).</p>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="staff.eyebrow">Team Management</p><h3 data-i18n="staff.title">👥 Staff & Cashier Login</h3></div></div>
+          <p class="helper-text" data-i18n="staff.hint">Role ke hisaab se invite code generate karein — staff khud role choose nahi kar sakta (professional security).</p>
           <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
             <select id="inviteRoleSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
               <option value="cashier">Cashier — bill, udhar payment</option>
@@ -870,8 +871,8 @@
         <section class="panel" id="myPlanPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Subscription</p>
-              <h3>💳 Mera Plan</h3>
+              <p class="eyebrow" data-i18n="myplan.eyebrow">Subscription</p>
+              <h3 data-i18n="myplan.title">💳 Mera Plan</h3>
             </div>
           </div>
           <div class="mini-card" style="margin-bottom:16px;">
@@ -896,7 +897,7 @@
 
         <!-- 🟢 BANK RECONCILIATION -->
         <section class="panel" id="bankReconPanel">
-          <div class="panel-header"><div><p class="eyebrow">Banking</p><h3>🏦 Bank Reconciliation</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="bank.eyebrow">Banking</p><h3 data-i18n="bank.title">🏦 Bank Reconciliation</h3></div></div>
           <div class="live-notice-banner">CSV import available — format: Date, Description, Debit, Credit. Auto-matching next update me.</div>
           <div class="btn-row" style="margin-bottom:12px;">
             <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
@@ -913,7 +914,7 @@
 
         <!-- 🟢 MULTI-COMPANY -->
         <section class="panel" id="companiesPanel">
-          <div class="panel-header"><div><p class="eyebrow">Multi Business</p><h3>🏢 Companies</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="companies.eyebrow">Multi Business</p><h3 data-i18n="companies.title">🏢 Companies</h3></div></div>
           <div class="live-notice-banner">Beta — multiple companies add/switch kar sakte hain. Active company profile me sync hoti hai.</div>
           <div class="grid-2">
             <input id="coNameInput" placeholder="Company Name" />
@@ -934,8 +935,8 @@
   <div id="invoiceGeneratorSection" style="margin-top: 20px;">
     <div class="panel-header">
       <div>
-        <p class="eyebrow">Sales helper</p>
-        <h3>Invoice Generator</h3>
+        <p class="eyebrow" data-i18n="invoice.eyebrow">Sales helper</p>
+        <h3 data-i18n="invoice.title">Invoice Generator</h3>
       </div>
     </div>
     
@@ -1022,7 +1023,7 @@
       </button>
     </div>
     
-    <p class="helper-text" id="invoiceStatus">Fill details and add items.</p>
+    <p class="helper-text" id="invoiceStatus" data-i18n="invoice.status">Fill details and add items.</p>
     
     <div class="table-wrap">
       <table>
@@ -1062,7 +1063,7 @@
           <div class="panel-header"><div><p class="eyebrow" data-i18n="gallery.eyebrow">Products</p><h3 data-i18n="gallery.title">Product Gallery</h3></div></div>
           <div class="btn-row">
             <input type="file" id="galleryFileInput" accept="image/*" style="display:none" />
-            <button id="galleryUploadBtn" type="button">📷 Upload Photo</button>
+            <button id="galleryUploadBtn" type="button" data-i18n="gallery.upload">📷 Upload Photo</button>
           </div>
           <p class="helper-text" id="galleryStatusText" data-i18n="gallery.status">Apni product photos yahan upload karein.</p>
           <div class="gallery-viewer"><img id="mainGalleryImage" src="" alt="Main product preview" style="display:none" /></div>
@@ -1086,7 +1087,7 @@
 
         <!-- MEDIA & SCANNER PANEL -->
         <section class="panel" id="mediaPanel">
-          <div class="panel-header"><div><p class="eyebrow">Preview and search</p><h3>Media Tools & Parchi Scanner</h3></div></div>
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="media.eyebrow">Preview and search</p><h3 data-i18n="media.title">Media Tools & Parchi Scanner</h3></div></div>
           <div class="media-grid">
             <div class="scanner-box">
               <input type="file" id="imageInput" accept="image/*" />
@@ -1117,14 +1118,14 @@
   </div>
   <div class="panel-header">
     <div>
-      <p class="eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
-      <h3>❓ App Modules & Buttons Manual (आपके प्लान के मॉड्युल्स)</h3>
-      <p id="helpPlanBadge" class="help-plan-badge pro">Modules load ho rahe hain...</p>
+      <p class="eyebrow" data-i18n="help.eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
+      <h3 data-i18n="help.title">❓ App Modules & Buttons Manual (आपके प्लान के मॉड्युल्स)</h3>
+      <p id="helpPlanBadge" class="help-plan-badge pro" data-i18n="help.loading">Modules load ho rahe hain...</p>
     </div>
   </div>
 
   <div id="helpModulesList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-    <p class="helper-text">Aapka plan load hone ke baad yahan modules dikhenge.</p>
+    <p class="helper-text" data-i18n="help.loading">Aapka plan load hone ke baad yahan modules dikhenge.</p>
   </div>
 
   <!-- SUPPORT FOOTER -->
@@ -1266,6 +1267,7 @@
   <script src="bolkarigar.js?v=20260826i18n2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
+      if (typeof renderTodos === 'function') renderTodos();
       var themeBtn = document.getElementById('themeToggle');
       if (themeBtn && typeof bkT === 'function') {
         var dark = document.documentElement.getAttribute('data-theme') === 'dark';

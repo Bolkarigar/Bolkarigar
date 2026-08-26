@@ -2599,3 +2599,16 @@ body.sidebar-open .sidebar-tally-card {
 @media (max-width: 768px) {
   .bk-lang-select { min-width: 88px; padding: 8px 6px !important; font-size: 11px !important; }
 }
+.bk-lang-toggle {
+  min-width: 64px !important;
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  font-weight: 700;
+}
+@media (max-width: 768px) {
+  .top-actions .bk-lang-toggle {
+    min-width: 44px !important;
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+  }
+}

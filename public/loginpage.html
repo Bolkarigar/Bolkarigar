@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<html lang="hi" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>BolKarigar AI - Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9,7 +12,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
   <script src="native-config.js?v=1"></script>
-  <script src="i18n.js?v=20260826b"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -239,16 +241,16 @@
 
   <div class="login-container">
     <div class="login-card">
-      <h2 data-i18n="login.title">BolKarigar AI</h2>
-      <p data-i18n="login.subtitle">Apne account mein login karein</p>
+      <h2>BolKarigar AI</h2>
+      <p>Sign in to your account</p>
       
       <form id="loginForm">
         <div class="input-group">
-          <label for="username" data-i18n="login.username">Username</label>
+          <label for="username">Username</label>
           <input type="text" id="username" required placeholder="admin" autocomplete="username">
         </div>
         <div class="input-group">
-          <label for="password" data-i18n="login.password">Password</label>
+          <label for="password">Password</label>
           <div class="password-wrapper">
             <input type="password" id="password" required placeholder="••••" autocomplete="current-password">
             <span class="toggle-password" id="eyeIcon">SHOW</span>
@@ -256,65 +258,65 @@
         </div>
         
         <div class="form-options">
-          <span class="forgot-link" id="forgotBtn" data-i18n="login.forgot">Forgot Password?</span>
+          <span class="forgot-link" id="forgotBtn">Forgot Password?</span>
         </div>
 
-        <button type="submit" class="login-btn" data-i18n="login.signIn">Sign In</button>
-        <p class="error-msg" id="errorMsg" data-i18n="login.error">Galat Username ya Password!</p>
+        <button type="submit" class="login-btn">Sign In</button>
+        <p class="error-msg" id="errorMsg">Wrong username or password!</p>
       </form>
       <!-- loginpage.html में </form> के ठीक नीचे इसे पेस्ट करें -->
 <div style="margin-top: 25px; font-size: 14px; color: #9ca3af;">
-  Naya account banana hai? <a href="signup.html" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Sign Up karein</a>
+  Need a new account? <a href="signup.html" style="color: #3b82f6; text-decoration: none; font-weight: 500;">Sign Up</a>
   &nbsp;|&nbsp; <a href="pricing.html" style="color:#a855f7;text-decoration:none;font-weight:500;">Pricing</a>
-  <br><br>Staff/Cashier ho? <a href="#" id="staffSignupToggle" style="color: #22c55e; text-decoration: none; font-weight: 500;">Staff account banao (Invite Code)</a>
+  <br><br>Staff or cashier? <a href="#" id="staffSignupToggle" style="color: #22c55e; text-decoration: none; font-weight: 500;">Create staff account (Invite Code)</a>
 </div>
 <div id="staffSignupBox" style="display:none;margin-top:20px;text-align:left;border-top:1px solid #333;padding-top:16px;">
-  <p style="font-size:13px;color:#9ca3af;margin-bottom:12px;">Owner se invite code lein. <strong>Role invite code se set hota hai</strong> — aap khud Manager nahi ban sakte.<br><strong style="color:#22c55e;">Aapko alag se app/plan kharidne ki zaroorat nahi — malik ka plan aapko cover karta hai.</strong></p>
+  <p style="font-size:13px;color:#9ca3af;margin-bottom:12px;">Get an invite code from the owner. <strong>Your role is set by the invite code</strong> — you cannot choose Manager yourself.<br><strong style="color:#22c55e;">You do not need to buy a separate plan — the owner's plan covers you.</strong></p>
   <input type="text" id="staffUsername" placeholder="Username" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
   <input type="email" id="staffEmail" placeholder="Email" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
   <input type="password" id="staffPassword" placeholder="Password" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
-  <input type="text" id="staffInviteCode" placeholder="Invite Code (owner se)" style="width:100%;margin-bottom:12px;padding:10px;border-radius:8px;border:1px solid #333;background:#fff;color:#111;font-weight:bold;">
+  <input type="text" id="staffInviteCode" placeholder="Invite Code (from owner)" style="width:100%;margin-bottom:12px;padding:10px;border-radius:8px;border:1px solid #333;background:#fff;color:#111;font-weight:bold;">
   <button type="button" id="staffSignupBtn" class="login-btn" style="margin-top:0;">Create Staff Account</button>
 </div>
     </div>
   </div>
 
-  <!-- Forgot Password Popup Box — Step 1: Email daalo, OTP bhejo -->
+  <!-- Forgot Password — Step 1: Enter email, send OTP -->
   <div class="modal-overlay" id="forgotModal">
     <div class="modal-box">
-      <h3 data-i18n="forgot.title">Reset Password</h3>
-      <p data-i18n="forgot.desc">Apna registered email address enter karein. Hum aapko 6-digit OTP bhejenge.</p>
+      <h3>Reset Password</h3>
+      <p>Enter your registered email. We will send a 6-digit OTP.</p>
       <div class="input-group" style="margin-bottom: 0;">
         <input type="email" id="resetEmail" placeholder="example@gmail.com">
       </div>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="closeForgotBtn" data-i18n="forgot.cancel">Cancel</button>
-        <button class="modal-btn btn-submit" id="submitForgotBtn" data-i18n="forgot.sendOtp">OTP Bhejo</button>
+        <button class="modal-btn btn-cancel" id="closeForgotBtn">Cancel</button>
+        <button class="modal-btn btn-submit" id="submitForgotBtn">Send OTP</button>
       </div>
     </div>
   </div>
 
-  <!-- Set New Password Popup — Step 2: OTP + naya password daalo -->
+  <!-- Set New Password — Step 2: OTP + new password -->
   <div class="modal-overlay" id="setNewPasswordModal">
     <div class="modal-box">
-      <h3 data-i18n="forgot.otpTitle">OTP Verify Karein</h3>
-      <p id="otpSentToText" style="color: var(--text-gray);" data-i18n="forgot.otpDesc">Aapke email pe 6-digit OTP bheja gaya hai. Wo yahan daalein.</p>
+      <h3>Verify OTP</h3>
+      <p id="otpSentToText" style="color: var(--text-gray);">A 6-digit OTP has been sent to your email. Enter it below.</p>
       <div class="input-group" style="margin-bottom: 10px;">
-        <input type="text" id="otpInput" data-i18n-placeholder="forgot.otpPlaceholder" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; text-align: center; font-size: 18px;">
+        <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; text-align: center; font-size: 18px;">
       </div>
       <div class="input-group" style="margin-bottom: 10px;">
-        <input type="password" id="newPasswordInput" data-i18n-placeholder="forgot.newPass" placeholder="Naya password" autocomplete="new-password">
+        <input type="password" id="newPasswordInput" placeholder="New password" autocomplete="new-password">
       </div>
       <div class="input-group" style="margin-bottom: 0;">
-        <input type="password" id="confirmPasswordInput" data-i18n-placeholder="forgot.confirmPass" placeholder="Naya password dobara" autocomplete="new-password">
+        <input type="password" id="confirmPasswordInput" placeholder="Confirm new password" autocomplete="new-password">
       </div>
       <p class="error-msg" id="resetPasswordErrorMsg"></p>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="cancelResetPasswordBtn" data-i18n="forgot.cancel">Cancel</button>
-        <button class="modal-btn btn-submit" id="submitNewPasswordBtn" data-i18n="forgot.setPass">Password Set Karein</button>
+        <button class="modal-btn btn-cancel" id="cancelResetPasswordBtn">Cancel</button>
+        <button class="modal-btn btn-submit" id="submitNewPasswordBtn">Set Password</button>
       </div>
       <p style="margin-top: 14px; font-size: 12px;">
-        <span class="forgot-link" id="resendOtpBtn" data-i18n="forgot.resend">OTP nahi mila? Dobara bhejo</span>
+        <span class="forgot-link" id="resendOtpBtn">Did not get OTP? Resend</span>
       </p>
     </div>
   </div>
@@ -325,18 +327,51 @@
       window.location.href = "bolkarigar.html?_=" + Date.now();
     }
 
-    function bkForgotLabel(key, fallback) {
-      return typeof bkT === "function" ? bkT(key) : fallback;
-    }
-
-    // 🟢 OTP-based reset: email daalke OTP mangwane ke baad, OTP + naya
-    // password ek doosre modal mein daala jaata hai.
+    // OTP-based reset flow
     const setNewPasswordModal = document.getElementById("setNewPasswordModal");
 
     const BK_API = () => window.API_URL || window.location.origin;
 
-    // 🟢 OTP-based reset flow
-    let resetEmailForOtp = ""; // Step 1 mein jo email daali, wahi Step 2 mein bhi bhejni hai
+    // Login page — always English (never show Hindi from old server responses)
+    const LOGIN_MSG = {
+      otpSent: 'If this email is registered, an OTP has been sent. Please also check your Spam/Junk folder.',
+      otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
+      otpOnlyRegistered: 'OTP is sent only to your registered signup email. Please check that address.',
+      passwordResetOk: 'Password reset successfully! You can now sign in with your new password.',
+      wrongLogin: 'Wrong username or password!',
+      otpSentTo: (email) => `A 6-digit OTP has been sent to ${email}. Enter it below.`
+    };
+
+    function loginMsgEn(text, fallback) {
+      if (!text || typeof text !== 'string') return fallback;
+      const t = text.trim();
+      const rules = [
+        [/agar yeh email registered/i, LOGIN_MSG.otpSent],
+        [/otp bhej diya|otp bhej diya gaya/i, LOGIN_MSG.otpSent],
+        [/naya otp bhej/i, LOGIN_MSG.otpResent],
+        [/sirf registered email/i, LOGIN_MSG.otpOnlyRegistered],
+        [/password successfully reset ho gaya|password reset ho gaya/i, LOGIN_MSG.passwordResetOk],
+        [/user nahi mila/i, 'User not found!'],
+        [/galat password/i, 'Incorrect password!'],
+        [/bahut zyada galat attempts/i, 'Too many failed attempts. Please try again later.'],
+        [/database connect nahi/i, 'Database connection failed. Please try again later.'],
+        [/galat invite code/i, 'Invalid invite code.'],
+        [/account ban gaya|login karein/i, 'Account created. You can now sign in with limited access.'],
+        [/username ya email pehle se/i, 'Username or email already exists.'],
+        [/otp galat ya expire/i, 'Invalid or expired OTP. Please try Forgot Password again.'],
+        [/email bhejne mein|otp email bhej nahi/i, 'Could not send OTP email. Please try again later.']
+      ];
+      for (const [re, en] of rules) {
+        if (re.test(t)) return en;
+      }
+      if (/[\u0900-\u097F]/.test(t) || /\b(nahi|karein|bhej|galat|zaroori|mila|daalein|dobara)\b/i.test(t)) {
+        return fallback;
+      }
+      return t;
+    }
+
+    // OTP-based reset flow
+    let resetEmailForOtp = "";
 
     document.getElementById("cancelResetPasswordBtn").addEventListener("click", () => {
       setNewPasswordModal.classList.remove("active");
@@ -352,16 +387,16 @@
         });
         const result = await response.json();
         if (!response.ok) {
-          alert(result.error || "OTP dubara bhejne mein dikkat aayi.");
+          alert(loginMsgEn(result.error, "Could not resend OTP. Please try again."));
           return;
         }
         if (!result.emailDelivered) {
-          alert("Sirf registered email pe OTP aata hai. Signup wali email check karein.");
+          alert(LOGIN_MSG.otpOnlyRegistered);
           return;
         }
-        alert("Naya OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.");
+        alert(LOGIN_MSG.otpResent);
       } catch (e) {
-        alert("Kuch galat ho gaya. Dobara try karein.");
+        alert("Something went wrong. Please try again.");
       }
     });
 
@@ -373,17 +408,17 @@
       errEl.style.display = "none";
 
       if (!otp || otp.length !== 6) {
-        errEl.textContent = "6-digit OTP daalein.";
+        errEl.textContent = "Please enter a 6-digit OTP.";
         errEl.style.display = "block";
         return;
       }
       if (!newPassword || newPassword.length < 6) {
-        errEl.textContent = "Password kam se kam 6 characters ka hona chahiye.";
+        errEl.textContent = "Password must be at least 6 characters.";
         errEl.style.display = "block";
         return;
       }
       if (newPassword !== confirmPassword) {
-        errEl.textContent = "Dono password match nahi kar rahe.";
+        errEl.textContent = "Passwords do not match.";
         errEl.style.display = "block";
         return;
       }
@@ -397,18 +432,18 @@
         const result = await response.json();
 
         if (!response.ok) {
-          errEl.textContent = result.error || "Kuch galat ho gaya.";
+          errEl.textContent = loginMsgEn(result.error, "Something went wrong.");
           errEl.style.display = "block";
           return;
         }
 
-        alert(result.message || "Password successfully reset ho gaya! Ab naye password se login karein.");
+        alert(LOGIN_MSG.passwordResetOk);
         setNewPasswordModal.classList.remove("active");
         document.getElementById("otpInput").value = "";
         document.getElementById("newPasswordInput").value = "";
         document.getElementById("confirmPasswordInput").value = "";
       } catch (e) {
-        errEl.textContent = "Server se connect nahi ho paya. Dobara try karein.";
+        errEl.textContent = "Could not connect to server. Please try again.";
         errEl.style.display = "block";
       }
     });
@@ -435,7 +470,7 @@
         localStorage.setItem("bk_user", result.username);
         window.location.href = "bolkarigar.html?_=" + Date.now();
       } catch (err) {
-        errorEl.textContent = err.message;
+        errorEl.textContent = loginMsgEn(err.message, LOGIN_MSG.wrongLogin);
         errorEl.style.display = "block";
       }
     });
@@ -457,13 +492,13 @@
     document.getElementById("submitForgotBtn").addEventListener("click", async () => {
       const email = document.getElementById("resetEmail").value.trim().toLowerCase();
       if (!email || !email.includes("@")) {
-        alert("Kripya ek valid email address enter karein.");
+        alert("Please enter a valid email address.");
         return;
       }
 
       const submitBtn = document.getElementById("submitForgotBtn");
       submitBtn.disabled = true;
-      submitBtn.textContent = bkForgotLabel("forgot.sending", "Bhej rahe hain...");
+      submitBtn.textContent = "Sending...";
 
       try {
         const response = await fetch(`${BK_API()}/api/auth/forgot-password`, {
@@ -474,28 +509,27 @@
         const result = await response.json();
 
         if (!response.ok) {
-          alert(result.error || "OTP bhejne mein dikkat aayi. Email sahi hai? Spam folder bhi check karein.");
+          alert(loginMsgEn(result.error, "Could not send OTP. Please verify your email and check your spam folder."));
           return;
         }
 
-        const msg = result.message || "Agar yeh email registered hai, to OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.";
         if (!result.emailDelivered) {
-          alert(msg + "\n\n" + bkForgotLabel("forgot.notRegistered", "Sirf signup wali registered email pe hi OTP aata hai."));
+          alert(LOGIN_MSG.otpSent + "\n\n" + LOGIN_MSG.otpOnlyRegistered);
           return;
         }
 
-        alert(msg || bkForgotLabel("forgot.sent", "OTP bhej diya gaya hai."));
+        alert(LOGIN_MSG.otpSent);
 
         resetEmailForOtp = email;
-        document.getElementById("otpSentToText").textContent = `Aapke email (${email}) pe 6-digit OTP bheja gaya hai. Wo yahan daalein.`;
+        document.getElementById("otpSentToText").textContent = LOGIN_MSG.otpSentTo(email);
         forgotModal.classList.remove("active");
         document.getElementById("resetEmail").value = "";
         setNewPasswordModal.classList.add("active");
       } catch (e) {
-        alert("Server se connect nahi ho paya. Internet check karke dobara try karein.");
+        alert("Could not connect to server. Check your internet and try again.");
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = bkForgotLabel("forgot.sendOtp", "OTP Bhejo");
+        submitBtn.textContent = "Send OTP";
       }
     });
 
@@ -530,7 +564,7 @@
           body: JSON.stringify({ username, email, password, inviteCode })
         });
         const data = await res.json();
-        alert(data.message || data.error);
+        alert(loginMsgEn(data.message || data.error, res.ok ? 'Account created successfully.' : 'Could not create account.'));
         if (res.ok) document.getElementById("staffSignupBox").style.display = "none";
       } catch (e) { alert("Error: " + e.message); }
     });
