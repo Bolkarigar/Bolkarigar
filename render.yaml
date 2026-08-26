@@ -1,0 +1,28 @@
+# Render Blueprint — BolKarigar
+# Dashboard: Environment → add SMTP keys (Forgot Password OTP ke liye ZAROORI)
+services:
+  - type: web
+    name: bolkarigar
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_FROM_NAME
+        value: BolKarigar
+      # Secret — Render Dashboard me manually set karein:
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false

@@ -1042,9 +1042,17 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+function bkVoiceBtnLabel(on) {
+  return typeof bkT === "function" ? bkT(on ? "top.voiceOn" : "top.voiceOff") : (on ? "Voice: ON" : "Voice: OFF");
+}
+
 function setTheme(mode) {
   root.setAttribute("data-theme", mode);
-  if (themeToggle) themeToggle.textContent = mode === "dark" ? "Light" : "Dark";
+  if (themeToggle) {
+    themeToggle.textContent = typeof bkT === "function"
+      ? bkT(mode === "dark" ? "top.light" : "top.dark")
+      : (mode === "dark" ? "Light" : "Dark");
+  }
 }
 themeToggle?.addEventListener("click", () => {
   const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -2924,7 +2932,7 @@ function createRecognition() {
     consecutiveFailures = 0;
     setStatus("Listening...");
     if (voiceToggle) {
-      voiceToggle.textContent = "Voice: ON";
+      voiceToggle.textContent = bkVoiceBtnLabel(true);
       voiceToggle.classList.add("voice-active");
     }
     if (startVoiceBtn) startVoiceBtn.textContent = "Listening...";
@@ -2971,7 +2979,7 @@ function createRecognition() {
       clearTimeout(restartTimer);
       isRestarting = false;
       if (voiceToggle) {
-        voiceToggle.textContent = "Voice: OFF";
+        voiceToggle.textContent = bkVoiceBtnLabel(false);
         voiceToggle.classList.remove("voice-active");
       }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
@@ -2992,7 +3000,7 @@ function createRecognition() {
   rec.onend = () => {
     if (!voiceOn) {
       if (voiceToggle) {
-        voiceToggle.textContent = "Voice: OFF";
+        voiceToggle.textContent = bkVoiceBtnLabel(false);
         voiceToggle.classList.remove("voice-active");
       }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
@@ -3040,7 +3048,7 @@ function stopVoice() {
     try { recognition.stop(); } catch {}
   }
   if (voiceToggle) {
-    voiceToggle.textContent = "Voice: OFF";
+    voiceToggle.textContent = bkVoiceBtnLabel(false);
     voiceToggle.classList.remove("voice-active");
   }
   if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";

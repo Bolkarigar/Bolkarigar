@@ -146,11 +146,13 @@ async function sendPasswordResetOtp(email, otp) {
 
   if (getSmtpConfig()) {
     await sendViaSmtp({ to: email, subject, text, html });
+    logger.info(`[Password Reset] OTP email sent to ${email} via SMTP`);
     return { sent: true, provider: 'smtp' };
   }
 
   if (process.env.RESEND_API_KEY) {
     await sendViaResend({ to: email, subject, text, html });
+    logger.info(`[Password Reset] OTP email sent to ${email} via Resend`);
     return { sent: true, provider: 'resend' };
   }
 

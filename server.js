@@ -713,9 +713,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
           error: 'Email bhejne mein error aaya. Email sahi hai? Spam folder check karein ya baad mein try karein.'
         });
       }
+      return res.json({ ...genericMsg, emailDelivered: true });
     }
 
-    return res.json({ ...genericMsg, emailDelivered: true });
+    return res.json(genericMsg);
   } catch (err) {
     logger.error('Forgot-password error:', err);
     return res.json(genericMsg); // crash ki jagah bhi generic message hi dete hain

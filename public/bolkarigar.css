@@ -2581,3 +2581,21 @@ body.sidebar-open .sidebar-tally-card {
     margin: 10mm;
   }
 }
+
+/* Language selector */
+.bk-lang-host { display: inline-flex; align-items: center; }
+.bk-lang-wrap { display: inline-flex; align-items: center; gap: 6px; }
+.bk-lang-label {
+  font-size: 11px;
+  color: var(--muted);
+  display: none;
+}
+.bk-lang-select {
+  min-width: 108px;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  cursor: pointer;
+}
+@media (max-width: 768px) {
+  .bk-lang-select { min-width: 88px; padding: 8px 6px !important; font-size: 11px !important; }
+}

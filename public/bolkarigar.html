@@ -16,8 +16,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260823p2">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260826i18n">
   <script src="native-config.js?v=1"></script>
+  <script src="i18n.js?v=20260826"></script>
 </head>
 <body>
   <script>
@@ -38,7 +39,7 @@
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
 
   <header class="topbar">
-    <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" aria-label="Menu kholen" aria-expanded="false" aria-controls="appSidebar">
+    <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" data-i18n-aria="menu.open" aria-label="Open menu" aria-expanded="false" aria-controls="appSidebar">
       <span class="mobile-menu-icon" aria-hidden="true"></span>
     </button>
     <div class="brand-wrap">
@@ -46,30 +47,26 @@
         <img src="icons/icon-192.png" alt="" class="brand-mark-img" width="44" height="44" decoding="async">
       </div>
       <div>
-        <p class="eyebrow">Hindi Voice-First Contractor Tool</p>
+        <p class="eyebrow" data-i18n="app.eyebrow">Hindi Voice-First Contractor Tool</p>
         <h1 class="brand-title-main">BolKarigar</h1>
-        <p class="brand-title-sub">AI Dashboard</p>
+        <p class="brand-title-sub" data-i18n="app.subtitle">AI Dashboard</p>
       </div>
     </div>
     <div class="top-actions">
       <div id="staffModeBanner" class="staff-mode-banner hidden" role="status">
         <span class="staff-mode-dot"></span>
-        <span id="staffModeText">Staff Mode</span>
+        <span id="staffModeText" data-i18n="top.staffMode">Staff Mode</span>
       </div>
+      <div id="bkLangHost" class="bk-lang-host"></div>
       <div class="clock-box">
-        <span>Live time</span>
+        <span data-i18n="top.liveTime">Live time</span>
         <strong id="clock">00:00:00</strong>
       </div>
-      <button id="voiceToggle" class="theme-btn voice-btn" type="button">Voice: OFF</button>
-      <!-- 🟢 NAYA: Business Profile Settings — Invoice tab se nikaal ke
-           alag modal button banaya, "owner-only-plan" class se ye
-           automatically staff accounts ke liye hide ho jayega -->
-      <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button">🏢 Business Profile</button>
-      <!-- 🟢 LIVE AI — BolKarigar Smart AI Assistant button (naya feature). Pasand na aaye to yeh <button> line hata do. -->
-      <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);">🤖 AI Assistant</button>
-      <!-- 🟢 LIVE AI button END -->
-      <button id="themeToggle" class="theme-btn" type="button">Light</button>
-      <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;">Logout</button>
+      <button id="voiceToggle" class="theme-btn voice-btn" type="button" data-i18n="top.voiceOff">Voice: OFF</button>
+      <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
+      <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
+      <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
+      <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
     </div>
   </header>
 
@@ -83,14 +80,14 @@
 
   <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
     <span id="subscriptionBannerText"></span>
-    <button type="button" id="subscriptionBannerAction" class="subscription-banner-btn owner-only-plan">Mera Plan</button>
+    <button type="button" id="subscriptionBannerAction" class="subscription-banner-btn owner-only-plan" data-i18n="sub.bannerAction">Mera Plan</button>
   </div>
 
   <div id="subscriptionPaywall" class="subscription-paywall hidden">
     <div class="subscription-paywall-card">
-      <h3>⏰ Free Trial Khatam</h3>
-      <p id="subscriptionPaywallText">Aapke 3 din ka Pro trial khatam ho gaya. App use karne ke liye plan renew karein.</p>
-      <p class="helper-text">Staff/Cashier ko alag se kharidne ki zaroorat nahi — sirf malik plan leta hai.</p>
+      <h3 data-i18n="paywall.title">⏰ Free Trial Khatam</h3>
+      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Aapke 3 din ka Pro trial khatam ho gaya. App use karne ke liye plan renew karein.</p>
+      <p class="helper-text" data-i18n="paywall.staffNote">Staff/Cashier ko alag se kharidne ki zaroorat nahi — sirf malik plan leta hai.</p>
       <div class="btn-row" style="justify-content:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
         <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">💳 Pro — ₹349 / month</button>
         <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹699 / month</button>
@@ -102,20 +99,20 @@
   <main class="page">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Voice + Business Utility</p>
-        <h2>Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
-        <p>Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye bill banao”, “todo me kal cement lana”, “hajri kholo”, “invoice kaise banate hain?” — jawab bhi sunoge, kaam bhi hoga.</p>
+        <p class="eyebrow" data-i18n="hero.eyebrow">Voice + Business Utility</p>
+        <h2 data-i18n="hero.title">Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
+        <p data-i18n="hero.desc">Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye bill banao”, “todo me kal cement lana”, “hajri kholo”, “invoice kaise banate hain?” — jawab bhi sunoge, kaam bhi hoga.</p>
         <div class="hero-badges">
-          <span>Voice Ready</span>
-          <span>Invoice Tools</span>
-          <span>Project Tracking</span>
-          <span>Responsive UI</span>
+          <span data-i18n="hero.badge1">Voice Ready</span>
+          <span data-i18n="hero.badge2">Invoice Tools</span>
+          <span data-i18n="hero.badge3">Project Tracking</span>
+          <span data-i18n="hero.badge4">Responsive UI</span>
         </div>
       </div>
       <div class="hero-stats">
-        <div class="stat-card"><span>Modules</span><strong>20+</strong></div>
-        <div class="stat-card"><span>Voice Parsing</span><strong>Yes</strong></div>
-        <div class="stat-card"><span>Auto Mic</span><strong>Toggle</strong></div>
+        <div class="stat-card"><span data-i18n="hero.modules">Modules</span><strong>20+</strong></div>
+        <div class="stat-card"><span data-i18n="hero.voiceParse">Voice Parsing</span><strong>Yes</strong></div>
+        <div class="stat-card"><span data-i18n="hero.autoMic">Auto Mic</span><strong>Toggle</strong></div>
       </div>
     </section>
 
@@ -126,53 +123,53 @@
             <img src="icons/icon-192.png" alt="" class="sidebar-brand-icon" width="36" height="36" decoding="async">
             <strong>BolKarigar</strong>
           </div>
-          <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Menu band karein">✕</button>
+          <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" data-i18n-aria="menu.close" aria-label="Close menu">✕</button>
         </div>
         <div class="sidebar-nav-scroll">
           <div class="nav-group nav-group-main">
-            <p class="nav-group-label">Main</p>
-            <button class="tab-btn active" data-tab="overviewPanel" type="button">🏠 Overview</button>
-            <button class="tab-btn" data-tab="invoicePanel" type="button">🧾 Invoice</button>
-            <button class="tab-btn" data-tab="voicePanel" type="button">🎤 Voice AI</button>
+            <p class="nav-group-label" data-i18n="nav.main">Main</p>
+            <button class="tab-btn active" data-tab="overviewPanel" type="button" data-i18n="nav.overview">🏠 Overview</button>
+            <button class="tab-btn" data-tab="invoicePanel" type="button" data-i18n="nav.invoice">🧾 Invoice</button>
+            <button class="tab-btn" data-tab="voicePanel" type="button" data-i18n="nav.voice">🎤 Voice AI</button>
           </div>
           <div class="nav-group nav-group-business">
-            <p class="nav-group-label">Business</p>
-            <button class="tab-btn" data-tab="projectPanel" type="button">📁 Projects</button>
-            <button class="tab-btn" data-tab="inventoryPanel" type="button">📦 Inventory</button>
-            <button class="tab-btn" data-tab="totalSalesPanel" type="button">📊 Total Sales</button>
-            <button class="tab-btn" data-tab="contractorPanel" type="button">👷 Contractor</button>
+            <p class="nav-group-label" data-i18n="nav.business">Business</p>
+            <button class="tab-btn" data-tab="projectPanel" type="button" data-i18n="nav.projects">📁 Projects</button>
+            <button class="tab-btn" data-tab="inventoryPanel" type="button" data-i18n="nav.inventory">📦 Inventory</button>
+            <button class="tab-btn" data-tab="totalSalesPanel" type="button" data-i18n="nav.totalSales">📊 Total Sales</button>
+            <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
           </div>
           <div class="nav-group nav-group-hajri plan-business-only">
-            <p class="nav-group-label">Hajri</p>
-            <button class="tab-btn" data-tab="payrollPanel" type="button">💼 Staff Payroll</button>
+            <p class="nav-group-label" data-i18n="nav.hajri">Hajri</p>
+            <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">💼 Staff Payroll</button>
           </div>
           <div class="nav-group nav-group-accounting">
-            <p class="nav-group-label">Accounting</p>
-            <button class="tab-btn" data-tab="ledgerPanel" type="button">📖 Udhar Khata</button>
-            <button class="tab-btn" data-tab="khataLedgersPanel" type="button">📒 Ledgers</button>
-            <button class="tab-btn" data-tab="khataItemsPanel" type="button">📦 Stock Items</button>
-            <button class="tab-btn" data-tab="khataVoucherPanel" type="button">🧾 New Voucher</button>
-            <button class="tab-btn" data-tab="khataDaybookPanel" type="button">📅 Day Book</button>
-            <button class="tab-btn" data-tab="reportsProPanel" type="button">📈 Reports Pro</button>
-            <button class="tab-btn" data-tab="bankReconPanel" type="button">🏦 Bank Recon</button>
+            <p class="nav-group-label" data-i18n="nav.accounting">Accounting</p>
+            <button class="tab-btn" data-tab="ledgerPanel" type="button" data-i18n="nav.udhar">📖 Udhar Khata</button>
+            <button class="tab-btn" data-tab="khataLedgersPanel" type="button" data-i18n="nav.ledgers">📒 Ledgers</button>
+            <button class="tab-btn" data-tab="khataItemsPanel" type="button" data-i18n="nav.stockItems">📦 Stock Items</button>
+            <button class="tab-btn" data-tab="khataVoucherPanel" type="button" data-i18n="nav.voucher">🧾 New Voucher</button>
+            <button class="tab-btn" data-tab="khataDaybookPanel" type="button" data-i18n="nav.daybook">📅 Day Book</button>
+            <button class="tab-btn" data-tab="reportsProPanel" type="button" data-i18n="nav.reports">📈 Reports Pro</button>
+            <button class="tab-btn" data-tab="bankReconPanel" type="button" data-i18n="nav.bankRecon">🏦 Bank Recon</button>
           </div>
           <div class="nav-group nav-group-tools">
-            <p class="nav-group-label">Tools</p>
-            <button class="tab-btn" data-tab="galleryPanel" type="button">🖼️ Gallery</button>
-            <button class="tab-btn" data-tab="todoPanel" type="button">✅ Todo</button>
-            <button class="tab-btn" data-tab="qrPanel" type="button">📱 QR Tool</button>
-            <button class="tab-btn" data-tab="calcPanel" type="button">🔢 Calculator</button>
-            <button class="tab-btn" data-tab="converterPanel" type="button">🔄 Converter</button>
-            <button class="tab-btn" data-tab="notesPanel" type="button">📝 Notes</button>
-            <button class="tab-btn" data-tab="mediaPanel" type="button">📷 Media</button>
+            <p class="nav-group-label" data-i18n="nav.tools">Tools</p>
+            <button class="tab-btn" data-tab="galleryPanel" type="button" data-i18n="nav.gallery">🖼️ Gallery</button>
+            <button class="tab-btn" data-tab="todoPanel" type="button" data-i18n="nav.todo">✅ Todo</button>
+            <button class="tab-btn" data-tab="qrPanel" type="button" data-i18n="nav.qr">📱 QR Tool</button>
+            <button class="tab-btn" data-tab="calcPanel" type="button" data-i18n="nav.calc">🔢 Calculator</button>
+            <button class="tab-btn" data-tab="converterPanel" type="button" data-i18n="nav.converter">🔄 Converter</button>
+            <button class="tab-btn" data-tab="notesPanel" type="button" data-i18n="nav.notes">📝 Notes</button>
+            <button class="tab-btn" data-tab="mediaPanel" type="button" data-i18n="nav.media">📷 Media</button>
           </div>
           <div class="nav-group nav-group-settings">
-            <p class="nav-group-label">Settings</p>
-            <button class="tab-btn" data-tab="staffPanel" type="button">👥 Staff</button>
-            <button class="tab-btn owner-only-plan" data-tab="myPlanPanel" type="button">💳 My Plan</button>
-            <button class="tab-btn" data-tab="companiesPanel" type="button">🏢 Companies</button>
-            <button class="tab-btn" data-tab="helpPanel" type="button">❓ Help</button>
-            <button id="installAppBtn" class="tab-btn sidebar-install-btn" type="button">📱 Install App</button>
+            <p class="nav-group-label" data-i18n="nav.settings">Settings</p>
+            <button class="tab-btn" data-tab="staffPanel" type="button" data-i18n="nav.staff">👥 Staff</button>
+            <button class="tab-btn owner-only-plan" data-tab="myPlanPanel" type="button" data-i18n="nav.myPlan">💳 My Plan</button>
+            <button class="tab-btn" data-tab="companiesPanel" type="button" data-i18n="nav.companies">🏢 Companies</button>
+            <button class="tab-btn" data-tab="helpPanel" type="button" data-i18n="nav.help">❓ Help</button>
+            <button id="installAppBtn" class="tab-btn sidebar-install-btn" type="button" data-i18n="nav.install">📱 Install App</button>
           </div>
         </div>
 
@@ -196,8 +193,8 @@
         <section class="panel active" id="overviewPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Dashboard Summary</p>
-              <h3>AI Accountant & Business Overview</h3>
+              <p class="eyebrow" data-i18n="overview.eyebrow">Dashboard Summary</p>
+              <h3 data-i18n="overview.title">AI Accountant & Business Overview</h3>
             </div>
           </div>
           <div id="dataStatusBanner" class="hidden" style="margin-bottom:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);font-size:13px;line-height:1.5;"></div>
@@ -206,37 +203,37 @@
     <div class="grid-2" style="margin-bottom: 20px;">
   <!-- Total Sales -->
   <div class="mini-card" style="border-left: 4px solid #10b981; background: var(--card2);">
-    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Sales (बिक्री)</p>
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;" data-i18n="overview.totalSales">Total Sales (बिक्री)</p>
     <h2 id="totalSalesVal" style="color: #10b981; margin: 5px 0;">₹0.00</h2>
   </div>
 
   <!-- Total Expense (ID fix kar di gayi hai: totalExpenseVal) -->
   <div class="mini-card" style="border-left: 4px solid #ef4444; background: var(--card2);">
-    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Expense (खर्चा)</p>
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;" data-i18n="overview.totalExpense">Total Expense (खर्चा)</p>
     <h2 id="totalExpenseVal" style="color: #ef4444; margin: 5px 0;">₹0.00</h2>
   </div>
 
   <!-- Net Profit / Loss -->
   <div class="mini-card" style="border-left: 4px solid #3b82f6; background: var(--card2);">
-    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Net Profit / Loss (मुनाफा/घाटा)</p>
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;" data-i18n="overview.netProfit">Net Profit / Loss (मुनाफा/घाटा)</p>
     <h2 id="netProfitVal" style="color: #3b82f6; margin: 5px 0;">₹0.00</h2>
   </div>
 
   <!-- Total Udhar -->
   <div class="mini-card" style="border-left: 4px solid #f59e0b; background: var(--card2);">
-    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;">Total Udhar (कुल बकाया)</p>
+    <p style="color: #94a3b8; margin: 0; font-size: 0.85rem;" data-i18n="overview.totalUdhar">Total Udhar (कुल बकाया)</p>
     <h2 id="totalUdharVal" style="color: #f59e0b; margin: 5px 0;">₹0.00</h2>
   </div>
 </div>
 
           <div id="lowStockAlertBox" class="hidden" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.1);font-size:13px;"></div>
 
-          <p class="nav-group-label" style="margin:16px 0 8px;">Aaj ka Hisaab (Daily Summary) — <span id="todayDateLabel" style="color:#38bdf8;font-weight:600;"></span></p>
+          <p class="nav-group-label" style="margin:16px 0 8px;"><span data-i18n="overview.dailyTitle">Aaj ka Hisaab (Daily Summary)</span> — <span id="todayDateLabel" style="color:#38bdf8;font-weight:600;"></span></p>
           <div class="grid-2" style="margin-bottom:12px;">
-            <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #f59e0b;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Udhar Sale</p><h3 id="dailyCreditVal" style="margin:4px 0;color:#f59e0b;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #3b82f6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;">Aaj Collection</p><h3 id="dailyCollectionsVal" style="margin:4px 0;color:#3b82f6;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCash">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUpi">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #f59e0b;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUdhar">Aaj Udhar Sale</p><h3 id="dailyCreditVal" style="margin:4px 0;color:#f59e0b;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #3b82f6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCollection">Aaj Collection</p><h3 id="dailyCollectionsVal" style="margin:4px 0;color:#3b82f6;">₹0.00</h3></div>
           </div>
           <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Aaj ke bills: <strong id="dailyInvoiceCount">0</strong> &nbsp;|&nbsp; <button type="button" id="refreshDailyBtn" class="secondary" style="padding:4px 10px;font-size:12px;">🔄 Refresh</button></p>
 
@@ -1267,7 +1264,24 @@
   <script src="responsive-ui.js?v=20260824v17"></script>
   <script src="help-modules.js?v=20260823h1"></script>
   <script src="voice-controller.js?v=20260824v17"></script>
-  <script src="bolkarigar.js?v=20260824v19"></script>
+  <script src="bolkarigar.js?v=20260826i18n"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof bkInjectLangSelector === 'function') bkInjectLangSelector('bkLangHost');
+    });
+    document.addEventListener('bk:langchange', function () {
+      var themeBtn = document.getElementById('themeToggle');
+      if (themeBtn && typeof bkT === 'function') {
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeBtn.textContent = bkT(dark ? 'top.light' : 'top.dark');
+      }
+      var voiceBtn = document.getElementById('voiceToggle');
+      if (voiceBtn && typeof bkT === 'function') {
+        var on = voiceBtn.classList.contains('voice-active');
+        voiceBtn.textContent = bkT(on ? 'top.voiceOn' : 'top.voiceOff');
+      }
+    });
+  </script>
   <script src="subscription-ui.js?v=20260814v7"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
   <script src="inventory-ui.js?v=20260814v7"></script>

@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
   <script src="native-config.js?v=1"></script>
+  <script src="i18n.js?v=20260826"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -236,18 +237,20 @@
 </head>
 <body>
 
+  <div id="bkLangHost" class="login-lang-bar"></div>
+
   <div class="login-container">
     <div class="login-card">
-      <h2>BolKarigar AI</h2>
-      <p>Apne account mein login karein</p>
+      <h2 data-i18n="login.title">BolKarigar AI</h2>
+      <p data-i18n="login.subtitle">Apne account mein login karein</p>
       
       <form id="loginForm">
         <div class="input-group">
-          <label for="username">Username</label>
+          <label for="username" data-i18n="login.username">Username</label>
           <input type="text" id="username" required placeholder="admin" autocomplete="username">
         </div>
         <div class="input-group">
-          <label for="password">Password</label>
+          <label for="password" data-i18n="login.password">Password</label>
           <div class="password-wrapper">
             <input type="password" id="password" required placeholder="••••" autocomplete="current-password">
             <span class="toggle-password" id="eyeIcon">SHOW</span>
@@ -255,11 +258,11 @@
         </div>
         
         <div class="form-options">
-          <span class="forgot-link" id="forgotBtn">Forgot Password?</span>
+          <span class="forgot-link" id="forgotBtn" data-i18n="login.forgot">Forgot Password?</span>
         </div>
 
-        <button type="submit" class="login-btn">Sign In</button>
-        <p class="error-msg" id="errorMsg">Galat Username ya Password!</p>
+        <button type="submit" class="login-btn" data-i18n="login.signIn">Sign In</button>
+        <p class="error-msg" id="errorMsg" data-i18n="login.error">Galat Username ya Password!</p>
       </form>
       <!-- loginpage.html में </form> के ठीक नीचे इसे पेस्ट करें -->
 <div style="margin-top: 25px; font-size: 14px; color: #9ca3af;">
@@ -281,14 +284,14 @@
   <!-- Forgot Password Popup Box — Step 1: Email daalo, OTP bhejo -->
   <div class="modal-overlay" id="forgotModal">
     <div class="modal-box">
-      <h3>Reset Password</h3>
-      <p>Apna registered email address enter karein. Hum aapko 6-digit OTP bhejenge.</p>
+      <h3 data-i18n="forgot.title">Reset Password</h3>
+      <p data-i18n="forgot.desc">Apna registered email address enter karein. Hum aapko 6-digit OTP bhejenge.</p>
       <div class="input-group" style="margin-bottom: 0;">
         <input type="email" id="resetEmail" placeholder="example@gmail.com">
       </div>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="closeForgotBtn">Cancel</button>
-        <button class="modal-btn btn-submit" id="submitForgotBtn">OTP Bhejo</button>
+        <button class="modal-btn btn-cancel" id="closeForgotBtn" data-i18n="forgot.cancel">Cancel</button>
+        <button class="modal-btn btn-submit" id="submitForgotBtn" data-i18n="forgot.sendOtp">OTP Bhejo</button>
       </div>
     </div>
   </div>
@@ -296,24 +299,24 @@
   <!-- Set New Password Popup — Step 2: OTP + naya password daalo -->
   <div class="modal-overlay" id="setNewPasswordModal">
     <div class="modal-box">
-      <h3>OTP Verify Karein</h3>
-      <p id="otpSentToText" style="color: var(--text-gray);">Aapke email pe 6-digit OTP bheja gaya hai. Wo yahan daalein.</p>
+      <h3 data-i18n="forgot.otpTitle">OTP Verify Karein</h3>
+      <p id="otpSentToText" style="color: var(--text-gray);" data-i18n="forgot.otpDesc">Aapke email pe 6-digit OTP bheja gaya hai. Wo yahan daalein.</p>
       <div class="input-group" style="margin-bottom: 10px;">
-        <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; text-align: center; font-size: 18px;">
+        <input type="text" id="otpInput" data-i18n-placeholder="forgot.otpPlaceholder" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="letter-spacing: 4px; text-align: center; font-size: 18px;">
       </div>
       <div class="input-group" style="margin-bottom: 10px;">
-        <input type="password" id="newPasswordInput" placeholder="Naya password" autocomplete="new-password">
+        <input type="password" id="newPasswordInput" data-i18n-placeholder="forgot.newPass" placeholder="Naya password" autocomplete="new-password">
       </div>
       <div class="input-group" style="margin-bottom: 0;">
-        <input type="password" id="confirmPasswordInput" placeholder="Naya password dobara" autocomplete="new-password">
+        <input type="password" id="confirmPasswordInput" data-i18n-placeholder="forgot.confirmPass" placeholder="Naya password dobara" autocomplete="new-password">
       </div>
       <p class="error-msg" id="resetPasswordErrorMsg"></p>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="cancelResetPasswordBtn">Cancel</button>
-        <button class="modal-btn btn-submit" id="submitNewPasswordBtn">Password Set Karein</button>
+        <button class="modal-btn btn-cancel" id="cancelResetPasswordBtn" data-i18n="forgot.cancel">Cancel</button>
+        <button class="modal-btn btn-submit" id="submitNewPasswordBtn" data-i18n="forgot.setPass">Password Set Karein</button>
       </div>
       <p style="margin-top: 14px; font-size: 12px;">
-        <span class="forgot-link" id="resendOtpBtn">OTP nahi mila? Dobara bhejo</span>
+        <span class="forgot-link" id="resendOtpBtn" data-i18n="forgot.resend">OTP nahi mila? Dobara bhejo</span>
       </p>
     </div>
   </div>
@@ -322,6 +325,11 @@
     // 1. Session check on login page boot
     if (localStorage.getItem("bk_token")) {
       window.location.href = "bolkarigar.html?_=" + Date.now();
+    }
+    if (typeof bkInjectLangSelector === "function") bkInjectLangSelector("bkLangHost");
+
+    function bkForgotLabel(key, fallback) {
+      return typeof bkT === "function" ? bkT(key) : fallback;
     }
 
     // 🟢 OTP-based reset: email daalke OTP mangwane ke baad, OTP + naya
@@ -458,7 +466,7 @@
 
       const submitBtn = document.getElementById("submitForgotBtn");
       submitBtn.disabled = true;
-      submitBtn.textContent = "Bhej rahe hain...";
+      submitBtn.textContent = bkForgotLabel("forgot.sending", "Bhej rahe hain...");
 
       try {
         const response = await fetch(`${BK_API()}/api/auth/forgot-password`, {
@@ -475,11 +483,11 @@
 
         const msg = result.message || "Agar yeh email registered hai, to OTP bhej diya gaya hai. Spam/Junk folder bhi check karein.";
         if (!result.emailDelivered) {
-          alert(msg + "\n\nNote: Sirf signup wali registered email pe hi OTP aata hai.");
+          alert(msg + "\n\n" + bkForgotLabel("forgot.notRegistered", "Sirf signup wali registered email pe hi OTP aata hai."));
           return;
         }
 
-        alert(msg);
+        alert(msg || bkForgotLabel("forgot.sent", "OTP bhej diya gaya hai."));
 
         resetEmailForOtp = email;
         document.getElementById("otpSentToText").textContent = `Aapke email (${email}) pe 6-digit OTP bheja gaya hai. Wo yahan daalein.`;
@@ -490,7 +498,7 @@
         alert("Server se connect nahi ho paya. Internet check karke dobara try karein.");
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = "OTP Bhejo";
+        submitBtn.textContent = bkForgotLabel("forgot.sendOtp", "OTP Bhejo");
       }
     });
 
