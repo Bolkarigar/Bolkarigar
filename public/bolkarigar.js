@@ -5166,7 +5166,7 @@ function getEWayBillDetails() {
         <td>₹${i.purchasePrice}</td>
         <td>₹${i.sellingPrice}</td>
         <td>${i.stockQty}</td>
-        <td><button type="button" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
+        <td><button type="button" class="khata-act-btn danger" title="Item delete karo" aria-label="Delete item" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
       </tr>`).join("");
   }
 
