@@ -287,7 +287,9 @@
       <h3>Reset Password</h3>
       <p>Enter your registered email or username. We will send a 6-digit OTP to your signup email.</p>
       <div class="input-group" style="margin-bottom: 0;">
-        <input type="text" id="resetEmail" placeholder="Email or username" autocomplete="username">
+        <label for="resetEmail" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Registered email (recommended) or username</label>
+        <input type="email" id="resetEmail" placeholder="your@email.com" autocomplete="email">
+        <p style="font-size:11px;color:#64748b;margin:8px 0 0;">OTP aapke <strong>Sign Up email</strong> par jayega — username se bhi try kar sakte ho.</p>
       </div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" id="closeForgotBtn">Cancel</button>
@@ -354,7 +356,7 @@
       otpSent: (masked) => `A 6-digit OTP has been sent to ${masked || 'your registered email'}. Please check inbox and Spam/Junk folder.`,
       otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
       otpNotSent: 'No account found. Use the exact email or username from Sign Up on bolkarigar.onrender.com. If you signed up on localhost, create a new account on the live site.',
-      otpEmailFailed: 'Account found but email could not be sent from server. Please try again in 2 minutes or contact support@bolkarigar.com.',
+      otpEmailFailed: 'Email server se OTP nahi bheja ja saka. Owner: Render me sahi Brevo API key (xkeysib-) lagao — SMTP key (xsmtpsib-) galat hai.',
       otpRateLimited: 'Too many attempts. Please wait 10 minutes and try again.',
       otpCooldown: 'OTP already sent. Check inbox and spam folder, or wait 15 minutes.',
       otpOnlyRegistered: 'OTP is sent only to your registered signup email.',
@@ -499,12 +501,10 @@
     const closeForgotBtn = document.getElementById("closeForgotBtn");
 
     forgotBtn.addEventListener("click", () => {
-      const loginUser = document.getElementById("username")?.value?.trim();
       const resetInput = document.getElementById("resetEmail");
-      if (resetInput && loginUser && !resetInput.value.trim()) {
-        resetInput.value = loginUser;
-      }
+      if (resetInput) resetInput.value = "";
       forgotModal.classList.add("active");
+      setTimeout(() => resetInput?.focus(), 100);
     });
 
     closeForgotBtn.addEventListener("click", () => {
@@ -513,7 +513,7 @@
 
     // 4. Forgot Password Dynamic Request
     document.getElementById("submitForgotBtn").addEventListener("click", async () => {
-      const email = document.getElementById("resetEmail").value.trim().toLowerCase();
+      const email = document.getElementById("resetEmail").value.trim();
       if (!email) {
         alert("Please enter your registered email or username.");
         return;
@@ -540,7 +540,10 @@
             return;
           }
           if (response.status === 503) {
-            alert(LOGIN_MSG.otpEmailFailed);
+            const msg = result.error?.includes('xsmtpsib') || result.error?.includes('xkeysib') || result.error?.includes('Brevo')
+              ? 'Server par galat Brevo key hai. Render me API key (xkeysib-) lagao — SMTP key (xsmtpsib-) mat use karo.'
+              : LOGIN_MSG.otpEmailFailed;
+            alert(msg);
             return;
           }
           alert(loginMsgEn(result.error, LOGIN_MSG.otpEmailFailed));
@@ -552,13 +555,12 @@
           return;
         }
 
-        alert(LOGIN_MSG.otpSent(result.sentToMasked));
-
         resetEmailForOtp = result.resetEmail || email;
         document.getElementById("otpSentToText").textContent = LOGIN_MSG.otpSentTo(result.sentToMasked);
         forgotModal.classList.remove("active");
         document.getElementById("resetEmail").value = "";
         setNewPasswordModal.classList.add("active");
+        document.getElementById("otpInput")?.focus();
       } catch (e) {
         alert(e.message || "Could not connect to server. Check your internet and try again.");
       } finally {

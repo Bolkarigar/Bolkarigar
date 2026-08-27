@@ -49,15 +49,30 @@ function getSmtpConfig() {
   return { transport, from, user, isGmail };
 }
 
-function hasHttpsEmailProvider() {
-  return !!(
-    String(process.env.RESEND_API_KEY || '').trim()
-    || String(process.env.BREVO_API_KEY || '').trim()
-  );
+function isWrongBrevoSmtpKey() {
+  const key = String(process.env.BREVO_API_KEY || '').trim();
+  return key.startsWith('xsmtpsib');
+}
+
+function getBrevoApiKey() {
+  const key = String(process.env.BREVO_API_KEY || '').trim();
+  if (!key) return '';
+  if (isWrongBrevoSmtpKey()) {
+    logger.error('[Email] BREVO_API_KEY galat hai — aapne SMTP key (xsmtpsib) daali hai. Brevo → SMTP & API → API keys se xkeysib- wali key use karein.');
+    return '';
+  }
+  return key;
 }
 
 function isEmailConfigured() {
   return hasHttpsEmailProvider() || !!getSmtpConfig();
+}
+
+function hasHttpsEmailProvider() {
+  return !!(
+    String(process.env.RESEND_API_KEY || '').trim()
+    || getBrevoApiKey()
+  );
 }
 
 const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 35000;
@@ -144,9 +159,36 @@ async function verifyEmailTransport() {
     return { ok: true, provider: 'resend' };
   }
 
-  if (process.env.BREVO_API_KEY) {
-    logger.info('[Email] Brevo API ready (HTTPS — works on Render free).');
-    return { ok: true, provider: 'brevo' };
+  if (isWrongBrevoSmtpKey()) {
+    return {
+      ok: false,
+      provider: 'brevo',
+      error: 'wrong_brevo_smtp_key',
+      hint: 'BREVO_API_KEY me SMTP key (xsmtpsib) hai. API key (xkeysib) use karein — Brevo → SMTP & API → API keys.'
+    };
+  }
+
+  if (getBrevoApiKey()) {
+    try {
+      const fetch = require('node-fetch');
+      const res = await fetch('https://api.brevo.com/v3/account', {
+        headers: { 'api-key': getBrevoApiKey(), Accept: 'application/json' }
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        logger.error('[Email] Brevo API key invalid:', body);
+        return {
+          ok: false,
+          provider: 'brevo',
+          error: 'invalid_brevo_api_key',
+          hint: 'Use API key starting with xkeysib- (not xsmtpsib- SMTP key).'
+        };
+      }
+      logger.info('[Email] Brevo API ready (HTTPS — works on Render free).');
+      return { ok: true, provider: 'brevo' };
+    } catch (err) {
+      return { ok: false, provider: 'brevo', error: err.message };
+    }
   }
 
   if (isRenderHost()) {
@@ -229,8 +271,10 @@ async function sendViaResend({ to, subject, text, html }) {
 }
 
 async function sendViaBrevo({ to, subject, text, html }) {
-  const apiKey = String(process.env.BREVO_API_KEY || '').trim();
-  if (!apiKey) throw new Error('BREVO_API_KEY missing');
+  const apiKey = getBrevoApiKey();
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY galat hai — SMTP key (xsmtpsib) mat use karein. API key (xkeysib) chahiye.');
+  }
 
   const fromEmail = String(
     process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || ''
@@ -288,7 +332,15 @@ async function sendPasswordResetOtp(email, otp) {
   const { subject, text, html } = buildOtpEmail(otp);
   const errors = [];
 
-  if (process.env.BREVO_API_KEY) {
+  if (isWrongBrevoSmtpKey()) {
+    return {
+      sent: false,
+      provider: 'brevo',
+      error: 'BREVO_API_KEY galat hai — SMTP key (xsmtpsib) mat use karo. API key (xkeysib) lagao.'
+    };
+  }
+
+  if (getBrevoApiKey()) {
     try {
       await sendViaBrevo({ to: email, subject, text, html });
       logger.info(`[Password Reset] OTP sent to ${email} via Brevo`);
@@ -331,6 +383,7 @@ async function sendPasswordResetOtp(email, otp) {
 module.exports = {
   isEmailConfigured,
   hasHttpsEmailProvider,
+  isWrongBrevoSmtpKey,
   isRenderHost,
   verifyEmailTransport,
   createMailTransporter,
