@@ -16,11 +16,36 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260827topbar">
-  <script src="native-config.js?v=1"></script>
-  <script src="i18n.js?v=20260826help"></script>
+  <link rel="stylesheet" href="bolkarigar.css?v=20260827r2">
+  <script src="native-config.js?v=20260827r2"></script>
+  <script src="i18n.js?v=20260827r2"></script>
+  <script>
+    window.BK_APP_BUILD = '20260827r2';
+    (function () {
+      var build = window.BK_APP_BUILD;
+      var prev = localStorage.getItem('bk_app_build');
+      if (prev === build) return;
+      localStorage.setItem('bk_app_build', build);
+      if (sessionStorage.getItem('bk_build_reload') === '1') return;
+      sessionStorage.setItem('bk_build_reload', '1');
+      var reload = function () { window.location.reload(); };
+      var clearCaches = function () {
+        if (!('caches' in window)) return Promise.resolve();
+        return caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        });
+      };
+      var unregisterSw = function () {
+        if (!('serviceWorker' in navigator)) return Promise.resolve();
+        return navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
+        });
+      };
+      unregisterSw().then(clearCaches).then(reload).catch(reload);
+    })();
+  </script>
 </head>
-<body>
+<body data-build="20260827r2">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -1289,10 +1314,10 @@
     </div>
   </div>
 
-  <script src="responsive-ui.js?v=20260824v17"></script>
-  <script src="help-modules.js?v=20260826help"></script>
-  <script src="voice-controller.js?v=20260826voice"></script>
-  <script src="bolkarigar.js?v=20260827pay"></script>
+  <script src="responsive-ui.js?v=20260827r2"></script>
+  <script src="help-modules.js?v=20260827r2"></script>
+  <script src="voice-controller.js?v=20260827r2"></script>
+  <script src="bolkarigar.js?v=20260827r2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1308,12 +1333,12 @@
       }
     });
   </script>
-  <script src="subscription-ui.js?v=20260827pay"></script>
-  <script src="dev-plan-toggle.js?v=20260820d2"></script>
-  <script src="inventory-ui.js?v=20260826fixes"></script>
-  <script src="bolkarigar-pro.js?v=20260826fixes"></script>
-  <script src="payroll-ui.js?v=20260823p2"></script>
-  <script src="live-features-ui.js?v=20260826fixes"></script>
+  <script src="subscription-ui.js?v=20260827r2"></script>
+  <script src="dev-plan-toggle.js?v=20260827r2"></script>
+  <script src="inventory-ui.js?v=20260827r2"></script>
+  <script src="bolkarigar-pro.js?v=20260827r2"></script>
+  <script src="payroll-ui.js?v=20260827r2"></script>
+  <script src="live-features-ui.js?v=20260827r2"></script>
 
   <!-- Payroll salary slip — body level overlay (har panel par nahi dikhe) -->
   <div id="payrollSlipModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Salary slip">

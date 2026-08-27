@@ -337,7 +337,15 @@
     populateLedgerGroups();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=5').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=6').then((reg) => {
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }).catch(() => {});
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (sessionStorage.getItem('bk_sw_reload') === '1') return;
+        sessionStorage.setItem('bk_sw_reload', '1');
+        window.location.reload();
+      });
     }
     document.getElementById('installAppBtn')?.addEventListener('click', () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
