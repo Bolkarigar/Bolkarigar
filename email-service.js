@@ -61,18 +61,43 @@ function withTimeout(promise, ms, label) {
   ]).finally(() => clearTimeout(timer));
 }
 
-function createMailTransporter() {
+function buildSmtpTransports() {
   const cfg = getSmtpConfig();
-  if (!cfg) return null;
+  if (!cfg) return [];
   const nodemailer = require('nodemailer');
-  const transport = {
+  const base = {
     ...cfg.transport,
     pool: false,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+    family: 4
   };
-  return { transporter: nodemailer.createTransport(transport), from: cfg.from };
+  const transports = [base];
+  if (cfg.isGmail && base.port !== 465) {
+    transports.push({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: base.auth,
+      tls: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+      pool: false,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      family: 4
+    });
+  }
+  return transports.map((t) => ({
+    transporter: nodemailer.createTransport(t),
+    from: cfg.from,
+    label: `smtp:${t.port}`
+  }));
+}
+
+function createMailTransporter() {
+  const list = buildSmtpTransports();
+  return list[0] || null;
 }
 
 async function verifyEmailTransport() {
@@ -81,41 +106,56 @@ async function verifyEmailTransport() {
     return { ok: false, provider: null, error: 'not_configured' };
   }
 
-  const mail = createMailTransporter();
-  if (mail) {
-    try {
-      await mail.transporter.verify();
-      logger.info(`[Email] SMTP ready (${process.env.SMTP_HOST}) — password reset emails enabled.`);
-      return { ok: true, provider: 'smtp' };
-    } catch (err) {
-      logger.error('[Email] SMTP verify failed:', err.message);
-      return { ok: false, provider: 'smtp', error: err.message };
-    }
+  if (process.env.RESEND_API_KEY) {
+    logger.info('[Email] Resend API key set — password reset emails enabled (recommended for Render).');
+    return { ok: true, provider: 'resend' };
   }
 
-  if (process.env.RESEND_API_KEY) {
-    logger.info('[Email] Resend API key set — password reset emails enabled.');
-    return { ok: true, provider: 'resend' };
+  const transports = buildSmtpTransports();
+  if (transports.length) {
+    let lastErr = null;
+    for (const mail of transports) {
+      try {
+        await mail.transporter.verify();
+        logger.info(`[Email] SMTP ready (${mail.label}) — password reset emails enabled.`);
+        return { ok: true, provider: 'smtp' };
+      } catch (err) {
+        lastErr = err;
+        logger.warn(`[Email] SMTP verify failed (${mail.label}):`, err.message);
+      }
+    }
+    logger.error('[Email] SMTP verify failed on all ports:', lastErr?.message);
+    return { ok: false, provider: 'smtp', error: lastErr?.message || 'verify_failed' };
   }
 
   return { ok: false, provider: null, error: 'unknown' };
 }
 
 async function sendViaSmtp({ to, subject, text, html }) {
-  const mail = createMailTransporter();
-  if (!mail) throw new Error('SMTP is not configured.');
+  const transports = buildSmtpTransports();
+  if (!transports.length) throw new Error('SMTP is not configured.');
 
-  await withTimeout(
-    mail.transporter.sendMail({
-      from: mail.from,
-      to,
-      subject,
-      text,
-      html: html || undefined
-    }),
-    SMTP_SEND_TIMEOUT_MS,
-    'SMTP send'
-  );
+  let lastErr = null;
+  for (const mail of transports) {
+    try {
+      await withTimeout(
+        mail.transporter.sendMail({
+          from: mail.from,
+          to,
+          subject,
+          text,
+          html: html || undefined
+        }),
+        SMTP_SEND_TIMEOUT_MS,
+        `SMTP send (${mail.label})`
+      );
+      return;
+    } catch (err) {
+      lastErr = err;
+      logger.warn(`[Email] Send failed (${mail.label}):`, err.message);
+    }
+  }
+  throw lastErr || new Error('SMTP send failed on all ports.');
 }
 
 async function sendViaResend({ to, subject, text, html }) {

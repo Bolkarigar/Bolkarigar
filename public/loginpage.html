@@ -353,7 +353,8 @@
     const LOGIN_MSG = {
       otpSent: (masked) => `A 6-digit OTP has been sent to ${masked || 'your registered email'}. Please check inbox and Spam/Junk folder.`,
       otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
-      otpNotSent: 'No OTP was sent. Use the same email from Sign Up, or enter your username instead.',
+      otpNotSent: 'No account found. Use the exact email or username from Sign Up on bolkarigar.onrender.com. If you signed up on localhost, create a new account on the live site.',
+      otpEmailFailed: 'Account found but email could not be sent from server. Please try again in 2 minutes or contact support@bolkarigar.com.',
       otpRateLimited: 'Too many attempts. Please wait 10 minutes and try again.',
       otpCooldown: 'OTP already sent. Check inbox and spam folder, or wait 15 minutes.',
       otpOnlyRegistered: 'OTP is sent only to your registered signup email.',
@@ -538,7 +539,11 @@
             alert(LOGIN_MSG.otpCooldown);
             return;
           }
-          alert(loginMsgEn(result.error, "Could not send OTP. Please verify your email and check your spam folder."));
+          if (response.status === 503) {
+            alert(LOGIN_MSG.otpEmailFailed);
+            return;
+          }
+          alert(loginMsgEn(result.error, LOGIN_MSG.otpEmailFailed));
           return;
         }
 

@@ -699,7 +699,39 @@ async function normalizeUserEmailOnFile(user) {
 }
 
 function normalizeLookupInput(input) {
-  return String(input || '').trim().toLowerCase().replace(/\s+/g, '');
+  const raw = String(input || '').trim();
+  if (!raw) return '';
+  if (raw.includes('@')) return raw.toLowerCase().replace(/\s+/g, '');
+  return raw;
+}
+
+async function findUserByEmailExpr(emailNorm) {
+  if (!emailNorm || !emailNorm.includes('@')) return null;
+  return User.findOne({
+    $expr: {
+      $eq: [
+        { $toLower: { $trim: { input: { $ifNull: ['$email', ''] } } } },
+        emailNorm
+      ]
+    }
+  });
+}
+
+async function findUserByUsernameExpr(usernameRaw) {
+  const trimmed = String(usernameRaw || '').trim();
+  if (!trimmed || trimmed.includes('@')) return null;
+  const lower = trimmed.toLowerCase();
+  let user = await User.findOne({
+    $expr: {
+      $eq: [
+        { $toLower: { $trim: { input: { $ifNull: ['$username', ''] } } } },
+        lower
+      ]
+    }
+  });
+  if (user) return user;
+  const flexible = escapeRegexForEmail(trimmed).replace(/\s+/g, '\\s+');
+  return User.findOne({ username: new RegExp(`^${flexible}$`, 'i') });
 }
 
 function gmailLocalPart(email) {
@@ -715,18 +747,12 @@ function gmailLocalPart(email) {
 async function findUserForPasswordReset(input) {
   const raw = String(input || '').trim();
   if (!raw) return null;
-  const normalized = normalizeLookupInput(raw);
-  const exactRe = new RegExp(`^\\s*${escapeRegexForEmail(normalized)}\\s*$`, 'i');
 
-  let user = await User.findOne({
-    $or: [
-      { email: exactRe },
-      { username: new RegExp(`^${escapeRegexForEmail(raw)}$`, 'i') }
-    ]
-  });
-  if (user) return normalizeUserEmailOnFile(user);
+  if (raw.includes('@')) {
+    const normalized = normalizeLookupInput(raw);
+    let user = await findUserByEmailExpr(normalized);
+    if (user) return normalizeUserEmailOnFile(user);
 
-  if (normalized.includes('@')) {
     const gmailKey = gmailLocalPart(normalized);
     if (gmailKey) {
       const gmailUsers = await User.find({
@@ -745,12 +771,15 @@ async function findUserForPasswordReset(input) {
     if (user) return normalizeUserEmailOnFile(user);
   }
 
+  const byUsername = await findUserByUsernameExpr(raw);
+  if (byUsername) return normalizeUserEmailOnFile(byUsername);
+
   return null;
 }
 
 app.post('/api/auth/forgot-password', async (req, res) => {
   const notSent = {
-    message: 'No OTP was sent. Use the same email you used during Sign Up, or try your username instead.',
+    message: 'No account found. Use the exact email or username from Sign Up on bolkarigar.onrender.com (localhost account will not work here).',
     emailDelivered: false
   };
   const ipKey = `forgot-ip:${req.ip}`;
@@ -762,10 +791,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     });
   }
   try {
-    const email = normalizeLookupInput(req.body.email);
-    if (!email) return res.json(notSent);
+    const input = String(req.body.email || '').trim();
+    if (!input) return res.json(notSent);
 
-    const user = await findUserForPasswordReset(email);
+    const user = await findUserForPasswordReset(input);
     if (!user) {
       recordAuthAction(ipKey);
       logger.info(`[Forgot Password] No matching account for reset request`);
@@ -903,9 +932,11 @@ app.get('/api/dashboard/sync', authenticateToken, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    version: 'live-ready-v1',
+    version: 'live-ready-v2',
     mongo: mongoose.connection.readyState === 1,
     emailConfigured: isEmailConfigured(),
+    emailReady: !!global.__bkEmailReady,
+    emailProvider: global.__bkEmailProvider || null,
     env: process.env.NODE_ENV || 'development'
   });
 });
@@ -2579,7 +2610,15 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 server.listen(PORT, () => {
   logger.info(`🚀 BolKarigar Core Engine Running on http://localhost:${PORT}`);
   logger.info(`📌 SERVER CODE VERSION: razorpay-v1`);
-  verifyEmailTransport().catch(() => {});
+  verifyEmailTransport().then((status) => {
+    global.__bkEmailReady = !!status.ok;
+    global.__bkEmailProvider = status.provider || null;
+    if (!status.ok && isEmailConfigured()) {
+      logger.error('[Email] ⚠️ LIVE forgot-password emails may FAIL — fix SMTP or add RESEND_API_KEY on Render.');
+    }
+  }).catch(() => {
+    global.__bkEmailReady = false;
+  });
   if (process.env.RAZORPAY_KEY_ID) {
     const mode = process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_') ? 'TEST' : 'LIVE';
     logger.info(`💳 Razorpay: ${mode} mode configured`);
