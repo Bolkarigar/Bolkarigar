@@ -49,7 +49,7 @@ function isEmailConfigured() {
   return !!String(process.env.RESEND_API_KEY || '').trim();
 }
 
-const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 20000;
+const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 35000;
 
 function withTimeout(promise, ms, label) {
   let timer;

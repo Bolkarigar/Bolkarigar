@@ -234,6 +234,7 @@ const UserSchema = new mongoose.Schema({
   // sirf uska hash rakhte hain (standard security practice), aur expiry bhi.
   resetTokenHash: { type: String, default: null },
   resetTokenExpiry: { type: Date, default: null },
+  resetOtpAttempts: { type: Number, default: 0 },
   // 🟢 DESKTOP AGENT: yeh ek permanent (non-expiring) token hai jo sirf
   // Desktop Agent app apne aap ko pehchanwane ke liye use karta hai — normal
   // login JWT (24h expiry) ki tarah baar-baar login karne ki zaroorat nahi
@@ -562,7 +563,19 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(503).json({ error: 'Database connection failed. Please restart the server and wait 10 seconds.' });
     }
 
-    const user = await User.findOne({ username });
+    const loginId = String(username || '').trim();
+    if (!loginId || !password) {
+      recordFailedAttempt(rateLimitKey);
+      return res.status(400).json({ error: 'Username/email and password are required.' });
+    }
+
+    const loginRe = new RegExp(`^${escapeRegexForEmail(loginId.toLowerCase())}$`, 'i');
+    const user = await User.findOne({
+      $or: [
+        { username: loginRe },
+        { email: loginRe }
+      ]
+    });
     if (!user) {
       recordFailedAttempt(rateLimitKey);
       return res.status(400).json({ error: 'User not found!' });
@@ -675,93 +688,160 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
-async function findUserForPasswordReset(input) {
-  const raw = String(input || '').trim();
-  if (!raw) return null;
-  const lower = raw.toLowerCase();
-  const exactRe = new RegExp(`^${escapeRegexForEmail(lower)}$`, 'i');
-  let user = await User.findOne({ email: exactRe });
-  if (!user && !raw.includes('@')) {
-    user = await User.findOne({ username: exactRe });
+async function normalizeUserEmailOnFile(user) {
+  if (!user) return user;
+  const trimmed = String(user.email || '').trim().toLowerCase();
+  if (trimmed && trimmed !== user.email) {
+    user.email = trimmed;
+    try { await user.save(); } catch (_) { /* ignore duplicate race */ }
   }
   return user;
 }
 
+function normalizeLookupInput(input) {
+  return String(input || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function gmailLocalPart(email) {
+  const e = String(email || '').trim().toLowerCase();
+  const at = e.indexOf('@');
+  if (at < 1) return '';
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  if (domain !== 'gmail.com' && domain !== 'googlemail.com') return '';
+  return local.replace(/\./g, '').replace(/\+.*$/, '');
+}
+
+async function findUserForPasswordReset(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  const normalized = normalizeLookupInput(raw);
+  const exactRe = new RegExp(`^\\s*${escapeRegexForEmail(normalized)}\\s*$`, 'i');
+
+  let user = await User.findOne({
+    $or: [
+      { email: exactRe },
+      { username: new RegExp(`^${escapeRegexForEmail(raw)}$`, 'i') }
+    ]
+  });
+  if (user) return normalizeUserEmailOnFile(user);
+
+  if (normalized.includes('@')) {
+    const gmailKey = gmailLocalPart(normalized);
+    if (gmailKey) {
+      const gmailUsers = await User.find({
+        email: { $regex: /@(gmail|googlemail)\.com$/i }
+      }).limit(800);
+      const match = gmailUsers.find((u) => gmailLocalPart(u.email) === gmailKey);
+      if (match) return normalizeUserEmailOnFile(match);
+    }
+
+    const at = normalized.indexOf('@');
+    const localPart = escapeRegexForEmail(normalized.slice(0, at));
+    const domainPart = escapeRegexForEmail(normalized.slice(at + 1));
+    user = await User.findOne({
+      email: { $regex: new RegExp(`^\\s*${localPart}\\s*@\\s*${domainPart}\\s*$`, 'i') }
+    });
+    if (user) return normalizeUserEmailOnFile(user);
+  }
+
+  return null;
+}
+
 app.post('/api/auth/forgot-password', async (req, res) => {
   const notSent = {
-    message: 'No OTP was sent. Use the same email you used during Sign Up, or create an account first.',
+    message: 'No OTP was sent. Use the same email you used during Sign Up, or try your username instead.',
     emailDelivered: false
   };
-  const rlKey = `forgot:${req.ip}`;
-  if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
-    return res.json(notSent);
+  const ipKey = `forgot-ip:${req.ip}`;
+  if (isAuthActionRateLimited(ipKey, 25, 10 * 60 * 1000)) {
+    return res.status(429).json({
+      error: 'Too many reset attempts from your network. Please wait 10 minutes and try again.',
+      emailDelivered: false,
+      code: 'RATE_LIMITED'
+    });
   }
-  recordAuthAction(rlKey);
   try {
-    const email = String(req.body.email || '').trim().toLowerCase();
+    const email = normalizeLookupInput(req.body.email);
     if (!email) return res.json(notSent);
 
     const user = await findUserForPasswordReset(email);
-    if (user) {
-      if (!isEmailConfigured()) {
-        logger.error('[Forgot Password] SMTP not configured on server — OTP cannot be sent');
-        return res.status(503).json({
-          error: 'Password reset email is not set up on the server yet. Please contact support@bolkarigar.com.',
-          emailDelivered: false
-        });
-      }
+    if (!user) {
+      recordAuthAction(ipKey);
+      logger.info(`[Forgot Password] No matching account for reset request`);
+      return res.json(notSent);
+    }
 
-      const recipient = String(user.email || '').trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-        logger.warn(`[Forgot Password] User "${user.username}" has invalid email on file`);
-        return res.status(400).json({
-          error: 'This account has no valid email saved. Contact support@bolkarigar.com.',
-          emailDelivered: false
-        });
-      }
-
-      const otp = String(crypto.randomInt(100000, 1000000));
-      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
-      user.resetTokenHash = otpHash;
-      user.resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
-      user.resetOtpAttempts = 0;
-      await user.save();
-
-      try {
-        const delivery = await sendPasswordResetOtp(recipient, otp);
-        if (!delivery.sent) {
-          return res.status(503).json({
-            error: 'Could not send OTP email in time. Please try again in a minute. If this continues, contact support@bolkarigar.com.',
-            emailDelivered: false
-          });
-        }
-      } catch (mailErr) {
-        logger.error('Reset OTP email error:', mailErr.message);
-        user.resetTokenHash = null;
-        user.resetTokenExpiry = null;
-        await user.save();
-        const smtpTimeout = /timed out/i.test(mailErr.message);
-        return res.status(503).json({
-          error: smtpTimeout
-            ? 'Email server took too long to respond. Please try again in 1–2 minutes.'
-            : 'Error sending email. Please verify your email, check spam folder, or try again later.',
-          emailDelivered: false
-        });
-      }
-      logger.info(`[Forgot Password] OTP sent to ${maskEmail(recipient)} for user "${user.username}"`);
-      return res.json({
-        message: 'OTP has been sent to your registered email.',
-        emailDelivered: true,
-        sentToMasked: maskEmail(recipient),
-        resetEmail: recipient
+    const userKey = `forgot-user:${String(user._id)}`;
+    if (isAuthActionRateLimited(userKey, 3, 15 * 60 * 1000)) {
+      return res.status(429).json({
+        error: 'OTP already sent recently. Please check your inbox and spam folder, or wait 15 minutes.',
+        emailDelivered: false,
+        code: 'OTP_COOLDOWN'
       });
     }
 
-    logger.info('[Forgot Password] No matching account for reset request');
-    return res.json(notSent);
+    if (!isEmailConfigured()) {
+      logger.error('[Forgot Password] SMTP not configured on server — OTP cannot be sent');
+      return res.status(503).json({
+        error: 'Password reset email is not set up on the server yet. Please contact support@bolkarigar.com.',
+        emailDelivered: false
+      });
+    }
+
+    const recipient = String(user.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+      logger.warn(`[Forgot Password] User "${user.username}" has invalid email on file`);
+      return res.status(400).json({
+        error: 'This account has no valid email saved. Contact support@bolkarigar.com.',
+        emailDelivered: false
+      });
+    }
+
+    const otp = String(crypto.randomInt(100000, 1000000));
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    user.resetTokenHash = otpHash;
+    user.resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    user.resetOtpAttempts = 0;
+    await user.save();
+
+    try {
+      const delivery = await sendPasswordResetOtp(recipient, otp);
+      if (!delivery.sent) {
+        return res.status(503).json({
+          error: 'Could not send OTP email in time. Please try again in a minute. If this continues, contact support@bolkarigar.com.',
+          emailDelivered: false
+        });
+      }
+    } catch (mailErr) {
+      logger.error('Reset OTP email error:', mailErr.message);
+      user.resetTokenHash = null;
+      user.resetTokenExpiry = null;
+      await user.save();
+      const smtpTimeout = /timed out/i.test(mailErr.message);
+      return res.status(503).json({
+        error: smtpTimeout
+          ? 'Email server took too long to respond. Please try again in 1–2 minutes.'
+          : 'Error sending email. Please verify your email, check spam folder, or try again later.',
+        emailDelivered: false
+      });
+    }
+
+    recordAuthAction(userKey);
+    recordAuthAction(ipKey);
+    logger.info(`[Forgot Password] OTP sent to ${maskEmail(recipient)} for user "${user.username}"`);
+    return res.json({
+      message: 'OTP has been sent to your registered email.',
+      emailDelivered: true,
+      sentToMasked: maskEmail(recipient),
+      resetEmail: recipient
+    });
   } catch (err) {
     logger.error('Forgot-password error:', err);
-    return res.json(notSent);
+    return res.status(500).json({
+      error: 'Could not process reset request. Please try again in a minute.',
+      emailDelivered: false
+    });
   }
 });
 

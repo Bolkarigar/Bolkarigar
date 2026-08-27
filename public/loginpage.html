@@ -246,8 +246,8 @@
       
       <form id="loginForm">
         <div class="input-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" required placeholder="admin" autocomplete="username">
+          <label for="username">Username or Email</label>
+          <input type="text" id="username" required placeholder="username or email" autocomplete="username">
         </div>
         <div class="input-group">
           <label for="password">Password</label>
@@ -353,7 +353,9 @@
     const LOGIN_MSG = {
       otpSent: (masked) => `A 6-digit OTP has been sent to ${masked || 'your registered email'}. Please check inbox and Spam/Junk folder.`,
       otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
-      otpNotSent: 'No OTP was sent. This email or username is not registered, or you entered the wrong address. Use the same email from Sign Up, or create a new account.',
+      otpNotSent: 'No OTP was sent. Use the same email from Sign Up, or enter your username instead.',
+      otpRateLimited: 'Too many attempts. Please wait 10 minutes and try again.',
+      otpCooldown: 'OTP already sent. Check inbox and spam folder, or wait 15 minutes.',
       otpOnlyRegistered: 'OTP is sent only to your registered signup email.',
       passwordResetOk: 'Password reset successfully! You can now sign in with your new password.',
       wrongLogin: 'Wrong username or password!',
@@ -365,8 +367,6 @@
       const t = text.trim();
       const rules = [
         [/agar yeh email registered/i, LOGIN_MSG.otpNotSent],
-        [/otp bhej diya|otp bhej diya gaya/i, LOGIN_MSG.otpNotSent],
-        [/naya otp bhej/i, LOGIN_MSG.otpResent],
         [/sirf registered email/i, LOGIN_MSG.otpOnlyRegistered],
         [/password successfully reset ho gaya|password reset ho gaya/i, LOGIN_MSG.passwordResetOk],
         [/user nahi mila/i, 'User not found!'],
@@ -498,6 +498,11 @@
     const closeForgotBtn = document.getElementById("closeForgotBtn");
 
     forgotBtn.addEventListener("click", () => {
+      const loginUser = document.getElementById("username")?.value?.trim();
+      const resetInput = document.getElementById("resetEmail");
+      if (resetInput && loginUser && !resetInput.value.trim()) {
+        resetInput.value = loginUser;
+      }
       forgotModal.classList.add("active");
     });
 
@@ -525,6 +530,14 @@
         });
 
         if (!response.ok) {
+          if (result.code === 'RATE_LIMITED') {
+            alert(LOGIN_MSG.otpRateLimited);
+            return;
+          }
+          if (result.code === 'OTP_COOLDOWN') {
+            alert(LOGIN_MSG.otpCooldown);
+            return;
+          }
           alert(loginMsgEn(result.error, "Could not send OTP. Please verify your email and check your spam folder."));
           return;
         }
