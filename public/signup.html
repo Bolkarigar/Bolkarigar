@@ -273,7 +273,7 @@
           setTimeout(() => {
             const panel = selectedPlan === "business" ? "myPlanPanel" : "";
             window.location.href = panel
-              ? `bolkarigar.html?openPanel=${panel}&plan=${selectedPlan}&_=${Date.now()}`
+              ? `bolkarigar.html?openPanel=${panel}&plan=${selectedPlan}&bkTakeover=1&_=${Date.now()}`
               : `bolkarigar.html?_=${Date.now()}`;
           }, 1200);
         } else {

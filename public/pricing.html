@@ -226,9 +226,31 @@
 
 
       function goAppPlan(plan) {
+        const ch = new BroadcastChannel("bolkarigar_session_hub");
+        const reqId = "pricing_" + Date.now();
+        let ack = false;
 
-        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan=" + encodeURIComponent(plan);
+        ch.onmessage = (e) => {
+          if (e.data && e.data.type === "PLAN_PAYMENT_ACK" && e.data.tabId === reqId) {
+            ack = true;
+          }
+        };
 
+        ch.postMessage({ type: "OPEN_PLAN_PAYMENT", plan: plan, tabId: reqId });
+
+        setTimeout(() => {
+          ch.close();
+          if (ack) {
+            const note = document.getElementById("loggedInNote");
+            if (note) {
+              note.style.display = "block";
+              note.innerHTML = "✅ <strong>Razorpay payment</strong> aapke dashboard tab me khul gaya. Wahan UPI/Card se pay karein.";
+            }
+            return;
+          }
+          window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan="
+            + encodeURIComponent(plan) + "&bkTakeover=1";
+        }, 700);
       }
 
 
@@ -244,9 +266,11 @@
 
 
           if (token) {
-
+            if (action === "signup" && plan === "starter") {
+              window.location.href = "bolkarigar.html";
+              return;
+            }
             goAppPlan(plan);
-
             return;
 
           }

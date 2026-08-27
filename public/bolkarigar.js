@@ -779,12 +779,12 @@ window.addEventListener("load", () => {
   const planFromUrl = urlParams.get("plan");
   if (openPanelId && document.getElementById(openPanelId)) {
     openPanel(openPanelId);
-    if (openPanelId === "myPlanPanel" && planFromUrl && typeof window.buyBolKarigarPlan === "function") {
+    if (openPanelId === "myPlanPanel" && planFromUrl) {
       setTimeout(() => {
-        if (planFromUrl === "business" || planFromUrl === "pro") {
-          window.buyBolKarigarPlan(planFromUrl);
+        if (typeof window.bkHandlePlanPaymentRequest === "function") {
+          window.bkHandlePlanPaymentRequest(planFromUrl);
         }
-      }, 1500);
+      }, 1200);
     }
   } else {
     openPanel("overviewPanel");
@@ -1562,7 +1562,7 @@ function extractProjectData(rawText) {
   const budgetMatch = t.match(/(?:budget|बजट|amount)\s+(\d+(?:\.\d+)?)/i);
   const noteMatch = t.match(/(?:note|टिप्पणी|remark)\s+(.+?)$/i);
   return {
-    name: extractField(t, "project|प्रोजेक्ट|काम|naam|नाम", PROJECT_STOP_WORDS),
+    name: extractField(t, "project|प्रोजेक्ट|काम", PROJECT_STOP_WORDS),
     customer: extractFieldSmart(t, "customer|grahak|graahak|ग्राहक|client|कस्टमर|party|पार्टी|malik|मालिक", PROJECT_STOP_WORDS),
     site: extractFieldSmart(t, "site|साइट|location|जगह", PROJECT_STOP_WORDS),
     budget: budgetMatch ? budgetMatch[1].trim() : "",
@@ -1610,8 +1610,10 @@ function looksLikeExpenseCommand(text) {
 
 function looksLikeProjectCommand(text, data) {
   if (looksLikeExpenseCommand(text)) return false;
-  const hasProjectSignal = /(?:project|प्रोजेक्ट|naam|नाम|name|customer|grahak|site|side|साइड|साइट|location|लोकेशन|budget|बजट|हमारा|रखो|rakho|status|स्टेटस)/i.test(text);
-  const hasInvoiceSignal = /\bproduct\b|\bitem\b|प्रोडक्ट|\bquantity\b|\bqty\b|\bprice\b/.test(text);
+  if (window.bkVoiceController?.looksLikeInvoiceUtterance?.(text)) return false;
+  if (window.bkVoiceController?.isSaleSentence?.(normalize(text))) return false;
+  const hasProjectSignal = /(?:project|प्रोजेक्ट|budget|बजट|site|साइट|साइड|side|location|लोकेशन)/i.test(text);
+  const hasInvoiceSignal = /\bproduct\b|\bitem\b|प्रोडक्ट|\bquantity\b|\bqty\b|\bprice\b|laptop|mobile|phone|plywood|cement|लैपटॉप|मोबाइल/.test(text);
   return hasProjectSignal && !hasInvoiceSignal && (data.name || data.customer || data.budget || data.site || data.status);
 }
 
@@ -1915,6 +1917,14 @@ function handleCalculatorSpeech(raw, precomputedExpr) {
 const INVOICE_STOP_WORDS = ["customer", "कस्टमर", "product", "प्रोडक्ट", "price", "प्राइस", "qty", "quantity", "क्वांटिटी", "add", "save", "download", "जोड़ो", "सेव", "डाउनलोड", "hai", "है"];
 
 function extractInvoiceData(rawText) {
+  const smart = window.bkVoiceController?.parseSmartInvoice?.(rawText);
+  if (smart?.data && (smart.data.customer || smart.data.product || smart.data.price)) {
+    const d = { ...smart.data };
+    if (d.product && window.bkVoiceController?.cleanProductName) {
+      d.product = window.bkVoiceController.cleanProductName(d.product);
+    }
+    return d;
+  }
   const t = stripSpeechPunctuation(rawText);
   const priceMatch =
     t.match(/(?:price|rate|प्राइस)\s+(\d+(?:\.\d+)?)/i) ||
@@ -1931,7 +1941,8 @@ function extractInvoiceData(rawText) {
 }
 
 function looksLikeInvoiceCommand(text, data) {
-  const hasInvoiceSignal = /\bproduct\b|\bitem\b|प्रोडक्ट|\bprice\b|\brate\b|प्राइस|\bqty\b|\bquantity\b|क्वांटिटी|\binvoice\b|इनवॉइस|\bbill\b|बिल|\bcustomer\b|grahak|ग्राहक|कस्टमर/.test(text);
+  if (window.bkVoiceController?.looksLikeInvoiceUtterance?.(text)) return true;
+  const hasInvoiceSignal = /\bproduct\b|\bitem\b|प्रोडक्ट|\bprice\b|\brate\b|प्राइस|\bqty\b|\bquantity\b|क्वांटिटी|\binvoice\b|इनवॉइस|\bbill\b|बिल|\bcustomer\b|grahak|ग्राहक|कस्टमर|laptop|mobile|phone|लैपटॉप|मोबाइल/.test(text);
   return hasInvoiceSignal && (data.customer || data.product || data.price || data.qty);
 }
 
@@ -1954,7 +1965,18 @@ async function handleInvoiceSpeech(raw) {
     return true;
   }
 
-  const data = extractInvoiceData(raw);
+  openPanel("invoicePanel");
+
+  if (window.bkVoiceController?.fillAndAddInvoice) {
+    const ok = await window.bkVoiceController.fillAndAddInvoice(raw);
+    if (ok) return true;
+  }
+
+  const smart = window.bkVoiceController?.parseSmartInvoice?.(raw);
+  const data = smart?.data || extractInvoiceData(raw);
+  if (data.product && window.bkVoiceController?.cleanProductName) {
+    data.product = window.bkVoiceController.cleanProductName(data.product);
+  }
 
   if (data.customer) setField(customerName, data.customer);
   if (data.product) setField(productName, data.product);
@@ -1970,7 +1992,7 @@ async function handleInvoiceSpeech(raw) {
   if (isAddCommand(text)) {
     if (productName?.value.trim() && productPrice?.value) {
       const success = await executeInvoiceAdd();
-      if(success) showCommand("Invoice item add ho gaya. " + summary);
+      if (success) showCommand("Invoice item add ho gaya. " + summary);
     } else {
       showCommand("Item add karne ke liye product naam aur price bolo.");
     }
@@ -2783,21 +2805,22 @@ async function handleSpeech(rawText) {
       return;
     }
 
-    // 2. Project — voice-controller handle karta hai; yahan sirf fallback
+    // 2. Invoice — project se pehle (sale/bill sentences)
+    const invoiceData = extractInvoiceData(raw);
+    if (looksLikeInvoiceCommand(text, invoiceData) || text.includes("tally") || text.includes("टैली") ||
+        text.includes("whatsapp") || text.includes("व्हाट्सएप")) {
+      await handleInvoiceSpeech(raw);
+      voiceCommandSucceeded = true;
+      return;
+    }
+
+    // 3. Project — sirf clear project intent par
     if (!window.bkVoiceController?.looksLikeProjectUtterance?.(raw)) {
       const projectData = extractProjectData(raw);
       if (looksLikeProjectCommand(text, projectData)) {
         await handleProjectSpeech(raw, projectData);
         return;
       }
-    }
-
-    // 3. Invoice (customer/product/price/qty, tally, whatsapp share)
-    const invoiceData = extractInvoiceData(raw);
-    if (looksLikeInvoiceCommand(text, invoiceData) || text.includes("tally") || text.includes("टैली") ||
-        text.includes("whatsapp") || text.includes("व्हाट्सएप")) {
-      await handleInvoiceSpeech(raw);
-      return;
     }
 
     // 4. Todo
@@ -3345,27 +3368,71 @@ document.getElementById("clearNotesBtn")?.addEventListener("click", () => {
   if (status) status.textContent = "Notes cleared.";
 });
 
-// Single Session Guard
-const sessionChannel = new BroadcastChannel('bolkarigar_session_hub');
-sessionChannel.postMessage({ type: 'NEW_TAB_OPENED' });
+// Single Session Guard — plan/payment URL naya tab claim kar sakta hai
+const BK_SESSION_CHANNEL = 'bolkarigar_session_hub';
+const sessionChannel = new BroadcastChannel(BK_SESSION_CHANNEL);
+const _sessionUrlParams = new URLSearchParams(window.location.search);
+const canClaimSession = _sessionUrlParams.get('openPanel') === 'myPlanPanel'
+  || _sessionUrlParams.get('bkTakeover') === '1';
+const bkTabId = `bk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+let bkSessionBlocked = false;
+
+function blockDuplicateSession() {
+  if (bkSessionBlocked) return;
+  bkSessionBlocked = true;
+  document.body.innerHTML = `
+    <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
+      <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
+      <p style="margin-top:10px; color:#aaa;">BolKarigar AI Dashboard pehle se hi ek doosre tab/window mein open hai.</p>
+      <p style="color:#666; font-size:14px;">Plan kharidne ke liye purane tab me <strong>My Plan</strong> kholo, ya purana tab band karke refresh karein.</p>
+      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:20px; padding:10px 20px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 My Plan Kholo</button>
+      <button onclick="window.location.reload()" style="margin-top:10px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Dubara Try Karein</button>
+    </div>
+  `;
+  if (recognition) { try { recognition.stop(); } catch (e) {} }
+}
+
+function handlePlanPaymentRequest(plan) {
+  if (typeof openPanel === 'function') openPanel('myPlanPanel');
+  const startPayment = () => {
+    if (typeof window.buyBolKarigarPlan === 'function' && (plan === 'pro' || plan === 'business')) {
+      window.buyBolKarigarPlan(plan);
+    }
+  };
+  if (window._bkAccountInfo || !getToken()) startPayment();
+  else setTimeout(startPayment, 800);
+}
 
 sessionChannel.onmessage = (event) => {
-  if (event.data.type === 'NEW_TAB_OPENED') {
-    sessionChannel.postMessage({ type: 'ALREADY_ACTIVE' });
+  const data = event.data || {};
+
+  if (data.type === 'OPEN_PLAN_PAYMENT') {
+    sessionChannel.postMessage({ type: 'PLAN_PAYMENT_ACK', tabId: data.tabId });
+    handlePlanPaymentRequest(data.plan);
+    return;
   }
-  
-  if (event.data.type === 'ALREADY_ACTIVE') {
-    document.body.innerHTML = `
-      <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
-        <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
-        <p style="margin-top:10px; color:#aaa;">BolKarigar AI Dashboard pehle se hi ek doosre tab/window mein open hai.</p>
-        <p style="color:#666; font-size:14px;">Kripya purane tab ko band karein aur is page ko refresh karein.</p>
-        <button onclick="window.location.reload()" style="margin-top:20px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Dubara Try Karein</button>
-      </div>
-    `;
-    if(recognition) { try { recognition.stop(); } catch(e){} }
+
+  if (data.type === 'CLAIM_SESSION' && data.tabId !== bkTabId) {
+    blockDuplicateSession();
+    return;
+  }
+
+  if (data.type === 'NEW_TAB_OPENED' && !bkSessionBlocked) {
+    sessionChannel.postMessage({ type: 'ALREADY_ACTIVE', fromTab: bkTabId });
+  }
+
+  if (data.type === 'ALREADY_ACTIVE' && !canClaimSession) {
+    blockDuplicateSession();
   }
 };
+
+if (canClaimSession) {
+  sessionChannel.postMessage({ type: 'CLAIM_SESSION', tabId: bkTabId });
+} else {
+  sessionChannel.postMessage({ type: 'NEW_TAB_OPENED' });
+}
+
+window.bkHandlePlanPaymentRequest = handlePlanPaymentRequest;
 
 function triggerWhatsAppShare() {
   const currentCust = (document.getElementById("customerName")?.value || "").trim();
@@ -3985,7 +4052,7 @@ async function printTallyBill() {
 
   const ewayBillNo = document.getElementById("ewayBillNo")?.value?.trim() || "";
   const vehicleNo = document.getElementById("vehicleNo")?.value?.trim() || "";
-  const distanceKm = document.getElementById("distanceKm")?.value?.trim() || "";
+  const distanceKm = clampDistanceKmInput();
 
   let itemsRows = "";
   let totalBase = 0;
@@ -4484,6 +4551,7 @@ window.toggleEditProfile = toggleEditProfile;
 // Run automatically on page load
 document.addEventListener("DOMContentLoaded", () => {
   loadCompanyProfile();
+  wireDistanceKmValidation();
   document.getElementById('buyerPincode')?.addEventListener('input', () => {
     if (typeof renderInvoice === 'function') renderInvoice();
     updateGstModeHint();
@@ -4539,11 +4607,36 @@ function setProfileLockState(isSaved) {
   }
 }
 
+function clampDistanceKmInput() {
+  const el = document.getElementById("distanceKm");
+  if (!el) return "";
+  const raw = String(el.value || "").trim();
+  if (raw === "") return "";
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    el.value = "0";
+    return "0";
+  }
+  const whole = String(Math.floor(n));
+  el.value = whole;
+  return whole;
+}
+
+function wireDistanceKmValidation() {
+  const el = document.getElementById("distanceKm");
+  if (!el || el.dataset.kmBound === "1") return;
+  el.dataset.kmBound = "1";
+  el.addEventListener("input", clampDistanceKmInput);
+  el.addEventListener("blur", clampDistanceKmInput);
+  el.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+}
+
 function getEWayBillDetails() {
+  const distanceKm = clampDistanceKmInput();
   return {
     ewayBillNo: document.getElementById("ewayBillNo")?.value.trim() || "",
     vehicleNo: document.getElementById("vehicleNo")?.value.trim() || "",
-    distanceKm: document.getElementById("distanceKm")?.value.trim() || ""
+    distanceKm
   };
 }
 
@@ -4570,8 +4663,33 @@ function getEWayBillDetails() {
   const sendBtn = document.getElementById("liveAiSendBtn");
   const micBtn = document.getElementById("liveAiMicBtn");
   const statusDot = document.getElementById("liveAiStatusDot");
+  const modelBadge = document.getElementById("liveAiModelBadge");
+  const liveBtn = document.getElementById("liveAiLiveBtn");
 
-  if (!widget || !toggleBtn) return; // Safety: agar HTML block missing hai to silently skip
+  if (!widget || !toggleBtn) return;
+
+  const chatHistory = [];
+  let liveConvMode = false;
+
+  function pushHistory(role, content) {
+    const text = String(content || "").trim();
+    if (!text) return;
+    chatHistory.push({ role: role === "user" ? "user" : "assistant", content: text.slice(0, 2000) });
+    if (chatHistory.length > 20) chatHistory.splice(0, chatHistory.length - 20);
+  }
+
+  window.bkGetChatHistory = () => chatHistory.slice();
+  window.bkClearChatHistory = () => { chatHistory.length = 0; };
+
+  function updateModelBadge(source, model) {
+    if (!modelBadge) return;
+    if (!source || source === "offline") {
+      modelBadge.textContent = "";
+      return;
+    }
+    const label = source === "openai" ? (model || "GPT-4o") : (model || "Gemini");
+    modelBadge.textContent = label;
+  }
 
   function addBubble(text, kind) {
     const div = document.createElement("div");
@@ -4582,9 +4700,12 @@ function getEWayBillDetails() {
     return div;
   }
 
-  function speakText(text) {
+  function speakText(text, onDone) {
     try {
-      if (!("speechSynthesis" in window) || !text) return;
+      if (!("speechSynthesis" in window) || !text) {
+        if (typeof onDone === "function") onDone();
+        return;
+      }
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = "hi-IN";
@@ -4592,9 +4713,21 @@ function getEWayBillDetails() {
       const voices = window.speechSynthesis.getVoices();
       const hindiVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
       if (hindiVoice) utter.voice = hindiVoice;
+      utter.onend = utter.onerror = () => { if (typeof onDone === "function") onDone(); };
       window.speechSynthesis.speak(utter);
-    } catch (e) { /* silent fail — TTS optional hai */ }
+    } catch (e) {
+      if (typeof onDone === "function") onDone();
+    }
   }
+
+  function startLiveMic() {
+    if (!liveConvMode || aiListening || !micBtn) return;
+    micBtn.click();
+  }
+
+  // --- Mic button: single-shot speech recognition (app ke continuous voice se alag) ---
+  let aiRecognition = null;
+  let aiListening = false;
 
   function setTyping(isTyping) {
     if (typingIndicator) typingIndicator.classList.toggle("hidden", !isTyping);
@@ -4610,7 +4743,19 @@ function getEWayBillDetails() {
 
   clearBtn?.addEventListener("click", () => {
     messagesBox.innerHTML = "";
-    addBubble("Chat clear kar diya gaya. Bolo, kya madad chahiye?", "bot");
+    chatHistory.length = 0;
+    updateModelBadge();
+    addBubble("Chat clear kar diya. Bolo, kya madad chahiye?", "bot");
+  });
+
+  liveBtn?.addEventListener("click", () => {
+    liveConvMode = !liveConvMode;
+    liveBtn.classList.toggle("active", liveConvMode);
+    liveBtn.title = liveConvMode ? "Live mode ON — mic auto chalega" : "Live baatcheet ON karo";
+    if (liveConvMode) {
+      addBubble("🎙️ Live mode ON — boliye, main sun raha hoon.", "bot");
+      startLiveMic();
+    }
   });
 
   // -------------------------------------------------------------------
@@ -4703,13 +4848,13 @@ function getEWayBillDetails() {
     const prev = voiceResult?.textContent || "";
     try {
       if (looksLikeExpenseCommand(text)) { await handleExpenseSpeech(rawText); return voiceResult?.textContent || prev; }
-      const projectData = extractProjectData(rawText);
-      if (looksLikeProjectCommand(text, projectData)) { await handleProjectSpeech(rawText); return voiceResult?.textContent || prev; }
       const invoiceData = extractInvoiceData(rawText);
       if (looksLikeInvoiceCommand(text, invoiceData) || text.includes("tally") || text.includes("whatsapp")) {
         await handleInvoiceSpeech(rawText);
         return voiceResult?.textContent || prev;
       }
+      const projectData = extractProjectData(rawText);
+      if (looksLikeProjectCommand(text, projectData)) { await handleProjectSpeech(rawText); return voiceResult?.textContent || prev; }
       if (looksLikeTodoCommand(text)) { handleTodoSpeech(rawText); return voiceResult?.textContent || prev; }
       if (looksLikeQrCommand(text)) { handleQrSpeech(rawText); return voiceResult?.textContent || prev; }
       if (looksLikeNoteWriteCommand(text) || defineNoteSaveCommand(text)) {
@@ -4731,76 +4876,93 @@ function getEWayBillDetails() {
     return null;
   }
 
-  // -------------------------------------------------------------------
-  // Core logic: pehle offline FAQ match karein, agar nahi mila to
-  // direct Gemini API call karein. Bypass handleSpeech() completely.
-  // -------------------------------------------------------------------
+  function finishBotReply(reply, kind, source, model) {
+    pushHistory("assistant", reply);
+    addBubble(reply, kind || "bot");
+    updateModelBadge(source, model);
+    speakText(reply, () => { if (liveConvMode) setTimeout(startLiveMic, 400); });
+  }
+
+  async function fetchLiveChat(rawText) {
+    const token = localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
+    const response = await fetch(`${API_URL}/api/ai/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ message: rawText, history: chatHistory.slice(0, -1) })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.reply || data?.error || "Server error");
+    }
+    return data;
+  }
+
   async function processMessage(rawText) {
+    pushHistory("user", rawText);
     const informational = isInformationalQuestion(rawText);
 
-    // Sawal/poochhne wale message — pehle jawab do, panel mat kholo
-    if (informational) {
-      const faq = matchLiveFaq(rawText);
-      if (faq) {
-        addBubble(faq, "bot");
-        speakText(faq);
-        return;
+    if (!informational) {
+      if (window.bkVoiceController?.looksLikeInvoiceUtterance?.(rawText) && window.bkVoiceController?.fillAndAddInvoice) {
+        const prev = voiceResult?.textContent || "";
+        openPanel("invoicePanel");
+        const ok = await window.bkVoiceController.fillAndAddInvoice(rawText);
+        if (ok) {
+          finishBotReply(voiceResult?.textContent || prev || "Invoice update ho gaya.", "action");
+          return;
+        }
       }
-    } else {
+      if (window.bkVoiceController?.tryFastAction) {
+        const prev = voiceResult?.textContent || "";
+        const acted = await window.bkVoiceController.tryFastAction(rawText);
+        if (acted) {
+          const msg = voiceResult?.textContent || prev || "Ho gaya.";
+          finishBotReply(msg, "action");
+          return;
+        }
+      }
       const cmdMsg = await tryAppCommandFromChat(rawText);
       if (cmdMsg) {
-        addBubble(cmdMsg, "action");
-        speakText(cmdMsg);
-        return;
-      }
-      const faq = matchLiveFaq(rawText);
-      if (faq) {
-        addBubble(faq, "bot");
-        speakText(faq);
+        finishBotReply(cmdMsg, "action");
         return;
       }
     }
 
-    // Direct API call to Gemini (ya offline fallback server par)
-    setTyping(true);
-    try {
-      const token = localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
-      const response = await fetch(`${API_URL}/api/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: rawText })
-      });
-
-      const data = await response.json();
-      setTyping(false);
-
-      if (!response.ok) {
-        const errMsg = data?.reply || data?.error || "Server error. Dobara try karein.";
-        addBubble(errMsg, "bot");
-        speakText(errMsg);
+    if (informational) {
+      const faq = matchLiveFaq(rawText);
+      if (faq) {
+        finishBotReply(faq, "bot", "offline");
         return;
       }
+    } else {
+      const faq = matchLiveFaq(rawText);
+      if (faq) {
+        finishBotReply(faq, "bot", "offline");
+        return;
+      }
+    }
 
-      if (data && data.reply) {
-        addBubble(data.reply, "bot");
-        if (data.hint && data.source === 'offline') {
+    setTyping(true);
+    try {
+      const data = await fetchLiveChat(rawText);
+      setTyping(false);
+
+      if (data?.reply) {
+        if (data.hint && data.source === "offline") {
           addBubble("💡 Tip: " + data.hint, "bot");
         }
-        speakText(data.reply);
+        finishBotReply(data.reply, "bot", data.source, data.model);
       } else {
         const fallback = matchLiveFaq(rawText) || APP_FEATURES_OVERVIEW;
-        addBubble(fallback, "bot");
-        speakText(fallback);
+        finishBotReply(fallback, "bot", "offline");
       }
     } catch (err) {
       setTyping(false);
       console.error("LIVE AI API Error:", err);
       const fallback = matchLiveFaq(rawText) || APP_FEATURES_OVERVIEW;
-      addBubble(fallback, "bot");
-      speakText(fallback);
+      finishBotReply(fallback, "bot", "offline");
     }
   }
 
@@ -4818,8 +4980,6 @@ function getEWayBillDetails() {
   });
 
   // --- Mic button: single-shot speech recognition (app ke continuous voice se alag) ---
-  let aiRecognition = null;
-  let aiListening = false;
 
   function createAiRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -4985,10 +5145,10 @@ function getEWayBillDetails() {
         <td>${escapeHtml(l.ledgerGroup) || escapeHtml(l.partyType)}</td>
         <td>${escapeHtml(l.mobile) || "-"}</td>
         <td class="${l.currentBalance >= 0 ? 'khata-badge-debit' : 'khata-badge-credit'}">₹${Math.abs(l.currentBalance).toFixed(2)} ${l.currentBalance >= 0 ? "Dr" : "Cr"}</td>
-        <td>
-          <button type="button" onclick="viewKhataLedgerStatement('${l._id}')">📄</button>
-          <button type="button" onclick="syncKhataLedgerToTally('${l._id}')">📊</button>
-          <button type="button" onclick="deleteKhataLedger('${l._id}')">🗑️</button>
+        <td class="khata-act-group">
+          <button type="button" class="khata-act-btn" title="Ledger Statement dekho — saari transactions / खाता विवरण" aria-label="View ledger statement" onclick="viewKhataLedgerStatement('${l._id}')">📄 Statement</button>
+          <button type="button" class="khata-act-btn" title="Tally Prime me sync karo / टैली में भेजें" aria-label="Sync to Tally" onclick="syncKhataLedgerToTally('${l._id}')">📊 Tally</button>
+          <button type="button" class="khata-act-btn danger" title="Ledger delete karo / हटाएं" aria-label="Delete ledger" onclick="deleteKhataLedger('${l._id}')">🗑️ Delete</button>
         </td>
       </tr>`).join("");
   }
@@ -5069,30 +5229,46 @@ function getEWayBillDetails() {
   window.viewKhataLedgerStatement = async function (id) {
     const modal = document.getElementById("ledgerStatementModal");
     const title = document.getElementById("ledgerStatementTitle");
+    const meta = document.getElementById("ledgerStatementMeta");
     const body = document.getElementById("ledgerStatementBody");
-    if (!modal || !body) return;
+    if (!modal || !body) {
+      showToast("Ledger statement window load nahi hui. Page refresh karein.", "error");
+      return;
+    }
     body.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>";
+    if (meta) meta.textContent = "";
     modal.classList.remove("hidden");
     try {
       const res = await fetch(`${API_URL}/api/ledger-statement/${id}`, { headers: khataHeaders() });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      if (title) title.textContent = `📄 ${data.partyName} — Ledger Statement (Balance: ₹${data.currentBalance})`;
+      if (title) title.textContent = `📄 ${data.partyName} — Ledger Statement`;
+      if (meta) {
+        meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
+      }
       if (!data.history?.length) {
-        body.innerHTML = `<tr><td colspan='4'>Abhi koi transaction nahi. Opening Balance: ₹${data.openingBalance}</td></tr>`;
+        body.innerHTML = `<tr><td colspan='4' style="text-align:center;">Abhi koi transaction nahi. Sirf opening balance hai.</td></tr>`;
         return;
       }
       body.innerHTML = data.history.map(v => `
         <tr>
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
-          <td>${v.voucherType}</td>
-          <td>₹${v.amount.toFixed(2)}</td>
+          <td>${escapeHtml(v.voucherType)}</td>
+          <td>₹${Number(v.amount || 0).toFixed(2)}</td>
           <td>${escapeHtml(v.note) || "-"}</td>
         </tr>`).join("");
     } catch (err) {
       body.innerHTML = `<tr><td colspan='4'>Error: ${escapeHtml(err.message)}</td></tr>`;
+      showToast("❌ " + err.message, "error");
     }
   };
+
+  document.getElementById("closeLedgerStatementBtn")?.addEventListener("click", () => {
+    document.getElementById("ledgerStatementModal")?.classList.add("hidden");
+  });
+  document.getElementById("ledgerStatementModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "ledgerStatementModal") e.target.classList.add("hidden");
+  });
 
   window.refreshKhataPro = function () {
     loadKhataLedgers();
@@ -5391,11 +5567,81 @@ function getEWayBillDetails() {
 
   let currentPage = 1;
   let currentSearch = "";
+  let currentFromDate = "";
+  let currentToDate = "";
+  let currentQuickRange = "";
   let currentTotalPages = 1;
   let salesLoadToken = 0;
   let salesAbort = null;
   let salesLoading = false;
   let salesSearchTimer = null;
+
+  function toInputDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getQuickRangeDates(range) {
+    const now = new Date();
+    if (range === "thisMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toInputDate(start), to: toInputDate(now) };
+    }
+    if (range === "lastMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: toInputDate(start), to: toInputDate(end) };
+    }
+    if (range === "thisYear") {
+      const start = new Date(now.getFullYear(), 0, 1);
+      return { from: toInputDate(start), to: toInputDate(now) };
+    }
+    return { from: "", to: "" };
+  }
+
+  function syncDateInputs() {
+    const fromEl = document.getElementById("salesFromDate");
+    const toEl = document.getElementById("salesToDate");
+    if (fromEl) fromEl.value = currentFromDate;
+    if (toEl) toEl.value = currentToDate;
+  }
+
+  function updateDateFilterLabel() {
+    const label = document.getElementById("salesDateFilterLabel");
+    if (!label) return;
+    if (!currentFromDate && !currentToDate) {
+      label.classList.add("hidden");
+      label.textContent = "";
+      return;
+    }
+    const fmt = (s) => {
+      if (!s) return "—";
+      const [y, m, d] = s.split("-");
+      return `${d}/${m}/${y}`;
+    };
+    label.textContent = `Filtered: ${fmt(currentFromDate)} se ${fmt(currentToDate)} tak`;
+    label.classList.remove("hidden");
+  }
+
+  function setQuickRangeActive(range) {
+    currentQuickRange = range || "";
+    document.querySelectorAll(".sales-quick-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.range === currentQuickRange);
+    });
+  }
+
+  function applyDateFilter(from, to, quickRange) {
+    currentFromDate = from || "";
+    currentToDate = to || "";
+    currentQuickRange = quickRange || "";
+    syncDateInputs();
+    setQuickRangeActive(currentQuickRange);
+    updateDateFilterLabel();
+    currentPage = 1;
+    loadSalesHistory();
+  }
 
   async function loadSalesHistory() {
     const body = document.getElementById("salesHistoryBody");
@@ -5413,6 +5659,8 @@ function getEWayBillDetails() {
     try {
       const params = new URLSearchParams({ page: currentPage, limit: 15 });
       if (currentSearch) params.set("search", currentSearch);
+      if (currentFromDate) params.set("fromDate", currentFromDate);
+      if (currentToDate) params.set("toDate", currentToDate);
 
       const res = await fetch(`${API_URL}/api/sales?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
@@ -5425,8 +5673,8 @@ function getEWayBillDetails() {
       currentTotalPages = data.totalPages || 1;
 
       if (!data.records.length) {
-        const emptyMsg = currentSearch
-          ? `Koi record nahi mila: "${escapeHtml(currentSearch)}"`
+        const emptyMsg = currentSearch || currentFromDate || currentToDate
+          ? "Is filter me koi record nahi mila."
           : "Abhi koi sale record nahi hai.";
         body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>${emptyMsg}</td></tr>`;
       } else {
@@ -5463,6 +5711,9 @@ function getEWayBillDetails() {
     if (opts?.resetPage) currentPage = 1;
     if (opts?.syncFromInput) {
       currentSearch = document.getElementById("salesSearchInput")?.value?.trim() || "";
+      currentFromDate = document.getElementById("salesFromDate")?.value || "";
+      currentToDate = document.getElementById("salesToDate")?.value || "";
+      updateDateFilterLabel();
     }
     if (opts?.search != null) {
       currentSearch = String(opts.search).trim();
@@ -5486,6 +5737,35 @@ function getEWayBillDetails() {
 
   document.querySelector('.tab-btn[data-tab="totalSalesPanel"]')?.addEventListener("click", () => {
     currentPage = 1;
+    loadSalesHistory();
+  });
+
+  document.getElementById("salesApplyDateBtn")?.addEventListener("click", () => {
+    const from = document.getElementById("salesFromDate")?.value || "";
+    const to = document.getElementById("salesToDate")?.value || "";
+    if (from && to && from > to) {
+      if (typeof showToast === "function") showToast("From date, To date se pehle honi chahiye.", "error");
+      return;
+    }
+    applyDateFilter(from, to, "");
+  });
+
+  document.getElementById("salesClearDateBtn")?.addEventListener("click", () => {
+    applyDateFilter("", "", "");
+  });
+
+  document.querySelectorAll(".sales-quick-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const range = btn.dataset.range;
+      const { from, to } = getQuickRangeDates(range);
+      applyDateFilter(from, to, range);
+    });
+  });
+
+  ["salesFromDate", "salesToDate"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", () => {
+      setQuickRangeActive("");
+    });
   });
 
   let searchTimer = null;
@@ -5669,18 +5949,17 @@ loadAgentToken();
 
 
 function speakCardText(cardId, buttonElem) {
+  const SUNO_LABEL = "🔊 Suno / सुनो";
+  const RUKO_LABEL = "⏹️ Ruko / रुको";
   if (!('speechSynthesis' in window)) {
     alert("Aapka browser Text-to-Speech support nahi karta.");
     return;
   }
 
-  // Agar pehle se koi audio chal raha hai toh stop karein
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
-    
-    // Sabhi buttons ka text aur color reset karein
     document.querySelectorAll('.speak-card-btn').forEach(btn => {
-      btn.innerText = "🔊 Suno";
+      btn.innerText = SUNO_LABEL;
       btn.style.background = "#2563eb";
     });
 
@@ -5693,33 +5972,25 @@ function speakCardText(cardId, buttonElem) {
   const cardElement = document.getElementById(cardId);
   if (!cardElement) return;
 
-  // 1. Raw Text Extract karein
   let cleanText = cardElement.querySelector('.card-text').innerText;
-  
-  // 2. Clean-up Logic: "IN Hindi", "GB English", Flags, aur Bullet points ko remove karein
   cleanText = cleanText
-    .replace(/IN Hindi:/gi, "हिंदी में:")
-    .replace(/GB English:/gi, "")
-    .replace(/🇮🇳/g, "")
-    .replace(/🇬🇧/g, "")
-    .replace(/Hindi:/gi, "हिंदी:")
+    .replace(/हिंदी:/g, "हिंदी में:")
     .replace(/English:/gi, "")
     .replace(/•/g, "")
     .trim();
 
-  // Speech Engine Configuration
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = 'hi-IN'; // Clear Indian Accent
-  utterance.rate = 0.9;     // Natural speed
+  utterance.lang = 'hi-IN';
+  utterance.rate = 0.9;
 
   utterance.onstart = () => {
-    buttonElem.innerText = "⏹️ Ruko";
+    buttonElem.innerText = RUKO_LABEL;
     buttonElem.style.background = "#ef4444";
     buttonElem.dataset.isSpeaking = "true";
   };
 
   utterance.onend = utterance.onerror = () => {
-    buttonElem.innerText = "🔊 Suno";
+    buttonElem.innerText = SUNO_LABEL;
     buttonElem.style.background = "#2563eb";
     buttonElem.dataset.isSpeaking = "false";
   };

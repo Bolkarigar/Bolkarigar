@@ -197,6 +197,14 @@
     'ledger.title': '📖 Credit Ledger (Udhar Khata)',
     'sales.eyebrow': 'Permanent Record',
     'sales.title': '📊 Total Sales History (2 Years Archive)',
+    'sales.searchPh': '🔍 Name or Invoice No...',
+    'sales.fromDate': 'From Date',
+    'sales.toDate': 'To Date',
+    'sales.applyFilter': 'Apply Filter',
+    'sales.clearFilter': 'Clear',
+    'sales.thisMonth': 'This Month',
+    'sales.lastMonth': 'Last Month',
+    'sales.thisYear': 'This Year',
     'reports.eyebrow': 'Professional Reports',
     'reports.title': '📈 Reports Pro',
     'contractor.eyebrow': 'Construction / Contractor',
@@ -418,6 +426,14 @@
     'ledger.title': '📖 उधार खाता',
     'sales.eyebrow': 'स्थायी रिकॉर्ड',
     'sales.title': '📊 कुल बिक्री इतिहास (2 साल आर्काइव)',
+    'sales.searchPh': '🔍 नाम या इनवॉइस नंबर...',
+    'sales.fromDate': 'शुरू तारीख',
+    'sales.toDate': 'अंत तारीख',
+    'sales.applyFilter': 'फ़िल्टर लगाएं',
+    'sales.clearFilter': 'हटाएं',
+    'sales.thisMonth': 'इस महीने',
+    'sales.lastMonth': 'पिछला महीना',
+    'sales.thisYear': 'इस साल',
     'reports.eyebrow': 'प्रोफेशनल रिपोर्ट्स',
     'reports.title': '📈 रिपोर्ट्स प्रो',
     'contractor.eyebrow': 'निर्माण / ठेकेदार',
@@ -510,6 +526,7 @@
   function bkApplyI18n(root) {
     const scope = root || document;
     scope.querySelectorAll('[data-i18n]').forEach((el) => {
+      if (el.closest('#helpPanel')) return;
       const key = el.getAttribute('data-i18n');
       if (!key || el.hasAttribute('data-i18n-placeholder')) return;
       const val = bkT(key);
@@ -517,15 +534,19 @@
       else el.textContent = val;
     });
     scope.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      if (el.closest('#helpPanel')) return;
       el.placeholder = bkT(el.getAttribute('data-i18n-placeholder'));
     });
     scope.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      if (el.closest('#helpPanel')) return;
       el.title = bkT(el.getAttribute('data-i18n-title'));
     });
     scope.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+      if (el.closest('#helpPanel')) return;
       el.setAttribute('aria-label', bkT(el.getAttribute('data-i18n-aria')));
     });
     scope.querySelectorAll('option[data-i18n]').forEach((el) => {
+      if (el.closest('#helpPanel')) return;
       el.textContent = bkT(el.getAttribute('data-i18n'));
     });
     const heroYes = document.querySelector('.hero-stats .stat-card:nth-child(2) strong');

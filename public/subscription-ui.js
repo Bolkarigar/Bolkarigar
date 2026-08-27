@@ -116,6 +116,12 @@
       const cfg = await cfgRes.json().catch(() => ({}));
 
       if (!cfgRes.ok) {
+        if (cfgRes.status === 403) {
+          throw new Error(cfg.error || "Sirf shop owner plan kharid sakta hai. Staff account se payment nahi hoti.");
+        }
+        if (cfgRes.status === 401) {
+          throw new Error("Login expire ho gaya. Dubara login karein.");
+        }
         throw new Error(cfg.error || "Payment config load nahi hui.");
       }
 
@@ -138,7 +144,15 @@
         body: JSON.stringify({ plan: planId })
       });
       const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error || "Order create fail");
+      if (!orderRes.ok) {
+        if (orderRes.status === 403) {
+          throw new Error(orderData.error || "Sirf shop owner plan kharid sakta hai.");
+        }
+        if (orderRes.status === 503) {
+          throw new Error(orderData.error || "Razorpay abhi configure nahi hai. Support se contact karein.");
+        }
+        throw new Error(orderData.error || "Order create fail");
+      }
 
       const me = window._bkAccountInfo || {};
       const options = {
@@ -206,8 +220,16 @@
     if (typeof openPanel === "function") openPanel("myPlanPanel");
   });
 
-  document.getElementById("refreshPlanBtn")?.addEventListener("click", () => {
-    if (typeof loadServerData === "function") loadServerData();
+  document.getElementById("refreshPlanBtn")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (typeof loadServerData === "function") {
+      try {
+        await loadServerData();
+        if (typeof showToast === "function") showToast("Plan status refreshed.");
+      } catch (err) {
+        if (typeof showToast === "function") showToast("Could not refresh plan status.", "error");
+      }
+    }
   });
 
   document.getElementById("buyProPlanBtn")?.addEventListener("click", () => buyBolKarigarPlan("pro"));

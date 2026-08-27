@@ -29,6 +29,9 @@ Rules:
 - "hajri kholo" -> intent nav, panel payrollPanel
 - "naam aman rakho customer nitin site gurgaon budget 25 lakh add karo" -> intent project, projectName Aman, customer Nitin, site Gurgaon, budget 2500000, save true
 - "vendor Sharma amount 4200 kharcha add" -> intent expense, vendor Sharma, amount 4200, save true
+- "Ram 35000 ka laptop banao add karo" -> intent invoice, customer Ram, product laptop, price 35000, save true
+- "Vikrant ne ek phone liya 1200 ka" -> intent invoice, customer Vikrant, product phone, price 1200, save true
+- Sale/bill sentences with price+product are ALWAYS invoice, never project — even if customer name is spoken
 - panel: overviewPanel, invoicePanel, todoPanel, payrollPanel, ledgerPanel, inventoryPanel, helpPanel
 - pin = 6 digits only. state = full Indian state name. price = number only.`;
 }

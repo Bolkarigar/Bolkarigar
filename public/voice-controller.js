@@ -171,7 +171,28 @@
   }
 
   function isSaleSentence(n) {
-    return /ne\s+(?:ek\s+)?\w+.*(?:liya|liye|kharida|khareeda|purchase|li\b)|\bko\s+.*\b\d+\b.*(?:rupaye|rupees|rs|ka|me)\b|\bbill\b|invoice|बिल|इनवॉइस|खरीद|बेच/.test(n);
+    return /ne\s+(?:ek\s+)?\w+.*(?:liya|liye|kharida|khareeda|purchase|li\b)|\bko\s+.*\b\d+\b.*(?:rupaye|rupees|rs|ka|me)\b|\b\d{3,9}\s*(?:ka|ke|ki|रूपये|rupees|rs|rupaye?)\s+(?:\w+)/i.test(n) ||
+      /\bbill\b|invoice|बिल|इनवॉइस|खरीद|बेच|बनाओ|banao|banaa|banao/.test(n);
+  }
+
+  function cleanProductName(val) {
+    return cleanFieldValue(val)
+      .replace(/^\d+\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\s+/i, "")
+      .replace(/\s+\d+\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\s*$/i, "")
+      .replace(/\b(?:banao|banaa|banao|banana|bana|add karo|add kar do|add kero|bill banao|invoice banao|ग्राहक|customer|grahak|ko|ne|ek)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function looksLikeInvoiceUtterance(text) {
+    const n = norm(cleanUtterance(text));
+    if (!n) return false;
+    if (document.querySelector(".panel.active")?.id === "invoicePanel" && /\d{2,}/.test(n)) return true;
+    if (isSaleSentence(n)) return true;
+    if (/\b(invoice|bill|product|item|price|qty|quantity|grahak|customer|ग्राहक|बिल|इनवॉइस|प्रोडक्ट)\b/i.test(n) && /\d{2,}/.test(n)) return true;
+    if (new RegExp(`\\b(${PRODUCT_WORDS})\\b`, "i").test(n) && /\d{3,}/.test(n)) return true;
+    if (/\b\d{3,9}\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\b/i.test(n)) return true;
+    return false;
   }
 
   function cleanFieldValue(val) {
@@ -245,7 +266,7 @@
 
     if (!name) {
       name = extractTagged(t,
-        ["naam", "name", "नाम", "project naam", "project name", "project", "प्रोजेक्ट"],
+        ["project naam", "project name", "project", "प्रोजेक्ट"],
         ["customer", "grahak", "ग्राहक", "कस्टमर", "client", "site", "साइट", "साइड", "side", "location", "लोकेशन", "budget", "बजट"]);
     }
     if (!customer) {
@@ -276,12 +297,14 @@
   async function parseFormWithAi(raw, formType) {
     const ai = await parseWithGemini(raw);
     if (!ai) return null;
-    if (formType === "project" && (ai.intent === "project" || ai.projectName || ai.site || ai.budget)) {
+    if (formType === "project") {
+      if (isSaleSentence(norm(raw)) || ai.intent === "invoice" || ai.intent === "sale") return null;
+      if (!(ai.intent === "project" || ai.projectName || (ai.site && ai.budget))) return null;
       return {
-        name: cleanFieldValue(ai.projectName || ai.product || ""),
-        customer: cleanFieldValue(ai.customer || ""),
-        site: cleanFieldValue(ai.site || ""),
-        budget: ai.budget ? String(ai.budget) : (ai.price ? String(ai.price) : ""),
+        name: sanitizeShort(cleanFieldValue(ai.projectName || ""), 3),
+        customer: sanitizeShort(cleanFieldValue(ai.customer || ""), 3),
+        site: sanitizeShort(cleanFieldValue(ai.site || ""), 2),
+        budget: ai.budget ? String(ai.budget) : "",
         note: cleanFieldValue(ai.task || ""),
         status: "",
         save: ai.save !== false
@@ -292,11 +315,17 @@
 
   function looksLikeProjectUtterance(text) {
     const n = norm(text);
+    if (isSaleSentence(n) || looksLikeInvoiceUtterance(text)) return false;
     if (/(?:total\s*sale|sales?\s+history|बिक्री|टोटल\s*सेल|कुल\s*बिक्री|expense|kharcha|खर्च|vendor|वेंडर|quick\s*expense)/i.test(n)) return false;
     if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return false;
-    return /(?:project|प्रोजेक्ट|(?:^|\s)(?:naam|नाम)(?:\s|$)|customer|grahak|कस्टमर|ग्राहक|(?:^|\s)(?:site|side|साइट|साइड)(?:\s|$)|budget|बजट|लोकेशन|रखो|rakho|हमारा)/i.test(n) &&
-      !/(?:product|item|invoice|bill|qty|price|hsn|gst)\b/.test(n) &&
-      !/(?:^|\s)name\s+search|naam\s+search|नाम\s+.+\s*(?:search|सर्च|खोज)/i.test(n);
+    if (/(?:product|item|invoice|bill|qty|price|hsn|gst|laptop|mobile|phone|plywood|cement|लैपटॉप|मोबाइल|सीमेंट)\b/i.test(n)) return false;
+    if (/(?:project|प्रोजेक्ट)/i.test(n)) return true;
+    if (/(?:budget|बजट)/i.test(n) && /(?:project|site|साइट|customer|grahak|ग्राहक)/i.test(n)) return true;
+    if (/(?:site|साइट|साइड|side|location|लोकेशन)/i.test(n) && /(?:project|प्रोजेक्ट|budget|बजट)/i.test(n)) return true;
+    if (/(?:customer|grahak|कस्टमर|ग्राहक)/i.test(n) && /(?:project|प्रोजेक्ट|site|साइट|budget|बजट)/i.test(n)) return true;
+    if (/(?:project\s+)?(?:naam|नाम)\s+/i.test(n) && /(?:project|प्रोजेक्ट|budget|बजट|site|साइट|customer|grahak|ग्राहक)/i.test(n)) return true;
+    if (/(?:हमारा|hamara|hamari)/i.test(n) && /(?:project|प्रोजेक्ट|budget|बजट|site|साइट)/i.test(n)) return true;
+    return false;
   }
 
   function looksLikeSearchUtterance(text) {
@@ -423,6 +452,7 @@
   }
 
   async function tryProjectVoice(raw) {
+    if (looksLikeInvoiceUtterance(raw) || isSaleSentence(norm(raw))) return false;
     if (!looksLikeProjectUtterance(raw)) return false;
     let data = parseProjectFields(raw);
     const weak = !data.name && !data.customer && !data.site && !data.budget;
@@ -446,6 +476,10 @@
       data.site = sanitizeShort(data.site, 2);
     }
     if (!data.name && !data.customer && !data.site && !data.budget) return false;
+    if (data.site && /^\d{4,9}$/.test(String(data.site).trim())) {
+      if (!data.budget) data.budget = data.site;
+      data.site = "";
+    }
     if (typeof window.handleProjectSpeech === "function") {
       await window.handleProjectSpeech(raw, data);
       return true;
@@ -481,15 +515,24 @@
 
     if (neSale) {
       data.customer = capitalizeName(neSale[1]);
-      data.product = neSale[2].trim().replace(/^ek\s+/i, "").replace(/\s+(hai|se|from|haryana.*)$/i, "").trim();
+      data.product = cleanProductName(neSale[2].trim().replace(/^ek\s+/i, "").replace(/\s+(hai|se|from|haryana.*)$/i, "").trim());
       if (neSale[3] && /^\d+$/.test(neSale[3])) data.price = neSale[3];
     }
 
     if (!data.price && priceAny) data.price = priceAny;
 
+    const kaProduct =
+      t.match(/^([A-Za-z\u0900-\u097F]{2,25})\s+(\d{3,9})\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\s+(.+?)(?:\s+(?:banao|banaa|banao|add|bill|invoice|karo|करो))?$/i) ||
+      t.match(/(?:customer|grahak|ग्राहक)\s+([A-Za-z\u0900-\u097F]{2,25})\s+(\d{3,9})\s*(?:ka|ke|ki)\s+(.+?)(?:\s+(?:banao|banaa|banao|add))?$/i);
+    if (kaProduct) {
+      if (!data.customer) data.customer = capitalizeName(kaProduct[1]);
+      if (!data.price) data.price = kaProduct[2];
+      if (!data.product) data.product = cleanProductName(kaProduct[3]);
+    }
+
     if (!data.product) {
       const pm = t.match(new RegExp(`\\b(ek\\s+)?(${PRODUCT_WORDS})\\b`, "i"));
-      if (pm) data.product = (pm[2] || pm[1] || "").trim();
+      if (pm) data.product = cleanProductName(pm[2] || pm[1] || "");
     }
 
     if (!data.customer) {
@@ -511,7 +554,8 @@
 
     const naturalSale = isSaleSentence(n);
     const hasSignal = !!(data.customer && data.product && data.price);
-    return { data, isInvoice: hasSignal && naturalSale, naturalSale };
+    const partialSale = !!(data.product && data.price && (data.customer || naturalSale));
+    return { data, isInvoice: (hasSignal && naturalSale) || partialSale, naturalSale };
   }
 
   async function parseWithGemini(raw) {
@@ -566,7 +610,7 @@
     let parsed = parseSmartInvoice(raw);
     if (!parsed.isInvoice) {
       const n = norm(cleanUtterance(raw));
-      if ((isSaleSentence(n) || /\b(customer|grahak|bill|invoice)\b/.test(n)) && /\d{2,}/.test(n)) {
+      if ((looksLikeInvoiceUtterance(raw) || isSaleSentence(n)) && /\d{2,}/.test(n)) {
         const ai = await parseWithGemini(raw);
         if (ai && (ai.intent === "invoice" || ai.intent === "sale" || ai.intent === "nav")) {
           if (ai.intent === "nav" && ai.panel) {
@@ -577,7 +621,7 @@
             naturalSale: true,
             data: {
               customer: capitalizeName(ai.customer || ""),
-              product: ai.product || "",
+              product: cleanProductName(ai.product || ""),
               price: String(ai.price || ""),
               qty: String(ai.qty || "1"),
               state: ai.state || "",
@@ -589,6 +633,7 @@
       }
     }
     if (!parsed.isInvoice) return false;
+    if (parsed.data.product) parsed.data.product = cleanProductName(parsed.data.product);
     return applyInvoiceData(parsed.data, raw, parsed.naturalSale);
   }
 
@@ -687,10 +732,11 @@
     const api = typeof API_URL !== "undefined" ? API_URL : window.location.origin;
     notify("Soch raha hoon...", false);
     try {
+      const history = typeof window.bkGetChatHistory === "function" ? window.bkGetChatHistory() : [];
       const res = await fetch(`${api}/api/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: raw })
+        body: JSON.stringify({ message: raw, history })
       });
       const data = await res.json();
       const reply = data?.reply;
@@ -754,6 +800,8 @@
 
     if (tryNavigateVoice(cleaned)) return true;
 
+    if (looksLikeInvoiceUtterance(cleaned) && await fillAndAddInvoice(cleaned)) return true;
+
     if (await trySearchVoice(cleaned)) return true;
 
     if (await tryStandaloneSave(cleaned)) return true;
@@ -786,6 +834,9 @@
     parseFormWithAi,
     tryFastAction,
     processVoice,
+    fillAndAddInvoice,
+    looksLikeInvoiceUtterance,
+    cleanProductName,
     tryProjectVoice,
     tryExpenseVoice,
     tryNavigateVoice,

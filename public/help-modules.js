@@ -309,13 +309,13 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
             <h4 style="color: ${mod.color}; margin: 0;">${num}. ${escapeHtml(mod.title)}</h4>
             <div style="display:flex;gap:8px;align-items:center;">
-              ${mod.panelId ? `<button type="button" class="secondary help-open-tab-btn" data-open-tab="${mod.panelId}" style="padding:4px 10px;font-size:12px;">↗ Open</button>` : ""}
-              <button type="button" class="speak-card-btn" onclick="speakCardText('${cardId}', this)">🔊 Suno</button>
+              ${mod.panelId ? `<button type="button" class="secondary help-open-tab-btn" data-open-tab="${mod.panelId}" style="padding:4px 10px;font-size:12px;">↗ Open / खोलें</button>` : ""}
+              <button type="button" class="speak-card-btn" onclick="speakCardText('${cardId}', this)">🔊 Suno / सुनो</button>
             </div>
           </div>
           <div class="card-text">
-            <p style="margin-bottom: 5px;"><b>🇮🇳 Hindi:</b> ${escapeHtml(mod.hindi)}</p>
-            <p><b>🇬🇧 English:</b> ${escapeHtml(mod.english)}</p>
+            <p style="margin-bottom: 5px;"><b>हिंदी:</b> ${escapeHtml(mod.hindi)}</p>
+            <p><b>English:</b> ${escapeHtml(mod.english)}</p>
           </div>
         </div>`;
     }).join("");
@@ -339,4 +339,8 @@
 
   window.HELP_MODULE_CATALOG = ALL_MODULES;
   window.renderHelpModules = renderHelpModules;
+
+  document.addEventListener('bk:langchange', () => {
+    if (window._bkAccountInfo) renderHelpModules(window._bkAccountInfo);
+  });
 })();

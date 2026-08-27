@@ -128,8 +128,12 @@
       allItems = data.items || [];
       updateStats(data.stats);
       renderTable();
+      if (typeof window.showToast === "function") window.showToast("Inventory refreshed.");
+      return true;
     } catch (err) {
       if (body) body.innerHTML = `<tr><td colspan='11'>Error: ${escapeHtml(err.message)}</td></tr>`;
+      if (typeof window.showToast === "function") window.showToast("Could not refresh inventory.", "error");
+      return false;
     }
   }
 
@@ -240,7 +244,10 @@
 
     document.getElementById("invSaveBtn")?.addEventListener("click", saveItem);
     document.getElementById("invCancelEditBtn")?.addEventListener("click", resetForm);
-    document.getElementById("invRefreshBtn")?.addEventListener("click", loadInventory);
+    document.getElementById("invRefreshBtn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      loadInventory();
+    });
     document.getElementById("invSearch")?.addEventListener("input", renderTable);
     document.querySelector('.tab-btn[data-tab="inventoryPanel"]')?.addEventListener("click", loadInventory);
   }

@@ -16,66 +16,58 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260826i18n">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260827topbar">
   <script src="native-config.js?v=1"></script>
-  <script src="i18n.js?v=20260826d"></script>
+  <script src="i18n.js?v=20260826help"></script>
 </head>
 <body>
   <script>
-    // Purani cache / service worker hatao — naya UI load ho
-    (function () {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (regs) {
-          regs.forEach(function (r) { r.unregister(); });
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function (keys) {
-          keys.filter(function (k) { return k.indexOf('bolkarigar-') === 0; }).forEach(function (k) { caches.delete(k); });
-        });
-      }
-    })();
+    /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
 
-  <header class="topbar">
-    <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" data-i18n-aria="menu.open" aria-label="Open menu" aria-expanded="false" aria-controls="appSidebar">
-      <span class="mobile-menu-icon" aria-hidden="true"></span>
-    </button>
-    <div class="brand-wrap">
-      <div class="brand-mark">
-        <img src="icons/icon-192.png" alt="" class="brand-mark-img" width="44" height="44" decoding="async">
+  <div class="topbar-stack">
+    <header class="topbar">
+      <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" data-i18n-aria="menu.open" aria-label="Open menu" aria-expanded="false" aria-controls="appSidebar">
+        <span class="mobile-menu-icon" aria-hidden="true"></span>
+      </button>
+      <div class="brand-wrap">
+        <div class="brand-mark">
+          <img src="icons/icon-192.png" alt="" class="brand-mark-img" width="44" height="44" decoding="async">
+        </div>
+        <div>
+          <p class="eyebrow" data-i18n="app.eyebrow">Hindi Voice-First Contractor Tool</p>
+          <h1 class="brand-title-main">BolKarigar</h1>
+          <p class="brand-title-sub" data-i18n="app.subtitle">AI Dashboard</p>
+        </div>
       </div>
-      <div>
-        <p class="eyebrow" data-i18n="app.eyebrow">Hindi Voice-First Contractor Tool</p>
-        <h1 class="brand-title-main">BolKarigar</h1>
-        <p class="brand-title-sub" data-i18n="app.subtitle">AI Dashboard</p>
+      <div class="top-actions">
+        <div id="staffModeBanner" class="staff-mode-banner hidden" role="status">
+          <span class="staff-mode-dot"></span>
+          <span id="staffModeText" data-i18n="top.staffMode">Staff Mode</span>
+        </div>
+        <div class="clock-box">
+          <span data-i18n="top.liveTime">Live time</span>
+          <strong id="clock">00:00:00</strong>
+        </div>
+        <button id="voiceToggle" class="theme-btn voice-btn" type="button" data-i18n="top.voiceOff">Voice: OFF</button>
+        <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
+        <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
+        <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle" type="button" title="Language">🌐 EN</button>
+        <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
+        <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
       </div>
-    </div>
-    <div class="top-actions">
-      <div id="staffModeBanner" class="staff-mode-banner hidden" role="status">
-        <span class="staff-mode-dot"></span>
-        <span id="staffModeText" data-i18n="top.staffMode">Staff Mode</span>
-      </div>
-      <div class="clock-box">
-        <span data-i18n="top.liveTime">Live time</span>
-        <strong id="clock">00:00:00</strong>
-      </div>
-      <button id="voiceToggle" class="theme-btn voice-btn" type="button" data-i18n="top.voiceOff">Voice: OFF</button>
-      <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
-      <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
-      <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle" type="button" title="Language">🌐 EN</button>
-      <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
-      <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
-    </div>
-  </header>
+    </header>
 
-  <!-- DEV: ₹349 / ₹699 plan test bar (localhost par auto; live par ?devPlan=1 ya DEV_PLAN_TOGGLE=true) -->
-  <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
-    <span class="dev-plan-toggle-label">🧪 TEST UI — Plan Switch</span>
-    <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">₹349 Pro</button>
-    <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹699 Business</button>
-    <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad switch karein</span>
+    <!-- DEV: ₹349 / ₹699 plan test bar (localhost par auto; live par ?devPlan=1 ya DEV_PLAN_TOGGLE=true) -->
+    <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
+      <span class="dev-plan-toggle-label">🧪 TEST UI</span>
+      <div class="dev-plan-toggle-actions">
+        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">₹349 Pro</button>
+        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹699 Business</button>
+      </div>
+      <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad switch karein</span>
+    </div>
   </div>
 
   <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
@@ -292,9 +284,9 @@
           </div>
 
           <div class="inv-stats-grid" id="invStatsGrid">
-            <div class="inv-stat-card"><span>Total Items</span><strong id="invStatTotal">0</strong></div>
-            <div class="inv-stat-card"><span>Stock Value (Cost)</span><strong id="invStatValue">₹0</strong></div>
-            <div class="inv-stat-card"><span>Sale Value</span><strong id="invStatSale">₹0</strong></div>
+            <div class="inv-stat-card info"><span>Total Items</span><strong id="invStatTotal">0</strong></div>
+            <div class="inv-stat-card primary"><span>Stock Value (Cost)</span><strong id="invStatValue">₹0</strong></div>
+            <div class="inv-stat-card success"><span>Sale Value</span><strong id="invStatSale">₹0</strong></div>
             <div class="inv-stat-card warn"><span>Low Stock</span><strong id="invStatLow">0</strong></div>
             <div class="inv-stat-card danger"><span>Out of Stock</span><strong id="invStatOut">0</strong></div>
           </div>
@@ -456,7 +448,7 @@
             <input id="ledgerGstinInput" placeholder="GSTIN (optional)" />
             <input id="ledgerOpeningInput" type="number" placeholder="Opening Balance" />
           </div>
-          <button id="addLedgerBtn" type="button">➕ Add Ledger</button>
+          <button id="addLedgerBtn" type="button" style="margin-top: 10px;">➕ Add Ledger</button>
           <div class="table-wrap" style="margin-top:12px;">
             <table>
               <thead><tr><th>Name</th><th>Group</th><th>Mobile</th><th>Balance</th><th>Action</th></tr></thead>
@@ -500,7 +492,7 @@
             <input id="itemGodownInput" placeholder="Godown (e.g. Main Godown)" />
             <input id="itemBatchInput" placeholder="Batch No (optional)" />
           </div>
-          <button id="addItemBtn" type="button">➕ Add Item</button>
+          <button id="addItemBtn" type="button" style="margin-top: 10px;">➕ Add Item</button>
           <div class="table-wrap" style="margin-top:12px;">
             <table>
               <thead><tr><th>Item</th><th>Unit</th><th>Purchase ₹</th><th>Selling ₹</th><th>Stock Qty</th><th>Action</th></tr></thead>
@@ -621,7 +613,7 @@
               <textarea id="voucherNoteInput" placeholder="e.g. Cement 50 bags — godown main" rows="2"></textarea>
             </label>
 
-            <button id="saveVoucherBtn" type="button">💾 Save Voucher</button>
+            <button id="saveVoucherBtn" type="button" style="margin-top: 10px;">💾 Save Voucher</button>
             <p class="helper-text" id="voucherStatusText"></p>
           </div>
         </section>
@@ -666,8 +658,26 @@
               <p class="eyebrow" data-i18n="sales.eyebrow">Permanent Record</p>
               <h3 data-i18n="sales.title">📊 Total Sales History (2 Years Archive)</h3>
             </div>
-            <input type="text" id="salesSearchInput" class="panel-search-input" placeholder="🔍 Naam ya Invoice No..." />
+            <input type="text" id="salesSearchInput" class="panel-search-input" data-i18n-placeholder="sales.searchPh" placeholder="🔍 Naam ya Invoice No..." />
           </div>
+          <div class="sales-filter-row">
+            <label class="sales-date-field">
+              <span data-i18n="sales.fromDate">From Date</span>
+              <input type="date" id="salesFromDate" />
+            </label>
+            <label class="sales-date-field">
+              <span data-i18n="sales.toDate">To Date</span>
+              <input type="date" id="salesToDate" />
+            </label>
+            <button type="button" id="salesApplyDateBtn" data-i18n="sales.applyFilter">Apply Filter</button>
+            <button type="button" id="salesClearDateBtn" class="secondary" data-i18n="sales.clearFilter">Clear</button>
+            <div class="sales-quick-filters">
+              <button type="button" class="secondary sales-quick-btn" data-range="thisMonth" data-i18n="sales.thisMonth">This Month</button>
+              <button type="button" class="secondary sales-quick-btn" data-range="lastMonth" data-i18n="sales.lastMonth">Last Month</button>
+              <button type="button" class="secondary sales-quick-btn" data-range="thisYear" data-i18n="sales.thisYear">This Year</button>
+            </div>
+          </div>
+          <p id="salesDateFilterLabel" class="helper-text sales-date-filter-label hidden"></p>
           <div class="table-wrap" style="margin-top:12px;">
             <table>
               <thead>
@@ -725,7 +735,7 @@
               <select id="labourStatusInput"><option>Present</option><option>Absent</option><option>Half Day</option><option>Overtime</option></select>
               <input id="labourWageInput" type="number" placeholder="Daily Wage ₹" />
             </div>
-            <button id="addLabourBtn" type="button">➕ Mark Attendance</button>
+            <button id="addLabourBtn" type="button" style="margin-top: 10px;">➕ Mark Attendance</button>
             <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Date</th><th>Worker</th><th>Project</th><th>Status</th><th>Wage</th><th></th></tr></thead><tbody id="labourBody"></tbody></table></div>
           </div>
           <div class="contractor-subpanel" id="raBillSub">
@@ -735,7 +745,7 @@
               <input id="raWorkInput" placeholder="Work Description" />
               <input id="raAmountInput" type="number" placeholder="Amount ₹" />
             </div>
-            <button id="addRABillBtn" type="button">➕ Create RA Bill</button>
+            <button id="addRABillBtn" type="button" style="margin-top: 10px;">➕ Create RA Bill</button>
             <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Bill No</th><th>Project</th><th>Client</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody id="raBillBody"></tbody></table></div>
           </div>
           <div class="contractor-subpanel" id="materialSlipSub">
@@ -745,7 +755,7 @@
               <input id="msQtyInput" type="number" placeholder="Quantity" />
               <input id="msIssuedToInput" placeholder="Issued To (Mistri/Team)" />
             </div>
-            <button id="addMaterialSlipBtn" type="button">➕ Issue Material Slip</button>
+            <button id="addMaterialSlipBtn" type="button" style="margin-top: 10px;">➕ Issue Material Slip</button>
             <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Slip No</th><th>Project</th><th>Item</th><th>Qty</th><th>Issued To</th><th></th></tr></thead><tbody id="materialSlipBody"></tbody></table></div>
           </div>
         </section>
@@ -794,7 +804,7 @@
                 <select id="payrollLinkUser"><option value="">— App login link (optional) —</option></select>
                 <p id="payrollLinkHint" class="helper-text payroll-link-hint">Staff app login link (optional) — invite wale staff auto-link ho jate hain.</p>
               </div>
-              <button id="payrollAddEmpBtn" type="button">➕ Add Employee</button>
+              <button id="payrollAddEmpBtn" type="button" style="margin-top: 10px;">➕ Add Employee</button>
               <div class="table-wrap" style="margin-top:14px;">
                 <table>
                   <thead><tr><th>Name</th><th>Phone</th><th>Salary</th><th>Weekly Off</th><th>App Link</th><th></th></tr></thead>
@@ -908,7 +918,7 @@
             <input id="bankDebitInput" type="number" placeholder="Debit ₹" />
             <input id="bankCreditInput" type="number" placeholder="Credit ₹" />
           </div>
-          <button id="addBankEntryBtn" type="button">➕ Add Bank Statement Entry</button>
+          <button id="addBankEntryBtn" type="button" style="margin-top: 10px;">➕ Add Bank Statement Entry</button>
           <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Matched</th></tr></thead><tbody id="bankReconBody"></tbody></table></div>
         </section>
 
@@ -921,7 +931,7 @@
             <input id="coGstinInput" placeholder="GSTIN" />
             <input id="coAddressInput" placeholder="Address" style="grid-column:1/-1" />
           </div>
-          <button id="addCompanyBtn" type="button">➕ Add Company</button>
+          <button id="addCompanyBtn" type="button" style="margin-top: 10px;">➕ Add Company</button>
           <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Company</th><th>GSTIN</th><th>Status</th><th>Action</th></tr></thead><tbody id="companiesBody"></tbody></table></div>
         </section>
 
@@ -995,7 +1005,7 @@
   <div class="eway-bill-row">
     <input type="text" id="ewayBillNo" placeholder="E-Way Bill No." />
     <input type="text" id="vehicleNo" placeholder="Vehicle No. (e.g. HR36AB1234)" />
-    <input type="number" id="distanceKm" class="eway-distance-input" placeholder="Distance (KM)" />
+    <input type="number" id="distanceKm" class="eway-distance-input" placeholder="Distance (KM)" min="0" step="1" inputmode="numeric" />
   </div>
 </div>
     <!-- ⚙️ ACCOUNTING PREFERENCE SWITCH -->
@@ -1108,8 +1118,8 @@
 <section class="panel" id="helpPanel">
   <div class="panel-header">
     <div>
-      <p class="eyebrow">Tools & Backup</p>
-      <h3>🔧 Data Backup & CA Export</h3>
+      <p class="eyebrow">Tools &amp; Backup / टूल्स और बैकअप</p>
+      <h3>🔧 Data Backup &amp; CA Export / डेटा बैकअप</h3>
     </div>
   </div>
   <div class="btn-row" style="margin-bottom:20px;flex-wrap:wrap;">
@@ -1118,14 +1128,14 @@
   </div>
   <div class="panel-header">
     <div>
-      <p class="eyebrow" data-i18n="help.eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
-      <h3 data-i18n="help.title">❓ App Modules & Buttons Manual (आपके प्लान के मॉड्युल्स)</h3>
-      <p id="helpPlanBadge" class="help-plan-badge pro" data-i18n="help.loading">Modules load ho rahe hain...</p>
+      <p class="eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
+      <h3>❓ App Modules &amp; Buttons Manual / ऐप मॉड्यूल गाइड</h3>
+      <p id="helpPlanBadge" class="help-plan-badge pro">Modules load ho rahe hain...</p>
     </div>
   </div>
 
   <div id="helpModulesList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-    <p class="helper-text" data-i18n="help.loading">Aapka plan load hone ke baad yahan modules dikhenge.</p>
+    <p class="helper-text">Aapka plan load hone ke baad yahan modules dikhenge. / प्लान लोड होने के बाद मॉड्यूल यहाँ दिखेंगे।</p>
   </div>
 
   <!-- SUPPORT FOOTER -->
@@ -1157,18 +1167,19 @@
   <!-- ================================================================== -->
   <div id="liveAiWidget" class="live-ai-widget hidden">
     <div class="live-ai-header">
-      <div class="live-ai-title">🤖 BolKarigar AI <span id="liveAiStatusDot" class="live-ai-dot"></span></div>
+      <div class="live-ai-title">🤖 BolKarigar AI <span id="liveAiModelBadge" class="live-ai-model-badge"></span> <span id="liveAiStatusDot" class="live-ai-dot"></span></div>
       <div class="live-ai-header-actions">
+        <button id="liveAiLiveBtn" type="button" title="Live baatcheet — bolte raho, AI jawab dega" class="live-ai-live-btn">🎙️ Live</button>
         <button id="liveAiClearBtn" type="button" title="Chat clear karo">🗑️</button>
         <button id="liveAiCloseBtn" type="button" title="Band karo">✕</button>
       </div>
     </div>
     <div id="liveAiMessages" class="live-ai-messages">
       <div class="live-ai-msg live-ai-msg-bot">
-        Namaste! Main BolKarigar AI hoon 🙂 Aap mujhse type ya bol kar poochh sakte ho, aur main app ke andar kaam bhi kar sakta hoon — jaise "todo me likho kal cement lana hai" ya "invoice khol do".
+        Namaste! Main BolKarigar AI hoon — GPT-4o powered live assistant 🙂 Sawal poochho, ya seedha bolo: "invoice kholo", "todo me cement lana hai", "customer Ram ko laptop 25000 ka bill banao". Main yaad rakhta hoon aur live baat kar sakta hoon.
       </div>
     </div>
-    <div id="liveAiTyping" class="live-ai-typing hidden">AI soch raha hai...</div>
+    <div id="liveAiTyping" class="live-ai-typing hidden">BolKarigar AI soch raha hai...</div>
     <div class="live-ai-input-row">
       <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Bol kar poochho">🎤</button>
       <input id="liveAiInput" type="text" placeholder="Kuch poochho ya command bolo..." autocomplete="off" />
@@ -1204,6 +1215,23 @@
       </div>
       <div class="btn-row" style="margin-top:12px;">
         <button type="button" id="udharDetailPayBtn" class="secondary">💰 Record Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ledger Statement Modal (📄 button se khulta hai) -->
+  <div id="ledgerStatementModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerStatementTitle">
+    <div class="modal-box" style="max-width:720px;width:95%;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+        <h3 id="ledgerStatementTitle" style="margin:0;font-size:18px;">📄 Ledger Statement</h3>
+        <button type="button" id="closeLedgerStatementBtn" class="secondary" style="padding:6px 12px;" title="Close / बंद करें">✕ Close</button>
+      </div>
+      <p id="ledgerStatementMeta" class="helper-text" style="margin:0 0 10px;"></p>
+      <div class="table-wrap" style="max-height:50vh;overflow:auto;">
+        <table>
+          <thead><tr><th>Date</th><th>Voucher</th><th>Amount</th><th>Note</th></tr></thead>
+          <tbody id="ledgerStatementBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1262,9 +1290,9 @@
   </div>
 
   <script src="responsive-ui.js?v=20260824v17"></script>
-  <script src="help-modules.js?v=20260823h1"></script>
-  <script src="voice-controller.js?v=20260824v17"></script>
-  <script src="bolkarigar.js?v=20260826i18n2"></script>
+  <script src="help-modules.js?v=20260826help"></script>
+  <script src="voice-controller.js?v=20260826voice"></script>
+  <script src="bolkarigar.js?v=20260827pay"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1280,12 +1308,12 @@
       }
     });
   </script>
-  <script src="subscription-ui.js?v=20260814v7"></script>
+  <script src="subscription-ui.js?v=20260827pay"></script>
   <script src="dev-plan-toggle.js?v=20260820d2"></script>
-  <script src="inventory-ui.js?v=20260814v7"></script>
-  <script src="bolkarigar-pro.js?v=20260814v3"></script>
+  <script src="inventory-ui.js?v=20260826fixes"></script>
+  <script src="bolkarigar-pro.js?v=20260826fixes"></script>
   <script src="payroll-ui.js?v=20260823p2"></script>
-  <script src="live-features-ui.js?v=20260821m2"></script>
+  <script src="live-features-ui.js?v=20260826fixes"></script>
 
   <!-- Payroll salary slip — body level overlay (har panel par nahi dikhe) -->
   <div id="payrollSlipModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Salary slip">

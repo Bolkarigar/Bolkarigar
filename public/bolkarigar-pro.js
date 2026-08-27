@@ -6,6 +6,13 @@
   const token = () => localStorage.getItem('bk_token') || localStorage.getItem('token') || '';
   const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` });
 
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    window.__bkInstallPrompt = e;
+  });
+
   function showToast(msg, type) {
     if (typeof window.showToast === 'function') window.showToast(msg, type);
     else alert(msg);
@@ -329,18 +336,34 @@
 
     populateLedgerGroups();
 
-    // PWA — purani cache hatao, fresh files load karo
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-      setTimeout(() => navigator.serviceWorker.register('/sw.js?v=4').catch(() => {}), 500);
+      navigator.serviceWorker.register('/sw.js?v=5').catch(() => {});
     }
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-    document.getElementById('installAppBtn')?.addEventListener('click', async () => {
-      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
-      else showToast('Browser menu se "Add to Home Screen" / "Install App" choose karein.');
+    document.getElementById('installAppBtn')?.addEventListener('click', () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandalone) {
+        showToast('App already installed.');
+        return;
+      }
+      const prompt = deferredPrompt || window.__bkInstallPrompt;
+      if (prompt) {
+        prompt.prompt();
+        prompt.userChoice.then(() => {
+          deferredPrompt = null;
+          window.__bkInstallPrompt = null;
+        });
+        return;
+      }
+      const ua = navigator.userAgent || '';
+      const isIOS = /iphone|ipad|ipod/i.test(ua);
+      const isAndroid = /android/i.test(ua);
+      if (isIOS) {
+        alert('Safari: Share button → "Add to Home Screen"');
+      } else if (isAndroid) {
+        alert('Browser menu → "Install app" ya "Add to Home screen"');
+      } else {
+        alert('Laptop/Desktop par install:\n\nChrome / Edge: Address bar me ⊕ ya "Install" icon dabayein\n\nYa menu (⋮) → "Install BolKarigar" / "Apps" → "Install this site as an app"');
+      }
     });
   });
 

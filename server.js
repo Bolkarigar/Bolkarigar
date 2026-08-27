@@ -18,6 +18,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { BOLKARIGAR_SYSTEM_PROMPT } = require('./system-prompt.js');
 const { getOfflineAiReply, isValidGeminiApiKey } = require('./ai-offline.js');
 const { callVoiceParse } = require('./voice-ai.js');
+const { callChatAI, sanitizeHistory } = require('./chat-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
 const rbac = require('./rbac');
@@ -145,33 +146,6 @@ app.post("/api/ask", authenticateToken, requireBusinessPlan, async (req, res) =>
 
 // System Prompt for Chat Bot — now using the comprehensive prompt from system-prompt.js
 const AI_SYSTEM_PROMPT = BOLKARIGAR_SYSTEM_PROMPT;
-const GEMINI_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-flash-latest',
-  'gemini-2.5-flash-lite',
-  'gemini-3-flash-preview',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash'
-];
-
-async function callGeminiChat(userMessage) {
-  let lastErr = null;
-  for (const modelName of GEMINI_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: AI_SYSTEM_PROMPT
-      });
-      const result = await model.generateContent(userMessage);
-      const text = result.response.text().trim();
-      if (text) return { reply: text, model: modelName };
-    } catch (err) {
-      lastErr = err;
-      logger.info(`[Gemini] ${modelName} fail:`, err.message);
-    }
-  }
-  throw lastErr || new Error('Gemini models unavailable');
-}
 
 // Voice parse — structured JSON from natural Hindi (Pro + Business)
 app.post('/api/voice/parse', authenticateToken, async (req, res) => {
@@ -196,31 +170,44 @@ app.post('/api/voice/parse', authenticateToken, async (req, res) => {
   }
 });
 
-// AI Endpoint: Live Chat
+// AI Endpoint: Live Chat (GPT-4o + Gemini + conversation memory)
 app.post('/api/ai/chat', authenticateToken, requireBusinessPlan, async (req, res) => {
   try {
-    const { message } = req.body;
-    if (!message || !message.trim()) {
+    const message = String(req.body?.message || '').trim();
+    if (!message) {
       return res.json({ reply: "Kuch bola nahi gaya, phir se try karo.", source: 'offline' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || '';
-    if (!isValidGeminiApiKey(apiKey)) {
-      logger.warn('[AI Chat] Invalid/missing Gemini key — using offline knowledge. Key should start with AIza from https://aistudio.google.com/app/apikey');
+    const history = sanitizeHistory(req.body?.history);
+    const openaiKey = process.env.OPENAI_API_KEY || '';
+    const geminiKey = process.env.GEMINI_API_KEY || '';
+    const hasOpenai = openaiKey.startsWith('sk-') && openaiKey.length > 20;
+    const hasGemini = isValidGeminiApiKey(geminiKey);
+
+    if (!hasOpenai && !hasGemini) {
+      logger.warn('[AI Chat] No valid OpenAI/Gemini key — offline knowledge only.');
       const offlineReply = getOfflineAiReply(message);
-      return res.json({ reply: offlineReply, source: 'offline', hint: 'Valid Gemini key ke liye Google AI Studio se AIza... wali key .env me daalein.' });
+      return res.json({
+        reply: offlineReply,
+        source: 'offline',
+        hint: 'Live AI ke liye Render/.env me OPENAI_API_KEY (sk-...) ya GEMINI_API_KEY (AIza...) set karein.'
+      });
     }
 
     try {
-      const { reply, model } = await callGeminiChat(message.trim());
-      return res.json({ reply, source: 'gemini', model });
-    } catch (geminiErr) {
-      logger.error('Gemini API Error:', geminiErr.message);
+      const { reply, provider, model, fallbackFrom } = await callChatAI({
+        message,
+        history,
+        systemPrompt: AI_SYSTEM_PROMPT
+      });
+      return res.json({ reply, source: provider, model, fallbackFrom: fallbackFrom || undefined });
+    } catch (aiErr) {
+      logger.error('AI Chat Error:', aiErr.message);
       const offlineReply = getOfflineAiReply(message);
-      const errorMsg = geminiErr.message || '';
       let hint = '';
-      if (errorMsg.includes('API_KEY') || errorMsg.includes('API key') || errorMsg.includes('403')) {
-        hint = 'API key galat hai — https://aistudio.google.com/app/apikey se nayi AIza... key banayein.';
+      const errorMsg = aiErr.message || '';
+      if (errorMsg.includes('API key') || errorMsg.includes('401') || errorMsg.includes('403')) {
+        hint = 'API key check karein — OpenAI sk-... ya Gemini AIza... from Google AI Studio.';
       }
       return res.json({ reply: offlineReply, source: 'offline', hint });
     }
@@ -922,8 +909,16 @@ app.get('/api/sales', authenticateToken, async (req, res) => {
     }
     if (fromDate || toDate) {
       filter.date = {};
-      if (fromDate) filter.date.$gte = new Date(fromDate);
-      if (toDate) filter.date.$lte = new Date(toDate);
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        filter.date.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        filter.date.$lte = end;
+      }
     }
 
     const pageNum = Math.max(1, parseInt(page));

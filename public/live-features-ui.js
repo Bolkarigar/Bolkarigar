@@ -21,7 +21,7 @@
   async function loadDailySummary() {
     try {
       const r = await fetch(`${API()}/api/reports/daily-summary`, { headers: hdr() });
-      if (!r.ok) return;
+      if (!r.ok) throw new Error('Daily summary load failed');
       const d = await r.json();
       const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = `₹${(val || 0).toFixed(2)}`; };
       set('dailyCashVal', d.cashReceived);
@@ -30,7 +30,11 @@
       set('dailyCollectionsVal', d.udharCollections);
       const inv = document.getElementById('dailyInvoiceCount');
       if (inv) inv.textContent = String(d.invoiceCount || 0);
-    } catch (e) { /* silent */ }
+      return true;
+    } catch (e) {
+      toast('Could not refresh daily summary.', 'error');
+      return false;
+    }
   }
 
   async function loadLowStockAlerts() {
@@ -104,16 +108,33 @@
     } else toast('❌ ' + (d.error || 'Import fail'), 'error');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  async function bkRefreshDashboard() {
+    const jobs = [];
+    if (typeof window.refreshOverviewSalesFromHistory === 'function') {
+      jobs.push(window.refreshOverviewSalesFromHistory());
+    }
+    if (typeof calculateFinancials === 'function' && typeof state !== 'undefined') {
+      try { calculateFinancials(state.invoices, state.expenses); } catch (_) { /* ignore */ }
+    }
+    if (typeof window.refreshUdharKhata === 'function') {
+      jobs.push(window.refreshUdharKhata());
+    }
+    jobs.push(loadDailySummary());
+    jobs.push(loadLowStockAlerts());
+    await Promise.allSettled(jobs);
+    toast('Dashboard refreshed.');
+  }
+
+  function wireLiveFeatureEvents() {
     updateTodayDateLabel();
     setTimeout(() => { loadDailySummary(); loadLowStockAlerts(); }, 800);
     showOnboardingIfNeeded();
     setInterval(updateTodayDateLabel, 60000);
 
-    document.getElementById('refreshDailyBtn')?.addEventListener('click', () => {
-      loadDailySummary();
-      loadLowStockAlerts();
-      toast('Dashboard refresh ho gaya.');
+    document.getElementById('refreshDailyBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      bkRefreshDashboard();
     });
     document.getElementById('downloadBackupBtn')?.addEventListener('click', () =>
       downloadBackup('/api/backup/full', `bolkarigar-backup-${Date.now()}.json`));
@@ -126,7 +147,13 @@
       if (f) importBankCsv(f);
       e.target.value = '';
     });
-  });
+  }
 
-  window.BolKarigarLive = { loadDailySummary, loadLowStockAlerts, updateTodayDateLabel };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireLiveFeatureEvents);
+  } else {
+    wireLiveFeatureEvents();
+  }
+
+  window.BolKarigarLive = { loadDailySummary, loadLowStockAlerts, updateTodayDateLabel, bkRefreshDashboard };
 })();
