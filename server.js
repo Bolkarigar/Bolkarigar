@@ -24,7 +24,13 @@ const { setupPayrollFeatures } = require('./payroll-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
-const { isEmailConfigured, sendPasswordResetOtp, verifyEmailTransport } = require('./email-service');
+const {
+  isEmailConfigured,
+  hasHttpsEmailProvider,
+  isRenderHost,
+  sendPasswordResetOtp,
+  verifyEmailTransport
+} = require('./email-service');
 const {
   getSubscriptionForUser,
   setupSubscription,
@@ -834,15 +840,19 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     user.resetOtpAttempts = 0;
     await user.save();
 
-    try {
-      const delivery = await sendPasswordResetOtp(recipient, otp);
-      if (!delivery.sent) {
-        return res.status(503).json({
-          error: 'Could not send OTP email in time. Please try again in a minute. If this continues, contact support@bolkarigar.com.',
-          emailDelivered: false
-        });
-      }
-    } catch (mailErr) {
+      try {
+        const delivery = await sendPasswordResetOtp(recipient, otp);
+        if (!delivery.sent) {
+          const smtpBlocked = isRenderHost() && !hasHttpsEmailProvider();
+          return res.status(503).json({
+            error: smtpBlocked
+              ? 'Live server par Gmail SMTP band hai (Render free plan). Owner ko Render Environment me BREVO_API_KEY add karna hoga — tab sab users ko OTP jayega.'
+              : (delivery.error || 'Could not send OTP email. Please try again in a minute.'),
+            emailDelivered: false,
+            code: smtpBlocked ? 'RENDER_SMTP_BLOCKED' : 'EMAIL_SEND_FAILED'
+          });
+        }
+      } catch (mailErr) {
       logger.error('Reset OTP email error:', mailErr.message);
       user.resetTokenHash = null;
       user.resetTokenExpiry = null;
@@ -932,11 +942,16 @@ app.get('/api/dashboard/sync', authenticateToken, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    version: 'live-ready-v2',
+    version: 'live-ready-v3',
     mongo: mongoose.connection.readyState === 1,
     emailConfigured: isEmailConfigured(),
     emailReady: !!global.__bkEmailReady,
     emailProvider: global.__bkEmailProvider || null,
+    httpsEmail: hasHttpsEmailProvider(),
+    renderHost: isRenderHost(),
+    emailHint: isRenderHost() && !hasHttpsEmailProvider()
+      ? 'Render FREE blocks Gmail SMTP. Add BREVO_API_KEY in Environment (free at brevo.com).'
+      : null,
     env: process.env.NODE_ENV || 'development'
   });
 });

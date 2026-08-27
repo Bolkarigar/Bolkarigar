@@ -12,9 +12,11 @@ services:
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
-        value: "587"
+        value: "465"
       - key: SMTP_SECURE
-        value: "false"
+        value: "true"
+      - key: SMTP_FROM
+        value: "BolKarigar <vkverma3185@gmail.com>"
       - key: SMTP_FROM_NAME
         value: BolKarigar
       # Secret — Render Dashboard me manually set karein:
@@ -22,7 +24,11 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
-      # RECOMMENDED on Render (HTTPS — Gmail SMTP often blocked on cloud):
+      # RECOMMENDED on Render FREE (Gmail SMTP ports blocked):
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        value: vkverma3185@gmail.com
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM

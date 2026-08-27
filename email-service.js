@@ -1,11 +1,16 @@
 /**
- * BolKarigar — password reset / notification emails
- * SMTP (nodemailer) ya Resend API — jo configured ho woh use hota hai.
+ * BolKarigar — password reset emails
+ * Production (Render free): SMTP ports 25/465/587 BLOCKED — use Resend or Brevo (HTTPS).
+ * Local / paid Render: Gmail SMTP still works.
  */
 const logger = require('./logger');
 
 function normalizeSmtpPass(pass) {
   return String(pass || '').replace(/\s+/g, '');
+}
+
+function isRenderHost() {
+  return !!(process.env.RENDER || process.env.RENDER_EXTERNAL_URL);
 }
 
 function getSmtpConfig() {
@@ -44,9 +49,15 @@ function getSmtpConfig() {
   return { transport, from, user, isGmail };
 }
 
+function hasHttpsEmailProvider() {
+  return !!(
+    String(process.env.RESEND_API_KEY || '').trim()
+    || String(process.env.BREVO_API_KEY || '').trim()
+  );
+}
+
 function isEmailConfigured() {
-  if (getSmtpConfig()) return true;
-  return !!String(process.env.RESEND_API_KEY || '').trim();
+  return hasHttpsEmailProvider() || !!getSmtpConfig();
 }
 
 const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 35000;
@@ -65,33 +76,55 @@ function buildSmtpTransports() {
   const cfg = getSmtpConfig();
   if (!cfg) return [];
   const nodemailer = require('nodemailer');
-  const base = {
-    ...cfg.transport,
+
+  const gmailService = cfg.isGmail
+    ? [{
+      transporter: nodemailer.createTransport({
+        service: 'gmail',
+        auth: cfg.transport.auth,
+        pool: false,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        family: 4
+      }),
+      from: cfg.from,
+      label: 'gmail-service'
+    }]
+    : [];
+
+  const port465 = cfg.isGmail ? [{
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: cfg.transport.auth,
+    tls: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
     pool: false,
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 20000,
     family: 4
-  };
-  const transports = [base];
-  if (cfg.isGmail && base.port !== 465) {
-    transports.push({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: base.auth,
-      tls: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
-      pool: false,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-      family: 4
-    });
+  }] : [];
+
+  const portConfigured = [{ ...cfg.transport, pool: false, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 20000, family: 4 }];
+
+  const ordered = isRenderHost()
+    ? [...gmailService, ...port465, ...portConfigured]
+    : [...portConfigured, ...port465, ...gmailService];
+
+  const seen = new Set();
+  const unique = [];
+  for (const t of ordered) {
+    const key = `${t.host || t.service}:${t.port || 'svc'}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(t);
   }
-  return transports.map((t) => ({
-    transporter: nodemailer.createTransport(t),
+
+  return unique.map((t) => ({
+    transporter: t.transporter || nodemailer.createTransport(t),
     from: cfg.from,
-    label: `smtp:${t.port}`
+    label: t.label || `smtp:${t.port || 'gmail'}`
   }));
 }
 
@@ -102,36 +135,50 @@ function createMailTransporter() {
 
 async function verifyEmailTransport() {
   if (!isEmailConfigured()) {
-    logger.warn('[Email] SMTP/Resend configured nahi — forgot-password emails nahi jayengi.');
+    logger.warn('[Email] No email provider configured — forgot-password will fail.');
     return { ok: false, provider: null, error: 'not_configured' };
   }
 
   if (process.env.RESEND_API_KEY) {
-    logger.info('[Email] Resend API key set — password reset emails enabled (recommended for Render).');
+    logger.info('[Email] Resend API ready (HTTPS — works on Render free).');
     return { ok: true, provider: 'resend' };
   }
 
-  const transports = buildSmtpTransports();
-  if (transports.length) {
-    let lastErr = null;
-    for (const mail of transports) {
-      try {
-        await mail.transporter.verify();
-        logger.info(`[Email] SMTP ready (${mail.label}) — password reset emails enabled.`);
-        return { ok: true, provider: 'smtp' };
-      } catch (err) {
-        lastErr = err;
-        logger.warn(`[Email] SMTP verify failed (${mail.label}):`, err.message);
-      }
-    }
-    logger.error('[Email] SMTP verify failed on all ports:', lastErr?.message);
-    return { ok: false, provider: 'smtp', error: lastErr?.message || 'verify_failed' };
+  if (process.env.BREVO_API_KEY) {
+    logger.info('[Email] Brevo API ready (HTTPS — works on Render free).');
+    return { ok: true, provider: 'brevo' };
   }
 
-  return { ok: false, provider: null, error: 'unknown' };
+  if (isRenderHost()) {
+    logger.error('[Email] Render blocks SMTP on free plan. Add BREVO_API_KEY or RESEND_API_KEY in Render Environment.');
+    return {
+      ok: false,
+      provider: 'smtp',
+      error: 'render_smtp_blocked',
+      hint: 'Add BREVO_API_KEY (free) or RESEND_API_KEY on Render — Gmail SMTP ports are blocked.'
+    };
+  }
+
+  const transports = buildSmtpTransports();
+  let lastErr = null;
+  for (const mail of transports) {
+    try {
+      await mail.transporter.verify();
+      logger.info(`[Email] SMTP ready (${mail.label}).`);
+      return { ok: true, provider: 'smtp' };
+    } catch (err) {
+      lastErr = err;
+      logger.warn(`[Email] SMTP verify failed (${mail.label}):`, err.message);
+    }
+  }
+  return { ok: false, provider: 'smtp', error: lastErr?.message || 'verify_failed' };
 }
 
 async function sendViaSmtp({ to, subject, text, html }) {
+  if (isRenderHost() && !process.env.ALLOW_RENDER_SMTP) {
+    throw new Error('Render free plan blocks SMTP ports 465/587. Add BREVO_API_KEY or RESEND_API_KEY.');
+  }
+
   const transports = buildSmtpTransports();
   if (!transports.length) throw new Error('SMTP is not configured.');
 
@@ -155,7 +202,7 @@ async function sendViaSmtp({ to, subject, text, html }) {
       logger.warn(`[Email] Send failed (${mail.label}):`, err.message);
     }
   }
-  throw lastErr || new Error('SMTP send failed on all ports.');
+  throw lastErr || new Error('SMTP send failed on all transports.');
 }
 
 async function sendViaResend({ to, subject, text, html }) {
@@ -174,10 +221,43 @@ async function sendViaResend({ to, subject, text, html }) {
       text,
       html: html || undefined
     })
-  }), 15000, 'Resend API');
+  }), 20000, 'Resend API');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Resend API error ${res.status}: ${body}`);
+  }
+}
+
+async function sendViaBrevo({ to, subject, text, html }) {
+  const apiKey = String(process.env.BREVO_API_KEY || '').trim();
+  if (!apiKey) throw new Error('BREVO_API_KEY missing');
+
+  const fromEmail = String(
+    process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || ''
+  ).trim().toLowerCase();
+  const fromName = process.env.SMTP_FROM_NAME || 'BolKarigar';
+  if (!fromEmail) throw new Error('Set BREVO_FROM_EMAIL or SMTP_USER');
+
+  const fetch = require('node-fetch');
+  const res = await withTimeout(fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      textContent: text,
+      htmlContent: html || undefined
+    })
+  }), 20000, 'Brevo API');
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo API error ${res.status}: ${body}`);
   }
 }
 
@@ -206,27 +286,52 @@ function buildOtpEmail(otp) {
 
 async function sendPasswordResetOtp(email, otp) {
   const { subject, text, html } = buildOtpEmail(otp);
+  const errors = [];
 
-  // Resend (HTTPS) is more reliable on cloud hosts than Gmail SMTP port 587.
+  if (process.env.BREVO_API_KEY) {
+    try {
+      await sendViaBrevo({ to: email, subject, text, html });
+      logger.info(`[Password Reset] OTP sent to ${email} via Brevo`);
+      return { sent: true, provider: 'brevo' };
+    } catch (err) {
+      errors.push(`Brevo: ${err.message}`);
+      logger.error('[Password Reset] Brevo failed:', err.message);
+    }
+  }
+
   if (process.env.RESEND_API_KEY) {
-    await sendViaResend({ to: email, subject, text, html });
-    logger.info(`[Password Reset] OTP email sent to ${email} via Resend`);
-    return { sent: true, provider: 'resend' };
+    try {
+      await sendViaResend({ to: email, subject, text, html });
+      logger.info(`[Password Reset] OTP sent to ${email} via Resend`);
+      return { sent: true, provider: 'resend' };
+    } catch (err) {
+      errors.push(`Resend: ${err.message}`);
+      logger.error('[Password Reset] Resend failed:', err.message);
+    }
   }
 
   if (getSmtpConfig()) {
-    await sendViaSmtp({ to: email, subject, text, html });
-    logger.info(`[Password Reset] OTP email sent to ${email} via SMTP`);
-    return { sent: true, provider: 'smtp' };
+    try {
+      await sendViaSmtp({ to: email, subject, text, html });
+      logger.info(`[Password Reset] OTP sent to ${email} via SMTP`);
+      return { sent: true, provider: 'smtp' };
+    } catch (err) {
+      errors.push(`SMTP: ${err.message}`);
+      logger.error('[Password Reset] SMTP failed:', err.message);
+    }
   }
 
-  logger.warn(`[Password Reset] Email service not configured — OTP logged for: ${email}`);
-  logger.info(`[Password Reset OTP] ${email} => ${otp}`);
-  return { sent: false, provider: null };
+  const renderHint = isRenderHost()
+    ? ' Render FREE plan par Gmail SMTP band hai — Render Environment me BREVO_API_KEY add karein (free, 300 email/day).'
+    : '';
+  logger.warn(`[Password Reset OTP] ${email} => ${otp} (email failed — dev only log)`);
+  return { sent: false, provider: null, error: (errors.join(' | ') || 'not_configured') + renderHint };
 }
 
 module.exports = {
   isEmailConfigured,
+  hasHttpsEmailProvider,
+  isRenderHost,
   verifyEmailTransport,
   createMailTransporter,
   sendPasswordResetOtp
