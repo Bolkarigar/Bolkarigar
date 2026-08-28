@@ -243,6 +243,7 @@
     <div class="login-card">
       <h2>BolKarigar AI</h2>
       <p>Sign in to your account</p>
+      <p style="font-size:12px;color:#22c55e;margin:-4px 0 16px;">New user? <a href="signup.html" style="color:#22c55e;">Sign Up</a> — 3 days FREE Pro trial</p>
       
       <form id="loginForm">
         <div class="input-group">
@@ -288,7 +289,7 @@
       <p>Enter your registered email or username. We will send a 6-digit OTP to your signup email.</p>
       <div class="input-group" style="margin-bottom: 0;">
         <label for="resetEmail" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Registered email (recommended) or username</label>
-        <input type="email" id="resetEmail" placeholder="your@email.com" autocomplete="email">
+        <input type="text" id="resetEmail" placeholder="your@email.com or username" autocomplete="username" inputmode="email">
         <p style="font-size:11px;color:#64748b;margin:8px 0 0;">OTP aapke <strong>Sign Up email</strong> par jayega — username se bhi try kar sakte ho.</p>
       </div>
       <div class="modal-actions">
@@ -474,24 +475,29 @@
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
       const errorEl = document.getElementById("errorMsg");
+      const loginBtn = this.querySelector('.login-btn');
+      errorEl.style.display = "none";
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Signing in...";
 
       try {
-        const response = await fetch(`${BK_API()}/api/auth/login`, {
+        const { response, result } = await bkFetchJson(`${BK_API()}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-        const result = await response.json();
 
         if (!response.ok) throw new Error(result.error || "Server validation failed");
 
-        // Secure local storage save
         localStorage.setItem("bk_token", result.token);
         localStorage.setItem("bk_user", result.username);
         window.location.href = "bolkarigar.html?_=" + Date.now();
       } catch (err) {
         errorEl.textContent = loginMsgEn(err.message, LOGIN_MSG.wrongLogin);
         errorEl.style.display = "block";
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign In";
       }
     });
 
