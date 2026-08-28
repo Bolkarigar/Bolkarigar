@@ -14,10 +14,7 @@
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       return false;
     }
-    if (isLocalHost()) return true;
-    if (new URLSearchParams(location.search).get("devPlan") === "1") return true;
-    if (localStorage.getItem("bk_dev_plan") === "1") return true;
-    return false;
+    return isLocalHost();
   }
 
   function updateHighlight(me) {

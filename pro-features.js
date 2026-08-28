@@ -18,6 +18,20 @@ const LEDGER_GROUPS_FULL = [
   'Sales Accounts', 'Purchase Accounts', 'Expense', 'Income', 'Capital', 'Suspense A/c', 'Branch/Divisions'
 ];
 
+const staffSignupAttempts = new Map();
+function isStaffSignupRateLimited(ip) {
+  const entry = staffSignupAttempts.get(ip);
+  if (!entry) return false;
+  if (entry.count >= 10 && Date.now() - entry.firstAttempt < 10 * 60 * 1000) return true;
+  if (Date.now() - entry.firstAttempt >= 10 * 60 * 1000) staffSignupAttempts.delete(ip);
+  return false;
+}
+function recordStaffSignupAttempt(ip) {
+  const entry = staffSignupAttempts.get(ip) || { count: 0, firstAttempt: Date.now() };
+  entry.count++;
+  staffSignupAttempts.set(ip, entry);
+}
+
 function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, JWT_SECRET, rbac, requireBusinessPlan }) {
   const { User, SalesHistory, Ledger, Voucher, Item, BusinessProfile } = models;
   const { relayXmlToTally, resolveTallyCompanyName, tallyXmlEscape, findOrCreateCustomerLedger } = helpers;
@@ -146,6 +160,12 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.post('/api/staff/signup', async (req, res) => {
     try {
+      const ipKey = req.ip || 'unknown';
+      if (isStaffSignupRateLimited(ipKey)) {
+        return res.status(429).json({ error: 'Bahut zyada signup attempts. 10 minute baad try karein.' });
+      }
+      recordStaffSignupAttempt(ipKey);
+
       const { username, email, password, inviteCode } = req.body;
       if (!username || !email || !password || !inviteCode) {
         return res.status(400).json({ error: 'Username, email, password and invite code are required.' });

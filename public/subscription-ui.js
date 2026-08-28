@@ -59,6 +59,28 @@
     }
 
     updateMyPlanPanel(me);
+    updatePaywallTestHint(me);
+  }
+
+  async function updatePaywallTestHint(me) {
+    const hint = document.getElementById("paywallTestModeHint");
+    if (!hint || me?.isStaff || !getToken()) {
+      if (hint) hint.classList.add("hidden");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/payment/config`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        hint.classList.add("hidden");
+        return;
+      }
+      const cfg = await res.json();
+      hint.classList.toggle("hidden", !cfg.testMode);
+    } catch (_) {
+      hint.classList.add("hidden");
+    }
   }
 
   function updateMyPlanPanel(me) {

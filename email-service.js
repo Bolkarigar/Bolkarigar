@@ -376,7 +376,11 @@ async function sendPasswordResetOtp(email, otp) {
   const renderHint = isRenderHost()
     ? ' Render FREE plan par Gmail SMTP band hai — Render Environment me BREVO_API_KEY add karein (free, 300 email/day).'
     : '';
-  logger.warn(`[Password Reset OTP] ${email} => ${otp} (email failed — dev only log)`);
+  if (process.env.NODE_ENV !== 'production') {
+    logger.warn(`[Password Reset OTP] ${email} => ${otp} (email failed — dev only log)`);
+  } else {
+    logger.error(`[Password Reset OTP] Email delivery failed for ${email}`);
+  }
   return { sent: false, provider: null, error: (errors.join(' | ') || 'not_configured') + renderHint };
 }
 

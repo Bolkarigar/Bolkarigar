@@ -87,7 +87,9 @@ app.use(express.json({ limit: '8mb' }));
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-    : true
+    : (process.env.NODE_ENV === 'production'
+      ? ['https://bolkarigar.onrender.com']
+      : true)
 }));
 
 // Browser cache band — purani sidebar/JS files na dikhein
@@ -224,12 +226,23 @@ app.post('/api/ai/chat', authenticateToken, requireBusinessPlan, async (req, res
 });
 
 // 🟡 3. MONGODB CONNECTION
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/bolkarigar')
+const mongoUri = process.env.MONGO_URI;
+if (process.env.NODE_ENV === 'production' && !mongoUri) {
+  logger.error('✗ FATAL: MONGO_URI missing in production. Render Environment me set karein.');
+  process.exit(1);
+}
+mongoose.connect(mongoUri || 'mongodb://127.0.0.1:27017/bolkarigar')
   .then(() => {
     logger.info('✓ MongoDB Connected Successfully');
     seedAdmin().catch(err => logger.error('Seed Admin Error:', err));
   })
-  .catch(err => logger.error('✗ MongoDB Connection Error:', err));
+  .catch(err => {
+    logger.error('✗ MongoDB Connection Error:', err);
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('✗ FATAL: Production me MongoDB connect nahi hua — server band ho raha hai.');
+      process.exit(1);
+    }
+  });
 
 // --- Schemas & Models ---
 const UserSchema = new mongoose.Schema({
