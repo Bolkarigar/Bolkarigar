@@ -122,7 +122,7 @@
 
   async function buyBolKarigarPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
-    const planLabel = planId === "business" ? "Business ₹699" : "Pro ₹349";
+    const planLabel = planId === "business" ? "Business ₹699" : "Pro ₹199";
 
     if (!getToken()) {
       window.location.href = `signup.html?plan=${planId}`;

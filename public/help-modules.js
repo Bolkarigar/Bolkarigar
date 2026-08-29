@@ -295,7 +295,7 @@
     if (badge) {
       const isBusiness = !!sub.fullAccess;
       const isStaffRole = me?.isStaff && me?.role === "staff";
-      let planLabel = isBusiness ? "Business Plan (₹699)" : "Pro Plan (₹349)";
+      let planLabel = isBusiness ? "Business Plan (₹699)" : "Pro Plan (₹199)";
       if (isStaffRole) planLabel = "Staff Mode";
       badge.textContent = `${isBusiness ? "🏢" : isStaffRole ? "👤" : "⭐"} ${planLabel} — ${modules.length} modules (sidebar jaisa)`;
       badge.className = isBusiness ? "help-plan-badge business" : "help-plan-badge pro";

@@ -9,7 +9,7 @@ const { validatePaymentVerification } = require('razorpay/dist/utils/razorpay-ut
 const { PLANS, buildSubscriptionPayload, activateOwnerPlan } = require('./subscription');
 
 const PLAN_AMOUNTS_PAISE = {
-  pro: 34900,
+  pro: 19900,
   business: 69900
 };
 

@@ -8,11 +8,11 @@ const TRIAL_DAYS = 3;
 const PLANS = {
   trial: { name: 'Pro Trial', price: 0, staffSlots: 0, label: '3 Din Free Pro' },
   starter: { name: 'Starter', price: 0, staffSlots: 0, label: 'Free — 1 user' },
-  pro: { name: 'Pro Dukaan', price: 349, staffSlots: 0, label: '₹349/month' },
+  pro: { name: 'Pro Dukaan', price: 199, staffSlots: 0, label: '₹199/month' },
   business: { name: 'Business', price: 699, staffSlots: 5, label: '₹699/month' }
 };
 
-/** Pro (₹349) / trial — sirf yeh sidebar tabs */
+/** Pro (₹199) / trial — sirf yeh sidebar tabs */
 const PRO_PLAN_TABS = [
   'overviewPanel', 'invoicePanel', 'inventoryPanel', 'totalSalesPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
@@ -228,7 +228,7 @@ function setupSubscription({ app, User, authenticateToken }) {
         {
           id: 'pro',
           name: 'Pro Dukaan',
-          price: 349,
+          price: 199,
           period: 'month',
           staffSlots: 2,
           featured: true,
