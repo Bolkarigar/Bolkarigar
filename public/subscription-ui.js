@@ -120,6 +120,18 @@
     }
   }
 
+  async function getAccountPrefill() {
+    if (window._bkAccountInfo?.username) return window._bkAccountInfo;
+    if (!getToken()) return {};
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (res.ok) return await res.json();
+    } catch (_) { /* ignore */ }
+    return {};
+  }
+
   async function buyBolKarigarPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     const planLabel = planId === "business" ? "Business ₹699" : "Pro ₹199";
@@ -176,7 +188,7 @@
         throw new Error(orderData.error || "Order create fail");
       }
 
-      const me = window._bkAccountInfo || {};
+      const me = await getAccountPrefill();
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
@@ -209,7 +221,9 @@
             if (typeof showToast === "function") showToast("✅ " + verifyData.message);
             document.getElementById("subscriptionPaywall")?.classList.add("hidden");
             if (typeof loadServerData === "function") loadServerData();
-            else window.location.reload();
+            else if (window.location.pathname.includes("pricing.html")) {
+              window.location.href = "bolkarigar.html?payment=success";
+            } else window.location.reload();
           } catch (err) {
             if (typeof showToast === "function") showToast("❌ " + err.message, "error");
             else alert(err.message);

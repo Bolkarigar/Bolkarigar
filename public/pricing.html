@@ -83,7 +83,7 @@
 
   <div id="loggedInNote" class="logged-in-note">
 
-    ✅ Aap logged in hain — plan kharidne ke liye app me <strong>My Plan</strong> khulega.
+    ✅ Aap logged in hain — plan button dabao, <strong>Razorpay yahi page par</strong> khulega.
 
   </div>
 
@@ -203,6 +203,7 @@
 
 
 
+  <script src="subscription-ui.js?v=20260829r1"></script>
   <script>
 
     (function () {
@@ -225,32 +226,14 @@
 
 
 
-      function goAppPlan(plan) {
-        const ch = new BroadcastChannel("bolkarigar_session_hub");
-        const reqId = "pricing_" + Date.now();
-        let ack = false;
-
-        ch.onmessage = (e) => {
-          if (e.data && e.data.type === "PLAN_PAYMENT_ACK" && e.data.tabId === reqId) {
-            ack = true;
-          }
-        };
-
-        ch.postMessage({ type: "OPEN_PLAN_PAYMENT", plan: plan, tabId: reqId });
-
-        setTimeout(() => {
-          ch.close();
-          if (ack) {
-            const note = document.getElementById("loggedInNote");
-            if (note) {
-              note.style.display = "block";
-              note.innerHTML = "✅ <strong>Razorpay payment</strong> aapke dashboard tab me khul gaya. Wahan UPI/Card se pay karein.";
-            }
-            return;
-          }
-          window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan="
-            + encodeURIComponent(plan) + "&bkTakeover=1";
-        }, 700);
+      function openPaymentOnThisPage(plan) {
+        const planId = plan === "business" ? "business" : "pro";
+        if (typeof window.buyBolKarigarPlan === "function") {
+          window.buyBolKarigarPlan(planId);
+          return;
+        }
+        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan="
+          + encodeURIComponent(planId) + "&bkTakeover=1";
       }
 
 
@@ -270,9 +253,12 @@
               window.location.href = "bolkarigar.html";
               return;
             }
-            goAppPlan(plan);
+            if (plan === "pro" || plan === "business") {
+              openPaymentOnThisPage(plan);
+              return;
+            }
+            window.location.href = "bolkarigar.html";
             return;
-
           }
 
 
