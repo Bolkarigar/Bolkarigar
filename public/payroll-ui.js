@@ -85,7 +85,8 @@
   function isSelfView() {
     const m = me();
     if (!m?.isStaff || isManagerView()) return false;
-    return !!(m.payroll?.canMarkHajri || ['cashier', 'manager', 'staff'].includes(m.role || ''));
+    if (!m.subscription?.isActive) return false;
+    return ['cashier', 'manager', 'staff'].includes(m.role || '') || !!m.payroll?.canMarkHajri;
   }
 
   function updatePayrollNavLabel() {
@@ -582,7 +583,11 @@
   }
 
   async function loadPayrollPanel() {
-    if (!me()?.subscription?.fullAccess) return;
+    const m = me();
+    if (!m) return;
+    const canFull = !!m.subscription?.fullAccess;
+    const canStaffHajri = !!(m.isStaff && m.subscription?.isActive);
+    if (!canFull && !canStaffHajri) return;
     setPayrollViewMode();
     if (isManagerView()) {
       await loadPayrollSettings();

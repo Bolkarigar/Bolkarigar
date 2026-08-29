@@ -647,14 +647,22 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     const role = user?.ownerId ? (user?.role || 'staff') : 'owner';
     const subscription = await getSubscriptionForUser(User, user);
     let payroll = null;
-    if (subscription?.fullAccess && payrollHelpers?.buildPayrollContext) {
-      try {
-        if (user?.ownerId && payrollHelpers.ensureStaffEmployeeRecord) {
-          await payrollHelpers.ensureStaffEmployeeRecord(user);
+    if (payrollHelpers?.buildPayrollContext) {
+      const staffHajriEligible = !!(user?.ownerId && subscription?.isActive);
+      const fullPayroll = !!subscription?.fullAccess;
+      if (fullPayroll || staffHajriEligible) {
+        try {
+          if (user?.ownerId && payrollHelpers.ensureStaffEmployeeRecord) {
+            await payrollHelpers.ensureStaffEmployeeRecord(user);
+          }
+          payroll = await payrollHelpers.buildPayrollContext(user);
+          if (!fullPayroll && user?.ownerId && payroll) {
+            payroll.canManage = false;
+            payroll.canViewSalary = false;
+          }
+        } catch (payErr) {
+          logger.warn('Payroll context warning:', payErr.message);
         }
-        payroll = await payrollHelpers.buildPayrollContext(user);
-      } catch (payErr) {
-        logger.warn('Payroll context warning:', payErr.message);
       }
     }
     res.json({

@@ -119,6 +119,18 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   const { requireOwner } = rbac;
   const biz = requireBusinessPlan || ((req, res, next) => next());
 
+  /** Staff Meri Hajri — Pro ya Business, jab owner plan active ho */
+  function requireStaffHajriOrBusiness(req, res, next) {
+    if (req.subscription?.fullAccess) return next();
+    if (req.isStaffAccount && req.subscription?.isActive) return next();
+    return res.status(403).json({
+      error: 'Hajri ke liye owner ka plan active hona chahiye.',
+      code: 'PLAN_UPGRADE_REQUIRED'
+    });
+  }
+
+  const hajri = requireStaffHajriOrBusiness;
+
   const employeeSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     name: { type: String, required: true, trim: true },
@@ -375,7 +387,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   });
 
   // ===================== ATTENDANCE =====================
-  app.get('/api/payroll/attendance', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
+  app.get('/api/payroll/attendance', authenticateToken, hajri, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
     const dateKey = req.query.date || todayKey();
     const canManage = req.payrollContext?.canManage || req.payrollContext?.canViewSalary;
     const canSelf = req.payrollContext?.canMarkHajri;
@@ -441,7 +453,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     res.json({ success: true, saved: saved.length, date: dateKey });
   });
 
-  app.post('/api/payroll/attendance/self', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, requireLinkedEmployee, async (req, res) => {
+  app.post('/api/payroll/attendance/self', authenticateToken, hajri, ownerMiddleware, payrollContextMiddleware, requireLinkedEmployee, async (req, res) => {
     const { status, note } = req.body || {};
     const dateKey = todayKey();
     if (!ATTENDANCE_STATUSES.includes(status)) {
@@ -562,7 +574,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     res.json({ success: true, year, month, summaries, totalNetPayable: Math.round(totalNet * 100) / 100 });
   });
 
-  app.get('/api/payroll/salary/:employeeId', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
+  app.get('/api/payroll/salary/:employeeId', authenticateToken, hajri, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
     const year = Number(req.query.year) || new Date().getFullYear();
     const month = Number(req.query.month) || new Date().getMonth() + 1;
     const canManage = req.payrollContext?.canManage || req.payrollContext?.canViewSalary;
@@ -580,7 +592,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     res.json({ success: true, slip, company, month, year });
   });
 
-  app.get('/api/payroll/me', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
+  app.get('/api/payroll/me', authenticateToken, hajri, ownerMiddleware, payrollContextMiddleware, async (req, res) => {
     res.json({
       success: true,
       payrollContext: req.payrollContext,

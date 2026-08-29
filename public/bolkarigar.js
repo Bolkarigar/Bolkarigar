@@ -149,12 +149,9 @@ function bkCanAccessTab(me, tabId) {
     if (!sub.allowedTabs.includes(tabId)) return false;
   }
   if (tabId === "payrollPanel") {
-    if (!sub?.fullAccess) return false;
-    if (!me?.isStaff) return true;
-    if (me.payroll?.canViewSalary || me.payroll?.canManage) return true;
-    if (me.payroll?.canMarkHajri || me.payroll?.isLinkedEmployee) return true;
-    if (me.role === "staff") return true;
-    return false;
+    if (!me?.isStaff) return !!sub?.fullAccess;
+    if (!sub?.isActive) return false;
+    return ["manager", "cashier", "staff"].includes(me.role || "staff");
   }
   if (!me?.isStaff) return true;
   const role = me.role || "staff";
