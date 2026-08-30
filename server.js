@@ -434,7 +434,7 @@ authenticateToken = (req, res, next) => {
           return res.status(402).json({
             error: subscription.isStaffAccount
               ? 'Shop ka plan expire ho gaya. Malik se subscription renew karwain.'
-              : 'Aapka 3 din ka free trial khatam ho gaya. Plan renew karein.',
+              : 'Business plan (₹299) renew karein ya Pro FREE plan use karein.',
             code: 'SUBSCRIPTION_EXPIRED',
             subscription
           });
@@ -519,17 +519,16 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const now = new Date();
-    const trialEndsAt = new Date(now);
-    trialEndsAt.setDate(trialEndsAt.getDate() + 3);
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
       role: 'owner',
-      plan: requestedPlan === 'business' ? 'pro' : requestedPlan,
-      subscriptionStatus: 'trial',
+      plan: 'pro',
+      subscriptionStatus: 'active',
       trialStartedAt: now,
-      trialEndsAt,
+      trialEndsAt: null,
+      planExpiresAt: null,
       trialUsed: true
     });
     await UserData.create({ userId: newUser._id });
@@ -537,8 +536,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
 
     res.status(201).json({
-      message: `Account ban gaya! 3 din ka FREE Pro trial shuru — ${trialEndsAt.toLocaleDateString('en-IN')} tak full access.`,
-      trialEndsAt,
+      message: 'Account ban gaya! Pro Dukaan plan bilkul FREE hai — abhi se full access.',
       token,
       username: newUser.username,
       plan: requestedPlan

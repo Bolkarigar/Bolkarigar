@@ -6,13 +6,13 @@
 const TRIAL_DAYS = 3;
 
 const PLANS = {
-  trial: { name: 'Pro Trial', price: 0, staffSlots: 0, label: '3 Din Free Pro' },
-  starter: { name: 'Starter', price: 0, staffSlots: 0, label: 'Free — 1 user' },
-  pro: { name: 'Pro Dukaan', price: 199, staffSlots: 0, label: '₹199/month' },
-  business: { name: 'Business', price: 699, staffSlots: 5, label: '₹699/month' }
+  trial: { name: 'Pro Dukaan', price: 0, staffSlots: 0, label: 'Bilkul FREE' },
+  starter: { name: 'Starter', price: 0, staffSlots: 0, label: 'Free — legacy' },
+  pro: { name: 'Pro Dukaan', price: 0, staffSlots: 0, label: 'Bilkul FREE' },
+  business: { name: 'Business', price: 299, staffSlots: 5, label: '₹299/month' }
 };
 
-/** Pro (₹199) / trial — sirf yeh sidebar tabs */
+/** Pro (FREE) — sirf yeh sidebar tabs */
 const PRO_PLAN_TABS = [
   'overviewPanel', 'invoicePanel', 'inventoryPanel', 'totalSalesPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
@@ -37,7 +37,7 @@ function getPlanFeatures(planKey, isActive) {
 function requireBusinessPlan(req, res, next) {
   if (req.subscription?.fullAccess) return next();
   return res.status(403).json({
-    error: 'Yeh feature Business plan (₹699) me available hai. My Plan se upgrade karein.',
+    error: 'Yeh feature Business plan (₹299) me available hai. My Plan se upgrade karein.',
     code: 'PLAN_UPGRADE_REQUIRED'
   });
 }
@@ -65,29 +65,35 @@ function daysBetween(from, to) {
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
-function startOwnerTrial(user) {
+function activateFreePro(user) {
   const now = new Date();
   user.plan = 'pro';
-  user.subscriptionStatus = 'trial';
-  user.trialStartedAt = now;
-  user.trialEndsAt = addDays(now, TRIAL_DAYS);
+  user.subscriptionStatus = 'active';
+  user.trialStartedAt = user.trialStartedAt || now;
+  user.trialEndsAt = null;
   user.planExpiresAt = null;
   user.trialUsed = true;
   return user;
+}
+
+function startOwnerTrial(user) {
+  return activateFreePro(user);
 }
 
 function ensureOwnerSubscription(user) {
   if (!user || user.ownerId) return user;
 
   if (!user.trialStartedAt && !user.planExpiresAt && user.subscriptionStatus !== 'active') {
-    startOwnerTrial(user);
+    activateFreePro(user);
     user._subscriptionMigrated = true;
   }
 
   const now = new Date();
   if (user.subscriptionStatus === 'trial' && user.trialEndsAt && now > user.trialEndsAt) {
-    user.subscriptionStatus = 'expired';
-    if (!user.plan || user.plan === 'pro') user.plan = 'starter';
+    activateFreePro(user);
+  }
+  if (user.subscriptionStatus === 'expired' && user.plan === 'pro') {
+    activateFreePro(user);
   }
 
   if (user.subscriptionStatus === 'active' && user.planExpiresAt && now > user.planExpiresAt) {
@@ -155,10 +161,12 @@ function buildSubscriptionPayload(ownerUser) {
     fullAccess: features.fullAccess,
     showInstallApp: features.showInstallApp,
     message: isTrial
-      ? `Pro trial — ${daysLeft} din bache hain`
+      ? `Pro plan — ${daysLeft} din bache (legacy trial)`
       : isActive
-        ? `${planInfo.name} plan active`
-        : 'Trial khatam — plan renew karein'
+        ? planKey === 'pro'
+          ? `${planInfo.name} — bilkul FREE, full access`
+          : `${planInfo.name} plan active`
+        : 'Business plan renew karein'
   };
 }
 
@@ -218,29 +226,21 @@ function setupSubscription({ app, User, authenticateToken }) {
       staffNote: 'Staff/Cashier/Manager ko alag se app kharidne ki zaroorat nahi — malik invite code dega.',
       plans: [
         {
-          id: 'starter',
-          name: 'Starter',
+          id: 'pro',
+          name: 'Pro Dukaan',
           price: 0,
           period: 'month',
           staffSlots: 0,
-          features: ['Invoice + GST bill', 'Udhar Khata', 'Basic reports', '50 invoices/month', 'Sirf owner account']
-        },
-        {
-          id: 'pro',
-          name: 'Pro Dukaan',
-          price: 199,
-          period: 'month',
-          staffSlots: 2,
           featured: true,
-          features: ['3 din FREE Pro trial', 'Invoice, Udhar, Ledger, Voucher', 'Inventory + Day Book', 'Gallery + Todo', 'Tally sync nahi']
+          features: ['Bilkul FREE — hamesha', 'Invoice, Udhar, Ledger, Voucher', 'Inventory + Day Book', 'Gallery + Todo + Help', 'Payment ki zaroorat nahi']
         },
         {
           id: 'business',
           name: 'Business',
-          price: 699,
+          price: 299,
           period: 'month',
           staffSlots: 5,
-          features: ['App ki SAARI cheezein', 'Tally sync + Voice AI', 'Reports Pro + GSTR', 'Staff (5) + Contractor', 'Bank Recon + Companies']
+          features: ['App ki SAARI cheezein', 'Tally sync + Voice AI', 'Reports Pro + GSTR', 'Staff (5) + Contractor', 'Bank Recon + Payroll & Hajri']
         }
       ]
     });
@@ -275,7 +275,7 @@ function createSubscriptionGate(User) {
         return res.status(402).json({
           error: subscription.isStaffAccount
             ? 'Shop ka plan expire ho gaya. Malik se subscription renew karwain.'
-            : 'Aapka 3 din ka free trial khatam ho gaya. Plan renew karein.',
+            : 'Business plan (₹299) renew karein — Pro plan bilkul FREE hai.',
           code: 'SUBSCRIPTION_EXPIRED',
           subscription
         });

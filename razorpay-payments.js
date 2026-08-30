@@ -9,8 +9,7 @@ const { validatePaymentVerification } = require('razorpay/dist/utils/razorpay-ut
 const { PLANS, buildSubscriptionPayload, activateOwnerPlan } = require('./subscription');
 
 const PLAN_AMOUNTS_PAISE = {
-  pro: 19900,
-  business: 69900
+  business: 29900
 };
 
 const PLAN_DURATION_DAYS = 30;
@@ -78,7 +77,6 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         keyId: process.env.RAZORPAY_KEY_ID || null,
         testMode: (process.env.RAZORPAY_KEY_ID || '').startsWith('rzp_test_'),
         plans: {
-          pro: { name: PLANS.pro.name, amount: PLANS.pro.price, amountPaise: PLAN_AMOUNTS_PAISE.pro },
           business: { name: PLANS.business.name, amount: PLANS.business.price, amountPaise: PLAN_AMOUNTS_PAISE.business }
         }
       });
@@ -99,7 +97,12 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         return res.status(403).json({ error: 'Sirf shop owner plan kharid sakta hai.' });
       }
 
-      const plan = ['pro', 'business'].includes(req.body?.plan) ? req.body.plan : 'pro';
+      const plan = req.body?.plan === 'business' ? 'business' : null;
+      if (!plan || !PLAN_AMOUNTS_PAISE[plan]) {
+        return res.status(400).json({
+          error: 'Pro plan ab bilkul FREE hai. Sirf Business (₹299/month) ke liye payment karein.'
+        });
+      }
       const amountPaise = PLAN_AMOUNTS_PAISE[plan];
       const planInfo = PLANS[plan];
 

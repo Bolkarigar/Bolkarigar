@@ -1,5 +1,5 @@
 /**
- * Dev UI — top bar se ₹199 Pro / ₹699 Business switch (testing only).
+ * Dev UI — top bar se FREE Pro / ₹299 Business switch (testing only).
  */
 (function () {
   const API = () => window.API_URL || window.location.origin;
@@ -24,14 +24,14 @@
     document.getElementById("devPlanBusinessBtn")?.classList.toggle("active", plan === "business");
     const label = document.getElementById("devPlanActiveLabel");
     if (label) {
-      label.textContent = plan === "business" ? "Active: Business ₹699" : "Active: Pro ₹199";
+      label.textContent = plan === "business" ? "Active: Business ₹299" : "Active: Pro FREE";
     }
   }
 
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Pehle login karein — phir ₹199 / ₹699 test kar sakte hain.");
+      alert("Pehle login karein — phir FREE Pro / ₹299 Business test kar sakte hain.");
       return;
     }
     try {

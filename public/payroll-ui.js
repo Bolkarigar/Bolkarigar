@@ -1,5 +1,5 @@
 /**
- * BolKarigar Payroll UI — Employee Hajri & Monthly Salary (Business ₹699)
+ * BolKarigar Payroll UI — Employee Hajri & Monthly Salary (Business ₹299)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));

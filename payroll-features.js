@@ -1,5 +1,5 @@
 /**
- * BolKarigar Payroll — Employee attendance & monthly salary (Business ₹699)
+ * BolKarigar Payroll — Employee attendance & monthly salary (Business ₹299)
  * Shop/office staff: fixed monthly salary, half-day, paid/unpaid leave, advances.
  */
 const ATTENDANCE_STATUSES = ['present', 'absent', 'half_day', 'paid_leave', 'unpaid_leave'];

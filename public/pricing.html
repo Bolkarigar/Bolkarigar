@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>BolKarigar — Pricing & Free Trial</title>
+  <title>BolKarigar — Pricing</title>
   <script src="native-config.js?v=1"></script>
 
   <style>
@@ -27,7 +27,7 @@
 
     .staff-note { max-width: 720px; margin: 0 auto 28px; padding: 16px 18px; border-radius: 12px; border: 1px solid #a855f744; background: #a855f715; font-size: 14px; line-height: 1.6; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 820px; margin: 0 auto; }
 
     .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; }
 
@@ -75,15 +75,15 @@
 
   <h1>BolKarigar Pricing</h1>
 
-  <p class="sub">Professional dukaan software — pehle <strong>3 din FREE Pro trial</strong>, phir monthly plan.</p>
+  <p class="sub">Professional dukaan software — <strong>Pro bilkul FREE</strong>, Business plan me saari advanced features.</p>
 
-  <div class="trial-badge"><span>🎁 3 Din Free Pro Trial — Credit Card Ki Zaroorat Nahi</span></div>
+  <div class="trial-badge"><span>🎁 Pro Dukaan — Bilkul FREE, Payment Ki Zaroorat Nahi</span></div>
 
 
 
   <div id="loggedInNote" class="logged-in-note">
 
-    ✅ Aap logged in hain — plan button dabao, <strong>Razorpay yahi page par</strong> khulega.
+    ✅ Aap logged in hain — Business plan ke liye button dabao, <strong>Razorpay yahi page par</strong> khulega.
 
   </div>
 
@@ -101,37 +101,13 @@
 
   <div class="grid">
 
-    <div class="card">
-
-      <h3>🆓 Starter</h3>
-
-      <div class="price">₹0</div>
-
-      <p style="color:#94a3b8;font-size:13px;">/ month — sirf 1 owner</p>
-
-      <ul>
-
-        <li>Invoice + GST bill</li>
-
-        <li>Udhar Khata</li>
-
-        <li>Basic reports</li>
-
-        <li>50 invoices/month</li>
-
-      </ul>
-
-      <button type="button" class="btn js-plan-btn" data-plan="starter" data-action="signup">Sign Up Free</button>
-
-    </div>
-
     <div class="card featured">
 
       <h3>⭐ Pro Dukaan</h3>
 
-      <div class="price">₹199</div>
+      <div class="price">₹0 — FREE</div>
 
-      <p style="color:#94a3b8;font-size:13px;">/ month — sirf owner</p>
+      <p style="color:#94a3b8;font-size:13px;">/ hamesha ke liye — sirf owner</p>
 
       <ul>
 
@@ -143,9 +119,11 @@
 
         <li>Gallery + Todo + Help</li>
 
+        <li><strong>Payment ki zaroorat nahi</strong></li>
+
       </ul>
 
-      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="trial">🎁 3 Din Free Trial — ₹199/plan baad me</button>
+      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="signup">🆓 Sign Up Free — Pro Dukaan</button>
 
     </div>
 
@@ -153,7 +131,7 @@
 
       <h3>🏢 Business</h3>
 
-      <div class="price">₹699</div>
+      <div class="price">₹299</div>
 
       <p style="color:#94a3b8;font-size:13px;">/ month — 5 staff FREE</p>
 
@@ -171,7 +149,7 @@
 
       </ul>
 
-      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="pay">💳 Business — ₹699 / month</button>
+      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="pay">💳 Business — ₹299 / month</button>
 
     </div>
 
@@ -181,15 +159,13 @@
 
   <div class="conditions">
 
-    <strong>Trial conditions:</strong>
+    <strong>Plan details:</strong>
 
     <ul>
 
-      <li>Naya owner account = 3 din Pro trial automatic</li>
+      <li>Pro Dukaan = <strong>bilkul FREE</strong> — signup karo aur use karo</li>
 
-      <li>1 email = 1 dukaan trial</li>
-
-      <li>Payment Razorpay se — UPI / Card / Netbanking</li>
+      <li>Business = ₹299/month — Razorpay se UPI / Card / Netbanking</li>
 
       <li>Staff accounts malik ke plan se linked — alag payment nahi</li>
 
@@ -203,7 +179,7 @@
 
 
 
-  <script src="subscription-ui.js?v=20260829r1"></script>
+  <script src="subscription-ui.js?v=20260830r4"></script>
   <script>
 
     (function () {
@@ -227,13 +203,16 @@
 
 
       function openPaymentOnThisPage(plan) {
-        const planId = plan === "business" ? "business" : "pro";
-        if (typeof window.buyBolKarigarPlan === "function") {
-          window.buyBolKarigarPlan(planId);
+        if (plan !== "business") {
+          if (token) window.location.href = "bolkarigar.html";
+          else goSignup("pro");
           return;
         }
-        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan="
-          + encodeURIComponent(planId) + "&bkTakeover=1";
+        if (typeof window.buyBolKarigarPlan === "function") {
+          window.buyBolKarigarPlan("business");
+          return;
+        }
+        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan=business&bkTakeover=1";
       }
 
 
@@ -249,12 +228,12 @@
 
 
           if (token) {
-            if (action === "signup" && plan === "starter") {
+            if (plan === "pro") {
               window.location.href = "bolkarigar.html";
               return;
             }
-            if (plan === "pro" || plan === "business") {
-              openPaymentOnThisPage(plan);
+            if (plan === "business") {
+              openPaymentOnThisPage("business");
               return;
             }
             window.location.href = "bolkarigar.html";
@@ -263,9 +242,9 @@
 
 
 
-          if (action === "signup" || action === "trial") {
+          if (action === "signup" || plan === "pro") {
 
-            goSignup(plan);
+            goSignup("pro");
 
             return;
 
@@ -290,4 +269,3 @@
 </body>
 
 </html>
-

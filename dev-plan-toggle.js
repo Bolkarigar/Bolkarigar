@@ -1,5 +1,5 @@
 /**
- * Dev/testing — ₹199 Pro ↔ ₹699 Business UI toggle (localhost / non-production).
+ * Dev/testing — FREE Pro ↔ ₹299 Business UI toggle (localhost / non-production).
  * Production me band: NODE_ENV=production aur DEV_PLAN_TOGGLE unset.
  */
 

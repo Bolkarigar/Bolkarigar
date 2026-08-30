@@ -46,7 +46,9 @@
     } else if (sub.isActive) {
       if (banner) {
         banner.classList.remove("hidden", "trial", "expired", "staff");
-        bannerText.textContent = `✅ ${sub.planName} plan active${sub.daysLeft ? ` — ${sub.daysLeft} din bache` : ""}`;
+        bannerText.textContent = sub.plan === 'pro' && !sub.planExpiresAt
+          ? `✅ Pro Dukaan — bilkul FREE, full access`
+          : `✅ ${sub.planName} plan active${sub.daysLeft ? ` — ${sub.daysLeft} din bache` : ""}`;
       }
       if (paywall) paywall.classList.add("hidden");
     } else if (sub.isExpired) {
@@ -134,10 +136,17 @@
 
   async function buyBolKarigarPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
-    const planLabel = planId === "business" ? "Business ₹699" : "Pro ₹199";
+    const planLabel = planId === "business" ? "Business ₹299" : "Pro FREE";
 
     if (!getToken()) {
-      window.location.href = `signup.html?plan=${planId}`;
+      window.location.href = `signup.html?plan=${planId === "business" ? "business" : "pro"}`;
+      return;
+    }
+
+    if (planId === "pro") {
+      if (typeof showToast === "function") showToast("✅ Pro Dukaan bilkul FREE hai — full access!");
+      if (typeof openPanel === "function") openPanel("myPlanPanel");
+      else window.location.href = "bolkarigar.html";
       return;
     }
 
@@ -160,7 +169,7 @@
       }
 
       if (!cfg.configured) {
-        const msg = `Online payment (${planLabel}) abhi setup ho rahi hai. Aapka 3 din FREE trial chal raha hai. Turant help: support@bolkarigar.com`;
+        const msg = `Online payment (${planLabel}) abhi setup ho rahi hai. Pro plan FREE hai — Business ke liye baad me try karein.`;
         if (typeof showToast === "function") showToast(msg, "error");
         else alert(msg);
         if (typeof openPanel === "function") openPanel("myPlanPanel");

@@ -84,12 +84,12 @@
       </div>
     </header>
 
-    <!-- DEV: ₹199 / ₹699 plan test bar (localhost par auto; live par ?devPlan=1 ya DEV_PLAN_TOGGLE=true) -->
+    <!-- DEV: FREE Pro / ₹299 Business plan test bar -->
     <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
       <span class="dev-plan-toggle-label">🧪 TEST UI</span>
       <div class="dev-plan-toggle-actions">
-        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">₹199 Pro</button>
-        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹699 Business</button>
+        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">FREE Pro</button>
+        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹299 Business</button>
       </div>
       <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad switch karein</span>
     </div>
@@ -103,11 +103,11 @@
   <div id="subscriptionPaywall" class="subscription-paywall hidden">
     <div class="subscription-paywall-card">
       <h3 data-i18n="paywall.title">⏰ Free Trial Khatam</h3>
-      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Aapke 3 din ka Pro trial khatam ho gaya. App use karne ke liye plan renew karein.</p>
+      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Business plan renew karein (₹299/month). Pro Dukaan bilkul FREE hai.</p>
       <p class="helper-text" data-i18n="paywall.staffNote">Staff/Cashier ko alag se kharidne ki zaroorat nahi — sirf malik plan leta hai.</p>
       <div class="btn-row" style="justify-content:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
-        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">💳 Pro — ₹199 / month</button>
-        <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹699 / month</button>
+        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">🆓 Pro — Bilkul FREE</button>
+        <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹299 / month</button>
       </div>
       <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;">Test Mode: <strong>UPI recommended</strong> — <code>success@razorpay</code></p>
     </div>
@@ -785,18 +785,18 @@
           </div>
         </section>
 
-        <!-- 🟢 PAYROLL — Employee Hajri & Monthly Salary (Business ₹699) -->
+        <!-- 🟢 PAYROLL — Employee Hajri & Monthly Salary (Business ₹299) -->
         <section class="panel" id="payrollPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow" data-i18n="payroll.eyebrow">Business Plan — ₹699</p>
+              <p class="eyebrow" data-i18n="payroll.eyebrow">Business Plan — ₹299</p>
               <h3 data-i18n="payroll.title">💼 Staff Payroll & Hajri</h3>
             </div>
           </div>
           <p class="helper-text" data-i18n="payroll.hint">Dukaan/office staff ki monthly salary, daily hajri, half-day, leave aur advance — auto calculate.</p>
 
           <div id="payrollNoAccess" class="hidden payroll-no-access">
-            <p>⚠️ Yeh module sirf <strong>Business plan (₹699)</strong> me hai. Owner se upgrade karwayein, ya owner se apna employee profile link karwayein.</p>
+            <p>⚠️ Yeh module sirf <strong>Business plan (₹299)</strong> me hai. Owner se upgrade karwayein, ya owner se apna employee profile link karwayein.</p>
           </div>
 
           <div class="payroll-self-only" id="payrollSelfSection" style="display:none;">
@@ -919,8 +919,8 @@
             <h4 style="margin:0 0 10px;">Plan Renew / Upgrade</h4>
             <p class="helper-text" style="margin-bottom:12px;">Secure payment via Razorpay — UPI, Card, Netbanking</p>
             <div class="btn-row" style="flex-wrap:wrap;gap:10px;">
-              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">💳 Pro Dukaan — ₹199 / 30 din</button>
-              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹699 / 30 din</button>
+              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">🆓 Pro Dukaan — Bilkul FREE</button>
+              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹299 / 30 din</button>
             </div>
           </div>
           <div class="btn-row" style="flex-wrap:wrap;">

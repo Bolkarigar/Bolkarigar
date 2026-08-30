@@ -304,7 +304,7 @@ async function loadServerData() {
         if (paywallText) {
           paywallText.textContent = me.isStaff
             ? "Is dukaan ka plan expire ho gaya. Aapko alag se kuch kharidne ki zaroorat nahi — malik se subscription renew karwain."
-            : "Aapke 3 din ka Pro trial khatam ho gaya. App use karne ke liye plan renew karein.";
+            : "Business plan (₹299) renew karein — Pro plan bilkul FREE hai.";
         }
       }
     }
