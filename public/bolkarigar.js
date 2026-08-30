@@ -793,6 +793,9 @@ window.addEventListener("load", () => {
   const wsBtn = document.getElementById("whatsappShareBtn");
   if (wsBtn) wsBtn.addEventListener("click", triggerWhatsAppShare);
 
+  const dlBtn = document.getElementById("downloadInvoiceBtn");
+  if (dlBtn) dlBtn.addEventListener("click", downloadInvoiceBill);
+
   const tallyBtn = document.getElementById("tallySyncBtn");
   if (tallyBtn) tallyBtn.addEventListener("click", handleTallyVoiceCommand);
 });
@@ -4371,6 +4374,20 @@ async function printTallyBill() {
 
 window.printTallyBill = printTallyBill;
 
+async function downloadInvoiceBill() {
+  if (!state.invoices || state.invoices.length === 0) {
+    if (typeof showToast === "function") showToast("Pehle kam se kam 1 item add karein.", "error");
+    else alert("Download ke liye invoice mein kam se kam 1 item hona zaroori hai!");
+    return;
+  }
+  await printTallyBill();
+  if (typeof showToast === "function") {
+    showToast("Print dialog me 'Save as PDF' choose karke invoice download karein.", "info");
+  }
+}
+
+window.downloadInvoiceBill = downloadInvoiceBill;
+
 async function printThermalBill() {
   let savedProfile = {};
   try { savedProfile = JSON.parse(localStorage.getItem("bolkarigar_company_profile")) || {}; } catch { /* */ }
@@ -5574,6 +5591,7 @@ function getEWayBillDetails() {
   if (!salesPanel) return;
 
   let currentPage = 1;
+  let currentPageSize = 10;
   let currentSearch = "";
   let currentFromDate = "";
   let currentToDate = "";
@@ -5665,7 +5683,7 @@ function getEWayBillDetails() {
       body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Loading...</td></tr>";
     }
     try {
-      const params = new URLSearchParams({ page: currentPage, limit: 15 });
+      const params = new URLSearchParams({ page: currentPage, limit: currentPageSize });
       if (currentSearch) params.set("search", currentSearch);
       if (currentFromDate) params.set("fromDate", currentFromDate);
       if (currentToDate) params.set("toDate", currentToDate);
@@ -5699,10 +5717,21 @@ function getEWayBillDetails() {
           </tr>`).join("");
       }
 
+      const total = data.total || 0;
+      const start = total === 0 ? 0 : (data.page - 1) * currentPageSize + 1;
+      const end = Math.min(data.page * currentPageSize, total);
       const info = document.getElementById("salesPaginationInfo");
-      if (info) info.textContent = `Showing page ${data.page} of ${data.totalPages} (${data.total} total entries)`;
+      if (info) {
+        info.textContent = total
+          ? `Showing ${start}–${end} of ${total}`
+          : "No entries";
+      }
       const pageIndicator = document.getElementById("salesPageIndicator");
-      if (pageIndicator) pageIndicator.textContent = String(data.page);
+      if (pageIndicator) pageIndicator.textContent = `Page ${data.page} of ${data.totalPages}`;
+      const prevBtn = document.getElementById("salesPrevBtn");
+      const nextBtn = document.getElementById("salesNextBtn");
+      if (prevBtn) prevBtn.disabled = data.page <= 1;
+      if (nextBtn) nextBtn.disabled = data.page >= data.totalPages || total === 0;
       if (typeof window.enhanceMobileTables === "function") {
         requestAnimationFrame(() => window.enhanceMobileTables(salesPanel));
       }
@@ -5785,6 +5814,16 @@ function getEWayBillDetails() {
       loadSalesHistory();
     }, 350);
   });
+
+  const salesPageSizeSel = document.getElementById("salesPageSize");
+  if (salesPageSizeSel) {
+    currentPageSize = parseInt(salesPageSizeSel.value, 10) || 10;
+    salesPageSizeSel.addEventListener("change", () => {
+      currentPageSize = parseInt(salesPageSizeSel.value, 10) || 10;
+      currentPage = 1;
+      loadSalesHistory();
+    });
+  }
 
   document.getElementById("salesPrevBtn")?.addEventListener("click", () => {
     if (currentPage > 1) { currentPage--; loadSalesHistory(); }

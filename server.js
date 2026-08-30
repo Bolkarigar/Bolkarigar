@@ -32,6 +32,7 @@ const {
   verifyEmailTransport
 } = require('./email-service');
 const {
+  PLANS,
   getSubscriptionForUser,
   setupSubscription,
   isPathSubscriptionExempt,
@@ -2643,7 +2644,8 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Server Listen
 server.listen(PORT, () => {
   logger.info(`🚀 BolKarigar Core Engine Running on http://localhost:${PORT}`);
-  logger.info(`📌 SERVER CODE VERSION: razorpay-v1`);
+  logger.info(`📌 SERVER CODE VERSION: pricing-pro-free-business-299`);
+  logger.info(`💰 Plans: Pro=${PLANS.pro.label}, Business=${PLANS.business.label} (${PLANS.business.price * 100} paise Razorpay)`);
   verifyEmailTransport().then((status) => {
     global.__bkEmailReady = !!status.ok;
     global.__bkEmailProvider = status.provider || null;

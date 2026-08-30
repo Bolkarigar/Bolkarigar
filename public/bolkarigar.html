@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260827r3">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260830r1">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260827r2"></script>
   <script>
@@ -717,10 +717,18 @@
             </table>
           </div>
           <div class="panel-pagination-bar">
-            <span id="salesPaginationInfo" class="helper-text"></span>
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="salesPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+              </select>
+              <span id="salesPaginationInfo" class="helper-text"></span>
+            </div>
             <div class="btn-row">
               <button id="salesPrevBtn" type="button">Previous</button>
-              <span id="salesPageIndicator" style="padding:8px 14px;font-weight:700;"></span>
+              <span id="salesPageIndicator" class="khata-page-indicator"></span>
               <button id="salesNextBtn" type="button">Next</button>
             </div>
           </div>
@@ -1317,7 +1325,8 @@
   <script src="responsive-ui.js?v=20260827r2"></script>
   <script src="help-modules.js?v=20260827r2"></script>
   <script src="voice-controller.js?v=20260830r3"></script>
-  <script src="bolkarigar.js?v=20260830r2"></script>
+  <script src="plan-pricing.js?v=20260830r1"></script>
+  <script src="bolkarigar.js?v=20260830r3"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1333,7 +1342,7 @@
       }
     });
   </script>
-  <script src="subscription-ui.js?v=20260827r2"></script>
+  <script src="subscription-ui.js?v=20260830r1"></script>
   <script src="dev-plan-toggle.js?v=20260828r1"></script>
   <script src="inventory-ui.js?v=20260827r2"></script>
   <script src="bolkarigar-pro.js?v=20260827r2"></script>

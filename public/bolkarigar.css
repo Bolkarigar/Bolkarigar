@@ -997,6 +997,10 @@ textarea.form-input {
   flex-wrap: wrap;
   margin-top: 12px;
 }
+.panel-pagination-bar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 .report-tab-btn,
 .contractor-subtab-btn {

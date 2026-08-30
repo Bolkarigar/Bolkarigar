@@ -104,8 +104,12 @@
     }
 
     if (detailEl) {
+      const planKey = sub.plan || "pro";
+      const displayLabel = typeof window.bkFormatPlanLabel === "function"
+        ? window.bkFormatPlanLabel(planKey, sub.planLabel)
+        : (planKey === "pro" ? "Bilkul FREE" : (sub.planLabel || ""));
       detailEl.innerHTML = `
-        <li>Plan: <strong>${sub.planName || "—"}</strong> (${sub.planLabel || ""})</li>
+        <li>Plan: <strong>${sub.planName || "—"}</strong> (${displayLabel})</li>
         <li>Status: <strong>${sub.subscriptionStatus || "—"}</strong></li>
         ${sub.trialEndsAt ? `<li>Trial end: ${new Date(sub.trialEndsAt).toLocaleDateString("en-IN")}</li>` : ""}
         ${sub.planExpiresAt ? `<li>Plan valid till: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
@@ -136,7 +140,10 @@
 
   async function buyBolKarigarPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
-    const planLabel = planId === "business" ? "Business ₹299" : "Pro FREE";
+    const pricing = window.BK_PLAN_PRICING || {};
+    const planLabel = planId === "business"
+      ? `Business ₹${pricing.business?.price || 299}`
+      : "Pro FREE";
 
     if (!getToken()) {
       window.location.href = `signup.html?plan=${planId === "business" ? "business" : "pro"}`;
