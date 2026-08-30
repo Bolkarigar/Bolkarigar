@@ -145,13 +145,14 @@ function bkStaffFallbackTab(me) {
 
 function bkCanAccessTab(me, tabId) {
   const sub = me?.subscription;
-  if (sub && !sub.fullAccess && Array.isArray(sub.allowedTabs)) {
-    if (!sub.allowedTabs.includes(tabId)) return false;
-  }
+  // Staff Meri Hajri — Pro/Business active plan par; allowedTabs se pehle check karo
   if (tabId === "payrollPanel") {
     if (!me?.isStaff) return !!sub?.fullAccess;
     if (!sub?.isActive) return false;
     return ["manager", "cashier", "staff"].includes(me.role || "staff");
+  }
+  if (sub && !sub.fullAccess && Array.isArray(sub.allowedTabs)) {
+    if (!sub.allowedTabs.includes(tabId)) return false;
   }
   if (!me?.isStaff) return true;
   const role = me.role || "staff";
@@ -1209,6 +1210,11 @@ function parseCommands(raw) {
     text.includes("टास्क") || text.includes("काम की लिस्ट") || text.includes("काम दिखाओ") ||
     text.includes("काम खोlo") || text.includes("लिस्ट खोलो")
   ) {
+    if (looksLikeTodoCommand(text) || window.bkVoiceController?.looksLikeTodoAddUtterance?.(raw)) {
+      if (window.bkVoiceController?.tryTodoVoice?.(raw)) return true;
+      handleTodoSpeech(raw);
+      return true;
+    }
     openPanel("todoPanel");
     showCommand("Todo List open ki ja rahi hai.");
     return true;
@@ -2002,12 +2008,16 @@ async function handleInvoiceSpeech(raw) {
 const TODO_STOP_WORDS = ["add", "save", "जोड़ो", "सेव", "list", "लिस्ट", "में", "mein", "task", "टास्क"];
 
 function looksLikeTodoCommand(text) {
+  if (window.bkVoiceController?.looksLikeTodoAddUtterance) {
+    return window.bkVoiceController.looksLikeTodoAddUtterance(text);
+  }
   return (/\btask\b|टास्क|\btodo\b|टूडू|\bto do\b/.test(text)) && isAddCommand(text);
 }
 
 // ... existing bolkarigar.js code above ...
 
 function handleTodoSpeech(raw) {
+  if (window.bkVoiceController?.tryTodoVoice?.(raw)) return true;
   const t = stripSpeechPunctuation(raw);
   let value = extractField(t, "task|todo|to do|टास्क|टूडू", TODO_STOP_WORDS);
   if (!value) {
@@ -2017,10 +2027,10 @@ function handleTodoSpeech(raw) {
     showCommand("Task ka naam bhi bolo, jaise 'task cement mangwana add karo'.");
     return true;
   }
-  
-  // Add Todo logic
+
   const todoInputEl = document.getElementById("todoInput");
   if (todoInputEl) {
+    openPanel("todoPanel");
     todoInputEl.value = value;
     document.getElementById("addTodoBtn")?.click();
     showCommand(`Task add ho gaya: "${value}"`);
@@ -2156,6 +2166,7 @@ function handleGallerySpeech(raw) {
 
 function looksLikeSearchCommand(text) {
   if (window.bkVoiceController?.looksLikeSearchUtterance?.(text)) return true;
+  if (window.bkVoiceController?.looksLikeInvoiceUtterance?.(text)) return false;
   return /(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter)/i.test(text);
 }
 

@@ -225,6 +225,12 @@
     .btn-submit { background: var(--primary-blue); color: #fff; }
     .btn-cancel { background: #333; color: #ccc; }
     .btn-cancel:hover { background: #444; color: #fff; }
+    .btn-close:hover,
+    .btn-cancel.btn-close:hover {
+      background: #ef4444 !important;
+      border-color: #dc2626 !important;
+      color: #fff !important;
+    }
 
     @media (max-width: 480px) {
       .login-container { padding: 16px; align-items: flex-start; padding-top: max(24px, env(safe-area-inset-top)); }
@@ -293,7 +299,7 @@
         <p style="font-size:11px;color:#64748b;margin:8px 0 0;">OTP aapke <strong>Sign Up email</strong> par jayega — username se bhi try kar sakte ho.</p>
       </div>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="closeForgotBtn">Cancel</button>
+        <button class="modal-btn btn-cancel btn-close" id="closeForgotBtn">Cancel</button>
         <button class="modal-btn btn-submit" id="submitForgotBtn">Send OTP</button>
       </div>
     </div>
@@ -315,7 +321,7 @@
       </div>
       <p class="error-msg" id="resetPasswordErrorMsg"></p>
       <div class="modal-actions">
-        <button class="modal-btn btn-cancel" id="cancelResetPasswordBtn">Cancel</button>
+        <button class="modal-btn btn-cancel btn-close" id="cancelResetPasswordBtn">Cancel</button>
         <button class="modal-btn btn-submit" id="submitNewPasswordBtn">Set Password</button>
       </div>
       <p style="margin-top: 14px; font-size: 12px;">

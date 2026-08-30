@@ -517,6 +517,35 @@
     color: var(--text);
     border: 1px solid var(--border);
   }
+
+  /* Close / Cancel — red hover (modals, AI widget, sidebar) */
+  .btn-close,
+  button.btn-close,
+  #liveAiCloseBtn,
+  .sidebar-close-btn {
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-close:hover,
+  button.btn-close:hover,
+  #liveAiCloseBtn:hover,
+  .sidebar-close-btn:hover {
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #fff !important;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35);
+  }
+  .modal-btn.btn-close,
+  .modal-btn.btn-cancel.btn-close {
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .modal-btn.btn-close:hover,
+  .modal-btn.btn-cancel.btn-close:hover {
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #fff !important;
+  }
   .helper-text, .status, .result {
     color: var(--muted);
     font-size: 13px;
@@ -1106,6 +1135,7 @@ textarea.form-input {
   border-radius: 6px;
 }
 .live-ai-header-actions button:hover { background: var(--border); color: var(--text); }
+.live-ai-header-actions #liveAiCloseBtn:hover { background: #ef4444 !important; border-color: #dc2626 !important; color: #fff !important; }
 .live-ai-live-btn.active { color: #ef4444; background: rgba(239,68,68,.15); font-weight: 700; }
 .live-ai-model-badge {
   font-size: 10px;

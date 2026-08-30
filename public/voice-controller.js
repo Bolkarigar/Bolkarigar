@@ -10,7 +10,7 @@
     ["bihar", "Bihar"], ["west bengal", "West Bengal"], ["madhya pradesh", "Madhya Pradesh"]
   ];
 
-  const PRODUCT_WORDS = "laptop|mobile|phone|computer|cement|plywood|table|chair|fan|tv|fridge|ac|saman|maal|item|लैपटॉप|मोबाइल|सीमेंट|प्लाईवुड|सामान";
+  const PRODUCT_WORDS = "laptop|mobile|phone|computer|cement|plywood|table|chair|fan|tv|fridge|ac|car|bike|scooter|saman|maal|item|लैपटॉप|मोबाइल|सीमेंट|प्लाईवुड|कार|सामान";
 
   const NAV_INTENTS = [
     { panel: "overviewPanel", words: ["overview", "dashboard", "home", "डैशबोर्ड", "होम", "summary", "सारांश"] },
@@ -155,7 +155,7 @@
   }
 
   function isAdd(text) {
-    return /(?:add|save|submit|create|confirm|done|banao|bana do|kar do|kardo|jodo|jod do|save karo|add karo|add kero|add kar do|ऐड|जोड़|सेव|बनाओ|कर दो|करो|डालो|daal do)/i.test(text);
+    return /(?:add|save|submit|create|confirm|done|banao|bana do|kar do|kardo|jodo|jod do|save karo|save kero|save ker|add karo|add kero|add kro|add kar do|ऐड|जोड़|सेव|बनाओ|कर दो|करो|डालो|daal do)/i.test(text);
   }
 
   function isOpen(text) {
@@ -184,14 +184,23 @@
       .trim();
   }
 
+  function looksLikeInvoiceFormUtterance(text) {
+    const n = norm(cleanUtterance(text));
+    if (!n) return false;
+    if (/(?:invoice|bill|इनवॉइस|बिल)\s*(?:me|m|में)\b/i.test(n)) return true;
+    if (/(?:costmer|customer|grahak|ग्राहक|buyer)\s+/i.test(n) && /(?:ne\s+ek|ko\s+ek|li\s*hai|liya|liye|product|item|\d+\s*(?:rupe|rupaye|rupees|rs))/i.test(n)) return true;
+    return false;
+  }
+
   function looksLikeInvoiceUtterance(text) {
     const n = norm(cleanUtterance(text));
     if (!n) return false;
-    if (document.querySelector(".panel.active")?.id === "invoicePanel" && /\d{2,}/.test(n)) return true;
+    if (looksLikeInvoiceFormUtterance(text)) return true;
+    if (document.querySelector(".panel.active")?.id === "invoicePanel" && /\d/.test(n)) return true;
     if (isSaleSentence(n)) return true;
-    if (/\b(invoice|bill|product|item|price|qty|quantity|grahak|customer|ग्राहक|बिल|इनवॉइस|प्रोडक्ट)\b/i.test(n) && /\d{2,}/.test(n)) return true;
-    if (new RegExp(`\\b(${PRODUCT_WORDS})\\b`, "i").test(n) && /\d{3,}/.test(n)) return true;
-    if (/\b\d{3,9}\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\b/i.test(n)) return true;
+    if (/\b(invoice|bill|product|item|price|qty|quantity|costmer|grahak|customer|ग्राहक|बिल|इनवॉइस|प्रोडक्ट)\b/i.test(n) && /\d/.test(n)) return true;
+    if (new RegExp(`\\b(${PRODUCT_WORDS})\\b`, "i").test(n) && /\d/.test(n)) return true;
+    if (/\b\d{1,9}\s*(?:ka|ke|ki|rupees?|rs|rupaye?|rupe|रुपये?)\b/i.test(n)) return true;
     return false;
   }
 
@@ -330,8 +339,12 @@
 
   function looksLikeSearchUtterance(text) {
     const n = norm(cleanUtterance(text));
+    if (looksLikeInvoiceUtterance(text) || isSaleSentence(n)) return false;
+    if (looksLikeTodoAddUtterance(text)) return false;
+    if (looksLikeProjectUtterance(text)) return false;
+    if (looksLikeExpenseUtterance(text)) return false;
     if (/(?:search\s*clear|clear\s*search|सर्च\s*हटा|खोज\s*हटा|खोज\s*साफ)/i.test(n)) return true;
-    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल|kero|keri|kari)/i.test(n)) return true;
+    if (/(?:search|सर्च|खोज|खोजो|ढूंढ|ढूंड|find|filter|निकाल)/i.test(n)) return true;
     if (/(?:naam|name|नाम)\s+.+\s*(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
     if (/.+\s+(?:naam|name|नाम)\s+(?:search|सर्च|खोज|ढूंढ)/i.test(n)) return true;
     if (/.+\s+(?:search|सर्च|खोज|खोजो|ढूंढ|find|filter)\s*(?:karo|kero|keri|kari|kar|kro|करो|कर|kijiye|कीजिए)?$/i.test(n)) return true;
@@ -493,25 +506,73 @@
     for (const [key, label] of INDIAN_STATES) {
       if (t.includes(key)) { state = label; break; }
     }
-    const pin = raw.match(/(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\s*(\d{6})/i)?.[1] ||
+    const pin = raw.match(/(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\s*(?:hai\s+)?(\d{4,6})\b/i)?.[1] ||
       raw.match(/\b(\d{6})\b/)?.[1] || "";
     return { state, pin };
+  }
+
+  function parsePriceFromText(t) {
+    const priceBeforeAddress = t.split(/\b(?:address|addresh|addres|पता|pata|pincode|pin\s*code)\b/i)[0];
+    return priceBeforeAddress.match(/(\d{1,9}(?:\.\d{1,2})?)\s*(?:rupaye|rupees|rs|rupya|rupe|रुपये|रुपए|रूपये?)\b/i)?.[1] ||
+      priceBeforeAddress.match(/\b(\d{1,9})\s*(?:ka|ke|ki|का|के|की)\b/i)?.[1] || "";
+  }
+
+  function parseAddressAndPin(t) {
+    let address = "";
+    let pin = "";
+
+    const combo = t.match(
+      /(?:address|addresh|addres|पता|pata)\s+(?:uska|uski|iska|unka|hai\s+)?(.+?)\s+(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\s*(?:hai\s+)?(\d{4,6})\b/i
+    );
+    if (combo) {
+      address = cleanFieldValue(combo[1].replace(/\s+hai\s*$/i, "").trim());
+      pin = combo[2];
+      return { address, pin };
+    }
+
+    const pinOnly = t.match(/(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\s*(?:hai\s+)?(\d{4,6})\b/i);
+    if (pinOnly) pin = pinOnly[1];
+
+    const addrM = t.match(
+      /(?:address|addresh|addres|पता|pata)\s+(?:uska|uski|iska|unka|hai\s+)?(.+?)(?:\s+(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\b|\s+(?:add|save|kero|karo|submit)\b|$)/i
+    );
+    if (addrM) {
+      address = cleanFieldValue(addrM[1].replace(/\s+hai\s*$/i, "").trim());
+    }
+
+    if (address) {
+      address = address
+        .replace(/\s*(?:pincode|pin\s*code|पिन(?:\s*कोड)?)\s*(?:hai\s*)?\d{4,6}\b/gi, "")
+        .replace(/\s+hai\s*$/i, "")
+        .trim();
+    }
+
+    return { address, pin };
+  }
+
+  function extractProductFromSale(t) {
+    const ekItem = t.match(/\bne\s+ek\s+([\u0900-\u097Fa-zA-Z][\u0900-\u097Fa-zA-Z0-9\s-]{0,30}?)\s+li\b/i);
+    if (ekItem) return cleanProductName(ekItem[1].trim());
+    const pm = t.match(new RegExp(`\\b(ek\\s+)?(${PRODUCT_WORDS})\\b`, "i"));
+    if (pm) return cleanProductName(pm[2] || pm[1] || "");
+    return "";
   }
 
   function parseSmartInvoice(raw) {
     const t = cleanUtterance(raw);
     const n = norm(t);
-    const data = { customer: "", product: "", price: "", qty: "1", state: "", pin: "" };
+    const data = { customer: "", product: "", price: "", qty: "1", state: "", pin: "", address: "" };
     const loc = parseStateAndPin(t);
     data.state = loc.state;
-    data.pin = loc.pin;
+    const addrPin = parseAddressAndPin(t);
+    data.address = addrPin.address;
+    data.pin = addrPin.pin || loc.pin;
 
-    const priceAny = t.match(/(\d{3,9})\s*(?:rupaye|rupees|rs|rupya|रुपये|रुपए|ka|के|का)\b/i)?.[1] ||
-      t.match(/\b(\d{4,9})\b/)?.[1] || "";
+    const priceAny = parsePriceFromText(t);
 
     const neSale =
       t.match(/([A-Za-z\u0900-\u097F]{2,25})\s+ne\s+(?:ek\s+)?(.+?)\s+(?:liya|liye|kharida|khareeda|purchase|li)\b/i) ||
-      t.match(/([A-Za-z\u0900-\u097F]{2,25})\s+ne\s+(?:ek\s+)?(.+?)\s+(\d{3,9})\s*(?:rupaye|rupees|rs|ka|के|का)\b/i);
+      t.match(/([A-Za-z\u0900-\u097F]{2,25})\s+ne\s+(?:ek\s+)?(.+?)\s+(\d{1,9})\s*(?:rupaye|rupees|rs|rupya|rupe|ka|के|का)\b/i);
 
     if (neSale) {
       data.customer = capitalizeName(neSale[1]);
@@ -522,8 +583,8 @@
     if (!data.price && priceAny) data.price = priceAny;
 
     const kaProduct =
-      t.match(/^([A-Za-z\u0900-\u097F]{2,25})\s+(\d{3,9})\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\s+(.+?)(?:\s+(?:banao|banaa|banao|add|bill|invoice|karo|करो))?$/i) ||
-      t.match(/(?:customer|grahak|ग्राहक)\s+([A-Za-z\u0900-\u097F]{2,25})\s+(\d{3,9})\s*(?:ka|ke|ki)\s+(.+?)(?:\s+(?:banao|banaa|banao|add))?$/i);
+      t.match(/^([A-Za-z\u0900-\u097F]{2,25})\s+(\d{1,9})\s*(?:ka|ke|ki|rupees?|rs|rupaye?|रुपये?)\s+(.+?)(?:\s+(?:banao|banaa|banao|add|bill|invoice|karo|करो))?$/i) ||
+      t.match(/(?:customer|costmer|grahak|ग्राहक)\s+([A-Za-z\u0900-\u097F]{2,25})\s+(\d{1,9})\s*(?:ka|ke|ki)\s+(.+?)(?:\s+(?:banao|banaa|banao|add))?$/i);
     if (kaProduct) {
       if (!data.customer) data.customer = capitalizeName(kaProduct[1]);
       if (!data.price) data.price = kaProduct[2];
@@ -531,17 +592,16 @@
     }
 
     if (!data.product) {
-      const pm = t.match(new RegExp(`\\b(ek\\s+)?(${PRODUCT_WORDS})\\b`, "i"));
-      if (pm) data.product = cleanProductName(pm[2] || pm[1] || "");
+      data.product = extractProductFromSale(t);
     }
 
     if (!data.customer) {
-      const cm = t.match(/(?:customer|grahak|ग्राहक)\s+([A-Za-z\u0900-\u097F][\w\u0900-\u097F]{0,25})/i) ||
+      const cm = t.match(/(?:customer|costmer|grahak|ग्राहक)\s+([A-Za-z\u0900-\u097F][\w\u0900-\u097F]{0,25})/i) ||
         t.match(/^([A-Za-z\u0900-\u097F]{2,20})\s+ne\b/i);
       if (cm) data.customer = capitalizeName(cm[1]);
     }
 
-    const koSale = t.match(/([A-Za-z\u0900-\u097F]{2,25})\s+ko\s+(?:ek\s+)?(.+?)\s+(\d{2,9})\s*(?:rupaye|rupees|rs|rupya|रुपये|रुपए|ka|के|का|me)\b/i);
+    const koSale = t.match(/([A-Za-z\u0900-\u097F]{2,25})\s+ko\s+(?:ek\s+)?(.+?)\s+(\d{1,9})\s*(?:rupaye|rupees|rs|rupya|रुपये|रुपए|rupe|ka|के|का|me)\b/i);
     if (koSale) {
       if (!data.customer) data.customer = capitalizeName(koSale[1]);
       if (!data.product) data.product = koSale[2].trim().replace(/^ek\s+/i, "").trim();
@@ -555,7 +615,9 @@
     const naturalSale = isSaleSentence(n);
     const hasSignal = !!(data.customer && data.product && data.price);
     const partialSale = !!(data.product && data.price && (data.customer || naturalSale));
-    return { data, isInvoice: (hasSignal && naturalSale) || partialSale, naturalSale };
+    const formIntent = looksLikeInvoiceFormUtterance(raw);
+    const weakInvoice = formIntent && data.customer && data.product;
+    return { data, isInvoice: hasSignal || partialSale || weakInvoice, naturalSale };
   }
 
   async function parseWithGemini(raw) {
@@ -581,6 +643,7 @@
     await new Promise((r) => setTimeout(r, 80));
 
     if (data.customer) setEl("customerName", data.customer);
+    if (data.address) setEl("customerAddress", data.address);
     if (data.product) setEl("productName", data.product);
     if (data.price) setEl("productPrice", String(data.price));
     if (data.qty) setEl("productQty", String(data.qty));
@@ -598,11 +661,17 @@
     if (shouldSave && typeof executeInvoiceAdd === "function") {
       await new Promise((r) => setTimeout(r, 120));
       const ok = await executeInvoiceAdd();
-      notify(ok ? `Bill add ho gaya. ${data.customer}, ${data.product}, ${data.price} rupaye.` : "Bill add nahi hua. Product aur price check karein.", true);
+      if (ok && typeof renderInvoice === "function") renderInvoice();
+      notify(
+        ok
+          ? `Bill add ho gaya — ${data.customer || "Customer"}, ${data.product}, ₹${data.price}. Neeche invoice list me dekho.`
+          : "Bill add nahi hua. Product aur price check karein.",
+        true
+      );
       return true;
     }
 
-    notify(`Invoice bhara: ${data.customer}, ${data.product}, ${data.price} rupaye. Add karo boliye save ke liye.`, true);
+    notify(`Invoice bhara: ${data.customer || "-"}, ${data.product || "-"}, ₹${data.price || "-"}, Address: ${data.address || "-"}, Pin: ${data.pin || "-"}. Add karo boliye save ke liye.`, true);
     return true;
   }
 
@@ -610,7 +679,8 @@
     let parsed = parseSmartInvoice(raw);
     if (!parsed.isInvoice) {
       const n = norm(cleanUtterance(raw));
-      if ((looksLikeInvoiceUtterance(raw) || isSaleSentence(n)) && /\d{2,}/.test(n)) {
+      const invoiceIntent = looksLikeInvoiceUtterance(raw) || isSaleSentence(n) || looksLikeInvoiceFormUtterance(raw);
+      if (invoiceIntent && /\d/.test(n)) {
         const ai = await parseWithGemini(raw);
         if (ai && (ai.intent === "invoice" || ai.intent === "sale" || ai.intent === "nav")) {
           if (ai.intent === "nav" && ai.panel) {
@@ -640,6 +710,8 @@
   function matchNavigation(raw) {
     const t = norm(cleanUtterance(raw));
     if (!t) return null;
+    if (looksLikeTodoAddUtterance(raw)) return null;
+    if (looksLikeInvoiceFormUtterance(raw)) return null;
 
     const openHint = isOpen(t) || /(?:kholo|khol|open|show|dikhao|jao|खोल)/i.test(t);
     const shortNav = t.split(" ").length <= 10;
@@ -677,24 +749,57 @@
     return openTab(nav.panel, `${label} khol diya.`, false);
   }
 
+  function looksLikeTodoAddUtterance(raw) {
+    const t = norm(cleanUtterance(raw));
+    if (!/(?:\btodo\b|\btask\b|टूडू|टास्क|to do)/i.test(t)) return false;
+    if (/^(?:todo|task|टूडू|टास्क|to do)(?:\s+(?:list|panel|tab|kholo|khol|open|show|dikhao))?\s*$/i.test(t)) return false;
+    if (/^(?:open|kholo|khol|show|dikhao)\s+(?:todo|task|टूडू|टास्क)/i.test(t)) return false;
+    if (isAdd(t) && /(?:todo|task|टूडू|टास्क)/i.test(t)) return true;
+    if (/(?:todo|task|टूडू|टास्क)\s*(?:me|m|में)?\s+\S+/i.test(t) && !isOpen(t)) return true;
+    if (/.+\s+(?:todo|task|टूडू|टास्क)\s*(?:me|में|m)?\s*(?:add|jodo|likho|save|सेव|जोड़)/i.test(t)) return true;
+    return false;
+  }
+
+  function extractTodoTask(raw) {
+    const t = cleanUtterance(raw);
+    let task = "";
+    let m = t.match(/(?:todo|task|टूडू|टास्क|to\s*do)\s*(?:me|m|में)?\s+(.+)/i);
+    if (m) task = m[1];
+    if (!task) {
+      m = t.match(/(.+?)\s+(?:todo|task|टूडू|टास्क)\s*(?:me|में|m)?\s*(?:add|jodo|likho|save|सेव|जोड़)/i);
+      if (m) task = m[1];
+    }
+    if (!task) return "";
+    task = task
+      .replace(/\s+(?:please\s+)?(?:save|add|submit|jodo|likho|daal|saev)(?:\s+(?:karo|kero|kro|ker|kar|do|lo|de|दो|करो|कर|लो))*\s*$/i, "")
+      .replace(/^(?:add|save|jodo|likho|daal)(?:\s+(?:karo|kero|kro|lo|kar|ker|do))?\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (/^(?:add|save|submit|jodo|likho|daal|lo|karo|kero|kro|ker|kar|do|de|करो|कर|लो|जोड़|सेव)(?:\s+(?:add|save|karo|kero|kro|lo|do|de|करो|कर|लो))*$/i.test(task)) {
+      return "";
+    }
+    return task;
+  }
+
   function tryTodoVoice(raw) {
-    const t = norm(raw);
-    const todoMatch = raw.match(/(?:todo|task|टूडू|टास्क)\s*(?:me|में|m)?\s+(.+)/i) ||
-      raw.match(/(.+?)\s+(?:todo|task)\s*(?:me|में)?\s*(?:add|jodo|likho|लिख)/i);
-    if (!todoMatch) return false;
-    const task = todoMatch[1].replace(/\b(add|jodo|likho|karo|करो|जोड़)\b/gi, "").trim();
-    if (!task || task.length < 2) return false;
-    openTab("todoPanel", "Todo khol raha hoon...");
+    if (!looksLikeTodoAddUtterance(raw)) return false;
+    const task = extractTodoTask(raw);
+    if (!task || task.length < 2) {
+      notify("Todo me kya likhna hai bolo — jaise 'todo kal cement lana add karo'.", true);
+      return true;
+    }
+    openTab("todoPanel", null, false);
     const input = document.getElementById("todoInput");
     if (input) {
       input.value = task;
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
-    if (isAdd(t) || /\b(likho|add|jodo|करो|जोड़)\b/.test(t)) {
+    const t = norm(cleanUtterance(raw));
+    if (isAdd(t) || /\b(likho|add|jodo|करो|जोड़|save|kero|karo)\b/.test(t)) {
       document.getElementById("addTodoBtn")?.click();
-      notify(`Todo add ho gaya: ${task}`);
+      notify(`Todo add ho gaya: ${task}`, true);
     } else {
-      notify(`Todo likha: ${task}. Add karo boliye save ke liye.`);
+      notify(`Todo likha: ${task}. Save ke liye 'add karo' boliye.`, true);
     }
     return true;
   }
@@ -798,16 +903,20 @@
 
     if (await tryCompoundNavSearch(cleaned)) return true;
 
+    if (looksLikeTodoAddUtterance(cleaned) && tryTodoVoice(cleaned)) return true;
+
     if (tryNavigateVoice(cleaned)) return true;
 
     if (looksLikeInvoiceUtterance(cleaned) && await fillAndAddInvoice(cleaned)) return true;
+
+    if (looksLikeProjectUtterance(cleaned) && await tryProjectVoice(cleaned)) return true;
+    if (looksLikeExpenseUtterance(cleaned) && await tryExpenseVoice(cleaned)) return true;
 
     if (await trySearchVoice(cleaned)) return true;
 
     if (await tryStandaloneSave(cleaned)) return true;
 
     if (tryThemeVoice(cleaned)) return true;
-    if (tryTodoVoice(cleaned)) return true;
     if (await tryExpenseVoice(cleaned)) return true;
     if (await tryProjectVoice(cleaned)) return true;
     if (await fillAndAddInvoice(cleaned)) return true;
@@ -836,6 +945,7 @@
     processVoice,
     fillAndAddInvoice,
     looksLikeInvoiceUtterance,
+    looksLikeInvoiceFormUtterance,
     cleanProductName,
     tryProjectVoice,
     tryExpenseVoice,
@@ -845,6 +955,9 @@
     looksLikeProjectUtterance,
     looksLikeExpenseUtterance,
     looksLikeSearchUtterance,
+    looksLikeTodoAddUtterance,
+    extractTodoTask,
+    tryTodoVoice,
     isSaleSentence,
     matchNavigation,
     NAV_INTENTS
