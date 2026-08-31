@@ -165,6 +165,8 @@ function bkCanAccessTab(me, tabId) {
     }
     return false;
   }
+  // Business Card — Pro FREE par bhi (12 free cards), server allowedTabs stale ho to bhi
+  if (tabId === "businessCardPanel") {
     if (sub?.fullAccess || sub?.isActive) {
       if (!me?.isStaff) return true;
       const role = me.role || "staff";
