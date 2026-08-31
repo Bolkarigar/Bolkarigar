@@ -75,6 +75,7 @@ const TAB_ACCESS = {
   converterPanel: ['owner', 'manager', 'cashier', 'staff'],
   notesPanel: ['owner', 'manager', 'cashier', 'staff'],
   mediaPanel: ['owner', 'manager', 'cashier', 'staff'],
+  businessCardPanel: ['owner', 'manager', 'cashier', 'staff'],
   staffPanel: ['owner'],
   payrollPanel: ['owner', 'manager', 'cashier', 'staff'],
   companiesPanel: ['owner'],

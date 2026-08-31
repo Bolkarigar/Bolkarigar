@@ -35,6 +35,7 @@
     { panel: "converterPanel", words: ["converter", "unit convert", "कन्वर्टर", "नाप"] },
     { panel: "notesPanel", words: ["notes", "note", "नोट्स"] },
     { panel: "mediaPanel", words: ["media", "receipt scan", "पर्ची", "स्कैन"] },
+    { panel: "businessCardPanel", words: ["business card", "visiting card", "बिज़नेस कार्ड", "विज़िटिंग कार्ड", "card maker"] },
     { panel: "staffPanel", words: ["staff", "employee invite", "कर्मचारी", "स्टाफ"] },
     { panel: "companiesPanel", words: ["companies", "multi company", "फर्म", "कंपनी"] },
     { panel: "myPlanPanel", words: ["my plan", "subscription", "plan", "प्लान"] },

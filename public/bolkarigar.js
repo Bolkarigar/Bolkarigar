@@ -151,6 +151,20 @@ function bkCanAccessTab(me, tabId) {
     if (!sub?.isActive) return false;
     return ["manager", "cashier", "staff"].includes(me.role || "staff");
   }
+  // Security / App Lock — sab users ke liye (device-level)
+  if (tabId === "securityPanel") return true;
+  // Business Card — Pro FREE par bhi (12 free cards), server allowedTabs stale ho to bhi
+  if (tabId === "businessCardPanel") {
+    if (sub?.fullAccess || sub?.isActive) {
+      if (!me?.isStaff) return true;
+      const role = me.role || "staff";
+      const tabs = me.tabs || {};
+      const allowed = tabs[tabId];
+      if (!allowed) return true;
+      return allowed.includes(role);
+    }
+    return false;
+  }
   if (sub && !sub.fullAccess && Array.isArray(sub.allowedTabs)) {
     if (!sub.allowedTabs.includes(tabId)) return false;
   }
@@ -279,6 +293,8 @@ function applyRoleBasedUI(me) {
   if (typeof window.BolKarigarPayroll?.setPayrollViewMode === "function") {
     window.BolKarigarPayroll.setPayrollViewMode();
   }
+  if (typeof window.bkSyncBusinessCardPlan === "function") window.bkSyncBusinessCardPlan();
+  if (typeof window.bkRenderBusinessCardGrid === "function") window.bkRenderBusinessCardGrid();
 }
 
 window.bkCanAccessTab = bkCanAccessTab;
@@ -291,6 +307,12 @@ async function loadServerData() {
     });
     if (meRes.ok) {
       const me = await meRes.json();
+      // Server restart se pehle purani allowedTabs me business card missing ho sakta hai
+      if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
+        ["businessCardPanel", "securityPanel"].forEach((tab) => {
+          if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
+        });
+      }
       console.log('[BolKarigar] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
       if (me.isStaff) showToast(`${me.roleLabel || me.role} login — malik ne invite diya, alag plan nahi chahiye`, "info");
       else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} din bache`, "info");

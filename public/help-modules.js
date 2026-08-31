@@ -104,6 +104,15 @@
       english: "Daily task checklists, site reminders, and work-assignment lists."
     },
     {
+      id: "businessCardPanel",
+      panelId: "businessCardPanel",
+      plans: ["pro"],
+      color: "#3b82f6",
+      title: "💼 Business Card (विज़िटिंग कार्ड)",
+      hindi: "12 free + 25 premium digital visiting cards — naam, dukaan, mobile, GST bharein, download karein ya WhatsApp par turant share karein.",
+      english: "12 free and 25 premium digital business cards — fill details, download PNG, or share instantly on WhatsApp."
+    },
+    {
       id: "myPlanPanel",
       panelId: "myPlanPanel",
       plans: ["pro"],

@@ -16,7 +16,7 @@ const PLANS = {
 const PRO_PLAN_TABS = [
   'overviewPanel', 'invoicePanel', 'inventoryPanel', 'totalSalesPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
-  'galleryPanel', 'todoPanel', 'helpPanel', 'myPlanPanel'
+  'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'
 ];
 
 function getPlanFeatures(planKey, isActive) {

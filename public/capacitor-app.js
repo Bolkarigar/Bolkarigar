@@ -38,8 +38,16 @@
   function setupAppState() {
     if (!plugins.App || !plugins.App.addListener) return;
     plugins.App.addListener('appStateChange', function (state) {
-      if (state && state.isActive && typeof window.bkRefreshOnResume === 'function') {
-        window.bkRefreshOnResume();
+      if (state && !state.isActive && typeof window.bkOnAppBackground === 'function') {
+        window.bkOnAppBackground();
+      }
+      if (state && state.isActive) {
+        if (typeof window.bkOnAppForeground === 'function') {
+          window.bkOnAppForeground();
+        }
+        if (typeof window.bkRefreshOnResume === 'function') {
+          window.bkRefreshOnResume();
+        }
       }
     });
   }
