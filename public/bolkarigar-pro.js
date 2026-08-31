@@ -38,12 +38,43 @@
   }
 
   // ==================== REPORTS PRO ====================
+  let reportPagRows = [];
+  let reportPagMeta = { title: '', headers: [], rowHtml: null };
+
+  function setReportPaginationVisible(show) {
+    const bar = document.getElementById('reportPaginationBar');
+    if (bar) bar.classList.toggle('hidden', !show);
+  }
+
+  function paintReportTablePage() {
+    const out = document.getElementById('reportOutput');
+    if (!out || typeof reportPagMeta.rowHtml !== 'function') return;
+    const pag = window.bkReportPaginator || (window.bkReportPaginator = window.bkCreatePaginator('reportTable', paintReportTablePage));
+    const pageRows = pag.slice(reportPagRows);
+    let html = `<h4>${reportPagMeta.title}</h4><table><thead><tr>`;
+    reportPagMeta.headers.forEach((h) => { html += `<th>${h}</th>`; });
+    html += '</tr></thead><tbody>';
+    if (!pageRows.length) html += `<tr><td colspan="${reportPagMeta.headers.length}">No records</td></tr>`;
+    else pageRows.forEach((r) => { html += reportPagMeta.rowHtml(r); });
+    html += '</tbody></table>';
+    out.innerHTML = html;
+    setReportPaginationVisible(reportPagRows.length > 0);
+  }
+
+  function renderPaginatedReport(title, headers, rows, rowHtmlFn) {
+    reportPagMeta = { title, headers, rowHtml: rowHtmlFn };
+    reportPagRows = rows || [];
+    if (window.bkReportPaginator) window.bkReportPaginator.reset();
+    paintReportTablePage();
+  }
+
   async function loadReportsPro() {
     const month = document.getElementById('reportMonth')?.value || new Date().getMonth() + 1;
     const year = document.getElementById('reportYear')?.value || new Date().getFullYear();
     const tab = document.querySelector('.report-tab-btn.active')?.dataset.report || 'pl';
     const out = document.getElementById('reportOutput');
     if (!out) return;
+    setReportPaginationVisible(false);
     out.innerHTML = '<p>Loading...</p>';
     try {
       let data, html = '';
@@ -65,9 +96,13 @@
         html += '</tbody></table></div></div>';
       } else if (tab === 'ageing') {
         data = await apiGet('/api/reports/ageing');
-        html = '<h4>Bill-wise Outstanding (Ageing)</h4><table><thead><tr><th>Party</th><th>Amount</th><th>Days</th><th>Bucket</th></tr></thead><tbody>';
-        (data.rows||[]).forEach(r => { html += `<tr><td>${esc(r.partyName)}</td><td>₹${r.amount.toFixed(2)}</td><td>${r.days}</td><td>${esc(r.bucket)}</td></tr>`; });
-        html += '</tbody></table>';
+        renderPaginatedReport(
+          'Bill-wise Outstanding (Ageing)',
+          ['Party', 'Amount', 'Days', 'Bucket'],
+          data.rows || [],
+          (r) => `<tr><td>${esc(r.partyName)}</td><td>₹${r.amount.toFixed(2)}</td><td>${r.days}</td><td>${esc(r.bucket)}</td></tr>`
+        );
+        return;
       } else if (tab === 'cashflow') {
         data = await apiGet(`/api/reports/cash-flow?month=${month}&year=${year}`);
         html = `<h4>Cash Flow (${data.period})</h4><p>Inflow: ₹${(data.inflow||0).toFixed(2)} | Outflow: ₹${(data.outflow||0).toFixed(2)} | Net: ₹${(data.netCash||0).toFixed(2)}</p>`;
@@ -98,6 +133,28 @@
   }
 
   // ==================== STAFF ====================
+  let staffListRows = [];
+
+  function paintStaffPage() {
+    const body = document.getElementById('staffListBody');
+    if (!body) return;
+    const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));
+    const pageRows = pag.slice(staffListRows);
+    if (!staffListRows.length) {
+      body.innerHTML = '<tr><td colspan="4">Koi staff nahi — invite code se add karein.</td></tr>';
+      return;
+    }
+    body.innerHTML = pageRows.map(s =>
+      `<tr><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(s.role)}</td><td><button type="button" class="del-staff-btn" data-id="${s._id}">Remove</button></td></tr>`
+    ).join('');
+    body.querySelectorAll('.del-staff-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await apiDelete('/api/staff/' + btn.dataset.id);
+        loadStaff();
+      });
+    });
+  }
+
   async function loadStaff() {
     const body = document.getElementById('staffListBody');
     const codeEl = document.getElementById('staffInviteCode');
@@ -107,15 +164,15 @@
       const data = await apiGet('/api/staff/list');
       if (codeEl) codeEl.textContent = data.inviteCode || 'Generate karein';
       if (roleEl) roleEl.textContent = data.inviteRole ? `(${data.inviteRole})` : '';
-      body.innerHTML = (data.staff||[]).length ? data.staff.map(s =>
-        `<tr><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(s.role)}</td><td><button type="button" class="del-staff-btn" data-id="${s._id}">Remove</button></td></tr>`
-      ).join('') : '<tr><td colspan="4">Koi staff nahi — invite code se add karein.</td></tr>';
-      body.querySelectorAll('.del-staff-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          await apiDelete('/api/staff/' + btn.dataset.id);
-          loadStaff();
-        });
-      });
+      staffListRows = data.staff || [];
+      if (!staffListRows.length) {
+        const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));
+        pag.slice([]);
+        body.innerHTML = '<tr><td colspan="4">Koi staff nahi — invite code se add karein.</td></tr>';
+        return;
+      }
+      if (window.bkStaffPaginator) window.bkStaffPaginator.reset();
+      paintStaffPage();
     } catch (e) { body.innerHTML = `<tr><td colspan="4">${esc(e.message)}</td></tr>`; }
   }
 

@@ -4211,9 +4211,16 @@ async function refreshUdharKhata(localFallback = {}) {
   const ledgerBody = document.getElementById("ledgerBody");
   if (!ledgerBody) return;
 
-  function renderUdharRows(rows) {
+  let udharAllRows = [];
+
+  function paintUdharPage() {
+    const pag = window.bkUdharPaginator || (window.bkUdharPaginator = window.bkCreatePaginator("ledgerUdhar", paintUdharPage));
+    const rows = pag.slice(udharAllRows);
     ledgerBody.innerHTML = "";
     let totalUdhar = 0;
+    udharAllRows.forEach((row) => {
+      totalUdhar += row.pending ?? row.ledgerBalance ?? 0;
+    });
     if (!rows.length) {
       ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No Udhar Records Found.</td></tr>`;
       if (document.getElementById("totalUdharVal")) document.getElementById("totalUdharVal").innerText = "₹0.00";
@@ -4221,8 +4228,6 @@ async function refreshUdharKhata(localFallback = {}) {
     }
     rows.forEach(row => {
       const pending = row.pending ?? row.ledgerBalance ?? 0;
-      if (pending <= 0 && !(row.billed > 0)) return;
-      totalUdhar += pending;
       const cust = row.partyName || row.customer;
       const billed = row.billed ?? pending;
       const paid = row.paid ?? 0;
@@ -4253,6 +4258,15 @@ async function refreshUdharKhata(localFallback = {}) {
     if (document.getElementById("totalUdharVal")) {
       document.getElementById("totalUdharVal").innerText = `₹${totalUdhar.toFixed(2)}`;
     }
+  }
+
+  function renderUdharRows(rows) {
+    udharAllRows = rows.filter((row) => {
+      const pending = row.pending ?? row.ledgerBalance ?? 0;
+      return pending > 0 || (row.billed > 0);
+    });
+    if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
+    paintUdharPage();
   }
 
   try {

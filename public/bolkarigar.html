@@ -430,6 +430,22 @@
               </tbody>
             </table>
           </div>
+          <div class="panel-pagination-bar">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="inventoryPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+              </select>
+              <span id="inventoryPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="inventoryPrevBtn" type="button">Previous</button>
+              <span id="inventoryPageIndicator" class="khata-page-indicator"></span>
+              <button id="inventoryNextBtn" type="button">Next</button>
+            </div>
+          </div>
         </section>
 
         <!-- NEW: UDHAR KHATA / LEDGER PANEL -->
@@ -455,6 +471,22 @@
                 <!-- Data populated dynamically by JS -->
               </tbody>
             </table>
+          </div>
+          <div class="panel-pagination-bar">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="ledgerUdharPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+              </select>
+              <span id="ledgerUdharPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="ledgerUdharPrevBtn" type="button">Previous</button>
+              <span id="ledgerUdharPageIndicator" class="khata-page-indicator"></span>
+              <button id="ledgerUdharNextBtn" type="button">Next</button>
+            </div>
           </div>
         </section>
 
@@ -759,6 +791,22 @@
           </div>
           <div class="btn-row"><button id="loadReportBtn" type="button">Load Report</button><button id="importTallyBtn" class="secondary" type="button">⬇ Import from Tally</button></div>
           <div id="reportOutput" class="table-wrap" style="margin-top:15px; padding:12px;"></div>
+          <div id="reportPaginationBar" class="panel-pagination-bar hidden">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="reportTablePageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+              </select>
+              <span id="reportTablePaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="reportTablePrevBtn" type="button">Previous</button>
+              <span id="reportTablePageIndicator" class="khata-page-indicator"></span>
+              <button id="reportTableNextBtn" type="button">Next</button>
+            </div>
+          </div>
         </section>
 
         <!-- 🟢 CONTRACTOR — Labour, RA Bill, Material Slip -->
@@ -852,6 +900,22 @@
                   <tbody id="payrollEmployeeBody"></tbody>
                 </table>
               </div>
+              <div class="panel-pagination-bar">
+                <div class="khata-pagination-left">
+                  <span class="helper-text">Rows per page:</span>
+                  <select id="payrollEmpPageSize" class="khata-page-size">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                  </select>
+                  <span id="payrollEmpPaginationInfo" class="helper-text"></span>
+                </div>
+                <div class="btn-row">
+                  <button id="payrollEmpPrevBtn" type="button">Previous</button>
+                  <span id="payrollEmpPageIndicator" class="khata-page-indicator"></span>
+                  <button id="payrollEmpNextBtn" type="button">Next</button>
+                </div>
+              </div>
             </div>
 
             <div class="payroll-subpanel" id="payrollAttSub">
@@ -916,6 +980,22 @@
             <span>Code: <strong id="staffInviteCode">—</strong> <span id="staffInviteRoleLabel" class="beta-tag"></span></span>
           </div>
           <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr></thead><tbody id="staffListBody"></tbody></table></div>
+          <div class="panel-pagination-bar">
+            <div class="khata-pagination-left">
+              <span class="helper-text">Rows per page:</span>
+              <select id="staffListPageSize" class="khata-page-size">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+              </select>
+              <span id="staffListPaginationInfo" class="helper-text"></span>
+            </div>
+            <div class="btn-row">
+              <button id="staffListPrevBtn" type="button">Previous</button>
+              <span id="staffListPageIndicator" class="khata-page-indicator"></span>
+              <button id="staffListNextBtn" type="button">Next</button>
+            </div>
+          </div>
         </section>
 
         <!-- MY PLAN (Owner only — pricing login se pehle dekhein) -->
@@ -1476,7 +1556,7 @@
   <script src="help-modules.js?v=20260827r2"></script>
   <script src="voice-controller.js?v=20260830r3"></script>
   <script src="plan-pricing.js?v=20260830r1"></script>
-  <script src="bolkarigar.js?v=20260831v8"></script>
+  <script src="bolkarigar.js?v=20260831v9"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1492,11 +1572,12 @@
       }
     });
   </script>
+  <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260830r1"></script>
   <script src="dev-plan-toggle.js?v=20260828r1"></script>
-  <script src="inventory-ui.js?v=20260827r2"></script>
-  <script src="bolkarigar-pro.js?v=20260827r2"></script>
-  <script src="payroll-ui.js?v=20260829r2"></script>
+  <script src="inventory-ui.js?v=20260831r1"></script>
+  <script src="bolkarigar-pro.js?v=20260831r1"></script>
+  <script src="payroll-ui.js?v=20260831r1"></script>
   <script src="live-features-ui.js?v=20260827r2"></script>
   <script src="business-card-ui.js?v=20260831r9"></script>
   <script src="app-lock.js?v=20260831r2"></script>

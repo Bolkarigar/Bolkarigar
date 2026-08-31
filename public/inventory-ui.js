@@ -96,9 +96,13 @@
     const items = filteredItems();
     if (!items.length) {
       body.innerHTML = "<tr><td colspan='11'>Koi item nahi mila. Upar form se add karein.</td></tr>";
+      const pag = window.bkInvPaginator || (window.bkInvPaginator = window.bkCreatePaginator("inventory", renderTable));
+      pag.slice([]);
       return;
     }
-    body.innerHTML = items.map((i) => `
+    const pag = window.bkInvPaginator || (window.bkInvPaginator = window.bkCreatePaginator("inventory", renderTable));
+    const pageItems = pag.slice(items);
+    body.innerHTML = pageItems.map((i) => `
       <tr class="inv-row-${i.status}">
         <td><strong>${escapeHtml(i.itemName)}</strong>${i.batchNo ? `<br><small class="helper-text">Batch: ${escapeHtml(i.batchNo)}</small>` : ""}</td>
         <td>${escapeHtml(i.hsnCode) || "—"}</td>
@@ -127,6 +131,7 @@
       if (!data.success) throw new Error(data.error || "Load fail");
       allItems = data.items || [];
       updateStats(data.stats);
+      if (window.bkInvPaginator) window.bkInvPaginator.reset();
       renderTable();
       if (typeof window.showToast === "function") window.showToast("Inventory refreshed.");
       return true;
@@ -238,6 +243,7 @@
         document.querySelectorAll("#invFilterChips .inv-chip").forEach((b) => {
           b.classList.toggle("active", b.dataset.filter === val);
         });
+        if (window.bkInvPaginator) window.bkInvPaginator.reset();
         renderTable();
       });
     });
@@ -248,7 +254,10 @@
       e.preventDefault();
       loadInventory();
     });
-    document.getElementById("invSearch")?.addEventListener("input", renderTable);
+    document.getElementById("invSearch")?.addEventListener("input", () => {
+      if (window.bkInvPaginator) window.bkInvPaginator.reset();
+      renderTable();
+    });
     document.querySelector('.tab-btn[data-tab="inventoryPanel"]')?.addEventListener("click", loadInventory);
   }
 

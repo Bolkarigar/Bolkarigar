@@ -338,22 +338,18 @@
     }
   }
 
-  async function loadEmployees() {
+  let payrollEmployees = [];
+
+  function paintPayrollEmployees() {
     const body = document.getElementById('payrollEmployeeBody');
     if (!body) return;
-    body.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-    try {
-      const data = await apiGet('/api/payroll/employees');
-      if (!data.success) {
-        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(data.error || 'Employee list load nahi hui')}</td></tr>`;
-        return;
-      }
-    if (!data.employees?.length) {
+    const pag = window.bkPayrollEmpPaginator || (window.bkPayrollEmpPaginator = window.bkCreatePaginator('payrollEmp', paintPayrollEmployees));
+    const pageRows = pag.slice(payrollEmployees);
+    if (!payrollEmployees.length) {
       body.innerHTML = '<tr><td colspan="6">Koi employee nahi. Neeche add karein.</td></tr>';
-      populateAdvanceSelect();
       return;
     }
-    body.innerHTML = data.employees.map((e) => `
+    body.innerHTML = pageRows.map((e) => `
       <tr>
         <td><strong>${esc(e.name)}</strong><br><span class="helper-text">${esc(e.designation)}</span></td>
         <td>${esc(e.phone || '—')}</td>
@@ -371,6 +367,28 @@
         loadEmployees();
       });
     });
+  }
+
+  async function loadEmployees() {
+    const body = document.getElementById('payrollEmployeeBody');
+    if (!body) return;
+    body.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+    try {
+      const data = await apiGet('/api/payroll/employees');
+      if (!data.success) {
+        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(data.error || 'Employee list load nahi hui')}</td></tr>`;
+        return;
+      }
+    payrollEmployees = data.employees || [];
+    if (!payrollEmployees.length) {
+      const pag = window.bkPayrollEmpPaginator || (window.bkPayrollEmpPaginator = window.bkCreatePaginator('payrollEmp', paintPayrollEmployees));
+      pag.slice([]);
+      body.innerHTML = '<tr><td colspan="6">Koi employee nahi. Neeche add karein.</td></tr>';
+      populateAdvanceSelect();
+      return;
+    }
+    if (window.bkPayrollEmpPaginator) window.bkPayrollEmpPaginator.reset();
+    paintPayrollEmployees();
       populateAdvanceSelect();
     } catch (e) {
       body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(e.message || 'Employee list load fail')}</td></tr>`;
