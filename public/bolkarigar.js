@@ -3040,9 +3040,8 @@ async function handleKhataSpeech(raw) {
     if (sel) { sel.value = "Payment"; sel.dispatchEvent(new Event("change")); }
     openPanel("khataVoucherPanel");
   } else if (text.includes("purchase") || text.includes("खरीद")) {
-    const sel = document.getElementById("voucherTypeInput");
-    if (sel) { sel.value = "Purchase"; sel.dispatchEvent(new Event("change")); }
-    openPanel("khataVoucherPanel");
+    if (typeof window.openPurchaseVoucherModal === "function") window.openPurchaseVoucherModal();
+    else openPanel("khataVoucherPanel");
   } else if (text.includes("day book")) {
     openPanel("khataDaybookPanel");
   } else if (text.includes("item") || text.includes("stock")) {
@@ -5991,6 +5990,143 @@ function getEWayBillDetails() {
   });
 
   updateVoucherFormUI();
+
+  // ---------- PURCHASE MODAL (sidebar) ----------
+  async function loadPurchaseModalDropdowns() {
+    try {
+      const [ledRes, itemRes] = await Promise.all([
+        fetch(`${API_URL}/api/ledgers`, { headers: khataHeaders() }),
+        fetch(`${API_URL}/api/items`, { headers: khataHeaders() })
+      ]);
+      const ledData = await ledRes.json();
+      const itemData = await itemRes.json();
+      const partySel = document.getElementById("pvPartyInput");
+      const itemSel = document.getElementById("pvItemInput");
+      if (partySel && ledData.success) {
+        partySel.innerHTML = '<option value="">-- Select Supplier / Ledger --</option>' +
+          (ledData.ledgers || []).map(l =>
+            `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`
+          ).join("");
+      }
+      if (itemSel && itemData.success) {
+        itemSel.innerHTML = '<option value="">-- Select Item --</option>' +
+          (itemData.items || []).map(i =>
+            `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-gst="${i.gstRate || 0}" data-hsn="${escapeHtml(i.hsnCode || '')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
+          ).join("");
+      }
+    } catch (err) {
+      console.error("Purchase modal dropdown load:", err);
+    }
+  }
+
+  function calcPurchaseModalAmount() {
+    const itemSel = document.getElementById("pvItemInput");
+    const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
+    const rateManual = parseFloat(document.getElementById("pvRateInput")?.value);
+    const gst = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
+    const amountEl = document.getElementById("pvAmountInput");
+    if (!itemSel || !amountEl || !qty) return;
+    let rate = rateManual;
+    if (!rate && itemSel.value) {
+      rate = parseFloat(itemSel.selectedOptions[0]?.dataset.purchase) || 0;
+      const rateEl = document.getElementById("pvRateInput");
+      if (rate && rateEl) rateEl.value = rate;
+    }
+    if (!rate) return;
+    const taxable = rate * qty;
+    amountEl.value = (taxable + (taxable * gst / 100)).toFixed(2);
+  }
+
+  function openPurchaseVoucherModal() {
+    const modal = document.getElementById("purchaseVoucherModal");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+    const dateEl = document.getElementById("pvDateInput");
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+    loadPurchaseModalDropdowns();
+    if (typeof closeMobileSidebar === "function") closeMobileSidebar();
+  }
+
+  function closePurchaseVoucherModal() {
+    document.getElementById("purchaseVoucherModal")?.classList.add("hidden");
+  }
+
+  window.openPurchaseVoucherModal = openPurchaseVoucherModal;
+  window.closePurchaseVoucherModal = closePurchaseVoucherModal;
+
+  document.getElementById("openPurchaseModalBtn")?.addEventListener("click", openPurchaseVoucherModal);
+  document.getElementById("closePurchaseModalBtn")?.addEventListener("click", closePurchaseVoucherModal);
+  document.getElementById("purchaseVoucherModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "purchaseVoucherModal") closePurchaseVoucherModal();
+  });
+
+  ["pvQtyInput", "pvRateInput", "pvGstInput"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", calcPurchaseModalAmount);
+  });
+  document.getElementById("pvItemInput")?.addEventListener("change", () => {
+    const itemSel = document.getElementById("pvItemInput");
+    const opt = itemSel?.selectedOptions[0];
+    if (opt?.dataset.gst) {
+      const gstEl = document.getElementById("pvGstInput");
+      if (gstEl) gstEl.value = opt.dataset.gst;
+    }
+    document.getElementById("pvRateInput").value = "";
+    calcPurchaseModalAmount();
+  });
+
+  document.getElementById("savePurchaseVoucherBtn")?.addEventListener("click", async () => {
+    const partyId = document.getElementById("pvPartyInput")?.value || "";
+    const itemId = document.getElementById("pvItemInput")?.value || "";
+    const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
+    const rate = parseFloat(document.getElementById("pvRateInput")?.value) || 0;
+    const gstRate = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
+    let amount = parseFloat(document.getElementById("pvAmountInput")?.value) || 0;
+    const note = document.getElementById("pvNoteInput")?.value.trim() || "";
+    const supplierInvoiceNo = document.getElementById("pvBillNoInput")?.value.trim() || "";
+    const supplierGstin = document.getElementById("pvSupplierGstinInput")?.value.trim() || "";
+    const paymentMode = document.getElementById("pvPaymentModeInput")?.value || "";
+    const voucherDate = document.getElementById("pvDateInput")?.value || "";
+    const statusText = document.getElementById("pvStatusText");
+
+    if (!partyId) { alert("Supplier / Party select karein."); return; }
+    if (!supplierInvoiceNo) { alert("Purchase bill ke liye Supplier Invoice No. daalein."); return; }
+
+    const items = [];
+    if (itemId) {
+      const itemSel = document.getElementById("pvItemInput");
+      const useRate = rate || parseFloat(itemSel?.selectedOptions[0]?.dataset.purchase) || 0;
+      if (!amount && useRate && qty) {
+        const taxable = useRate * qty;
+        amount = taxable + (taxable * gstRate / 100);
+      }
+      items.push({ itemId, qty, rate: useRate, gstRate });
+    }
+
+    if (!amount || amount <= 0) {
+      alert("Amount daalein (ya Item + Qty + Rate se auto calculate hone dein).");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/vouchers`, {
+        method: "POST", headers: khataHeaders(),
+        body: JSON.stringify({
+          voucherType: "Purchase", partyId, amount, items, note,
+          supplierInvoiceNo, supplierGstin, paymentMode, voucherDate
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Save fail hua");
+      if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
+      showToast("✅ Purchase bill save ho gaya!");
+      ["pvBillNoInput", "pvSupplierGstinInput", "pvQtyInput", "pvRateInput", "pvAmountInput", "pvNoteInput"]
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+      setTimeout(closePurchaseVoucherModal, 1200);
+    } catch (err) {
+      if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
+      showToast("❌ " + err.message, "error");
+    }
+  });
 
   window.refreshKhataVoucherPanel = () => {
     loadLedgerDropdowns();

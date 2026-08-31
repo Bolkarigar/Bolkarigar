@@ -3131,14 +3131,48 @@ body.app-lock-active { overflow: hidden; }
   gap: 12px;
   align-items: stretch;
 }
+.inv-tax-footer.grid-2 {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .inv-tax-footer.grid-2 {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+}
 .inv-info-card {
   background: var(--card2);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
   min-height: 0;
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
 }
+.inv-tax-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.inv-tax-table {
+  width: 100%;
+  min-width: 280px;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.inv-tax-table th,
+.inv-tax-table td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: right;
+  word-break: break-word;
+}
+.inv-tax-table th:nth-child(1),
+.inv-tax-table td:nth-child(1) { width: 34%; text-align: center; }
+.inv-tax-table th:nth-child(2),
+.inv-tax-table td:nth-child(2) { width: 33%; }
+.inv-tax-table th:nth-child(3),
+.inv-tax-table td:nth-child(3) { width: 33%; color: var(--accent); font-weight: 600; }
 .inv-info-title {
   font-size: 12px;
   font-weight: 700;
@@ -3153,20 +3187,24 @@ body.app-lock-active { overflow: hidden; }
   color: var(--muted);
   line-height: 1.4;
 }
-.inv-tax-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.inv-tax-table th,
-.inv-tax-table td {
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  text-align: right;
-}
-.inv-tax-table th:first-child,
-.inv-tax-table td:first-child { text-align: center; }
 .inv-tax-table thead th { background: rgba(255,255,255,.04); font-weight: 700; }
+#purchaseVoucherModal:not(.hidden) { display: flex !important; }
+.purchase-modal-box {
+  max-width: 720px;
+  width: 96%;
+  text-align: left;
+}
+.purchase-modal-form { margin-top: 4px; }
+.purchase-stock-grid {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.purchase-stock-grid .voucher-field-span2 { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .purchase-modal-box { max-height: 92vh; overflow-y: auto; }
+  .purchase-stock-grid.grid-2 { grid-template-columns: 1fr; }
+}
 .inv-info-text { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
 #invoicePanel #invoiceStatus {
   margin: 10px 0 6px;
