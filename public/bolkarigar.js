@@ -613,6 +613,298 @@ function getCurrentGstTaxMode() {
   return resolveGstTaxMode(profile, buyerState, buyerPincode);
 }
 
+let invoiceStockItemsCache = [];
+let invoiceLedgerCache = [];
+let invoiceGstLastRate = 18;
+
+function isInvoiceGstEnabled() {
+  return document.getElementById("invoiceGstToggle")?.checked !== false;
+}
+
+function getInvoiceLineGstRate(storedRate) {
+  if (!isInvoiceGstEnabled()) return 0;
+  const r = parseFloat(storedRate);
+  return Number.isNaN(r) ? 0 : r;
+}
+
+function applyInvoiceGstToggleUI() {
+  const card = document.getElementById("invoiceGeneratorSection");
+  const gstSelect = document.getElementById("productGst");
+  const enabled = isInvoiceGstEnabled();
+  card?.classList.toggle("gst-off", !enabled);
+  if (!gstSelect) return;
+  if (enabled) {
+    gstSelect.value = String(invoiceGstLastRate || 18);
+    gstSelect.disabled = false;
+  } else {
+    invoiceGstLastRate = parseFloat(gstSelect.value) || 18;
+    gstSelect.value = "0";
+    gstSelect.disabled = true;
+  }
+  if (typeof renderInvoice === "function") renderInvoice();
+}
+
+async function loadInvoiceLedgers() {
+  try {
+    const res = await fetch(`${API_URL}/api/ledgers`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.ledgers)) return;
+    invoiceLedgerCache = data.ledgers;
+  } catch (err) {
+    console.warn("Invoice ledger load:", err);
+  }
+}
+
+function filterInvoiceLedgers(query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q || !invoiceLedgerCache.length) return [];
+  const starts = [];
+  const contains = [];
+  invoiceLedgerCache.forEach(ledger => {
+    const name = String(ledger.partyName || "").trim();
+    if (!name) return;
+    const lower = name.toLowerCase();
+    if (lower.startsWith(q)) starts.push(ledger);
+    else if (lower.includes(q)) contains.push(ledger);
+  });
+  return [...starts, ...contains].slice(0, 12);
+}
+
+function hideInvoicePartySuggest() {
+  const list = document.getElementById("invoicePartySuggest");
+  if (list) list.classList.add("hidden");
+}
+
+function applyInvoiceLedgerToForm(ledger) {
+  if (!ledger) return;
+  const nameEl = document.getElementById("customerName");
+  const gstEl = document.getElementById("customerGstin");
+  const addrEl = document.getElementById("customerAddress");
+  const stateEl = document.getElementById("buyerState");
+  if (nameEl) nameEl.value = ledger.partyName || "";
+  if (gstEl && ledger.gstin) gstEl.value = ledger.gstin;
+  if (addrEl && ledger.address) addrEl.value = ledger.address;
+  if (stateEl && ledger.gstin) {
+    const derived = stateFromGstinFrontend(ledger.gstin);
+    if (derived) stateEl.value = derived;
+  }
+  syncBuyerStateFromGstin();
+  hideInvoicePartySuggest();
+  if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+  if (typeof renderInvoice === "function") renderInvoice();
+}
+
+function renderInvoicePartySuggest(matches) {
+  const list = document.getElementById("invoicePartySuggest");
+  if (!list) return;
+  if (!matches.length) {
+    list.classList.add("hidden");
+    list.innerHTML = "";
+    return;
+  }
+  list.innerHTML = matches.map((ledger, i) => {
+    const meta = [ledger.ledgerGroup, ledger.mobile, ledger.gstin].filter(Boolean).join(" · ");
+    return `<li role="option" data-idx="${i}" tabindex="0">
+      ${escapeHtml(ledger.partyName)}
+      ${meta ? `<span class="party-meta">${escapeHtml(meta)}</span>` : ""}
+    </li>`;
+  }).join("");
+  list.classList.remove("hidden");
+  list._matches = matches;
+  list.querySelectorAll("li").forEach(li => {
+    li.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      const idx = parseInt(li.dataset.idx, 10);
+      if (list._matches && list._matches[idx]) applyInvoiceLedgerToForm(list._matches[idx]);
+    });
+  });
+}
+
+function showInvoicePartySuggestForInput() {
+  const input = document.getElementById("customerName");
+  if (!input) return;
+  const matches = filterInvoiceLedgers(input.value);
+  renderInvoicePartySuggest(matches);
+}
+
+function setupInvoicePartyAutocomplete() {
+  const input = document.getElementById("customerName");
+  const list = document.getElementById("invoicePartySuggest");
+  if (!input || !list) return;
+
+  input.addEventListener("input", () => {
+    if (!invoiceLedgerCache.length) loadInvoiceLedgers().then(showInvoicePartySuggestForInput);
+    else showInvoicePartySuggestForInput();
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+  });
+
+  input.addEventListener("focus", () => {
+    if (!invoiceLedgerCache.length) loadInvoiceLedgers().then(showInvoicePartySuggestForInput);
+    else showInvoicePartySuggestForInput();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (list.classList.contains("hidden")) return;
+    const items = [...list.querySelectorAll("li")];
+    if (!items.length) return;
+    let active = items.findIndex(li => li.classList.contains("active"));
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      active = (active + 1) % items.length;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      active = active <= 0 ? items.length - 1 : active - 1;
+    } else if (e.key === "Enter" && active >= 0) {
+      e.preventDefault();
+      const idx = parseInt(items[active].dataset.idx, 10);
+      if (list._matches && list._matches[idx]) applyInvoiceLedgerToForm(list._matches[idx]);
+      return;
+    } else if (e.key === "Escape") {
+      hideInvoicePartySuggest();
+      return;
+    } else {
+      return;
+    }
+    items.forEach((li, i) => li.classList.toggle("active", i === active));
+  });
+
+  document.addEventListener("click", (e) => {
+    const wrap = input.closest(".inv-party-autocomplete");
+    if (wrap && !wrap.contains(e.target)) hideInvoicePartySuggest();
+  });
+}
+
+async function loadInvoiceStockItems() {
+  try {
+    const res = await fetch(`${API_URL}/api/items`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.items)) return;
+    invoiceStockItemsCache = data.items;
+    const dl = document.getElementById("invoiceStockList");
+    if (dl) {
+      dl.innerHTML = data.items.map(i =>
+        `<option value="${escapeHtml(i.itemName)}"></option>`
+      ).join("");
+    }
+  } catch (err) {
+    console.warn("Invoice stock items load:", err);
+  }
+}
+
+function findInvoiceStockItem(name) {
+  const q = String(name || "").trim().toLowerCase();
+  if (!q) return null;
+  return invoiceStockItemsCache.find(i => String(i.itemName || "").trim().toLowerCase() === q) || null;
+}
+
+function applyStockItemToInvoiceFields(name) {
+  const match = findInvoiceStockItem(name);
+  if (!match) return false;
+  const hsnEl = document.getElementById("productHsn");
+  const priceEl = document.getElementById("productPrice");
+  const gstEl = document.getElementById("productGst");
+  const unitEl = document.getElementById("productUnitTag");
+  if (hsnEl) hsnEl.value = match.hsnCode || "";
+  if (priceEl && match.sellingPrice != null) priceEl.value = match.sellingPrice;
+  if (gstEl && isInvoiceGstEnabled() && match.gstRate != null) {
+    gstEl.value = String(match.gstRate);
+    invoiceGstLastRate = parseFloat(match.gstRate) || 18;
+  }
+  if (unitEl) unitEl.textContent = match.unit || "Pcs";
+  return true;
+}
+
+function syncBuyerStateFromGstin() {
+  const gstin = document.getElementById("customerGstin")?.value?.trim() || "";
+  const stateEl = document.getElementById("buyerState");
+  if (!stateEl) return;
+  if (gstin.length >= 2) {
+    const derived = stateFromGstinFrontend(gstin);
+    if (derived) stateEl.value = derived;
+  }
+}
+
+function getInvoiceNumberPreview() {
+  let savedProfile = {};
+  try { savedProfile = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}") || {}; } catch (_) {}
+  const companyName = savedProfile.name || "INV";
+  const key = "bolkarigar_invoice_counter_" + companyName.replace(/\s+/g, "_");
+  const counter = parseInt(localStorage.getItem(key) || "0", 10) + 1;
+  const prefix = companyName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 4) || "INV";
+  const fyStart = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+  const fyEnd = (fyStart + 1).toString().slice(-2);
+  const fyStartShort = fyStart.toString().slice(-2);
+  return `${counter}/${fyStartShort}-${fyEnd}`;
+}
+
+function updateBusyVoucherMeta() {
+  const dateEl = document.getElementById("busyVchDate");
+  const vchEl = document.getElementById("busyVchNo");
+  const saleDesc = document.getElementById("busySaleTypeDesc");
+  const itemInfo = document.getElementById("busyItemInfo");
+  const gstSelect = document.getElementById("productGst");
+
+  if (dateEl) {
+    const now = new Date();
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yyyy = now.getFullYear();
+    dateEl.textContent = `${dd}-${mm}-${yyyy} (${days[now.getDay()]})`;
+  }
+  if (vchEl) vchEl.textContent = getInvoiceNumberPreview();
+
+  const gstRate = isInvoiceGstEnabled() ? parseFloat(gstSelect?.value || "0") : 0;
+  const taxMode = getCurrentGstTaxMode();
+  if (saleDesc) {
+    if (!isInvoiceGstEnabled()) {
+      saleDesc.textContent = "GST OFF — items bina tax ke add honge.";
+    } else {
+      const taxLabel = taxMode.isIntraState ? "CGST + SGST" : "IGST";
+      saleDesc.textContent = `${taxLabel} @ ${gstRate}% (company state se auto).`;
+    }
+  }
+
+  if (itemInfo) {
+    const party = document.getElementById("customerName")?.value?.trim() || "—";
+    const itemCount = (state.invoices || []).length;
+    const gstLabel = isInvoiceGstEnabled() ? "ON" : "OFF";
+    itemInfo.textContent = `Party: ${party} | Items: ${itemCount} | GST: ${gstLabel}`;
+  }
+}
+
+function renderBusyTaxSummary(invoices) {
+  const tbody = document.getElementById("busyTaxSummaryBody");
+  if (!tbody) return;
+  if (!isInvoiceGstEnabled()) {
+    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center'>GST OFF — koi tax nahi</td></tr>";
+    return;
+  }
+  if (!invoices || !invoices.length) {
+    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center'>Add items to see tax breakup</td></tr>";
+    return;
+  }
+  const buckets = {};
+  invoices.forEach(item => {
+    const rate = getInvoiceLineGstRate(item.gstRate);
+    const base = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
+    const tax = (base * rate) / 100;
+    if (!buckets[rate]) buckets[rate] = { taxable: 0, tax: 0 };
+    buckets[rate].taxable += base;
+    buckets[rate].tax += tax;
+  });
+  const taxMode = getCurrentGstTaxMode();
+  tbody.innerHTML = Object.keys(buckets).sort((a, b) => parseFloat(a) - parseFloat(b)).map(rate => {
+    const b = buckets[rate];
+    const rateLabel = taxMode.isIntraState ? `${rate}% (CGST+SGST)` : `${rate}% (IGST)`;
+    return `<tr><td>${rateLabel}</td><td>₹${b.taxable.toFixed(2)}</td><td>₹${b.tax.toFixed(2)}</td></tr>`;
+  }).join("");
+}
+
 // ================= INVOICE SECTION =================
 function renderInvoice() {
   const body = document.getElementById("invoiceBody");
@@ -626,49 +918,40 @@ function renderInvoice() {
     state.invoices.forEach((item, index) => {
       const price = parseFloat(item.price) || 0;
       const qty = parseFloat(item.qty) || 1;
-      const gstRate = parseFloat(item.gstRate) || 0;
+      const gstRate = getInvoiceLineGstRate(item.gstRate);
 
       const baseTotal = price * qty;
       const gstAmount = (baseTotal * gstRate) / 100;
       const lineTotal = baseTotal + gstAmount;
       grand += lineTotal;
 
-      const taxMode = getCurrentGstTaxMode();
-      const gstLabel = taxMode.isIntraState
-        ? `CGST+SGST ${gstRate}% (₹${gstAmount.toFixed(2)})`
-        : `IGST ${gstRate}% (₹${gstAmount.toFixed(2)})`;
+      const hsnLine = item.hsn ? `<br><small style="color:#666">HSN: ${escapeHtml(item.hsn)}</small>` : "";
+      const gstSmall = gstRate > 0 ? `<br><small style="color:#666">GST ${gstRate}%</small>` : "";
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${escapeHtml(item.customer) || "-"}</td>
-        <td>${escapeHtml(item.product) || "-"}</td>
-        <td>₹${price.toFixed(2)}</td>
-        <td>${qty}</td>
-        <td>${gstLabel}</td>
-        <td>₹${lineTotal.toFixed(2)}</td>
-        <td style="text-align: center; display: flex; gap: 5px; justify-content: center;">
-          <button 
-            type="button" 
-            onclick="editInvoiceItem(${index})"
-            style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">
-            ✏️ Edit
-          </button>
-          <button 
-            type="button" 
-            onclick="deleteInvoiceItem(${index})"
-            style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-            🗑️ Delete
-          </button>
+        <td class="col-sn">${index + 1}</td>
+        <td class="col-item">${escapeHtml(item.product) || "-"}${hsnLine}${gstSmall}</td>
+        <td class="col-qty">${qty}</td>
+        <td class="col-unit">Pcs</td>
+        <td class="col-price">₹${price.toFixed(2)}</td>
+        <td class="inv-amt-cell">₹${lineTotal.toFixed(2)}</td>
+        <td>
+          <div class="inv-row-actions">
+            <button type="button" class="inv-row-edit" onclick="editInvoiceItem(${index})">Edit</button>
+            <button type="button" class="inv-row-del" onclick="deleteInvoiceItem(${index})">Del</button>
+          </div>
         </td>
       `;
       body.appendChild(row);
     });
   } else {
-    body.innerHTML = `<tr><td colspan="7" style="text-align:center;">Fill details and add items.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Fill party details and add items.</td></tr>`;
   }
 
   if (grandTotalEl) grandTotalEl.textContent = grand.toFixed(2);
-
+  renderBusyTaxSummary(state.invoices);
+  updateBusyVoucherMeta();
   calculateFinancials(state.invoices, state.expenses);
 }
 
@@ -679,17 +962,23 @@ window.editInvoiceItem = function(index) {
 
   document.getElementById("customerName").value = item.customer || "";
   document.getElementById("productName").value = item.product || "";
+  document.getElementById("productHsn").value = item.hsn || "";
   document.getElementById("productPrice").value = item.price || "";
   document.getElementById("productQty").value = item.qty || 1;
   
   if (document.getElementById("productGst")) {
-    document.getElementById("productGst").value = item.gstRate !== undefined ? item.gstRate : 18;
+    const rate = item.gstRate !== undefined ? item.gstRate : 18;
+    document.getElementById("productGst").value = rate;
+    invoiceGstLastRate = parseFloat(rate) || 18;
+    const gstToggle = document.getElementById("invoiceGstToggle");
+    if (gstToggle) gstToggle.checked = (parseFloat(rate) || 0) > 0;
+    applyInvoiceGstToggleUI();
   }
 
   editingIndex = index;
 
   const addBtn = document.getElementById("addInvoiceBtn");
-  if (addBtn) addBtn.textContent = "💾 Update Item";
+  if (addBtn) addBtn.textContent = "Update Item (F2)";
 
   const statusEl = document.getElementById("invoiceStatus");
   if (statusEl) statusEl.textContent = "✏️ Editing row #" + (index + 1) + ". Make changes and click 'Update Item'.";
@@ -712,7 +1001,9 @@ async function executeInvoiceAdd() {
   const hsn = document.getElementById("productHsn")?.value.trim() || "";
   const price = parseFloat(document.getElementById("productPrice").value || "0");
   const qty = parseFloat(document.getElementById("productQty").value || "1");
-  const gstRate = parseFloat(document.getElementById("productGst")?.value || "0");
+  const gstRate = isInvoiceGstEnabled()
+    ? parseFloat(document.getElementById("productGst")?.value || "0")
+    : 0;
   const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
   const isCredit = paymentType === "Credit";
 
@@ -733,7 +1024,7 @@ async function executeInvoiceAdd() {
     updated[editingIndex] = newItem;
     editingIndex = -1;
     const addBtn = document.getElementById("addInvoiceBtn");
-    if (addBtn) addBtn.textContent = "Add Item";
+    if (addBtn) addBtn.textContent = "Add Item (F2)";
   } else {
     updated.push(newItem);
   }
@@ -789,6 +1080,35 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
 
 document.getElementById("addInvoiceBtn")?.addEventListener("click", executeInvoiceAdd);
 
+document.getElementById("invoiceGstToggle")?.addEventListener("change", applyInvoiceGstToggleUI);
+
+document.getElementById("productName")?.addEventListener("input", (e) => {
+  applyStockItemToInvoiceFields(e.target.value);
+  if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+});
+document.getElementById("productName")?.addEventListener("change", (e) => {
+  applyStockItemToInvoiceFields(e.target.value);
+});
+
+document.getElementById("customerGstin")?.addEventListener("input", () => {
+  syncBuyerStateFromGstin();
+  if (typeof renderInvoice === "function") renderInvoice();
+});
+
+["productGst", "customerName"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", () => {
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+    if (id === "productGst") {
+      invoiceGstLastRate = parseFloat(document.getElementById("productGst")?.value) || 18;
+      renderInvoice();
+    }
+  });
+  document.getElementById(id)?.addEventListener("change", () => {
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+    if (id === "productGst") renderInvoice();
+  });
+});
+
 // Window Load setup
 window.addEventListener("load", () => {
   recognition = createRecognition();
@@ -820,6 +1140,11 @@ window.addEventListener("load", () => {
 
   const tallyBtn = document.getElementById("tallySyncBtn");
   if (tallyBtn) tallyBtn.addEventListener("click", handleTallyVoiceCommand);
+
+  if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
+  if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  if (typeof applyInvoiceGstToggleUI === "function") applyInvoiceGstToggleUI();
+  if (typeof setupInvoicePartyAutocomplete === "function") setupInvoicePartyAutocomplete();
 });
 
 // ==========================================================================
@@ -1119,6 +1444,11 @@ function openPanel(id) {
   if (id === "totalSalesPanel" && !wasAlreadyActive && typeof window.bkRefreshSalesPanel === "function") {
     window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
   }
+  if (id === "invoicePanel") {
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+    if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
+    if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
     requestAnimationFrame(() => {
@@ -1169,7 +1499,21 @@ window.addEventListener("resize", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeMobileSidebar();
+  if (e.key === "Escape") {
+    const activePanel = document.querySelector(".panel.active")?.id;
+    if (activePanel === "invoicePanel" && typeof openPanel === "function") {
+      openPanel("overviewPanel");
+      return;
+    }
+    closeMobileSidebar();
+  }
+  if (e.key === "F2") {
+    const activePanel = document.querySelector(".panel.active")?.id;
+    if (activePanel === "invoicePanel") {
+      e.preventDefault();
+      executeInvoiceAdd();
+    }
+  }
 });
 
 document.addEventListener("focusin", (e) => {
@@ -4140,17 +4484,20 @@ async function printTallyBill() {
   const customerPincode = document.getElementById("buyerPincode")?.value.trim() || "";
 
   const taxMode = resolveGstTaxMode(savedProfile, customerState, customerPincode);
+  const gstOnBill = isInvoiceGstEnabled();
 
-  if (!customerState && !extractPincode(customerPincode)) {
-    alert("⚠️ Buyer State ya 6-digit Pincode zaroor bharein — tabhi sahi CGST+SGST ya IGST calculate hoga.");
-    return;
-  }
-  if (!taxMode.companyState) {
-    alert("⚠️ Business Profile me state/address update karein (jaise: bmg mall rewari, Haryana).");
-    return;
+  if (gstOnBill) {
+    if (!customerState && !extractPincode(customerPincode)) {
+      alert("⚠️ Buyer State ya 6-digit Pincode zaroor bharein — tabhi sahi CGST+SGST ya IGST calculate hoga.\n\nYa GST toggle OFF karke bina-tax bill print karein.");
+      return;
+    }
+    if (!taxMode.companyState) {
+      alert("⚠️ Business Profile me state/address update karein (jaise: bmg mall rewari, Haryana).");
+      return;
+    }
   }
 
-  const isIntraState = taxMode.isIntraState;
+  const isIntraState = gstOnBill ? taxMode.isIntraState : true;
 
   const grandTotalStr = document.getElementById("grandTotal")?.textContent || "0.00";
   const grandTotalNum = parseFloat(grandTotalStr.replace(/,/g, '')) || 0;
@@ -4177,7 +4524,7 @@ async function printTallyBill() {
     state.invoices.forEach((item, index) => {
       const price = parseFloat(item.price) || 0;
       const qty = parseFloat(item.qty) || 1;
-      const gstRate = parseFloat(item.gstRate) || 18;
+      const gstRate = getInvoiceLineGstRate(item.gstRate);
       const hsn = item.hsn || "-";
 
       const baseTotal = price * qty;
@@ -4185,6 +4532,7 @@ async function printTallyBill() {
       totalQty += qty;
 
       let taxRows = "";
+      if (gstRate > 0) {
       if (isIntraState) {
         const cgstAmt = (baseTotal * (gstRate / 2)) / 100;
         const sgstAmt = (baseTotal * (gstRate / 2)) / 100;
@@ -4213,6 +4561,7 @@ async function printTallyBill() {
         if (!hsnSummary[hsn]) hsnSummary[hsn] = { taxable: 0, igstRate: gstRate, igstAmt: 0 };
         hsnSummary[hsn].taxable += baseTotal;
         hsnSummary[hsn].igstAmt += igstAmt;
+      }
       }
 
       itemsRows += `
@@ -4710,7 +5059,7 @@ function setProfileLockState(isSaved) {
     if (invoiceContainer) {
       invoiceContainer.classList.remove("blocked-invoice");
       // Saare inputs aur buttons enable karo
-      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button, textarea");
+      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button:not(.inv-btn-quit), textarea");
       invoiceElements.forEach(el => el.disabled = false);
     }
 
@@ -4728,7 +5077,7 @@ function setProfileLockState(isSaved) {
     if (invoiceContainer) {
       invoiceContainer.classList.add("blocked-invoice");
       // Saare inputs aur buttons disable karo
-      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button, textarea");
+      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button:not(.inv-btn-quit), textarea");
       invoiceElements.forEach(el => el.disabled = true);
     }
   }
