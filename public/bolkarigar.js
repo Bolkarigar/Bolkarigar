@@ -3401,24 +3401,83 @@ document.getElementById("clearNotesBtn")?.addEventListener("click", () => {
   if (status) status.textContent = "Notes cleared.";
 });
 
-// Single Session Guard — plan/payment URL naya tab claim kar sakta hai
+// Single Session Guard — desktop par duplicate tab; mobile/PWA par band (phone par bahut tabs hoti hain)
 const BK_SESSION_CHANNEL = 'bolkarigar_session_hub';
-const sessionChannel = new BroadcastChannel(BK_SESSION_CHANNEL);
+const BK_SESSION_LS = 'bolkarigar_session_leader';
+const BK_HEARTBEAT_LS = 'bolkarigar_session_heartbeat';
+const BK_HEARTBEAT_INTERVAL = 4000;
+const BK_SESSION_STALE_MS = 20000;
+const sessionChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(BK_SESSION_CHANNEL) : null;
 const _sessionUrlParams = new URLSearchParams(window.location.search);
 const canClaimSession = _sessionUrlParams.get('openPanel') === 'myPlanPanel'
   || _sessionUrlParams.get('bkTakeover') === '1';
 const bkTabId = `bk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 let bkSessionBlocked = false;
+let bkHeartbeatTimer = null;
+
+function isMobileOrStandaloneApp() {
+  const ua = navigator.userAgent || '';
+  if (/Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+  if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches && navigator.maxTouchPoints > 0) return true;
+  return false;
+}
+
+function readSessionLeader() {
+  try {
+    return JSON.parse(localStorage.getItem(BK_SESSION_LS) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function readHeartbeat() {
+  return Number(localStorage.getItem(BK_HEARTBEAT_LS) || 0);
+}
+
+function isSessionStale() {
+  return Date.now() - readHeartbeat() > BK_SESSION_STALE_MS;
+}
+
+function claimSessionLeadership() {
+  localStorage.setItem(BK_SESSION_LS, JSON.stringify({ tabId: bkTabId, at: Date.now() }));
+  localStorage.setItem(BK_HEARTBEAT_LS, String(Date.now()));
+  if (sessionChannel) sessionChannel.postMessage({ type: 'CLAIM_SESSION', tabId: bkTabId });
+}
+
+function startSessionHeartbeat() {
+  if (bkHeartbeatTimer) clearInterval(bkHeartbeatTimer);
+  const beat = () => {
+    if (bkSessionBlocked) return;
+    const leader = readSessionLeader();
+    if (!leader || leader.tabId === bkTabId) {
+      localStorage.setItem(BK_SESSION_LS, JSON.stringify({ tabId: bkTabId, at: Date.now() }));
+      localStorage.setItem(BK_HEARTBEAT_LS, String(Date.now()));
+    }
+  };
+  beat();
+  bkHeartbeatTimer = setInterval(beat, BK_HEARTBEAT_INTERVAL);
+  window.addEventListener('beforeunload', () => {
+    const leader = readSessionLeader();
+    if (leader && leader.tabId === bkTabId) {
+      localStorage.removeItem(BK_SESSION_LS);
+      localStorage.removeItem(BK_HEARTBEAT_LS);
+    }
+  });
+}
 
 function blockDuplicateSession() {
   if (bkSessionBlocked) return;
   bkSessionBlocked = true;
+  if (bkHeartbeatTimer) clearInterval(bkHeartbeatTimer);
   document.body.innerHTML = `
     <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
       <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
-      <p style="margin-top:10px; color:#aaa;">BolKarigar AI Dashboard pehle se hi ek doosre tab/window mein open hai.</p>
-      <p style="color:#666; font-size:14px;">Plan kharidne ke liye purane tab me <strong>My Plan</strong> kholo, ya purana tab band karke refresh karein.</p>
-      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:20px; padding:10px 20px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 My Plan Kholo</button>
+      <p style="margin-top:10px; color:#aaa;">BolKarigar dashboard pehle se kisi aur tab me khula hai.</p>
+      <p style="color:#666; font-size:14px;">Neeche <strong>Yahan Continue Karein</strong> dabayein — purana tab auto band ho jayega.</p>
+      <button onclick="window.location.href='bolkarigar.html?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Yahan Continue Karein</button>
+      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 My Plan Kholo</button>
       <button onclick="window.location.reload()" style="margin-top:10px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Dubara Try Karein</button>
     </div>
   `;
@@ -3436,7 +3495,7 @@ function handlePlanPaymentRequest(plan) {
   else setTimeout(startPayment, 800);
 }
 
-sessionChannel.onmessage = (event) => {
+sessionChannel && (sessionChannel.onmessage = (event) => {
   const data = event.data || {};
 
   if (data.type === 'OPEN_PLAN_PAYMENT') {
@@ -3446,7 +3505,7 @@ sessionChannel.onmessage = (event) => {
   }
 
   if (data.type === 'CLAIM_SESSION' && data.tabId !== bkTabId) {
-    blockDuplicateSession();
+    if (!isMobileOrStandaloneApp()) blockDuplicateSession();
     return;
   }
 
@@ -3454,16 +3513,37 @@ sessionChannel.onmessage = (event) => {
     sessionChannel.postMessage({ type: 'ALREADY_ACTIVE', fromTab: bkTabId });
   }
 
-  if (data.type === 'ALREADY_ACTIVE' && !canClaimSession) {
-    blockDuplicateSession();
+  if (data.type === 'ALREADY_ACTIVE' && !canClaimSession && !isMobileOrStandaloneApp()) {
+    if (!isSessionStale()) blockDuplicateSession();
   }
-};
+});
 
-if (canClaimSession) {
-  sessionChannel.postMessage({ type: 'CLAIM_SESSION', tabId: bkTabId });
-} else {
-  sessionChannel.postMessage({ type: 'NEW_TAB_OPENED' });
+function initSessionGuard() {
+  if (isMobileOrStandaloneApp()) {
+    claimSessionLeadership();
+    startSessionHeartbeat();
+    return;
+  }
+  if (canClaimSession || isSessionStale() || !readSessionLeader()) {
+    claimSessionLeadership();
+    startSessionHeartbeat();
+    return;
+  }
+  const leader = readSessionLeader();
+  if (leader && leader.tabId !== bkTabId && !isSessionStale()) {
+    if (sessionChannel) sessionChannel.postMessage({ type: 'NEW_TAB_OPENED' });
+    setTimeout(() => {
+      if (!bkSessionBlocked && !isSessionStale() && readSessionLeader()?.tabId !== bkTabId) {
+        blockDuplicateSession();
+      }
+    }, 600);
+    return;
+  }
+  claimSessionLeadership();
+  startSessionHeartbeat();
 }
+
+initSessionGuard();
 
 window.bkHandlePlanPaymentRequest = handlePlanPaymentRequest;
 

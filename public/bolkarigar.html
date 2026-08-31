@@ -21,7 +21,7 @@
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260827r2"></script>
   <script>
-    window.BK_APP_BUILD = '20260827r2';
+    window.BK_APP_BUILD = '20260831r1';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -46,7 +46,7 @@
     })();
   </script>
 </head>
-<body data-build="20260827r2">
+<body data-build="20260831r1">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -262,6 +262,11 @@
             <div class="mini-card"><h4 data-i18n="overview.cardProjectTitle">Project Tracker</h4><p data-i18n="overview.cardProjectDesc">Customer, site, budget aur status ke saath project save karo.</p></div>
             <div class="mini-card"><h4 data-i18n="overview.cardExpenseTitle">Expense + Invoice</h4><p data-i18n="overview.cardExpenseDesc">Rate, quantity aur total automatic calculate hota hai.</p></div>
             <div class="mini-card"><h4 data-i18n="overview.cardUtilityTitle">Utility Pack</h4><p data-i18n="overview.cardUtilityDesc">Todo, notes, QR, calculator, converter aur media tools included hain.</p></div>
+            <div class="mini-card" style="border:1px solid rgba(34,197,94,.35);cursor:pointer" onclick="typeof openPanel==='function'&&openPanel('securityPanel')">
+              <h4>🔐 App Lock / Security</h4>
+              <p>PIN ya Face ID se app lock karein — Khatabook jaisa.</p>
+              <button type="button" class="secondary" style="margin-top:8px" onclick="event.stopPropagation();typeof openPanel==='function'&&openPanel('securityPanel')">Security Kholo</button>
+            </div>
           </div>
         </section>
 
@@ -1401,7 +1406,7 @@
   <script src="help-modules.js?v=20260827r2"></script>
   <script src="voice-controller.js?v=20260830r3"></script>
   <script src="plan-pricing.js?v=20260830r1"></script>
-  <script src="bolkarigar.js?v=20260831r1"></script>
+  <script src="bolkarigar.js?v=20260831r2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1424,7 +1429,7 @@
   <script src="payroll-ui.js?v=20260829r2"></script>
   <script src="live-features-ui.js?v=20260827r2"></script>
   <script src="business-card-ui.js?v=20260831r9"></script>
-  <script src="app-lock.js?v=20260831r1"></script>
+  <script src="app-lock.js?v=20260831r2"></script>
 
   <!-- Business Card Editor Modal -->
   <div id="bcEditorModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Business card editor">
