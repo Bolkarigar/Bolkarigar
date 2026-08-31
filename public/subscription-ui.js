@@ -66,8 +66,10 @@
 
   async function updatePaywallTestHint(me) {
     const hint = document.getElementById("paywallTestModeHint");
-    if (!hint || me?.isStaff || !getToken()) {
+    const planMode = document.getElementById("myPlanPaymentMode");
+    if ((!hint && !planMode) || me?.isStaff || !getToken()) {
       if (hint) hint.classList.add("hidden");
+      if (planMode) planMode.classList.add("hidden");
       return;
     }
     try {
@@ -75,13 +77,29 @@
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) {
-        hint.classList.add("hidden");
+        hint?.classList.add("hidden");
+        planMode?.classList.add("hidden");
         return;
       }
       const cfg = await res.json();
-      hint.classList.toggle("hidden", !cfg.testMode);
+      const isTest = cfg.testMode || cfg.mode === "test";
+      if (hint) hint.classList.toggle("hidden", !isTest);
+      if (planMode) {
+        if (!cfg.configured) {
+          planMode.classList.add("hidden");
+        } else if (isTest) {
+          planMode.classList.remove("hidden");
+          planMode.innerHTML = '⚠️ <strong style="color:#f59e0b;">Payment TEST mode</strong> — real card OTP nahi aayega. Render Environment me <code>RAZORPAY_KEY_ID</code> = <code>rzp_live_…</code> set karein aur redeploy karein.';
+        } else if (cfg.mode === "live") {
+          planMode.classList.remove("hidden");
+          planMode.innerHTML = '✅ <strong style="color:#22c55e;">Payment LIVE mode</strong> — asli UPI/Card se payment hogi.';
+        } else {
+          planMode.classList.add("hidden");
+        }
+      }
     } catch (_) {
-      hint.classList.add("hidden");
+      hint?.classList.add("hidden");
+      planMode?.classList.add("hidden");
     }
   }
 
@@ -183,6 +201,15 @@
         return;
       }
 
+      if (cfg.testMode && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
+        const proceed = confirm(
+          "⚠️ Razorpay abhi TEST mode me hai — asli card par OTP nahi aayega.\n\n" +
+          "Live payment ke liye Render pe rzp_live_ keys lagao aur redeploy karo.\n\n" +
+          "Phir bhi test payment try karna hai?"
+        );
+        if (!proceed) return;
+      }
+
       await loadRazorpayScript();
 
       const orderRes = await fetch(`${API_URL}/api/payment/create-order`, {
@@ -205,6 +232,17 @@
       }
 
       const me = await getAccountPrefill();
+      let contactPhone = "";
+      try {
+        const profRes = await fetch(`${API_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        });
+        if (profRes.ok) {
+          const prof = await profRes.json();
+          contactPhone = String(prof.phone || "").replace(/\D/g, "").slice(-10);
+        }
+      } catch (_) { /* ignore */ }
+
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
@@ -214,7 +252,8 @@
         order_id: orderData.orderId,
         prefill: {
           email: me.email || "",
-          name: me.username || ""
+          name: me.username || "",
+          contact: contactPhone || undefined
         },
         theme: { color: "#3b82f6" },
         handler: async function (response) {

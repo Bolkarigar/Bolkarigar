@@ -14,25 +14,39 @@ const PLAN_AMOUNTS_PAISE = {
 
 const PLAN_DURATION_DAYS = 30;
 
+function normalizeRazorpayEnv() {
+  const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+  return { keyId, keySecret };
+}
+
+function getRazorpayMode() {
+  const { keyId } = normalizeRazorpayEnv();
+  if (!keyId) return 'off';
+  if (keyId.startsWith('rzp_live_')) return 'live';
+  if (keyId.startsWith('rzp_test_')) return 'test';
+  return 'invalid';
+}
+
 function getRazorpayClient() {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const { keyId, keySecret } = normalizeRazorpayEnv();
   if (!keyId || !keySecret) return null;
   return new Razorpay({ key_id: keyId, key_secret: keySecret });
 }
 
 function isRazorpayConfigured() {
-  return !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+  const { keyId, keySecret } = normalizeRazorpayEnv();
+  return !!(keyId && keySecret);
 }
 
 function verifyPaymentSignature(orderId, paymentId, signature) {
-  const secret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
-  if (!secret || !orderId || !paymentId || !signature) return false;
+  const { keySecret } = normalizeRazorpayEnv();
+  if (!keySecret || !orderId || !paymentId || !signature) return false;
   try {
     return validatePaymentVerification(
       { order_id: orderId, payment_id: paymentId },
       signature,
-      secret
+      keySecret
     );
   } catch {
     return false;
@@ -74,8 +88,10 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       res.json({
         success: true,
         configured: isRazorpayConfigured(),
-        keyId: process.env.RAZORPAY_KEY_ID || null,
-        testMode: (process.env.RAZORPAY_KEY_ID || '').startsWith('rzp_test_'),
+        keyId: normalizeRazorpayEnv().keyId || null,
+        mode: getRazorpayMode(),
+        testMode: getRazorpayMode() === 'test',
+        keyPrefix: normalizeRazorpayEnv().keyId ? normalizeRazorpayEnv().keyId.slice(0, 12) + '…' : null,
         plans: {
           business: { name: PLANS.business.name, amount: PLANS.business.price, amountPaise: PLAN_AMOUNTS_PAISE.business }
         }
@@ -106,6 +122,13 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       const amountPaise = PLAN_AMOUNTS_PAISE[plan];
       const planInfo = PLANS[plan];
 
+      const { keyId } = normalizeRazorpayEnv();
+      if (getRazorpayMode() === 'invalid') {
+        return res.status(503).json({
+          error: 'Razorpay Key ID galat format me hai. Live key rzp_live_ se shuru honi chahiye.'
+        });
+      }
+
       const receipt = `bk_${String(user._id).slice(-8)}_${Date.now()}`;
       const order = await razorpay.orders.create({
         amount: amountPaise,
@@ -129,7 +152,8 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
 
       res.json({
         success: true,
-        keyId: process.env.RAZORPAY_KEY_ID,
+        keyId,
+        mode: getRazorpayMode(),
         orderId: order.id,
         amount: amountPaise,
         currency: 'INR',
@@ -227,5 +251,6 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
 module.exports = {
   setupRazorpayPayments,
   isRazorpayConfigured,
+  getRazorpayMode,
   PLAN_AMOUNTS_PAISE
 };

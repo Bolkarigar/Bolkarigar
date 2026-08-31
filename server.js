@@ -38,7 +38,7 @@ const {
   isPathSubscriptionExempt,
   requireBusinessPlan
 } = require('./subscription');
-const { setupRazorpayPayments } = require('./razorpay-payments');
+const { setupRazorpayPayments, getRazorpayMode } = require('./razorpay-payments');
 const { setupDevPlanToggle } = require('./dev-plan-toggle');
 const logger = require('./logger');
 
@@ -972,7 +972,9 @@ app.get('/api/health', (req, res) => {
     emailHint: isRenderHost() && !hasHttpsEmailProvider()
       ? 'Render FREE blocks Gmail SMTP. Add BREVO_API_KEY in Environment (free at brevo.com).'
       : null,
-    env: process.env.NODE_ENV || 'development'
+    env: process.env.NODE_ENV || 'development',
+    razorpayMode: getRazorpayMode(),
+    razorpayConfigured: getRazorpayMode() !== 'off' && getRazorpayMode() !== 'invalid'
   });
 });
 
@@ -2656,8 +2658,12 @@ server.listen(PORT, () => {
     global.__bkEmailReady = false;
   });
   if (process.env.RAZORPAY_KEY_ID) {
-    const mode = process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_') ? 'TEST' : 'LIVE';
-    logger.info(`💳 Razorpay: ${mode} mode configured`);
+    const mode = getRazorpayMode();
+    const label = mode === 'live' ? 'LIVE' : mode === 'test' ? 'TEST' : 'INVALID';
+    logger.info(`💳 Razorpay: ${label} mode (${(process.env.RAZORPAY_KEY_ID || '').trim().slice(0, 12)}…)`);
+    if (mode === 'test' && process.env.NODE_ENV === 'production') {
+      logger.warn('⚠️ Production pe TEST Razorpay key hai — real OTP nahi aayega. Render me rzp_live_ keys lagao.');
+    }
   } else {
     logger.warn(`⚠️ Razorpay keys missing — payment disabled`);
   }

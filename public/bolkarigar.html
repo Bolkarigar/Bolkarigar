@@ -110,7 +110,7 @@
         <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">🆓 Pro — Bilkul FREE</button>
         <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹299 / month</button>
       </div>
-      <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;">Test Mode: <strong>UPI recommended</strong> — <code>success@razorpay</code></p>
+      <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;color:#f59e0b;">⚠️ <strong>Test Mode active</strong> — real OTP nahi aayega. Render pe <code>rzp_live_</code> keys lagao, ya test me UPI: <code>success@razorpay</code></p>
     </div>
   </div>
 
@@ -1013,6 +1013,7 @@
           </div>
           <div id="myPlanRenewBox" class="mini-card" style="margin-bottom:16px;border:1px solid rgba(59,130,246,.35);">
             <h4 style="margin:0 0 10px;">Plan Renew / Upgrade</h4>
+            <p id="myPlanPaymentMode" class="helper-text hidden" style="margin-bottom:10px;"></p>
             <p class="helper-text" style="margin-bottom:12px;">Secure payment via Razorpay — UPI, Card, Netbanking</p>
             <div class="btn-row" style="flex-wrap:wrap;gap:10px;">
               <button type="button" id="buyProPlanBtn" class="pay-btn-pro">🆓 Pro Dukaan — Bilkul FREE</button>
@@ -1573,7 +1574,7 @@
     });
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
-  <script src="subscription-ui.js?v=20260830r1"></script>
+  <script src="subscription-ui.js?v=20260831r2"></script>
   <script src="dev-plan-toggle.js?v=20260828r1"></script>
   <script src="inventory-ui.js?v=20260831r1"></script>
   <script src="bolkarigar-pro.js?v=20260831r1"></script>
