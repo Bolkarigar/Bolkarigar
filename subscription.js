@@ -14,7 +14,7 @@ const PLANS = {
 
 /** Pro (FREE) — sirf yeh sidebar tabs */
 const PRO_PLAN_TABS = [
-  'overviewPanel', 'invoicePanel', 'inventoryPanel', 'totalSalesPanel',
+  'overviewPanel', 'invoicePanel', 'purchasePanel', 'inventoryPanel', 'totalSalesPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
   'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'
 ];

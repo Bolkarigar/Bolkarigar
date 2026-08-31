@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260831v5">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260831v6">
   <link rel="stylesheet" href="business-card.css?v=20260831r9">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260827r2"></script>
@@ -148,7 +148,7 @@
             <p class="nav-group-label" data-i18n="nav.main">Main</p>
             <button class="tab-btn active" data-tab="overviewPanel" type="button" data-i18n="nav.overview">🏠 Overview</button>
             <button class="tab-btn" data-tab="invoicePanel" type="button" data-i18n="nav.invoice">🧾 Invoice</button>
-            <button class="tab-btn" id="openPurchaseModalBtn" type="button" data-i18n="nav.purchase">📥 Purchase</button>
+            <button class="tab-btn" data-tab="purchasePanel" type="button" data-i18n="nav.purchase">📥 Purchase</button>
             <button class="tab-btn" data-tab="voicePanel" type="button" data-i18n="nav.voice">🎤 Voice AI</button>
           </div>
           <div class="nav-group nav-group-business">
@@ -1106,6 +1106,79 @@
 </section>
 
 
+        <!-- PURCHASE PANEL — Invoice jaisa full page -->
+<section class="panel" id="purchasePanel">
+  <div class="inv-voucher-card purchase-panel-card">
+    <div class="panel-header inv-vch-header-row">
+      <div>
+        <p class="eyebrow">Accounting</p>
+        <h3 data-i18n="nav.purchase">📥 Purchase Bill</h3>
+        <p class="helper-text" style="margin:4px 0 0;">Stock + Supplier Bill — GST India standard (Vyapar/Tally style)</p>
+      </div>
+      <div class="inv-vch-meta">
+        <span class="inv-meta-chip" id="pvDateDisplay" title="Bill Date">—</span>
+      </div>
+    </div>
+
+    <div class="grid-2 inv-party-grid">
+      <label class="voucher-field">
+        <span class="voucher-label">Supplier Invoice No. *</span>
+        <input type="text" id="pvBillNoInput" placeholder="e.g. INV-2026-001" maxlength="32" />
+      </label>
+      <label class="voucher-field">
+        <span class="voucher-label">Bill Date</span>
+        <input type="date" id="pvDateInput" />
+      </label>
+      <label class="voucher-field">
+        <span class="voucher-label">Supplier GSTIN</span>
+        <input type="text" id="pvSupplierGstinInput" placeholder="15 digit GSTIN (optional)" maxlength="15" />
+      </label>
+      <label class="voucher-field">
+        <span class="voucher-label">Payment Mode</span>
+        <select id="pvPaymentModeInput">
+          <option value="Credit">Credit / Udhar (Sundry Creditor)</option>
+          <option value="Cash">Cash — Paid</option>
+          <option value="Bank">Bank — Paid</option>
+          <option value="UPI">UPI — Paid</option>
+        </select>
+      </label>
+      <label class="voucher-field inv-full-span">
+        <span class="voucher-label">Supplier / Party (Sundry Creditor) *</span>
+        <select id="pvPartyInput"><option value="">-- Select Supplier / Ledger --</option></select>
+      </label>
+    </div>
+
+    <div class="inv-item-entry purchase-item-entry">
+      <span class="inv-entry-label">Stock Entry</span>
+      <select id="pvItemInput" class="pv-field-item"><option value="">-- Select Item --</option></select>
+      <input id="pvQtyInput" type="number" class="inv-field-qty" min="0" step="0.01" placeholder="Qty" />
+      <input id="pvRateInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Purchase Rate ₹" />
+      <select id="pvGstInput" class="inv-field-gst">
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="12">12%</option>
+        <option value="18" selected>18%</option>
+        <option value="28">28%</option>
+      </select>
+      <input id="pvAmountInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Total Amount ₹ *" />
+    </div>
+
+    <label class="voucher-field" style="margin-top:10px;display:block;">
+      <span class="voucher-label">Narration / Note</span>
+      <textarea id="pvNoteInput" placeholder="e.g. Cement 50 bags — godown main" rows="2" style="width:100%;"></textarea>
+    </label>
+
+    <p class="helper-text" id="pvStatusText"></p>
+
+    <div class="btn-row inv-action-row">
+      <button type="button" id="savePurchaseVoucherBtn">💾 Save Purchase Bill</button>
+      <button type="button" class="secondary" onclick="typeof openPanel==='function'&&openPanel('khataDaybookPanel')">Day Book</button>
+      <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
+    </div>
+  </div>
+</section>
+
+
         <!-- GALLERY PANEL -->
         <section class="panel" id="galleryPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="gallery.eyebrow">Products</p><h3 data-i18n="gallery.title">Product Gallery</h3></div></div>
@@ -1399,93 +1472,11 @@
     </div>
   </div>
 
-  <!-- PURCHASE VOUCHER MODAL (sidebar → Invoice ke niche) -->
-  <div id="purchaseVoucherModal" class="modal-overlay hidden">
-    <div class="modal-box purchase-modal-box">
-      <div class="profile-card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div>
-          <h3 style="margin:0;">📥 Purchase Bill</h3>
-          <p class="helper-text" style="margin:4px 0 0;">Stock + Supplier Bill — GST India standard</p>
-        </div>
-        <button type="button" id="closePurchaseModalBtn" class="secondary btn-close" style="padding:6px 12px;">✕ Close</button>
-      </div>
-
-      <div class="voucher-form-card purchase-modal-form">
-        <p class="voucher-section-title">📥 Supplier / Purchase Details</p>
-        <div class="grid-2">
-          <label class="voucher-field">
-            <span class="voucher-label">Supplier Invoice No. *</span>
-            <input type="text" id="pvBillNoInput" placeholder="e.g. INV-2026-001" maxlength="32" />
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Bill Date</span>
-            <input type="date" id="pvDateInput" />
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Supplier GSTIN</span>
-            <input type="text" id="pvSupplierGstinInput" placeholder="15 digit GSTIN (optional)" maxlength="15" />
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Payment Mode</span>
-            <select id="pvPaymentModeInput">
-              <option value="Credit">Credit / Udhar (Sundry Creditor)</option>
-              <option value="Cash">Cash — Paid</option>
-              <option value="Bank">Bank — Paid</option>
-              <option value="UPI">UPI — Paid</option>
-            </select>
-          </label>
-        </div>
-
-        <label class="voucher-field" style="margin-top:10px;">
-          <span class="voucher-label">Supplier / Party (Sundry Creditor) *</span>
-          <select id="pvPartyInput"><option value="">-- Select Supplier / Ledger --</option></select>
-        </label>
-
-        <div class="grid-2 voucher-stock-grid purchase-stock-grid">
-          <label class="voucher-field voucher-field-span2">
-            <span class="voucher-label">Stock Item *</span>
-            <select id="pvItemInput"><option value="">-- Select Item --</option></select>
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Quantity</span>
-            <input id="pvQtyInput" type="number" min="0" step="0.01" placeholder="Qty" />
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Purchase Rate ₹</span>
-            <input id="pvRateInput" type="number" min="0" step="0.01" placeholder="Rate per unit" />
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">GST %</span>
-            <select id="pvGstInput">
-              <option value="0">0%</option>
-              <option value="5">5%</option>
-              <option value="12">12%</option>
-              <option value="18" selected>18%</option>
-              <option value="28">28%</option>
-            </select>
-          </label>
-          <label class="voucher-field">
-            <span class="voucher-label">Total Amount ₹ *</span>
-            <input id="pvAmountInput" type="number" min="0" step="0.01" placeholder="Auto from Qty × Rate + GST" />
-          </label>
-        </div>
-
-        <label class="voucher-field" style="margin-top:10px;">
-          <span class="voucher-label">Narration / Note</span>
-          <textarea id="pvNoteInput" placeholder="e.g. Cement 50 bags — godown main" rows="2"></textarea>
-        </label>
-
-        <button id="savePurchaseVoucherBtn" type="button" style="margin-top: 12px;">💾 Save Purchase Bill</button>
-        <p class="helper-text" id="pvStatusText"></p>
-      </div>
-    </div>
-  </div>
-
   <script src="responsive-ui.js?v=20260827r2"></script>
   <script src="help-modules.js?v=20260827r2"></script>
   <script src="voice-controller.js?v=20260830r3"></script>
   <script src="plan-pricing.js?v=20260830r1"></script>
-  <script src="bolkarigar.js?v=20260831v5"></script>
+  <script src="bolkarigar.js?v=20260831v6"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

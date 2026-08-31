@@ -3188,22 +3188,14 @@ body.app-lock-active { overflow: hidden; }
   line-height: 1.4;
 }
 .inv-tax-table thead th { background: rgba(255,255,255,.04); font-weight: 700; }
-#purchaseVoucherModal:not(.hidden) { display: flex !important; }
-.purchase-modal-box {
-  max-width: 720px;
-  width: 96%;
-  text-align: left;
-}
-.purchase-modal-form { margin-top: 4px; }
-.purchase-stock-grid {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-}
-.purchase-stock-grid .voucher-field-span2 { grid-column: 1 / -1; }
-@media (max-width: 640px) {
-  .purchase-modal-box { max-height: 92vh; overflow-y: auto; }
-  .purchase-stock-grid.grid-2 { grid-template-columns: 1fr; }
+
+/* Purchase panel — invoice jaisa full page */
+#purchasePanel.active { padding-bottom: 28px; }
+.purchase-panel-card { margin-bottom: 12px; }
+.purchase-item-entry .pv-field-item { flex: 2 1 180px; min-width: 140px; }
+@media (max-width: 768px) {
+  .purchase-item-entry select,
+  .purchase-item-entry input { flex: 1 1 100%; max-width: 100%; }
 }
 .inv-info-text { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
 #invoicePanel #invoiceStatus {

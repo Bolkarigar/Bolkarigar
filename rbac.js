@@ -56,6 +56,7 @@ const ROLE_LABELS = {
 const TAB_ACCESS = {
   overviewPanel: ['owner'],
   invoicePanel: ['owner', 'manager', 'cashier'],
+  purchasePanel: ['owner', 'manager', 'cashier'],
   voicePanel: ['owner', 'manager', 'cashier'],
   projectPanel: ['owner', 'manager', 'cashier'],
   inventoryPanel: ['owner', 'manager', 'cashier'],

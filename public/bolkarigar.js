@@ -238,12 +238,12 @@ function applyRoleBasedUI(me) {
   }
 
   const khataWrite = bkHasPerm(me, "khata.write");
-  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel";
+  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel";
   document.querySelectorAll(
     `${khataPanelIds} button:not([data-readonly-ok]), #ledgerPanel .udhar-pay-btn, #recordPaymentBtn`
   ).forEach((el) => {
     if (el.id === "importTallyBtn") return;
-    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel")) {
+    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel")) {
       el.disabled = true;
       el.title = "Aapke role me Khata edit allowed nahi";
     }
@@ -1448,6 +1448,9 @@ function openPanel(id) {
     if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
     if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
     if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  }
+  if (id === "purchasePanel" && typeof window.refreshPurchasePanel === "function") {
+    window.refreshPurchasePanel();
   }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
@@ -3040,8 +3043,7 @@ async function handleKhataSpeech(raw) {
     if (sel) { sel.value = "Payment"; sel.dispatchEvent(new Event("change")); }
     openPanel("khataVoucherPanel");
   } else if (text.includes("purchase") || text.includes("खरीद")) {
-    if (typeof window.openPurchaseVoucherModal === "function") window.openPurchaseVoucherModal();
-    else openPanel("khataVoucherPanel");
+    openPanel("purchasePanel");
   } else if (text.includes("day book")) {
     openPanel("khataDaybookPanel");
   } else if (text.includes("item") || text.includes("stock")) {
@@ -5513,6 +5515,7 @@ function getEWayBillDetails() {
     khataLedgersPanel: () => loadKhataLedgers(),
     khataItemsPanel: () => loadKhataItems(),
     khataVoucherPanel: () => { loadLedgerDropdowns(); loadItemDropdown(); updateVoucherFormUI(); },
+    purchasePanel: () => { if (typeof window.refreshPurchasePanel === "function") window.refreshPurchasePanel(); },
     khataDaybookPanel: () => loadKhataDaybook()
   };
 
@@ -5991,8 +5994,19 @@ function getEWayBillDetails() {
 
   updateVoucherFormUI();
 
-  // ---------- PURCHASE MODAL (sidebar) ----------
-  async function loadPurchaseModalDropdowns() {
+  // ---------- PURCHASE PANEL (sidebar — Invoice jaisa full page) ----------
+  function updatePurchaseDateDisplay() {
+    const dateEl = document.getElementById("pvDateInput");
+    const display = document.getElementById("pvDateDisplay");
+    if (!display) return;
+    const raw = dateEl?.value;
+    if (!raw) { display.textContent = "—"; return; }
+    const d = new Date(raw + "T12:00:00");
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    display.textContent = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()} (${days[d.getDay()]})`;
+  }
+
+  async function loadPurchasePanelDropdowns() {
     try {
       const [ledRes, itemRes] = await Promise.all([
         fetch(`${API_URL}/api/ledgers`, { headers: khataHeaders() }),
@@ -6037,28 +6051,20 @@ function getEWayBillDetails() {
     amountEl.value = (taxable + (taxable * gst / 100)).toFixed(2);
   }
 
-  function openPurchaseVoucherModal() {
-    const modal = document.getElementById("purchaseVoucherModal");
-    if (!modal) return;
-    modal.classList.remove("hidden");
+  function refreshPurchasePanel() {
     const dateEl = document.getElementById("pvDateInput");
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
-    loadPurchaseModalDropdowns();
-    if (typeof closeMobileSidebar === "function") closeMobileSidebar();
+    updatePurchaseDateDisplay();
+    loadPurchasePanelDropdowns();
   }
 
-  function closePurchaseVoucherModal() {
-    document.getElementById("purchaseVoucherModal")?.classList.add("hidden");
-  }
+  window.refreshPurchasePanel = refreshPurchasePanel;
+  window.openPurchaseVoucherModal = function () {
+    if (typeof openPanel === "function") openPanel("purchasePanel");
+  };
 
-  window.openPurchaseVoucherModal = openPurchaseVoucherModal;
-  window.closePurchaseVoucherModal = closePurchaseVoucherModal;
-
-  document.getElementById("openPurchaseModalBtn")?.addEventListener("click", openPurchaseVoucherModal);
-  document.getElementById("closePurchaseModalBtn")?.addEventListener("click", closePurchaseVoucherModal);
-  document.getElementById("purchaseVoucherModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "purchaseVoucherModal") closePurchaseVoucherModal();
-  });
+  document.getElementById("pvDateInput")?.addEventListener("change", updatePurchaseDateDisplay);
+  document.getElementById("pvDateInput")?.addEventListener("input", updatePurchaseDateDisplay);
 
   ["pvQtyInput", "pvRateInput", "pvGstInput"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", calcPurchaseModalAmount);
@@ -6121,7 +6127,8 @@ function getEWayBillDetails() {
       showToast("✅ Purchase bill save ho gaya!");
       ["pvBillNoInput", "pvSupplierGstinInput", "pvQtyInput", "pvRateInput", "pvAmountInput", "pvNoteInput"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-      setTimeout(closePurchaseVoucherModal, 1200);
+      document.getElementById("pvPartyInput").value = "";
+      document.getElementById("pvItemInput").value = "";
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
       showToast("❌ " + err.message, "error");
