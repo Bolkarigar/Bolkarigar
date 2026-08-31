@@ -153,8 +153,18 @@ function bkCanAccessTab(me, tabId) {
   }
   // Security / App Lock — sab users ke liye (device-level)
   if (tabId === "securityPanel") return true;
-  // Business Card — Pro FREE par bhi (12 free cards), server allowedTabs stale ho to bhi
-  if (tabId === "businessCardPanel") {
+  // Purchase Bill — Pro FREE par bhi (invoice jaisa), stale allowedTabs fix
+  if (tabId === "purchasePanel") {
+    if (sub?.fullAccess || sub?.isActive) {
+      if (!me?.isStaff) return true;
+      const role = me.role || "staff";
+      const tabs = me.tabs || {};
+      const allowed = tabs[tabId];
+      if (!allowed) return ["owner", "manager", "cashier"].includes(role);
+      return allowed.includes(role);
+    }
+    return false;
+  }
     if (sub?.fullAccess || sub?.isActive) {
       if (!me?.isStaff) return true;
       const role = me.role || "staff";
@@ -309,7 +319,7 @@ async function loadServerData() {
       const me = await meRes.json();
       // Server restart se pehle purani allowedTabs me business card missing ho sakta hai
       if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
-        ["businessCardPanel", "securityPanel"].forEach((tab) => {
+        ["businessCardPanel", "securityPanel", "purchasePanel"].forEach((tab) => {
           if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
         });
       }
