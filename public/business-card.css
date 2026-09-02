@@ -258,6 +258,49 @@
   opacity: 0.9;
 }
 
+/* Swoosh premium thumb preview */
+.bc-tpv-swoosh {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.bc-tpv-swoosh-dark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 58%;
+  border-radius: 8px 0 0 8px;
+}
+.bc-tpv-swoosh-band {
+  position: absolute;
+  left: 54%;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-radius: 4px;
+  transform: skewY(-4deg);
+  opacity: 0.95;
+}
+.bc-tpv-swoosh-logo {
+  position: absolute;
+  right: 22%;
+  top: 22%;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  transform: rotate(-12deg);
+}
+.bc-tpv-swoosh-qr {
+  position: absolute;
+  right: 14%;
+  bottom: 22%;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 2px;
+}
+
 /* Free thumb preview — simple flat style */
 .bc-tfv {
   width: 100%;
@@ -499,7 +542,7 @@
 }
 .bc-preview-viewport {
   width: 100%;
-  max-width: 340px;
+  max-width: 380px;
   aspect-ratio: 1.75;
   border-radius: 10px;
   overflow: hidden;
@@ -508,18 +551,28 @@
 .bc-preview-viewport .bc-card-export {
   width: 1050px;
   height: 600px;
-  transform: scale(0.323);
+  transform: scale(0.36);
   transform-origin: top left;
 }
 .bc-preview-scale-wrap {
-  width: 309%;
-  height: 309%;
+  width: 278%;
+  height: 278%;
   overflow: hidden;
 }
 .bc-share-hint {
   color: #94a3b8;
   font-size: 12px;
   text-align: center;
+}
+.bc-qr-hint {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #86efac;
+  font-size: 12px;
+  line-height: 1.5;
 }
 .bc-form-section {
   padding: 20px;
@@ -616,6 +669,10 @@
 .bc-lux-card {
   font-family: Georgia, 'Times New Roman', Times, serif;
 }
+.bc-swoosh-card {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  border-radius: 28px;
+}
 .bc-card-export * {
   box-sizing: border-box;
 }
@@ -669,9 +726,9 @@
   opacity: 0.85;
 }
 .bc-pattern-dots {
-  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
-  background-size: 18px 18px;
-  opacity: 0.08;
+  background-image: radial-gradient(circle, currentColor 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+  opacity: 0.12;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -680,11 +737,11 @@
   background: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 8px,
-    currentColor 8px,
-    currentColor 9px
+    transparent 6px,
+    currentColor 6px,
+    currentColor 7px
   );
-  opacity: 0.06;
+  opacity: 0.09;
   position: absolute;
   inset: 0;
   pointer-events: none;

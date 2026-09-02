@@ -15,6 +15,7 @@ function getAccountingMode() {
 }
 
 function showToast(msg, type = "success") {
+  if (typeof window.bkEnMsg === "function") msg = window.bkEnMsg(msg);
   const el = document.getElementById("appToast");
   if (!el) { if (type === "error") alert(msg); else console.log(msg); return; }
   el.textContent = msg;
@@ -34,7 +35,7 @@ async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, 
     });
     const data = await res.json();
     if (data.success) {
-      showToast("✅ Ledger + Sales entry save ho gayi.");
+      showToast("✅ Ledger and sales entry saved.");
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
     } else if (data.error) {
       console.warn("Khata record-sale:", data.error);
@@ -100,7 +101,7 @@ async function syncWithBackend(type, newPayload) {
     return true;
   } catch (err) {
     console.error(`Sync failed for ${type}:`, err);
-    alert("Server sync issue! Kripya connection check karein.");
+    alert("Server sync issue! Please check your connection.");
     return false;
   }
 }
@@ -153,8 +154,8 @@ function bkCanAccessTab(me, tabId) {
   }
   // Security / App Lock — sab users ke liye (device-level)
   if (tabId === "securityPanel") return true;
-  // Purchase Bill — Pro FREE par bhi (invoice jaisa), stale allowedTabs fix
-  if (tabId === "purchasePanel") {
+  // Purchase / Payment / Receipt — Pro FREE par bhi (invoice jaisa), stale allowedTabs fix
+  if (tabId === "purchasePanel" || tabId === "paymentVoucherPanel" || tabId === "receiptVoucherPanel") {
     if (sub?.fullAccess || sub?.isActive) {
       if (!me?.isStaff) return true;
       const role = me.role || "staff";
@@ -250,12 +251,12 @@ function applyRoleBasedUI(me) {
   }
 
   const khataWrite = bkHasPerm(me, "khata.write");
-  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel";
+  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel";
   document.querySelectorAll(
     `${khataPanelIds} button:not([data-readonly-ok]), #ledgerPanel .udhar-pay-btn, #recordPaymentBtn`
   ).forEach((el) => {
     if (el.id === "importTallyBtn") return;
-    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel")) {
+    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel")) {
       el.disabled = true;
       el.title = "Aapke role me Khata edit allowed nahi";
     }
@@ -326,8 +327,8 @@ async function loadServerData() {
         });
       }
       console.log('[BolKarigar] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
-      if (me.isStaff) showToast(`${me.roleLabel || me.role} login — malik ne invite diya, alag plan nahi chahiye`, "info");
-      else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} din bache`, "info");
+      if (me.isStaff) showToast(`${me.roleLabel || me.role} login — invited by owner, no separate plan needed`, "info");
+      else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} days left`, "info");
       window._bkAccountInfo = me;
       applyRoleBasedUI(me);
 
@@ -392,7 +393,7 @@ async function loadServerData() {
       renderInvoice();
       calculateFinancials(state.invoices, state.expenses);
       await refreshOverviewSalesFromHistory();
-      showToast("Server se load nahi hua — local backup data dikha rahe hain.", "error");
+      showToast("Could not load from server — showing local backup data.", "error");
     }
   }
 }
@@ -1434,7 +1435,7 @@ document.addEventListener("bk:langchange", () => {
 function openPanel(id) {
   const me = window._bkAccountInfo;
   if (me && !bkCanAccessTab(me, id)) {
-    showToast("Aapke role me yeh section allowed nahi hai.", "error");
+    showToast("This section is not allowed for your role.", "error");
     id = bkStaffFallbackTab(me);
   }
   if (typeof window.BolKarigarPayroll?.closePayrollSlipModal === "function") {
@@ -1448,7 +1449,7 @@ function openPanel(id) {
     window.refreshKhataVoucherPanel();
   }
   if (id === "bankReconPanel" || id === "companiesPanel") {
-    showToast("Yeh feature jald aa raha hai — abhi basic entry save hoti hai, auto-match nahi.", "info");
+    showToast("This feature is coming soon — basic entry saves for now, auto-match is not available yet.", "info");
   }
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
@@ -1463,6 +1464,12 @@ function openPanel(id) {
   }
   if (id === "purchasePanel" && typeof window.refreshPurchasePanel === "function") {
     window.refreshPurchasePanel();
+  }
+  if (id === "paymentVoucherPanel" && typeof window.refreshPaymentVoucherPanel === "function") {
+    window.refreshPaymentVoucherPanel();
+  }
+  if (id === "receiptVoucherPanel" && typeof window.refreshReceiptVoucherPanel === "function") {
+    window.refreshReceiptVoucherPanel();
   }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
@@ -3047,13 +3054,9 @@ async function handleKhataSpeech(raw) {
   if (amountMatch) setField(document.getElementById("voucherAmountInput"), amountMatch[1]);
 
   if (text.includes("receipt") || text.includes("रसीद")) {
-    const sel = document.getElementById("voucherTypeInput");
-    if (sel) { sel.value = "Receipt"; sel.dispatchEvent(new Event("change")); }
-    openPanel("khataVoucherPanel");
+    openPanel("receiptVoucherPanel");
   } else if (text.includes("payment") || text.includes("भुगतान")) {
-    const sel = document.getElementById("voucherTypeInput");
-    if (sel) { sel.value = "Payment"; sel.dispatchEvent(new Event("change")); }
-    openPanel("khataVoucherPanel");
+    openPanel("paymentVoucherPanel");
   } else if (text.includes("purchase") || text.includes("खरीद")) {
     openPanel("purchasePanel");
   } else if (text.includes("day book")) {
@@ -3585,7 +3588,7 @@ function renderGalleryThumbs(photos) {
     delBtn.className = "gallery-delete-btn";
     delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (!confirm("Yeh photo delete karein?")) return;
+      if (!confirm("Delete this photo?")) return;
       await deleteGalleryPhoto(photo._id);
     });
 
@@ -3634,8 +3637,8 @@ galleryUploadBtn?.addEventListener("click", () => galleryFileInput?.click());
 galleryFileInput?.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  if (!file.type.startsWith("image/")) { alert("Sirf image file chuno."); return; }
-  if (file.size > 5 * 1024 * 1024) { alert("Image 5MB se badi hai, chhoti photo chuno."); return; }
+  if (!file.type.startsWith("image/")) { alert("Please select an image file only."); return; }
+  if (file.size > 5 * 1024 * 1024) { alert("Image is larger than 5MB — please choose a smaller photo."); return; }
 
   const reader = new FileReader();
   reader.onload = async () => {
@@ -3652,7 +3655,7 @@ galleryFileInput?.addEventListener("change", async (e) => {
       loadGalleryPhotos();
     } catch (err) {
       console.error("Gallery upload error:", err);
-      alert("❌ Upload nahi ho paya: " + err.message);
+      alert("❌ Upload failed: " + err.message);
     }
   };
   reader.readAsDataURL(file);
@@ -3909,7 +3912,7 @@ function triggerWhatsAppShare() {
 
   if (!currentCust) {
     showCommand("WhatsApp share ke liye Invoice form me Customer Name bharein!");
-    alert("Kripya pehle Customer Name bharein!");
+    alert("Please enter the customer name first!");
     return;
   }
 
@@ -3950,7 +3953,7 @@ function triggerWhatsAppShare() {
     const pGst = parseFloat(document.getElementById("productGst")?.value || "0");
 
     if (pPrice <= 0 || Number.isNaN(pPrice)) {
-      alert("Kripya sahi Price bharein ya pehle item Add karein!");
+      alert("Please enter a valid price or add an item first!");
       return;
     }
 
@@ -4055,7 +4058,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Sync failed");
 
-    alert(result.message || "✅ Bill Tally Mein Sync Ho Gaya!");
+    alert(result.message || "✅ Bill synced to Tally successfully!");
     return true;
 
   } catch (err) {
@@ -4076,7 +4079,7 @@ async function handleTallyVoiceCommand() {
 
   if (!cust || !prod || price <= 0) {
     showCommand("Tally me bhejne ke liye Customer, Product aur Price hona zaroori hai!");
-    alert("Kripya pehle Invoice Form me Customer, Product aur Sahi Price bharein!");
+    alert("Please fill Customer, Product and valid Price in the invoice form first!");
     return;
   }
 
@@ -4084,7 +4087,7 @@ async function handleTallyVoiceCommand() {
   const gstAmount = (baseTotal * gstRate) / 100;
   const grandTotal = baseTotal + gstAmount;
 
-  const confirmSync = confirm(`Kya aap Tally Prime ko launch karke GST bill sync karna chahte hain?\n\nCustomer: ${cust}\nProduct: ${prod}\nBase Amount: ₹${baseTotal.toFixed(2)}\nGST (${gstRate}%): ₹${gstAmount.toFixed(2)}\nGrand Total: ₹${grandTotal.toFixed(2)}`);
+  const confirmSync = confirm(`Launch Tally Prime and sync this GST bill?\n\nCustomer: ${cust}\nProduct: ${prod}\nBase Amount: ₹${baseTotal.toFixed(2)}\nGST (${gstRate}%): ₹${gstAmount.toFixed(2)}\nGrand Total: ₹${grandTotal.toFixed(2)}`);
   
   if (confirmSync) {
     await sendInvoiceToTally(cust, prod, price, qty, gstRate, custGstin, custState);
@@ -4296,7 +4299,7 @@ async function showUdharDetail(customerName) {
   const title = document.getElementById("udharDetailTitle");
   const body = document.getElementById("udharDetailBody");
   if (!modal || !body) {
-    showToast("View modal load nahi hua — Ctrl+Shift+R se page refresh karein.", "error");
+    showToast("View modal failed to load — press Ctrl+Shift+R to refresh the page.", "error");
     return;
   }
 
@@ -4515,11 +4518,11 @@ async function printTallyBill() {
 
   if (gstOnBill) {
     if (!customerState && !extractPincode(customerPincode)) {
-      alert("⚠️ Buyer State ya 6-digit Pincode zaroor bharein — tabhi sahi CGST+SGST ya IGST calculate hoga.\n\nYa GST toggle OFF karke bina-tax bill print karein.");
+      alert("⚠️ Please enter buyer State and 6-digit Pincode for correct CGST+SGST or IGST.\n\nOr turn GST OFF to print a tax-free bill.");
       return;
     }
     if (!taxMode.companyState) {
-      alert("⚠️ Business Profile me state/address update karein (jaise: bmg mall rewari, Haryana).");
+      alert("⚠️ Please update state/address in Business Profile (e.g. BMG Mall Rewari, Haryana).");
       return;
     }
   }
@@ -4604,7 +4607,7 @@ async function printTallyBill() {
         ${taxRows}`;
     });
   } else {
-    alert("Print karne ke liye invoice mein kam se kam 1 item hona zaroori hai!");
+    alert("At least one item is required in the invoice to print.");
     return;
   }
 
@@ -4854,13 +4857,13 @@ window.printTallyBill = printTallyBill;
 
 async function downloadInvoiceBill() {
   if (!state.invoices || state.invoices.length === 0) {
-    if (typeof showToast === "function") showToast("Pehle kam se kam 1 item add karein.", "error");
-    else alert("Download ke liye invoice mein kam se kam 1 item hona zaroori hai!");
+    if (typeof showToast === "function") showToast("Please add at least one item first.", "error");
+    else alert("At least one item is required in the invoice to download.");
     return;
   }
   await printTallyBill();
   if (typeof showToast === "function") {
-    showToast("Print dialog me 'Save as PDF' choose karke invoice download karein.", "info");
+    showToast("In the print dialog, choose 'Save as PDF' to download the invoice.", "info");
   }
 }
 
@@ -4881,7 +4884,7 @@ async function printThermalBill() {
   });
   const upi = savedProfile.upiId || "";
   const w = window.open("", "_blank", "width=320,height=600");
-  if (!w) { alert("Pop-up allow karein thermal print ke liye."); return; }
+  if (!w) { alert("Please allow pop-ups for thermal printing."); return; }
   w.document.write(`<!DOCTYPE html><html><head><title>Thermal Bill</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
     <style>@page{size:58mm auto;margin:2mm;}body{width:58mm;font-family:monospace;font-size:11px;margin:0;padding:4px;}
@@ -4969,7 +4972,7 @@ async function loadCompanyProfile() {
 async function saveCompanyProfile(event) {
   if (event) event.preventDefault();
   if (!bkHasPerm(window._bkAccountInfo, "profile.edit")) {
-    alert("Sirf owner company profile edit kar sakta hai.");
+    alert("Only the owner can edit the company profile.");
     return;
   }
 
@@ -4985,7 +4988,7 @@ async function saveCompanyProfile(event) {
   const address = addressInput?.value.trim();
 
   if (!name || !gstin || !address) {
-    alert("⚠️ Kripya Company Name, GSTIN aur Address zaroor bharein!");
+    alert("⚠️ Please enter Company Name, GSTIN and Address.");
     return;
   }
 
@@ -5013,7 +5016,7 @@ async function saveCompanyProfile(event) {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      alert("✅ Profile successfully save ho gayi!");
+      alert("✅ Profile saved successfully!");
 
       // Local cache update karo taaki page reload pe bhi profile yaad rahe
       const profileForStorage = {
@@ -5034,11 +5037,11 @@ async function saveCompanyProfile(event) {
       // Profile lock karo & Invoice Generator unlock karo
       setProfileLockState(true);
     } else {
-      alert("❌ Error: " + (result.error || "Save nahi ho paya"));
+      alert("❌ Error: " + (result.error || "Could not save"));
     }
   } catch (error) {
     console.error("Exact Error:", error);
-    alert("❌ Network Error: Console (F12) check karein!");
+    alert("❌ Network error: check the console (F12).");
   }
 }
 // 4. Edit Button Handler
@@ -5542,6 +5545,8 @@ function getEWayBillDetails() {
     khataItemsPanel: () => loadKhataItems(),
     khataVoucherPanel: () => { loadLedgerDropdowns(); loadItemDropdown(); updateVoucherFormUI(); },
     purchasePanel: () => { if (typeof window.refreshPurchasePanel === "function") window.refreshPurchasePanel(); },
+    paymentVoucherPanel: () => { if (typeof window.refreshPaymentVoucherPanel === "function") window.refreshPaymentVoucherPanel(); },
+    receiptVoucherPanel: () => { if (typeof window.refreshReceiptVoucherPanel === "function") window.refreshReceiptVoucherPanel(); },
     khataDaybookPanel: () => loadKhataDaybook()
   };
 
@@ -5710,19 +5715,19 @@ function getEWayBillDetails() {
   }
 
   window.deleteKhataLedger = async function (id) {
-    if (!confirm("Yeh ledger delete karein?")) return;
+    if (!confirm("Delete this ledger?")) return;
     try {
       const res = await fetch(`${API_URL}/api/ledgers/${id}`, { method: "DELETE", headers: khataHeaders() });
       const data = await res.json();
       if (!res.ok) { showToast("❌ " + data.error, "error"); return; }
-      showToast("Ledger delete ho gaya.");
+      showToast("Ledger deleted.");
       loadKhataLedgers();
     } catch (err) { showToast("❌ " + err.message, "error"); }
   };
 
   window.syncKhataLedgerToTally = async function (id) {
     try {
-      showToast("⌛ Tally me ledger sync ho raha hai...");
+      showToast("⌛ Syncing ledger to Tally...");
       const res = await fetch(`${API_URL}/api/tally/sync-ledger/${id}`, { method: "POST", headers: khataHeaders(), body: "{}" });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Sync fail");
@@ -5736,7 +5741,7 @@ function getEWayBillDetails() {
     const meta = document.getElementById("ledgerStatementMeta");
     const body = document.getElementById("ledgerStatementBody");
     if (!modal || !body) {
-      showToast("Ledger statement window load nahi hui. Page refresh karein.", "error");
+      showToast("Ledger statement window failed to load. Please refresh the page.", "error");
       return;
     }
     body.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>";
@@ -5782,7 +5787,7 @@ function getEWayBillDetails() {
 
   document.getElementById("addLedgerBtn")?.addEventListener("click", async () => {
     const partyName = document.getElementById("ledgerNameInput").value.trim();
-    if (!partyName) { alert("Ledger naam daalein."); return; }
+    if (!partyName) { alert("Please enter a ledger name."); return; }
     const payload = {
       partyName,
       ledgerGroup: document.getElementById("ledgerGroupInput").value,
@@ -5798,7 +5803,7 @@ function getEWayBillDetails() {
       document.getElementById("ledgerMobileInput").value = "";
       document.getElementById("ledgerGstinInput").value = "";
       document.getElementById("ledgerOpeningInput").value = "";
-      showToast("✅ Ledger '" + partyName + "' ban gaya!");
+      showToast("✅ Ledger '" + partyName + "' created!");
       loadKhataLedgers();
     } catch (err) { showToast("❌ " + err.message, "error"); }
   });
@@ -5822,7 +5827,7 @@ function getEWayBillDetails() {
   }
 
   window.deleteKhataItem = async function (id) {
-    if (!confirm("Yeh item delete karein?")) return;
+    if (!confirm("Delete this item?")) return;
     try {
       await fetch(`${API_URL}/api/items/${id}`, { method: "DELETE", headers: khataHeaders() });
       loadKhataItems();
@@ -5831,7 +5836,7 @@ function getEWayBillDetails() {
 
   document.getElementById("addItemBtn")?.addEventListener("click", async () => {
     const itemName = document.getElementById("itemNameInput").value.trim();
-    if (!itemName) { alert("Item naam daalein."); return; }
+    if (!itemName) { alert("Please enter an item name."); return; }
     const payload = {
       itemName,
       unit: document.getElementById("itemUnitInput").value.trim() || "Pcs",
@@ -5858,36 +5863,50 @@ function getEWayBillDetails() {
     const type = document.getElementById("voucherTypeInput")?.value || "Sales";
     const purchaseBox = document.getElementById("voucherPurchaseFields");
     const stockBox = document.getElementById("voucherStockFields");
+    const payReceiptBox = document.getElementById("voucherPayReceiptFields");
     const secondaryWrap = document.getElementById("voucherSecondaryWrap");
     const partyLabel = document.getElementById("voucherPartyLabel");
     const rateLabel = document.getElementById("voucherRateLabel");
     const gstField = document.getElementById("voucherGstField");
+    const payReceiptTitle = document.getElementById("voucherPayReceiptTitle");
 
     const isPurchase = type === "Purchase";
     const isSales = type === "Sales";
+    const isPayment = type === "Payment";
+    const isReceipt = type === "Receipt";
+    const isPayReceipt = isPayment || isReceipt;
     const isStock = isPurchase || isSales;
     const isJournalContra = type === "Journal" || type === "Contra";
 
     purchaseBox?.classList.toggle("hidden", !isPurchase);
     stockBox?.classList.toggle("hidden", !isStock);
+    payReceiptBox?.classList.toggle("hidden", !isPayReceipt);
     secondaryWrap?.classList.toggle("hidden", !isJournalContra);
     gstField?.classList.toggle("hidden", !isStock);
 
     if (partyLabel) {
       partyLabel.textContent = isPurchase
         ? "Supplier / Party (Sundry Creditor) *"
-        : isJournalContra
-          ? "First Ledger *"
-          : "Party / Ledger *";
+        : isPayment
+          ? "Paid To (Party / Ledger) *"
+          : isReceipt
+            ? "Received From (Party / Ledger) *"
+            : isJournalContra
+              ? "First Ledger *"
+              : "Party / Ledger *";
+    }
+    if (payReceiptTitle) {
+      payReceiptTitle.textContent = isPayment ? "💸 Payment Details" : "💰 Receipt Details";
     }
     if (rateLabel) {
       rateLabel.textContent = isPurchase ? "Purchase Rate ₹" : "Sale Rate ₹";
     }
 
     const dateInput = document.getElementById("voucherDateInput");
-    if (dateInput && !dateInput.value) {
-      dateInput.value = new Date().toISOString().slice(0, 10);
-    }
+    const prDateInput = document.getElementById("voucherPrDateInput");
+    const today = new Date().toISOString().slice(0, 10);
+    if (dateInput && !dateInput.value) dateInput.value = today;
+    if (prDateInput && !prDateInput.value) prDateInput.value = today;
   }
 
   document.getElementById("voucherTypeInput")?.addEventListener("change", updateVoucherFormUI);
@@ -5964,16 +5983,22 @@ function getEWayBillDetails() {
     const note = document.getElementById("voucherNoteInput").value.trim();
     const supplierInvoiceNo = document.getElementById("voucherBillNoInput")?.value.trim() || "";
     const supplierGstin = document.getElementById("voucherSupplierGstinInput")?.value.trim() || "";
-    const paymentMode = document.getElementById("voucherPaymentModeInput")?.value || "";
-    const voucherDate = document.getElementById("voucherDateInput")?.value || "";
+    let paymentMode = document.getElementById("voucherPaymentModeInput")?.value || "";
+    let voucherDate = document.getElementById("voucherDateInput")?.value || "";
     const statusText = document.getElementById("voucherStatusText");
 
-    if (!partyId) { alert("Party / Ledger select karein."); return; }
+    if (voucherType === "Payment" || voucherType === "Receipt") {
+      amount = parseFloat(document.getElementById("voucherPrAmountInput")?.value) || 0;
+      paymentMode = document.getElementById("voucherPrModeInput")?.value || "Cash";
+      voucherDate = document.getElementById("voucherPrDateInput")?.value || voucherDate;
+    }
+
+    if (!partyId) { alert("Please select a party / ledger."); return; }
     if (voucherType === "Purchase" && !supplierInvoiceNo) {
-      alert("Purchase bill ke liye Supplier Invoice No. daalein."); return;
+      alert("Please enter Supplier Invoice No. for the purchase bill."); return;
     }
     if ((voucherType === "Journal" || voucherType === "Contra") && !secondaryLedgerId) {
-      alert("Journal/Contra ke liye doosra ledger bhi select karein."); return;
+      alert("Please select a second ledger for Journal/Contra."); return;
     }
 
     const items = [];
@@ -5991,7 +6016,12 @@ function getEWayBillDetails() {
       items.push({ itemId, qty, rate: useRate, gstRate });
     }
 
-    if (!amount || amount <= 0) { alert("Amount daalein (ya Item + Qty + Rate se auto calculate hone dein)."); return; }
+    if (!amount || amount <= 0) {
+      alert(voucherType === "Payment" || voucherType === "Receipt"
+        ? "Please enter payment / receipt amount."
+        : "Enter amount (or let Item + Qty + Rate calculate it automatically).");
+      return;
+    }
 
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
@@ -6120,8 +6150,8 @@ function getEWayBillDetails() {
     const voucherDate = document.getElementById("pvDateInput")?.value || "";
     const statusText = document.getElementById("pvStatusText");
 
-    if (!partyId) { alert("Supplier / Party select karein."); return; }
-    if (!supplierInvoiceNo) { alert("Purchase bill ke liye Supplier Invoice No. daalein."); return; }
+    if (!partyId) { alert("Please select a supplier / party."); return; }
+    if (!supplierInvoiceNo) { alert("Please enter Supplier Invoice No. for the purchase bill."); return; }
 
     const items = [];
     if (itemId) {
@@ -6135,7 +6165,7 @@ function getEWayBillDetails() {
     }
 
     if (!amount || amount <= 0) {
-      alert("Amount daalein (ya Item + Qty + Rate se auto calculate hone dein).");
+      alert("Enter amount (or let Item + Qty + Rate calculate it automatically).");
       return;
     }
 
@@ -6150,7 +6180,7 @@ function getEWayBillDetails() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Save fail hua");
       if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
-      showToast("✅ Purchase bill save ho gaya!");
+      showToast("✅ Purchase bill saved!");
       ["pvBillNoInput", "pvSupplierGstinInput", "pvQtyInput", "pvRateInput", "pvAmountInput", "pvNoteInput"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
       document.getElementById("pvPartyInput").value = "";
@@ -6165,6 +6195,121 @@ function getEWayBillDetails() {
     loadLedgerDropdowns();
     loadItemDropdown();
     updateVoucherFormUI();
+  };
+
+  // ---------- PAYMENT & RECEIPT VOUCHER PANELS (Main section) ----------
+  function formatVoucherDateChip(raw) {
+    if (!raw) return "—";
+    const d = new Date(raw + "T12:00:00");
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()} (${days[d.getDay()]})`;
+  }
+
+  async function loadPayReceiptPartyDropdown(selectId, placeholder) {
+    try {
+      const res = await fetch(`${API_URL}/api/ledgers`, { headers: khataHeaders() });
+      const data = await res.json();
+      const sel = document.getElementById(selectId);
+      if (!sel || !data.success) return;
+      sel.innerHTML = `<option value="">${placeholder}</option>` +
+        (data.ledgers || []).map(l =>
+          `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`
+        ).join("");
+    } catch (err) {
+      console.error("Pay/Receipt ledger load:", err);
+    }
+  }
+
+  function updatePaymentDateDisplay() {
+    const display = document.getElementById("pmvDateDisplay");
+    const raw = document.getElementById("pmvDateInput")?.value;
+    if (display) display.textContent = formatVoucherDateChip(raw);
+  }
+
+  function updateReceiptDateDisplay() {
+    const display = document.getElementById("rcvDateDisplay");
+    const raw = document.getElementById("rcvDateInput")?.value;
+    if (display) display.textContent = formatVoucherDateChip(raw);
+  }
+
+  function refreshPaymentVoucherPanel() {
+    const dateEl = document.getElementById("pmvDateInput");
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+    updatePaymentDateDisplay();
+    loadPayReceiptPartyDropdown("pmvPartyInput", "-- Select Party / Ledger --");
+  }
+
+  function refreshReceiptVoucherPanel() {
+    const dateEl = document.getElementById("rcvDateInput");
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+    updateReceiptDateDisplay();
+    loadPayReceiptPartyDropdown("rcvPartyInput", "-- Select Party / Ledger --");
+  }
+
+  window.refreshPaymentVoucherPanel = refreshPaymentVoucherPanel;
+  window.refreshReceiptVoucherPanel = refreshReceiptVoucherPanel;
+
+  document.getElementById("pmvDateInput")?.addEventListener("change", updatePaymentDateDisplay);
+  document.getElementById("pmvDateInput")?.addEventListener("input", updatePaymentDateDisplay);
+  document.getElementById("rcvDateInput")?.addEventListener("change", updateReceiptDateDisplay);
+  document.getElementById("rcvDateInput")?.addEventListener("input", updateReceiptDateDisplay);
+
+  async function saveSimpleVoucher(voucherType, fields) {
+    const { partyId, amount, paymentMode, voucherDate, note, statusId, clearIds, partySelectId } = fields;
+    const statusText = document.getElementById(statusId);
+    if (!partyId) { alert("Please select a party / ledger."); return; }
+    if (!amount || amount <= 0) { alert("Please enter amount."); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/vouchers`, {
+        method: "POST", headers: khataHeaders(),
+        body: JSON.stringify({
+          voucherType, partyId, amount, items: [], note,
+          paymentMode: paymentMode || "Cash", voucherDate
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+      if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
+      showToast(`✅ ${voucherType} voucher saved!`);
+      clearIds.forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
+      if (partySelectId) { const el = document.getElementById(partySelectId); if (el) el.value = ""; }
+    } catch (err) {
+      if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
+      showToast("❌ " + err.message, "error");
+    }
+  }
+
+  document.getElementById("savePaymentVoucherBtn")?.addEventListener("click", () => {
+    saveSimpleVoucher("Payment", {
+      partyId: document.getElementById("pmvPartyInput")?.value || "",
+      amount: parseFloat(document.getElementById("pmvAmountInput")?.value) || 0,
+      paymentMode: document.getElementById("pmvPaymentModeInput")?.value || "Cash",
+      voucherDate: document.getElementById("pmvDateInput")?.value || "",
+      note: document.getElementById("pmvNoteInput")?.value.trim() || "",
+      statusId: "pmvStatusText",
+      partySelectId: "pmvPartyInput",
+      clearIds: ["pmvAmountInput", "pmvNoteInput"]
+    });
+  });
+
+  document.getElementById("saveReceiptVoucherBtn")?.addEventListener("click", () => {
+    saveSimpleVoucher("Receipt", {
+      partyId: document.getElementById("rcvPartyInput")?.value || "",
+      amount: parseFloat(document.getElementById("rcvAmountInput")?.value) || 0,
+      paymentMode: document.getElementById("rcvPaymentModeInput")?.value || "Cash",
+      voucherDate: document.getElementById("rcvDateInput")?.value || "",
+      note: document.getElementById("rcvNoteInput")?.value.trim() || "",
+      statusId: "rcvStatusText",
+      partySelectId: "rcvPartyInput",
+      clearIds: ["rcvAmountInput", "rcvNoteInput"]
+    });
+  });
+
+  window.openPaymentVoucherPanel = function () {
+    if (typeof openPanel === "function") openPanel("paymentVoucherPanel");
+  };
+  window.openReceiptVoucherPanel = function () {
+    if (typeof openPanel === "function") openPanel("receiptVoucherPanel");
   };
 
   // ---------- DAY BOOK ----------
@@ -6187,7 +6332,7 @@ function getEWayBillDetails() {
 
   window.syncKhataVoucherToTally = async function (id) {
     try {
-      showToast("⌛ Tally me voucher sync ho raha hai...");
+      showToast("⌛ Syncing voucher to Tally...");
       const res = await fetch(`${API_URL}/api/tally/sync-voucher/${id}`, { method: "POST", headers: khataHeaders(), body: "{}" });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Sync fail");
@@ -6401,7 +6546,7 @@ function getEWayBillDetails() {
     const from = document.getElementById("salesFromDate")?.value || "";
     const to = document.getElementById("salesToDate")?.value || "";
     if (from && to && from > to) {
-      if (typeof showToast === "function") showToast("From date, To date se pehle honi chahiye.", "error");
+      if (typeof showToast === "function") showToast("From date must be before To date.", "error");
       return;
     }
     applyDateFilter(from, to, "");
@@ -6596,7 +6741,7 @@ document.getElementById("copyAgentTokenBtn")?.addEventListener("click", () => {
 });
 
 document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", async () => {
-  if (!confirm("Naya token banayenge — purana token turant kaam karna band kar dega, aur Agent ko dobara pair karna hoga. Continue karein?")) return;
+  if (!confirm("A new token will be created — the old token will stop working immediately and the Agent must be paired again. Continue?")) return;
   try {
     const res = await fetch(`${API_URL}/api/tally/agent-token/regenerate`, {
       method: "POST",
@@ -6605,10 +6750,10 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
     const data = await res.json();
     if (data.success) {
       document.getElementById("agentTokenDisplay").textContent = data.agentToken;
-      alert("Naya token ban gaya! Apne Desktop Agent ke 'agent-config.json' mein isse update karein (ya file delete karke Agent dobara chalayein).");
+      alert("New token created! Update it in your Desktop Agent 'agent-config.json' (or delete the file and restart the Agent).");
     }
   } catch (err) {
-    alert("Token reset karne mein dikkat aayi.");
+    alert("There was a problem resetting the token.");
   }
 });
 
@@ -6619,7 +6764,7 @@ function speakCardText(cardId, buttonElem) {
   const SUNO_LABEL = "🔊 Suno / सुनो";
   const RUKO_LABEL = "⏹️ Ruko / रुको";
   if (!('speechSynthesis' in window)) {
-    alert("Aapka browser Text-to-Speech support nahi karta.");
+    alert("Your browser does not support text-to-speech.");
     return;
   }
 

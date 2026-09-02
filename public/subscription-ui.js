@@ -169,14 +169,14 @@
     }
 
     if (planId === "pro") {
-      if (typeof showToast === "function") showToast("✅ Pro Dukaan bilkul FREE hai — full access!");
+      if (typeof showToast === "function") showToast("✅ Pro plan is completely FREE — full access!");
       if (typeof openPanel === "function") openPanel("myPlanPanel");
       else window.location.href = "bolkarigar.html";
       return;
     }
 
     try {
-      if (typeof showToast === "function") showToast("⌛ Payment check ho rahi hai...");
+      if (typeof showToast === "function") showToast("⌛ Checking payment...");
 
       const cfgRes = await fetch(`${API_URL}/api/payment/config`, {
         headers: { Authorization: `Bearer ${getToken()}` }
@@ -185,16 +185,16 @@
 
       if (!cfgRes.ok) {
         if (cfgRes.status === 403) {
-          throw new Error(cfg.error || "Sirf shop owner plan kharid sakta hai. Staff account se payment nahi hoti.");
+          throw new Error(cfg.error || "Only the shop owner can purchase a plan. Staff accounts cannot pay.");
         }
         if (cfgRes.status === 401) {
-          throw new Error("Login expire ho gaya. Dubara login karein.");
+          throw new Error("Login expired. Please sign in again.");
         }
-        throw new Error(cfg.error || "Payment config load nahi hui.");
+        throw new Error(cfg.error || "Could not load payment configuration.");
       }
 
       if (!cfg.configured) {
-        const msg = `Online payment (${planLabel}) abhi setup ho rahi hai. Pro plan FREE hai — Business ke liye baad me try karein.`;
+        const msg = `Online payment (${planLabel}) is still being set up. Pro plan is FREE — try Business later.`;
         if (typeof showToast === "function") showToast(msg, "error");
         else alert(msg);
         if (typeof openPanel === "function") openPanel("myPlanPanel");
@@ -203,9 +203,9 @@
 
       if (cfg.testMode && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
         const proceed = confirm(
-          "⚠️ Razorpay abhi TEST mode me hai — asli card par OTP nahi aayega.\n\n" +
-          "Live payment ke liye Render pe rzp_live_ keys lagao aur redeploy karo.\n\n" +
-          "Phir bhi test payment try karna hai?"
+          "⚠️ Razorpay is in TEST mode — real card OTP will not arrive.\n\n" +
+          "For live payments, set rzp_live_ keys on Render and redeploy.\n\n" +
+          "Try test payment anyway?"
         );
         if (!proceed) return;
       }
@@ -223,10 +223,10 @@
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
         if (orderRes.status === 403) {
-          throw new Error(orderData.error || "Sirf shop owner plan kharid sakta hai.");
+          throw new Error(orderData.error || "Only the shop owner can purchase a plan.");
         }
         if (orderRes.status === 503) {
-          throw new Error(orderData.error || "Razorpay abhi configure nahi hai. Support se contact karein.");
+          throw new Error(orderData.error || "Razorpay is not configured yet. Please contact support.");
         }
         throw new Error(orderData.error || "Order create fail");
       }
@@ -248,7 +248,7 @@
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "BolKarigar",
-        description: `${orderData.planName} — 30 din subscription`,
+        description: `${orderData.planName} — 30 day subscription`,
         order_id: orderData.orderId,
         prefill: {
           email: me.email || "",
@@ -286,7 +286,7 @@
         },
         modal: {
           ondismiss: function () {
-            if (typeof showToast === "function") showToast("Payment cancel ho gayi.", "info");
+            if (typeof showToast === "function") showToast("Payment was cancelled.", "info");
           }
         }
       };
@@ -294,9 +294,9 @@
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", function (resp) {
         const reason = resp.error?.reason || "";
-        let msg = resp.error?.description || "Payment fail ho gayi.";
+        let msg = resp.error?.description || "Payment failed.";
         if (reason === "international_transaction_not_allowed") {
-          msg = "Yeh card international hai — Test me UPI use karein: success@razorpay";
+          msg = "This card is international — in test mode use UPI: success@razorpay";
         }
         if (typeof showToast === "function") showToast("❌ " + msg, "error");
       });

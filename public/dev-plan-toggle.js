@@ -31,7 +31,7 @@
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Pehle login karein — phir FREE Pro / ₹299 Business test kar sakte hain.");
+      alert("Please log in first — then you can test FREE Pro / ₹299 Business.");
       return;
     }
     try {

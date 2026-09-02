@@ -1863,6 +1863,13 @@ body.staff-mode .hero h2::after {
   border: 1px solid rgba(34,197,94,.35);
   background: rgba(34,197,94,.08);
 }
+.voucher-pay-receipt-section {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(59,130,246,.35);
+  background: rgba(59,130,246,.08);
+}
 .voucher-field {
   display: flex;
   flex-direction: column;

@@ -17,7 +17,7 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <link rel="stylesheet" href="bolkarigar.css?v=20260831v6">
-  <link rel="stylesheet" href="business-card.css?v=20260831r9">
+  <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260827r2"></script>
   <script>
@@ -149,6 +149,8 @@
             <button class="tab-btn active" data-tab="overviewPanel" type="button" data-i18n="nav.overview">🏠 Overview</button>
             <button class="tab-btn" data-tab="invoicePanel" type="button" data-i18n="nav.invoice">🧾 Invoice</button>
             <button class="tab-btn" data-tab="purchasePanel" type="button" data-i18n="nav.purchase">📥 Purchase</button>
+            <button class="tab-btn" data-tab="paymentVoucherPanel" type="button">💸 Payment</button>
+            <button class="tab-btn" data-tab="receiptVoucherPanel" type="button">💰 Receipt</button>
             <button class="tab-btn" data-tab="voicePanel" type="button" data-i18n="nav.voice">🎤 Voice AI</button>
           </div>
           <div class="nav-group nav-group-business">
@@ -671,6 +673,29 @@
                 <span class="voucher-label">Total Amount ₹ *</span>
                 <input id="voucherAmountInput" type="number" min="0" step="0.01" placeholder="Auto from Qty × Rate + GST" />
               </label>
+            </div>
+
+            <div id="voucherPayReceiptFields" class="voucher-pay-receipt-section hidden">
+              <p class="voucher-section-title" id="voucherPayReceiptTitle">Payment / Receipt</p>
+              <div class="grid-2">
+                <label class="voucher-field">
+                  <span class="voucher-label">Voucher Date</span>
+                  <input type="date" id="voucherPrDateInput" />
+                </label>
+                <label class="voucher-field">
+                  <span class="voucher-label">Payment Mode</span>
+                  <select id="voucherPrModeInput">
+                    <option value="Cash">Cash</option>
+                    <option value="Bank">Bank</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </label>
+                <label class="voucher-field voucher-field-span2">
+                  <span class="voucher-label">Amount ₹ *</span>
+                  <input id="voucherPrAmountInput" type="number" min="0" step="0.01" placeholder="Enter amount" />
+                </label>
+              </div>
             </div>
 
             <label class="voucher-field" style="margin-top:10px;">
@@ -1260,6 +1285,105 @@
 </section>
 
 
+        <!-- PAYMENT VOUCHER — Main section (Vyapar/Tally style) -->
+        <section class="panel" id="paymentVoucherPanel">
+          <div class="inv-voucher-card purchase-panel-card">
+            <div class="panel-header inv-vch-header-row">
+              <div>
+                <p class="eyebrow">Main</p>
+                <h3>💸 Payment Voucher</h3>
+                <p class="helper-text" style="margin:4px 0 0;">Supplier / party ko payment — Cash, Bank, UPI (F5)</p>
+              </div>
+              <div class="inv-vch-meta">
+                <span class="inv-meta-chip" id="pmvDateDisplay" title="Voucher Date">—</span>
+              </div>
+            </div>
+            <div class="grid-2 inv-party-grid">
+              <label class="voucher-field">
+                <span class="voucher-label">Voucher Date</span>
+                <input type="date" id="pmvDateInput" />
+              </label>
+              <label class="voucher-field">
+                <span class="voucher-label">Payment Mode *</span>
+                <select id="pmvPaymentModeInput">
+                  <option value="Cash">Cash</option>
+                  <option value="Bank">Bank</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </label>
+              <label class="voucher-field inv-full-span">
+                <span class="voucher-label">Paid To (Party / Ledger) *</span>
+                <select id="pmvPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+              </label>
+              <label class="voucher-field inv-full-span">
+                <span class="voucher-label">Amount ₹ *</span>
+                <input type="number" id="pmvAmountInput" min="0" step="0.01" placeholder="e.g. 5000" />
+              </label>
+            </div>
+            <label class="voucher-field" style="margin-top:10px;display:block;">
+              <span class="voucher-label">Narration / Note</span>
+              <textarea id="pmvNoteInput" placeholder="e.g. Supplier payment — cement bill" rows="2" style="width:100%;"></textarea>
+            </label>
+            <p class="helper-text" id="pmvStatusText"></p>
+            <div class="btn-row inv-action-row">
+              <button type="button" id="savePaymentVoucherBtn">💾 Save Payment</button>
+              <button type="button" class="secondary" onclick="typeof openPanel==='function'&&openPanel('khataDaybookPanel')">Day Book</button>
+              <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RECEIPT VOUCHER — Main section (Vyapar/Tally style) -->
+        <section class="panel" id="receiptVoucherPanel">
+          <div class="inv-voucher-card purchase-panel-card">
+            <div class="panel-header inv-vch-header-row">
+              <div>
+                <p class="eyebrow">Main</p>
+                <h3>💰 Receipt Voucher</h3>
+                <p class="helper-text" style="margin:4px 0 0;">Customer se payment receive — Cash, Bank, UPI (F6)</p>
+              </div>
+              <div class="inv-vch-meta">
+                <span class="inv-meta-chip" id="rcvDateDisplay" title="Voucher Date">—</span>
+              </div>
+            </div>
+            <div class="grid-2 inv-party-grid">
+              <label class="voucher-field">
+                <span class="voucher-label">Voucher Date</span>
+                <input type="date" id="rcvDateInput" />
+              </label>
+              <label class="voucher-field">
+                <span class="voucher-label">Payment Mode *</span>
+                <select id="rcvPaymentModeInput">
+                  <option value="Cash">Cash</option>
+                  <option value="Bank">Bank</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </label>
+              <label class="voucher-field inv-full-span">
+                <span class="voucher-label">Received From (Party / Ledger) *</span>
+                <select id="rcvPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+              </label>
+              <label class="voucher-field inv-full-span">
+                <span class="voucher-label">Amount ₹ *</span>
+                <input type="number" id="rcvAmountInput" min="0" step="0.01" placeholder="e.g. 2500" />
+              </label>
+            </div>
+            <label class="voucher-field" style="margin-top:10px;display:block;">
+              <span class="voucher-label">Narration / Note</span>
+              <textarea id="rcvNoteInput" placeholder="e.g. Udhar payment received from customer" rows="2" style="width:100%;"></textarea>
+            </label>
+            <p class="helper-text" id="rcvStatusText"></p>
+            <div class="btn-row inv-action-row">
+              <button type="button" id="saveReceiptVoucherBtn">💾 Save Receipt</button>
+              <button type="button" class="secondary" onclick="typeof openPanel==='function'&&openPanel('khataDaybookPanel')">Day Book</button>
+              <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
+            </div>
+          </div>
+        </section>
+
+
         <!-- GALLERY PANEL -->
         <section class="panel" id="galleryPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="gallery.eyebrow">Products</p><h3 data-i18n="gallery.title">Product Gallery</h3></div></div>
@@ -1557,7 +1681,8 @@
   <script src="help-modules.js?v=20260827r2"></script>
   <script src="voice-controller.js?v=20260830r3"></script>
   <script src="plan-pricing.js?v=20260830r1"></script>
-  <script src="bolkarigar.js?v=20260831v9"></script>
+  <script src="messages-en.js?v=20260902r1"></script>
+  <script src="bolkarigar.js?v=20260902r1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1574,14 +1699,14 @@
     });
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
-  <script src="subscription-ui.js?v=20260831r2"></script>
-  <script src="dev-plan-toggle.js?v=20260828r1"></script>
-  <script src="inventory-ui.js?v=20260831r1"></script>
-  <script src="bolkarigar-pro.js?v=20260831r1"></script>
-  <script src="payroll-ui.js?v=20260831r1"></script>
-  <script src="live-features-ui.js?v=20260827r2"></script>
-  <script src="business-card-ui.js?v=20260831r9"></script>
-  <script src="app-lock.js?v=20260831r2"></script>
+  <script src="subscription-ui.js?v=20260902r1"></script>
+  <script src="dev-plan-toggle.js?v=20260902r1"></script>
+  <script src="inventory-ui.js?v=20260902r1"></script>
+  <script src="bolkarigar-pro.js?v=20260902r1"></script>
+  <script src="payroll-ui.js?v=20260902r1"></script>
+  <script src="live-features-ui.js?v=20260902r1"></script>
+  <script src="business-card-ui.js?v=20260902r6"></script>
+  <script src="app-lock.js?v=20260902r1"></script>
 
   <!-- Business Card Editor Modal -->
   <div id="bcEditorModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Business card editor">
@@ -1625,6 +1750,17 @@
               <label><span data-i18n="businessCard.gst">GST Number</span><input type="text" id="bcGst" placeholder="22AAAAA0000A1Z5" /></label>
               <label><span data-i18n="businessCard.address">Shop / Office Address</span><textarea id="bcAddress" placeholder="Full address with city, state"></textarea></label>
             </div>
+            <h4>QR Code</h4>
+            <div class="bc-form-grid">
+              <label><span>When someone scans QR</span>
+                <select id="bcQrMode">
+                  <option value="whatsapp">Open WhatsApp chat</option>
+                  <option value="vcard">Save contact to phone</option>
+                  <option value="call">Call your number</option>
+                </select>
+              </label>
+            </div>
+            <p id="bcQrHint" class="bc-qr-hint">Fill mobile number — QR updates automatically on your card.</p>
           </form>
         </div>
       </div>

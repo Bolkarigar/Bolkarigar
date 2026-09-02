@@ -37,7 +37,7 @@ function getPlanFeatures(planKey, isActive) {
 function requireBusinessPlan(req, res, next) {
   if (req.subscription?.fullAccess) return next();
   return res.status(403).json({
-    error: 'Yeh feature Business plan (₹299) me available hai. My Plan se upgrade karein.',
+    error: 'This feature is available on the Business plan (₹299). Upgrade from My Plan.',
     code: 'PLAN_UPGRADE_REQUIRED'
   });
 }

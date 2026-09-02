@@ -146,7 +146,7 @@
     const editId = document.getElementById("invEditId")?.value;
     const payload = getFormPayload();
     if (!payload.itemName) {
-      if (typeof showToast === "function") showToast("Item naam zaroori hai.", "error");
+      if (typeof showToast === "function") showToast("Item name is required.", "error");
       return;
     }
     try {
@@ -155,7 +155,7 @@
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Save fail");
-      if (typeof showToast === "function") showToast("✅ " + (data.message || "Item save ho gaya."));
+      if (typeof showToast === "function") showToast("✅ " + (data.message || "Item saved."));
       resetForm();
       loadInventory();
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
@@ -189,13 +189,13 @@
     const item = allItems.find((i) => String(i._id) === String(id));
     if (!item) return;
     const raw = prompt(
-      `${item.itemName} — current stock: ${item.stockQty}\n\nStock IN (+) ya OUT (-) qty daalein:\nExample: +10 ya -3`,
+      `${item.itemName} — current stock: ${item.stockQty}\n\nEnter Stock IN (+) or OUT (-) quantity:\nExample: +10 or -3`,
       "+1"
     );
     if (raw == null || raw.trim() === "") return;
     const qtyChange = parseFloat(raw.replace(/,/g, ""));
     if (Number.isNaN(qtyChange) || qtyChange === 0) {
-      if (typeof showToast === "function") showToast("Valid qty daalein (+ ya -).", "error");
+      if (typeof showToast === "function") showToast("Enter a valid quantity (+ or -).", "error");
       return;
     }
     const note = prompt("Reason (optional):", qtyChange > 0 ? "Stock In" : "Stock Out") || "";
@@ -217,12 +217,12 @@
 
   window.invDeleteItem = async function (id) {
     const item = allItems.find((i) => String(i._id) === String(id));
-    if (!confirm(`"${item?.itemName || "Item"}" delete karein?`)) return;
+    if (!confirm(`Delete "${item?.itemName || "Item"}"?`)) return;
     try {
       const res = await fetch(`${API()}/api/items/${id}`, { method: "DELETE", headers: headers() });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Delete fail");
-      if (typeof showToast === "function") showToast("Item delete ho gaya.");
+      if (typeof showToast === "function") showToast("Item deleted.");
       loadInventory();
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
     } catch (err) {

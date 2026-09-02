@@ -61,7 +61,7 @@
       a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       a.download = filename;
       a.click();
-      toast('✅ File download ho gayi.');
+      toast('✅ File downloaded.');
     } catch (e) { toast('Download error: ' + e.message, 'error'); }
   }
 
@@ -83,7 +83,7 @@
         localStorage.setItem('bk_onboarding_done', '1');
         modal.classList.add('hidden');
         if (typeof openPanel === 'function') openPanel('invoicePanel');
-        toast('Profile setup karein — phir bill banayein!', 'info');
+        toast('Set up your profile first — then create bills!', 'info');
         return;
       }
       showStep(step);
@@ -102,7 +102,7 @@
     });
     const d = await r.json();
     if (d.success) {
-      toast(`✅ ${d.imported} entries import ho gayi.`);
+      toast(`✅ ${d.imported} entries imported.`);
       if (typeof window.BolKarigarPro?.loadBankRecon === 'function') window.BolKarigarPro.loadBankRecon();
       else document.getElementById('bankReconPanel')?.dispatchEvent(new Event('focus'));
     } else toast('❌ ' + (d.error || 'Import fail'), 'error');

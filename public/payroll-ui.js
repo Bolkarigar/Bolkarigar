@@ -282,7 +282,7 @@
 
   function printSalarySlip() {
     if (!document.getElementById('payrollSlipPrintArea')) {
-      toast('Pehle salary slip kholein', 'error');
+      toast('Open the salary slip first', 'error');
       return;
     }
     document.body.classList.add('printing-payroll-slip');
@@ -293,7 +293,7 @@
 
   function shareSlipWhatsApp() {
     const data = window._lastPayrollSlip;
-    if (!data?.slip) return toast('Pehle salary slip kholein', 'error');
+    if (!data?.slip) return toast('Open the salary slip first', 'error');
     const text = encodeURIComponent(buildSlipWhatsAppText(data.slip, data.month, data.year, data.company));
     const phone = (data.slip.employee.phone || '').replace(/\D/g, '');
     const url = phone.length >= 10
@@ -361,7 +361,7 @@
     `).join('');
     body.querySelectorAll('.payroll-del-emp').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Employee hata dein?')) return;
+        if (!confirm('Remove this employee?')) return;
         const res = await apiDelete('/api/payroll/employees/' + btn.dataset.id);
         toast(res.message || res.error || 'Done', res.success ? 'success' : 'error');
         loadEmployees();
@@ -635,9 +635,9 @@
       const monthlySalary = document.getElementById('payrollEmpSalary')?.value;
       const weeklyOff = document.getElementById('payrollEmpWeeklyOff')?.value;
       const linkedUserId = document.getElementById('payrollLinkUser')?.value || null;
-      if (!name) return toast('Naam zaroori hai', 'error');
+      if (!name) return toast('Name is required', 'error');
       const res = await apiPost('/api/payroll/employees', { name, phone, designation, monthlySalary, weeklyOff, linkedUserId });
-      toast(res.success ? '✅ Employee add ho gaya' : (res.error || 'Fail'), res.success ? 'success' : 'error');
+      toast(res.success ? '✅ Employee added' : (res.error || 'Failed'), res.success ? 'success' : 'error');
       if (res.success) {
         document.getElementById('payrollEmpName').value = '';
         document.getElementById('payrollEmpPhone').value = '';
@@ -657,9 +657,9 @@
       const employeeId = document.getElementById('payrollAdvanceEmp')?.value;
       const amount = document.getElementById('payrollAdvanceAmt')?.value;
       const note = document.getElementById('payrollAdvanceNote')?.value;
-      if (!employeeId || !amount) return toast('Employee aur amount chahiye', 'error');
+      if (!employeeId || !amount) return toast('Employee and amount are required', 'error');
       const res = await apiPost('/api/payroll/advances', { employeeId, amount, month, year, note });
-      toast(res.success ? '✅ Advance save' : (res.error || 'Fail'), res.success ? 'success' : 'error');
+      toast(res.success ? '✅ Advance saved' : (res.error || 'Failed'), res.success ? 'success' : 'error');
     });
 
     document.getElementById('payrollSaveSettingsBtn')?.addEventListener('click', async () => {

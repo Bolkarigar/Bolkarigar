@@ -129,7 +129,7 @@
     a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }));
     a.download = filename;
     a.click();
-    showToast('✅ File download ho gayi.');
+    showToast('✅ File downloaded.');
   }
 
   // ==================== STAFF ====================
@@ -227,7 +227,7 @@
     ).join('') || '<tr><td colspan="4">Ek company add karein.</td></tr>';
     body.querySelectorAll('.activate-co-btn').forEach(b => b.addEventListener('click', async () => {
       await apiPost('/api/companies/' + b.dataset.id + '/activate', {});
-      showToast('✅ Company switch ho gayi.');
+      showToast('✅ Company switched.');
       loadCompanies();
     }));
   }
@@ -245,10 +245,10 @@
     const amount = parseFloat(document.getElementById('payAmount')?.value);
     const paymentMode = document.getElementById('payMode')?.value || 'Cash';
     const note = document.getElementById('payNote')?.value || '';
-    if (!customerName || !amount) { showToast('Customer aur amount daalein.', 'error'); return; }
+    if (!customerName || !amount) { showToast('Please enter customer and amount.', 'error'); return; }
     const data = await apiPost('/api/payments', { customerName, amount, paymentMode, note });
     if (data.success) {
-      showToast('✅ Payment record ho gaya + Receipt voucher bana.');
+      showToast('✅ Payment recorded and receipt voucher created.');
       document.getElementById('udharPaymentModal')?.classList.add('hidden');
       if (typeof window.refreshUdharKhata === 'function') window.refreshUdharKhata();
       if (typeof window.calculateFinancials === 'function') window.calculateFinancials(window.state?.invoices || [], window.state?.expenses || []);
@@ -257,9 +257,9 @@
 
   // ==================== TALLY IMPORT ====================
   async function importFromTally() {
-    showToast('Tally se ledgers import ho rahe hain...');
+    showToast('Importing ledgers from Tally...');
     const data = await apiPost('/api/tally/import-ledgers', {});
-    if (data.success) showToast(`✅ ${data.imported} ledgers import, ${data.skipped} pehle se the.`);
+    if (data.success) showToast(`✅ ${data.imported} ledgers imported, ${data.skipped} already existed.`);
     else showToast('❌ ' + (data.error || 'Import fail'), 'error');
     if (typeof window.refreshKhataPro === 'function') window.refreshKhataPro();
   }
@@ -425,9 +425,9 @@
       if (isIOS) {
         alert('Safari: Share button → "Add to Home Screen"');
       } else if (isAndroid) {
-        alert('Browser menu → "Install app" ya "Add to Home screen"');
+        alert('Browser menu → "Install app" or "Add to Home screen"');
       } else {
-        alert('Laptop/Desktop par install:\n\nChrome / Edge: Address bar me ⊕ ya "Install" icon dabayein\n\nYa menu (⋮) → "Install BolKarigar" / "Apps" → "Install this site as an app"');
+        alert('Install on laptop/desktop:\n\nChrome / Edge: Click the ⊕ or "Install" icon in the address bar\n\nOr menu (⋮) → "Install BolKarigar" / "Apps" → "Install this site as an app"');
       }
     });
   });

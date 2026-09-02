@@ -83,7 +83,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
     try {
       const user = await User.findById(req.user.id);
       if (!user || user.ownerId) {
-        return res.status(403).json({ error: 'Sirf shop owner payment kar sakta hai.' });
+        return res.status(403).json({ error: 'Only the shop owner can make payments.' });
       }
       res.json({
         success: true,
@@ -105,18 +105,18 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
     try {
       const razorpay = getRazorpayClient();
       if (!razorpay) {
-        return res.status(503).json({ error: 'Razorpay configure nahi hai. .env mein keys check karein.' });
+        return res.status(503).json({ error: 'Razorpay is not configured. Check keys in environment settings.' });
       }
 
       const user = await User.findById(req.user.id);
       if (!user || user.ownerId) {
-        return res.status(403).json({ error: 'Sirf shop owner plan kharid sakta hai.' });
+        return res.status(403).json({ error: 'Only the shop owner can purchase a plan.' });
       }
 
       const plan = req.body?.plan === 'business' ? 'business' : null;
       if (!plan || !PLAN_AMOUNTS_PAISE[plan]) {
         return res.status(400).json({
-          error: 'Pro plan ab bilkul FREE hai. Sirf Business (₹299/month) ke liye payment karein.'
+          error: 'Pro plan is now completely FREE. Pay only for Business (₹299/month).'
         });
       }
       const amountPaise = PLAN_AMOUNTS_PAISE[plan];
@@ -125,7 +125,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       const { keyId } = normalizeRazorpayEnv();
       if (getRazorpayMode() === 'invalid') {
         return res.status(503).json({
-          error: 'Razorpay Key ID galat format me hai. Live key rzp_live_ se shuru honi chahiye.'
+          error: 'Razorpay Key ID format is invalid. Live key must start with rzp_live_.'
         });
       }
 
@@ -163,7 +163,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       });
     } catch (e) {
       console.error('Razorpay create-order error:', e);
-      res.status(500).json({ error: e.message || 'Order create fail hua.' });
+      res.status(500).json({ error: e.message || 'Failed to create order.' });
     }
   });
 
@@ -171,12 +171,12 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        return res.status(400).json({ error: 'Payment details incomplete hain.' });
+        return res.status(400).json({ error: 'Payment details are incomplete.' });
       }
 
       const user = await User.findById(req.user.id);
       if (!user || user.ownerId) {
-        return res.status(403).json({ error: 'Sirf shop owner plan activate ho sakta hai.' });
+        return res.status(403).json({ error: 'Only the shop owner can activate the plan.' });
       }
 
       const paymentOrder = await PaymentOrder.findOne({
@@ -184,13 +184,13 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         userId: user._id
       });
       if (!paymentOrder) {
-        return res.status(404).json({ error: 'Order nahi mila ya aapka nahi hai.' });
+        return res.status(404).json({ error: 'Order not found or does not belong to you.' });
       }
       if (paymentOrder.status === 'paid') {
         return res.json({
           success: true,
           alreadyPaid: true,
-          message: 'Yeh payment pehle se verify ho chuki hai.',
+          message: 'This payment has already been verified.',
           subscription: buildSubscriptionPayload(user)
         });
       }
@@ -205,7 +205,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         await paymentOrder.save();
         const reason = paymentInfo.error_description
           || paymentInfo.error_reason
-          || `Payment ${paymentInfo.status} — complete nahi hui.`;
+          || `Payment ${paymentInfo.status} — not completed.`;
         return res.status(400).json({ error: reason });
       }
 
@@ -218,7 +218,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         paymentOrder.status = 'failed';
         await paymentOrder.save();
         return res.status(400).json({
-          error: 'Payment verify fail. Test mode me UPI use karein: success@razorpay (card international block ho sakta hai).'
+          error: 'Payment verification failed. In test mode use UPI: success@razorpay (international cards may be blocked).'
         });
       }
 
@@ -235,13 +235,13 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
 
       res.json({
         success: true,
-        message: `${PLANS[paymentOrder.plan].name} plan ${PLAN_DURATION_DAYS} din ke liye activate ho gaya!`,
+        message: `${PLANS[paymentOrder.plan].name} plan activated for ${PLAN_DURATION_DAYS} days!`,
         subscription: buildSubscriptionPayload(user),
         paymentId: razorpay_payment_id
       });
     } catch (e) {
       console.error('Razorpay verify error:', e);
-      res.status(500).json({ error: e.message || 'Payment verify fail hua.' });
+      res.status(500).json({ error: e.message || 'Payment verification failed.' });
     }
   });
 

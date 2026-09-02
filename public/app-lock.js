@@ -191,7 +191,7 @@
       setUnlocked(true);
       hideOverlay();
       syncSecurityPanelUI();
-      toast("App Lock ON — PIN save ho gaya", "success");
+      toast("App Lock ON — PIN saved", "success");
       return;
     }
 
@@ -228,7 +228,7 @@
         pinBuffer = "";
         document.getElementById("appLockOverlay").dataset.mode = "unlock";
         hideOverlay();
-        toast("PIN change ho gaya", "success");
+        toast("PIN changed", "success");
         return;
       }
     }
@@ -356,7 +356,7 @@
         toggle.checked = false;
         return;
       }
-      if (confirm("App Lock band karna hai? PIN delete ho jayega.")) {
+      if (confirm("Turn off App Lock? Your PIN will be deleted.")) {
         localStorage.removeItem(LS_ENABLED);
         localStorage.removeItem(LS_PIN_HASH);
         localStorage.removeItem(LS_PIN_SALT);
@@ -364,7 +364,7 @@
         localStorage.removeItem(LS_CRED_ID);
         setUnlocked(true);
         syncSecurityPanelUI();
-        toast("App Lock band ho gaya", "success");
+        toast("App Lock turned off", "success");
       } else {
         toggle.checked = true;
       }
@@ -391,7 +391,7 @@
         toast("Face ID / Fingerprint ON", "success");
       } catch {
         bioToggle.checked = false;
-        toast("Is device par Face ID / Fingerprint available nahi hai", "error");
+        toast("Face ID / Fingerprint is not available on this device", "error");
       }
     });
 
