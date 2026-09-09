@@ -187,13 +187,13 @@
 
   <div class="login-container">
     <div class="login-card">
-      <h2>Naya Account Banayein</h2>
-      <p id="planBanner">🆓 <strong>Pro Dukaan bilkul FREE</strong> — signup karo, payment ki zaroorat nahi</p>
+      <h2>Create New Account</h2>
+      <p id="planBanner">🆓 <strong>Pro Shop is completely FREE</strong> — sign up, no payment required</p>
       
       <form id="signupForm">
         <div class="input-group">
           <label for="username">Username</label>
-          <input type="text" id="username" required placeholder="User name chunein">
+          <input type="text" id="username" required placeholder="Choose a username">
         </div>
         <div class="input-group">
           <label for="email">Email ID</label>
@@ -207,13 +207,13 @@
           </div>
         </div>
         
-        <button type="submit" class="login-btn">Register Karein</button>
+        <button type="submit" class="login-btn">Register</button>
         <p class="error-msg" id="errorMsg"></p>
         <p class="success-msg" id="successMsg"></p>
       </form>
 
       <div class="footer-text">
-        Pehle se account hai? <a href="loginpage.html">Sign In karein</a>
+        Already have an account? <a href="loginpage.html">Sign In</a>
         &nbsp;|&nbsp; <a href="pricing.html">Plans & Trial</a>
       </div>
     </div>
@@ -223,12 +223,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const selectedPlan = urlParams.get("plan") || "pro";
     const planLabels = {
-      pro: "Pro Dukaan — Bilkul FREE",
+      pro: "Pro Shop — Completely FREE",
       business: "Business — ₹299/month"
     };
     const planBanner = document.getElementById("planBanner");
     if (planBanner && planLabels[selectedPlan]) {
-      planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan] || planLabels.pro}</strong><br>🆓 Pro signup par <strong>bilkul FREE</strong> — payment ki zaroorat nahi.`;
+      planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan] || planLabels.pro}</strong><br>🆓 Pro signup is <strong>completely FREE</strong> — no payment required.`;
     }
 
     const BK_API = () => window.API_URL || window.location.origin;

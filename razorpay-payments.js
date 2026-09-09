@@ -228,7 +228,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       paymentOrder.paidAt = new Date();
       await paymentOrder.save();
 
-      activateOwnerPlan(user, paymentOrder.plan, PLAN_DURATION_DAYS);
+      activateOwnerPlan(user, paymentOrder.plan, PLAN_DURATION_DAYS, { extend: true });
       user.lastPaymentId = razorpay_payment_id;
       user.lastPaymentAt = new Date();
       await user.save();

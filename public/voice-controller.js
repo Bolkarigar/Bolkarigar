@@ -15,6 +15,10 @@
   const NAV_INTENTS = [
     { panel: "overviewPanel", words: ["overview", "dashboard", "home", "डैशबोर्ड", "होम", "summary", "सारांश"] },
     { panel: "invoicePanel", words: ["invoice", "bill", "billing", "इनवॉइस", "बिल", "बिलिंग", "रसीद"] },
+    { panel: "purchasePanel", words: ["purchase", "purchase bill", "खरीद", "खरीदारी", "purchase kholo"] },
+    { panel: "paymentVoucherPanel", words: ["payment", "pay voucher", "भुगतान", "payment kholo"] },
+    { panel: "receiptVoucherPanel", words: ["receipt", "receipt voucher", "रसीद", "receipt kholo"] },
+    { panel: "modifyPanel", words: ["modification", "modify", "edit record", "संशोधन", "edit kholo"] },
     { panel: "voicePanel", words: ["voice ai", "voice panel", "वॉइस", "माइक"] },
     { panel: "projectPanel", words: ["project", "projects", "site", "प्रोजेक्ट", "साइट", "ठेकेदारी"] },
     { panel: "inventoryPanel", words: ["inventory", "stock", "स्टॉक", "इन्वेंटरी", "सामान"] },
@@ -844,9 +848,16 @@
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ message: raw, history })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const reply = data?.reply;
-      if (!reply) return false;
+      if (!reply) {
+        if (res.status === 403) notify("Login check karein ya My Plan se Pro activate karein.", true);
+        return false;
+      }
+      if (typeof window.bkPushChatHistory === "function") {
+        window.bkPushChatHistory("user", raw);
+        window.bkPushChatHistory("assistant", reply);
+      }
       notify(reply, true);
       const box = document.getElementById("aiReplyBox");
       if (box) box.textContent = reply;

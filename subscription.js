@@ -4,18 +4,23 @@
  */
 
 const TRIAL_DAYS = 3;
+const BUSINESS_PLAN_DAYS = 30;
+/** Sanity cap — stacked dev-toggle bug could inflate expiry to thousands of days */
+const MAX_BUSINESS_DAYS_AHEAD = 120;
 
 const PLANS = {
-  trial: { name: 'Pro Dukaan', price: 0, staffSlots: 0, label: 'Bilkul FREE' },
+  trial: { name: 'Pro Shop', price: 0, staffSlots: 0, label: 'Completely FREE' },
   starter: { name: 'Starter', price: 0, staffSlots: 0, label: 'Free — legacy' },
-  pro: { name: 'Pro Dukaan', price: 0, staffSlots: 0, label: 'Bilkul FREE' },
+  pro: { name: 'Pro Shop', price: 0, staffSlots: 0, label: 'Completely FREE' },
   business: { name: 'Business', price: 299, staffSlots: 5, label: '₹299/month' }
 };
 
-/** Pro (FREE) — sirf yeh sidebar tabs */
+/** Pro (FREE) — sidebar tabs included in free plan */
 const PRO_PLAN_TABS = [
-  'overviewPanel', 'invoicePanel', 'purchasePanel', 'inventoryPanel', 'totalSalesPanel',
+  'overviewPanel', 'invoicePanel', 'purchasePanel', 'paymentVoucherPanel', 'receiptVoucherPanel',
+  'voicePanel', 'inventoryPanel', 'totalSalesPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
+  'modifyPanel',
   'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'
 ];
 
@@ -42,6 +47,15 @@ function requireBusinessPlan(req, res, next) {
   });
 }
 
+/** Active Pro (free) or Business — for AI chat, voice parse, basic features */
+function requireActivePlan(req, res, next) {
+  if (req.subscription?.isActive) return next();
+  return res.status(403).json({
+    error: 'Active plan required. Pro is free — open My Plan or sign in again.',
+    code: 'SUBSCRIPTION_INACTIVE'
+  });
+}
+
 const SUBSCRIPTION_EXEMPT_PATHS = [
   '/api/auth/me',
   '/api/subscription/status',
@@ -61,8 +75,27 @@ function addDays(date, days) {
 }
 
 function daysBetween(from, to) {
-  const ms = new Date(to).getTime() - new Date(from).getTime();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+  const a = new Date(from);
+  const b = new Date(to);
+  const utcFrom = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const utcTo = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.max(0, Math.round((utcTo - utcFrom) / 86400000));
+}
+
+function sanitizeBusinessExpiry(user, now = new Date()) {
+  if (!user || user.plan !== 'business' || !user.planExpiresAt) return false;
+  const daysAhead = daysBetween(now, user.planExpiresAt);
+  if (daysAhead <= MAX_BUSINESS_DAYS_AHEAD) return false;
+  user.planExpiresAt = addDays(now, BUSINESS_PLAN_DAYS);
+  user.plan = 'business';
+  user.subscriptionStatus = 'active';
+  if (typeof user.markModified === 'function') {
+    user.markModified('planExpiresAt');
+    user.markModified('plan');
+    user.markModified('subscriptionStatus');
+  }
+  user._subscriptionMigrated = true;
+  return true;
 }
 
 function activateFreePro(user) {
@@ -96,20 +129,40 @@ function ensureOwnerSubscription(user) {
     activateFreePro(user);
   }
 
-  if (user.subscriptionStatus === 'active' && user.planExpiresAt && now > user.planExpiresAt) {
+  // Pro is lifetime FREE — clear stale expiry left from old trials / dev toggles / business renewals
+  if (user.plan === 'pro' && user.subscriptionStatus === 'active' && user.planExpiresAt) {
+    user.planExpiresAt = null;
+    user._subscriptionMigrated = true;
+  }
+
+  sanitizeBusinessExpiry(user, now);
+
+  if (user.subscriptionStatus === 'active' && user.plan === 'business' && user.planExpiresAt && now > user.planExpiresAt) {
     user.subscriptionStatus = 'expired';
+  }
+
+  if (user.plan === 'business' && user.subscriptionStatus === 'active' && !user.planExpiresAt) {
+    user.planExpiresAt = addDays(now, BUSINESS_PLAN_DAYS);
+    user._subscriptionMigrated = true;
   }
 
   return user;
 }
 
-/** Paid plan activate — extend if already active (renewal). */
-function activateOwnerPlan(user, planId, durationDays = 30) {
+/**
+ * Activate Business (paid) or Pro (free).
+ * @param {object} opts
+ * @param {boolean} opts.extend — true = stack on current expiry (Razorpay renewal). false = fresh period from today (dev/test).
+ */
+function activateOwnerPlan(user, planId, durationDays = BUSINESS_PLAN_DAYS, opts = {}) {
   if (!user || user.ownerId) return user;
   const allowed = ['pro', 'business'];
   const plan = allowed.includes(planId) ? planId : 'pro';
+  if (plan === 'pro') return activateFreePro(user);
+
   const now = new Date();
-  const base = user.planExpiresAt && new Date(user.planExpiresAt) > now
+  const extend = opts.extend === true;
+  const base = extend && user.planExpiresAt && new Date(user.planExpiresAt) > now
     ? new Date(user.planExpiresAt)
     : now;
 
@@ -128,15 +181,21 @@ function buildSubscriptionPayload(ownerUser) {
   const trialEndsAt = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
   const planExpiresAt = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
 
+  const planKey = user.plan || 'starter';
   let daysLeft = 0;
   if (isTrial && trialEndsAt) {
     daysLeft = daysBetween(now, trialEndsAt);
     if (trialEndsAt <= now) daysLeft = 0;
-  } else if (user.subscriptionStatus === 'active' && planExpiresAt) {
+  } else if (planKey === 'business' && user.subscriptionStatus === 'active' && planExpiresAt) {
     daysLeft = daysBetween(now, planExpiresAt);
+    if (daysLeft > MAX_BUSINESS_DAYS_AHEAD) {
+      sanitizeBusinessExpiry(user, now);
+      const fixed = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
+      daysLeft = fixed ? daysBetween(now, fixed) : BUSINESS_PLAN_DAYS;
+    }
   }
+  // Pro Shop = lifetime free — never show expiry days
 
-  const planKey = user.plan || 'starter';
   const planInfo = PLANS[planKey] || PLANS.starter;
   const features = getPlanFeatures(planKey, isActive);
 
@@ -149,8 +208,8 @@ function buildSubscriptionPayload(ownerUser) {
     isTrial,
     isExpired: !isActive,
     trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
-    planExpiresAt: planExpiresAt ? planExpiresAt.toISOString() : null,
-    daysLeft,
+    planExpiresAt: planKey === 'pro' ? null : (planExpiresAt ? planExpiresAt.toISOString() : null),
+    daysLeft: planKey === 'pro' ? 0 : daysLeft,
     staffSlots: planInfo.staffSlots,
     trialDays: TRIAL_DAYS,
     canInviteStaff: isActive && planInfo.staffSlots > 0,
@@ -161,12 +220,12 @@ function buildSubscriptionPayload(ownerUser) {
     fullAccess: features.fullAccess,
     showInstallApp: features.showInstallApp,
     message: isTrial
-      ? `Pro plan — ${daysLeft} din bache (legacy trial)`
+      ? `Pro plan — ${daysLeft} days left (legacy trial)`
       : isActive
         ? planKey === 'pro'
-          ? `${planInfo.name} — bilkul FREE, full access`
+          ? `${planInfo.name} — completely FREE, full access`
           : `${planInfo.name} plan active`
-        : 'Business plan renew karein'
+        : 'Renew your plan from My Plan'
   };
 }
 
@@ -197,8 +256,8 @@ async function getSubscriptionForUser(User, dbUser) {
 
   const beforeStatus = owner.subscriptionStatus;
   ensureOwnerSubscription(owner);
-  const needsSave = owner.isModified && owner.isModified();
-  if (needsSave || owner._subscriptionMigrated) {
+  const needsSave = (typeof owner.isModified === 'function' && owner.isModified()) || owner._subscriptionMigrated;
+  if (needsSave) {
     try {
       await owner.save();
     } catch (saveErr) {
@@ -223,16 +282,16 @@ function setupSubscription({ app, User, authenticateToken }) {
       trialDays: TRIAL_DAYS,
       ownerPays: true,
       staffPays: false,
-      staffNote: 'Staff/Cashier/Manager ko alag se app kharidne ki zaroorat nahi — malik invite code dega.',
+      staffNote: 'Staff do not need a separate purchase — owner shares an invite code.',
       plans: [
         {
           id: 'pro',
-          name: 'Pro Dukaan',
+          name: 'Pro Shop',
           price: 0,
-          period: 'month',
+          period: 'lifetime',
           staffSlots: 0,
           featured: true,
-          features: ['Bilkul FREE — hamesha', 'Invoice, Udhar, Ledger, Voucher', 'Inventory + Day Book', 'Gallery + Todo + Help', 'Payment ki zaroorat nahi']
+          features: ['Completely FREE — forever', 'Invoice, Credit Ledger, Voucher', 'Inventory + Day Book', 'Gallery + Todo + Help', 'No payment required']
         },
         {
           id: 'business',
@@ -240,7 +299,7 @@ function setupSubscription({ app, User, authenticateToken }) {
           price: 299,
           period: 'month',
           staffSlots: 5,
-          features: ['App ki SAARI cheezein', 'Tally sync + Voice AI', 'Reports Pro + GSTR', 'Staff (5) + Contractor', 'Bank Recon + Payroll & Hajri']
+          features: ['Everything in the app', 'Tally sync + Voice AI', 'Reports Pro + GSTR', 'Staff (5) + Contractor', 'Bank Recon + Payroll & Attendance']
         }
       ]
     });
@@ -289,13 +348,17 @@ function createSubscriptionGate(User) {
 
 module.exports = {
   TRIAL_DAYS,
+  BUSINESS_PLAN_DAYS,
   PLANS,
   PRO_PLAN_TABS,
   getPlanFeatures,
   requireBusinessPlan,
+  requireActivePlan,
   startOwnerTrial,
   ensureOwnerSubscription,
+  activateFreePro,
   activateOwnerPlan,
+  sanitizeBusinessExpiry,
   buildSubscriptionPayload,
   getSubscriptionForUser,
   setupSubscription,

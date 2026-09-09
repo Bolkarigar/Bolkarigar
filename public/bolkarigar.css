@@ -1192,6 +1192,43 @@ textarea.form-input {
 }
 .live-ai-typing { padding: 0 14px 8px; font-size: 12px; color: var(--muted); }
 .live-ai-typing.hidden { display: none; }
+.live-ai-typing-dots::after {
+  content: "";
+  animation: liveAiDots 1.2s steps(4, end) infinite;
+}
+@keyframes liveAiDots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
+.live-ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.live-ai-chip {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--text);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.live-ai-chip:hover {
+  background: rgba(59, 130, 246, .15);
+  border-color: rgba(59, 130, 246, .45);
+}
+.live-ai-msg-interim {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 14px 8px;
+  font-style: italic;
+}
 .live-ai-input-row {
   display: flex;
   gap: 6px;
@@ -1881,6 +1918,10 @@ body.staff-mode .hero h2::after {
 .voucher-party-grid,
 .voucher-stock-grid {
   margin-top: 10px;
+}
+.voucher-field .inv-party-autocomplete input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Mobile sidebar scroll fix */
@@ -2979,6 +3020,22 @@ body.app-lock-active { overflow: hidden; }
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
+}
+.inv-date-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.inv-date-clickable:hover {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.1);
+}
+.inv-date-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 .inv-vch-no { color: var(--accent2); }
 .inv-hint { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }

@@ -36,7 +36,8 @@ const {
   getSubscriptionForUser,
   setupSubscription,
   isPathSubscriptionExempt,
-  requireBusinessPlan
+  requireBusinessPlan,
+  requireActivePlan
 } = require('./subscription');
 const { setupRazorpayPayments, getRazorpayMode } = require('./razorpay-payments');
 const { setupDevPlanToggle } = require('./dev-plan-toggle');
@@ -180,7 +181,7 @@ app.post('/api/voice/parse', authenticateToken, async (req, res) => {
 });
 
 // AI Endpoint: Live Chat (GPT-4o + Gemini + conversation memory)
-app.post('/api/ai/chat', authenticateToken, requireBusinessPlan, async (req, res) => {
+app.post('/api/ai/chat', authenticateToken, requireActivePlan, async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim();
     if (!message) {
@@ -537,7 +538,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
 
     res.status(201).json({
-      message: 'Account ban gaya! Pro Dukaan plan bilkul FREE hai — abhi se full access.',
+      message: 'Account created! Pro Shop plan is completely FREE — full access from now.',
       token,
       username: newUser.username,
       plan: requestedPlan
@@ -614,7 +615,7 @@ app.post('/api/auth/login', async (req, res) => {
       subscription = await getSubscriptionForUser(User, user);
     } catch (subErr) {
       logger.error('Login subscription warning:', subErr.message);
-      subscription = { isActive: true, isTrial: false, planName: 'Pro Dukaan', daysLeft: 0 };
+      subscription = { isActive: true, isTrial: false, planName: 'Pro Shop', plan: 'pro', daysLeft: 0 };
     }
 
     res.json({
@@ -626,9 +627,9 @@ app.post('/api/auth/login', async (req, res) => {
       permissions: getPermissionsForRole(role),
       subscription,
       message: user.ownerId
-        ? `${rbac.ROLE_LABELS[role] || role} account — malik ne invite diya, aapko alag plan nahi kharidna.`
+        ? `${rbac.ROLE_LABELS[role] || role} account — invited by owner, no separate plan needed.`
         : subscription.isTrial
-          ? `🎉 ${subscription.daysLeft} din ka Pro trial active hai!`
+          ? `🎉 Pro trial active — ${subscription.daysLeft} days left!`
           : null
     });
   } catch (err) {
@@ -1028,16 +1029,18 @@ app.post('/api/profile', authenticateToken, requirePermission(PERMISSIONS.PROFIL
 // ==================================================================================
 app.post('/api/sales/record', authenticateToken, async (req, res) => {
   try {
-    const { invoiceNo, customer, product, hsn, qty, price, gstRate, totalAmount, paymentType, status } = req.body;
+    const { invoiceNo, customer, product, hsn, qty, price, gstRate, totalAmount, paymentType, status, voucherDate, date } = req.body;
     if (!customer || !product) return res.status(400).json({ error: 'Customer aur product zaroori hain.' });
 
+    const dateVal = voucherDate || date;
     const record = await SalesHistory.create({
       userId: req.dataUserId,
       invoiceNo, customer, product, hsn,
       qty: qty || 1, price: price || 0, gstRate: gstRate || 0,
       totalAmount: totalAmount || 0,
       paymentType: paymentType || 'Cash',
-      status: status || 'Paid'
+      status: status || 'Paid',
+      date: dateVal ? new Date(dateVal) : undefined
     });
     res.json({ success: true, record });
   } catch (err) {
@@ -1084,12 +1087,46 @@ app.get('/api/sales', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/sales/:id', authenticateToken, async (req, res) => {
+  try {
+    const record = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!record) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
+    res.json({ success: true, record });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SALES_DELETE), async (req, res) => {
   try {
     await SalesHistory.deleteOne({ _id: req.params.id, userId: req.dataUserId });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Record delete karne mein dikkat aayi.' });
+  }
+});
+
+app.put('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
+  try {
+    const record = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!record) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
+    const { invoiceNo, customer, product, hsn, qty, price, gstRate, totalAmount, paymentType, status, voucherDate, date } = req.body;
+    if (invoiceNo !== undefined) record.invoiceNo = String(invoiceNo || '').trim();
+    if (customer !== undefined) record.customer = String(customer || '').trim();
+    if (product !== undefined) record.product = String(product || '').trim();
+    if (hsn !== undefined) record.hsn = String(hsn || '').trim();
+    if (qty != null) record.qty = Number(qty) || 0;
+    if (price != null) record.price = Number(price) || 0;
+    if (gstRate != null) record.gstRate = Number(gstRate) || 0;
+    if (totalAmount != null) record.totalAmount = Number(totalAmount) || 0;
+    if (paymentType !== undefined) record.paymentType = paymentType || 'Cash';
+    if (status !== undefined) record.status = status || 'Paid';
+    const dateVal = voucherDate || date;
+    if (dateVal) record.date = new Date(dateVal);
+    await record.save();
+    res.json({ success: true, message: 'Invoice record update ho gaya.', record });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 // 🟢 SALES HISTORY — END
@@ -2069,6 +2106,26 @@ app.delete('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.
   }
 });
 
+app.put('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
+  try {
+    const { partyName, ledgerGroup, mobile, gstin, address } = req.body;
+    const ledger = await Ledger.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!ledger) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
+    if (partyName && String(partyName).trim()) ledger.partyName = String(partyName).trim();
+    if (ledgerGroup && LEDGER_GROUPS.includes(ledgerGroup)) {
+      ledger.ledgerGroup = ledgerGroup;
+      ledger.partyType = ledgerGroup === 'Sundry Creditor' ? 'Creditor' : 'Debtor';
+    }
+    if (mobile !== undefined) ledger.mobile = String(mobile || '').trim();
+    if (gstin !== undefined) ledger.gstin = String(gstin || '').trim();
+    if (address !== undefined) ledger.address = String(address || '').trim();
+    await ledger.save();
+    res.json({ success: true, message: 'Account / Party update ho gaya.', ledger });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ==================================================================================
 // 🟢 KHATA PRO — Item / Stock Master
 // ==================================================================================
@@ -2168,6 +2225,48 @@ app.post('/api/items/:id/adjust-stock', authenticateToken, requirePermission(PER
 // 🟢 KHATA PRO — Vouchers (Sales / Purchase / Payment / Receipt / Journal / Contra /
 // Debit Note / Credit Note) — Tally jaisa double-entry style balance update
 // ==================================================================================
+function getVoucherLedgerDeltas(voucherType, amount) {
+  const amt = Number(amount) || 0;
+  switch (voucherType) {
+    case 'Sales':
+    case 'Debit Note':
+      return { party: amt, secondary: 0 };
+    case 'Receipt':
+    case 'Credit Note':
+      return { party: -amt, secondary: 0 };
+    case 'Purchase':
+      return { party: -amt, secondary: 0 };
+    case 'Payment':
+      return { party: amt, secondary: 0 };
+    case 'Journal':
+      return { party: amt, secondary: -amt };
+    case 'Contra':
+      return { party: -amt, secondary: amt };
+    default:
+      return { party: 0, secondary: 0 };
+  }
+}
+
+async function applyVoucherLedgerDeltas(userId, partyId, secondaryLedgerId, voucherType, amount, sign = 1) {
+  const deltas = getVoucherLedgerDeltas(voucherType, amount);
+  if (partyId && deltas.party) {
+    await Ledger.updateOne({ _id: partyId, userId }, { $inc: { currentBalance: deltas.party * sign } });
+  }
+  if (secondaryLedgerId && deltas.secondary) {
+    await Ledger.updateOne({ _id: secondaryLedgerId, userId }, { $inc: { currentBalance: deltas.secondary * sign } });
+  }
+}
+
+async function applyVoucherStockDeltas(userId, voucherType, items, sign = 1) {
+  if (!items || !items.length) return;
+  if (voucherType !== 'Sales' && voucherType !== 'Purchase') return;
+  for (const itm of items) {
+    if (!itm.itemId) continue;
+    const qtyChange = voucherType === 'Sales' ? -Math.abs(itm.qty) : Math.abs(itm.qty);
+    await Item.updateOne({ _id: itm.itemId, userId }, { $inc: { stockQty: qtyChange * sign } });
+  }
+}
+
 app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
     const { voucherType, partyId, secondaryLedgerId, amount, items, note, supplierInvoiceNo, supplierGstin, paymentMode, voucherDate } = req.body;
@@ -2187,39 +2286,13 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
     });
 
     // Har voucher type ka party ledger balance par sahi asar (Tally logic ki tarah):
-    // Positive balance = party humein dena hai (Debtor); Negative = hum dena hai (Creditor)
     if (partyId) {
-      const ledgerFilter = { _id: partyId, userId: req.dataUserId };
-      if (voucherType === 'Sales' || voucherType === 'Debit Note') {
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: amount } });
-      } else if (voucherType === 'Receipt' || voucherType === 'Credit Note') {
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: -amount } });
-      } else if (voucherType === 'Purchase') {
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: -amount } });
-      } else if (voucherType === 'Payment') {
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: amount } });
-      } else if (voucherType === 'Journal') {
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: amount } });
-        if (secondaryLedgerId) {
-          await Ledger.updateOne({ _id: secondaryLedgerId, userId: req.dataUserId }, { $inc: { currentBalance: -amount } });
-        }
-      } else if (voucherType === 'Contra') {
-        // Cash/Bank ke beech transfer — party ledger par koi net asar nahi,
-        // sirf dono account ke beech move hota hai
-        await Ledger.updateOne(ledgerFilter, { $inc: { currentBalance: -amount } });
-        if (secondaryLedgerId) {
-          await Ledger.updateOne({ _id: secondaryLedgerId, userId: req.dataUserId }, { $inc: { currentBalance: amount } });
-        }
-      }
+      await applyVoucherLedgerDeltas(req.dataUserId, partyId, secondaryLedgerId, voucherType, amount, 1);
     }
 
     // Stock update — Sales se stock kam, Purchase se stock zyada
     if (items && items.length > 0 && (voucherType === 'Sales' || voucherType === 'Purchase')) {
-      for (const itm of items) {
-        if (!itm.itemId) continue;
-        const qtyChange = voucherType === 'Sales' ? -Math.abs(itm.qty) : Math.abs(itm.qty);
-        await Item.updateOne({ _id: itm.itemId, userId: req.dataUserId }, { $inc: { stockQty: qtyChange } });
-      }
+      await applyVoucherStockDeltas(req.dataUserId, voucherType, items, 1);
     }
 
     await newVoucher.save();
@@ -2232,11 +2305,101 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
 // Day Book — saare vouchers, latest pehle
 app.get('/api/vouchers', authenticateToken, async (req, res) => {
   try {
-    const vouchers = await Voucher.find({ userId: req.dataUserId })
-      .populate('partyId', 'partyName')
+    const { type, search, limit, fromDate, toDate } = req.query;
+    const filter = { userId: req.dataUserId };
+    if (type && VOUCHER_TYPES.includes(type)) filter.voucherType = type;
+
+    if (fromDate || toDate) {
+      filter.date = {};
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        filter.date.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        filter.date.$lte = end;
+      }
+    }
+
+    let vouchers = await Voucher.find(filter)
+      .populate('partyId', 'partyName ledgerGroup')
       .populate('secondaryLedgerId', 'partyName')
       .sort({ date: -1 });
+
+    if (search) {
+      const q = String(search).trim().toLowerCase();
+      vouchers = vouchers.filter((v) => {
+        const party = v.partyId?.partyName || '';
+        const note = v.note || '';
+        const bill = v.supplierInvoiceNo || '';
+        return party.toLowerCase().includes(q) || note.toLowerCase().includes(q) || bill.toLowerCase().includes(q);
+      });
+    }
+
+    const limitNum = Math.min(100, parseInt(limit, 10) || 0);
+    if (limitNum > 0) vouchers = vouchers.slice(0, limitNum);
+
     res.json({ success: true, vouchers });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/vouchers/:id', authenticateToken, async (req, res) => {
+  try {
+    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId })
+      .populate('partyId', 'partyName ledgerGroup gstin mobile address')
+      .populate('secondaryLedgerId', 'partyName');
+    if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
+    res.json({ success: true, voucher });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
+  try {
+    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
+
+    const {
+      partyId, secondaryLedgerId, amount, note, supplierInvoiceNo, supplierGstin,
+      paymentMode, voucherDate
+    } = req.body;
+
+    const oldPartyId = voucher.partyId;
+    const oldSecondaryId = voucher.secondaryLedgerId;
+    const oldAmount = voucher.amount;
+    const oldType = voucher.voucherType;
+    const oldItems = voucher.items || [];
+
+    await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, -1);
+    await applyVoucherStockDeltas(req.dataUserId, oldType, oldItems, -1);
+
+    if (partyId) voucher.partyId = partyId;
+    if (secondaryLedgerId !== undefined) voucher.secondaryLedgerId = secondaryLedgerId || undefined;
+    if (amount != null && Number(amount) > 0) voucher.amount = Number(amount);
+    if (note !== undefined) voucher.note = String(note || '').trim();
+    if (supplierInvoiceNo !== undefined) voucher.supplierInvoiceNo = String(supplierInvoiceNo || '').trim();
+    if (supplierGstin !== undefined) voucher.supplierGstin = String(supplierGstin || '').trim();
+    if (paymentMode !== undefined) voucher.paymentMode = paymentMode || undefined;
+    if (voucherDate) voucher.date = new Date(voucherDate);
+
+    if (voucher.voucherType === 'Purchase' && !voucher.supplierInvoiceNo) {
+      await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, 1);
+      await applyVoucherStockDeltas(req.dataUserId, oldType, oldItems, 1);
+      return res.status(400).json({ error: 'Purchase bill ke liye Supplier Invoice No. zaroori hai.' });
+    }
+
+    await applyVoucherLedgerDeltas(
+      req.dataUserId, voucher.partyId, voucher.secondaryLedgerId, voucher.voucherType, voucher.amount, 1
+    );
+    await applyVoucherStockDeltas(req.dataUserId, voucher.voucherType, voucher.items || [], 1);
+
+    await voucher.save();
+    res.json({ success: true, message: `${voucher.voucherType} voucher update ho gaya.`, voucher });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2488,10 +2651,13 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpag
 
 // --- Catch-all Fallback Route (Sabse Niche) ---
 app.use('/downloads', express.static(path.join(__dirname, 'public', 'downloads')));
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API route nahi mila.' });
+    return res.status(404).json({ success: false, error: 'API route nahi mila. Server restart karein.' });
   }
+  next();
+});
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'loginpage.html'));
 });
 

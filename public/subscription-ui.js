@@ -18,6 +18,29 @@
     });
   }
 
+  function normalizeBusinessDays(sub) {
+    if (!sub || sub.plan === 'pro') return 0;
+    const n = Number(sub.daysLeft) || 0;
+    if (n > 120) return 30;
+    return n;
+  }
+
+  function businessBannerText(sub) {
+    const rawDays = Number(sub.daysLeft) || 0;
+    const corrupt = rawDays > 120;
+    const days = corrupt ? 30 : rawDays;
+    let tillStr = "";
+    if (corrupt) {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      tillStr = ` (till ${d.toLocaleDateString("en-IN")})`;
+    } else if (sub.planExpiresAt) {
+      tillStr = ` (till ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")})`;
+    }
+    const daysPart = days > 0 ? ` — ${days} day${days === 1 ? "" : "s"} left` : "";
+    return `✅ ${sub.planName || "Business"} plan active${daysPart}${tillStr}`;
+  }
+
   function renderSubscriptionUI(me) {
     const sub = me?.subscription;
     if (!sub) return;
@@ -31,7 +54,7 @@
       if (banner) {
         banner.classList.remove("hidden", "trial", "expired");
         banner.classList.add("staff");
-        bannerText.textContent = `${me.roleLabel || me.role} — Malik ne invite diya. Aapko alag plan kharidne ki zaroorat nahi.`;
+        bannerText.textContent = `${me.roleLabel || me.role} — invited by owner. No separate plan purchase needed.`;
       }
       document.getElementById("subscriptionBannerAction")?.style.setProperty("display", "none");
       if (myPlanPanel) myPlanPanel.style.display = "none";
@@ -40,22 +63,22 @@
       if (banner) {
         banner.classList.remove("hidden", "expired", "staff");
         banner.classList.add("trial");
-        bannerText.textContent = `🎉 Pro Trial: ${sub.daysLeft} din bache — ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-IN") : ""} tak full access`;
+        bannerText.textContent = `🎉 Pro Trial: ${sub.daysLeft} days left — full access until ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-IN") : ""}`;
       }
       if (paywall) paywall.classList.add("hidden");
     } else if (sub.isActive) {
       if (banner) {
         banner.classList.remove("hidden", "trial", "expired", "staff");
-        bannerText.textContent = sub.plan === 'pro' && !sub.planExpiresAt
-          ? `✅ Pro Dukaan — bilkul FREE, full access`
-          : `✅ ${sub.planName} plan active${sub.daysLeft ? ` — ${sub.daysLeft} din bache` : ""}`;
+        bannerText.textContent = sub.plan === 'pro'
+          ? `✅ Pro Shop — completely FREE, full access`
+          : businessBannerText(sub);
       }
       if (paywall) paywall.classList.add("hidden");
     } else if (sub.isExpired) {
       if (banner) {
         banner.classList.remove("hidden", "trial", "staff");
         banner.classList.add("expired");
-        bannerText.textContent = "⚠️ Trial khatam — plan renew karein taaki app chal sake";
+        bannerText.textContent = "⚠️ Trial ended — renew your plan to continue using the app";
       }
       if (paywall) paywall.classList.remove("hidden");
     }
@@ -89,10 +112,10 @@
           planMode.classList.add("hidden");
         } else if (isTest) {
           planMode.classList.remove("hidden");
-          planMode.innerHTML = '⚠️ <strong style="color:#f59e0b;">Payment TEST mode</strong> — real card OTP nahi aayega. Render Environment me <code>RAZORPAY_KEY_ID</code> = <code>rzp_live_…</code> set karein aur redeploy karein.';
+          planMode.innerHTML = '⚠️ <strong style="color:#f59e0b;">Payment TEST mode</strong> — real card OTP will not arrive. Set <code>RAZORPAY_KEY_ID</code> = <code>rzp_live_…</code> on Render and redeploy.';
         } else if (cfg.mode === "live") {
           planMode.classList.remove("hidden");
-          planMode.innerHTML = '✅ <strong style="color:#22c55e;">Payment LIVE mode</strong> — asli UPI/Card se payment hogi.';
+          planMode.innerHTML = '✅ <strong style="color:#22c55e;">Payment LIVE mode</strong> — real UPI/Card payments will work.';
         } else {
           planMode.classList.add("hidden");
         }
@@ -113,34 +136,64 @@
     const staffNote = document.getElementById("myPlanStaffNote");
     const renewBox = document.getElementById("myPlanRenewBox");
 
+    const planKey = sub.plan || "pro";
+    const isProFree = planKey === "pro";
+
     if (statusEl) {
       statusEl.textContent = sub.isTrial
-        ? `Pro Trial — ${sub.daysLeft} din bache`
+        ? `Pro Trial — ${sub.daysLeft} days left`
         : sub.isActive
-          ? `${sub.planName} Active`
-          : "Plan Expired — Renew karein";
+          ? (isProFree ? "Pro Shop Active — Completely FREE" : `${sub.planName || "Business"} Active`)
+          : "Plan Expired — Please renew";
     }
 
     if (detailEl) {
-      const planKey = sub.plan || "pro";
       const displayLabel = typeof window.bkFormatPlanLabel === "function"
         ? window.bkFormatPlanLabel(planKey, sub.planLabel)
-        : (planKey === "pro" ? "Bilkul FREE" : (sub.planLabel || ""));
+        : (isProFree ? "Completely FREE" : (sub.planLabel || ""));
+      const planDisplayName = isProFree ? "Pro Shop" : (sub.planName || "—");
       detailEl.innerHTML = `
-        <li>Plan: <strong>${sub.planName || "—"}</strong> (${displayLabel})</li>
+        <li>Plan: <strong>${planDisplayName}</strong> (${displayLabel})</li>
         <li>Status: <strong>${sub.subscriptionStatus || "—"}</strong></li>
         ${sub.trialEndsAt ? `<li>Trial end: ${new Date(sub.trialEndsAt).toLocaleDateString("en-IN")}</li>` : ""}
-        ${sub.planExpiresAt ? `<li>Plan valid till: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
-        <li>Staff slots: <strong>${sub.staffSlots || 0}</strong> (invite code se free)</li>
+        ${!isProFree && sub.planExpiresAt ? `<li>Plan valid till: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
+        ${isProFree ? `<li>Validity: <strong>Lifetime FREE</strong> (no expiry)</li>` : ""}
+        <li>Staff slots: <strong>${sub.staffSlots || 0}</strong> (free with invite code)</li>
       `;
     }
 
     if (staffNote) {
-      staffNote.textContent = "Staff/Cashier/Manager ko alag se app nahi kharidni — aap invite code generate karke dein.";
+      staffNote.textContent = "Staff/Cashier/Manager do not need to buy the app separately — generate an invite code and share it with them.";
     }
 
     if (renewBox) {
-      renewBox.style.display = (!sub.isActive || sub.isTrial) ? "" : (sub.daysLeft <= 7 ? "" : "none");
+      const showRenew = isProFree
+        ? false
+        : (!sub.isActive || sub.isTrial || (sub.daysLeft > 0 && sub.daysLeft <= 7));
+      renewBox.style.display = showRenew ? "" : "none";
+    }
+  }
+
+  async function refreshPlanStatus() {
+    const token = getToken();
+    if (!token) return false;
+    try {
+      const meRes = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!meRes.ok) return false;
+      const me = await meRes.json();
+      if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
+        ["businessCardPanel", "securityPanel", "purchasePanel"].forEach((tab) => {
+          if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
+        });
+      }
+      window._bkAccountInfo = me;
+      if (typeof applyRoleBasedUI === "function") applyRoleBasedUI(me);
+      else if (typeof window.bkRenderSubscriptionUI === "function") window.bkRenderSubscriptionUI(me);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -275,7 +328,8 @@
 
             if (typeof showToast === "function") showToast("✅ " + verifyData.message);
             document.getElementById("subscriptionPaywall")?.classList.add("hidden");
-            if (typeof loadServerData === "function") loadServerData();
+            if (typeof refreshPlanStatus === "function") await refreshPlanStatus();
+            else if (typeof loadServerData === "function") loadServerData({ silent: true });
             else if (window.location.pathname.includes("pricing.html")) {
               window.location.href = "bolkarigar.html?payment=success";
             } else window.location.reload();
@@ -313,13 +367,12 @@
 
   document.getElementById("refreshPlanBtn")?.addEventListener("click", async (e) => {
     e.preventDefault();
-    if (typeof loadServerData === "function") {
-      try {
-        await loadServerData();
-        if (typeof showToast === "function") showToast("Plan status refreshed.");
-      } catch (err) {
-        if (typeof showToast === "function") showToast("Could not refresh plan status.", "error");
-      }
+    const btn = e.currentTarget;
+    if (btn) btn.disabled = true;
+    const ok = await refreshPlanStatus();
+    if (btn) btn.disabled = false;
+    if (typeof showToast === "function") {
+      showToast(ok ? "Plan status refreshed." : "Could not refresh plan status. Check connection and try again.", ok ? "success" : "error");
     }
   });
 
@@ -330,4 +383,5 @@
 
   window.buyBolKarigarPlan = buyBolKarigarPlan;
   window.bkRenderSubscriptionUI = renderSubscriptionUI;
+  window.refreshPlanStatus = refreshPlanStatus;
 })();

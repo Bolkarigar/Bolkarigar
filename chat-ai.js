@@ -53,7 +53,7 @@ async function callOpenAIChat(systemPrompt, message, history, apiKey) {
         body: JSON.stringify({
           model: modelName,
           temperature: 0.7,
-          max_tokens: 500,
+          max_tokens: 720,
           messages
         })
       });

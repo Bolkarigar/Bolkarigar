@@ -16,10 +16,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260831v6">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260909v1">
+  <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260827r2"></script>
+  <script src="i18n.js?v=20260909r1"></script>
   <script>
     window.BK_APP_BUILD = '20260831r1';
     (function () {
@@ -92,25 +93,25 @@
         <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">FREE Pro</button>
         <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹299 Business</button>
       </div>
-      <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad switch karein</span>
+      <span id="devPlanActiveLabel" class="dev-plan-active-label">Switch after login</span>
     </div>
   </div>
 
   <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
     <span id="subscriptionBannerText"></span>
-    <button type="button" id="subscriptionBannerAction" class="subscription-banner-btn owner-only-plan" data-i18n="sub.bannerAction">Mera Plan</button>
+    <button type="button" id="subscriptionBannerAction" class="subscription-banner-btn owner-only-plan" data-i18n="sub.bannerAction">My Plan</button>
   </div>
 
   <div id="subscriptionPaywall" class="subscription-paywall hidden">
     <div class="subscription-paywall-card">
-      <h3 data-i18n="paywall.title">⏰ Free Trial Khatam</h3>
-      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Business plan renew karein (₹299/month). Pro Dukaan bilkul FREE hai.</p>
-      <p class="helper-text" data-i18n="paywall.staffNote">Staff/Cashier ko alag se kharidne ki zaroorat nahi — sirf malik plan leta hai.</p>
+      <h3 data-i18n="paywall.title">⏰ Free Trial Ended</h3>
+      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Renew Business plan (₹299/month). Pro Shop is completely FREE.</p>
+      <p class="helper-text" data-i18n="paywall.staffNote">Staff/Cashier do not need a separate purchase — only the owner buys the plan.</p>
       <div class="btn-row" style="justify-content:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
-        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">🆓 Pro — Bilkul FREE</button>
+        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">🆓 Pro — Completely FREE</button>
         <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹299 / month</button>
       </div>
-      <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;color:#f59e0b;">⚠️ <strong>Test Mode active</strong> — real OTP nahi aayega. Render pe <code>rzp_live_</code> keys lagao, ya test me UPI: <code>success@razorpay</code></p>
+      <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;color:#f59e0b;">⚠️ <strong>Test Mode active</strong> — real OTP will not arrive. Set <code>rzp_live_</code> keys on Render, or use test UPI: <code>success@razorpay</code></p>
     </div>
   </div>
 
@@ -118,8 +119,8 @@
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow" data-i18n="hero.eyebrow">Voice + Business Utility</p>
-        <h2 data-i18n="hero.title">Bolo aur project, kharcha, invoice, notes aur estimate ka kaam fast karo.</h2>
-        <p data-i18n="hero.desc">Voice ON karke bolo: “invoice kholo”, “Ramesh ko cement 500 rupaye bill banao”, “todo me kal cement lana”, “hajri kholo”, “invoice kaise banate hain?” — jawab bhi sunoge, kaam bhi hoga.</p>
+        <h2 data-i18n="hero.title">Speak and finish invoice, expense, project and notes work faster.</h2>
+        <p data-i18n="hero.desc">Turn Voice ON and say: open invoice, create bill, open attendance — you will hear answers and get work done.</p>
         <div class="hero-badges">
           <span data-i18n="hero.badge1">Voice Ready</span>
           <span data-i18n="hero.badge2">Invoice Tools</span>
@@ -128,7 +129,7 @@
         </div>
       </div>
       <div class="hero-stats">
-        <div class="stat-card"><span data-i18n="hero.modules">Modules</span><strong>20+</strong></div>
+        <div class="stat-card"><span data-i18n="hero.modules">Modules</span><strong id="heroModuleCount">—</strong></div>
         <div class="stat-card"><span data-i18n="hero.voiceParse">Voice Parsing</span><strong data-i18n="hero.yes">Yes</strong></div>
         <div class="stat-card"><span data-i18n="hero.autoMic">Auto Mic</span><strong data-i18n="hero.toggle">Toggle</strong></div>
       </div>
@@ -171,6 +172,7 @@
             <button class="tab-btn" data-tab="khataItemsPanel" type="button" data-i18n="nav.stockItems">📦 Stock Items</button>
             <button class="tab-btn" data-tab="khataVoucherPanel" type="button" data-i18n="nav.voucher">🧾 New Voucher</button>
             <button class="tab-btn" data-tab="khataDaybookPanel" type="button" data-i18n="nav.daybook">📅 Day Book</button>
+            <button class="tab-btn" data-tab="modifyPanel" type="button">✏️ Modification</button>
             <button class="tab-btn" data-tab="reportsProPanel" type="button" data-i18n="nav.reports">📈 Reports Pro</button>
             <button class="tab-btn" data-tab="bankReconPanel" type="button" data-i18n="nav.bankRecon">🏦 Bank Recon</button>
           </div>
@@ -638,7 +640,11 @@
             <div class="grid-2 voucher-party-grid">
               <label class="voucher-field voucher-field-span2" id="voucherPartyField">
                 <span class="voucher-label" id="voucherPartyLabel">Party / Ledger *</span>
-                <select id="voucherPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+                <div class="inv-party-autocomplete">
+                  <input type="text" id="voucherPartySearch" placeholder="Party name search (Ledger se)..." autocomplete="off" />
+                  <input type="hidden" id="voucherPartyInput" />
+                  <ul id="voucherPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+                </div>
               </label>
               <label class="voucher-field voucher-field-span2 hidden" id="voucherSecondaryWrap">
                 <span class="voucher-label">Second Ledger (Journal / Contra) *</span>
@@ -738,6 +744,55 @@
               <button id="khataDaybookNextBtn" type="button">Next</button>
             </div>
           </div>
+        </section>
+
+        <!-- MODIFICATION CENTER -->
+        <section class="panel" id="modifyPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Accounting</p>
+              <h3>✏️ Modification Center</h3>
+              <p class="helper-text">Tally / Vyapar style — choose type, then search, then edit</p>
+            </div>
+          </div>
+
+          <div class="modify-steps">
+            <div class="modify-step active" data-step="1">1. Type</div>
+            <div class="modify-step" data-step="2">2. Search</div>
+            <div class="modify-step" data-step="3">3. Edit &amp; Save</div>
+          </div>
+
+          <div class="modify-panel-card">
+            <p class="voucher-label" style="margin-bottom:10px;">Kya modify karna hai?</p>
+            <div id="modifyTypeGrid" class="modify-type-grid"></div>
+          </div>
+
+          <div id="modifySearchSection" class="modify-panel-card hidden">
+            <p class="voucher-label" style="margin-bottom:8px;">Search records</p>
+            <div id="modifyDateFilters" class="modify-date-filters hidden">
+              <label class="modify-date-field">
+                <span class="voucher-label">From Date</span>
+                <input type="date" id="modifySearchFrom" />
+              </label>
+              <label class="modify-date-field">
+                <span class="voucher-label">To Date</span>
+                <input type="date" id="modifySearchTo" />
+              </label>
+              <p class="modify-hint modify-date-hint">You can search by date only — pick one date or a range.</p>
+            </div>
+            <div class="modify-search-wrap">
+              <input type="text" id="modifySearchInput" class="modify-search-input" placeholder="Type to search..." autocomplete="off" />
+              <ul id="modifySearchResults" class="modify-search-results hidden" role="listbox"></ul>
+            </div>
+          </div>
+
+          <div id="modifyEditArea"></div>
+
+          <div class="modify-actions">
+            <button type="button" id="modifySaveBtn" class="primary">💾 Save Changes</button>
+            <button type="button" id="modifyResetBtn" class="secondary">↩️ Start Over</button>
+          </div>
+          <p id="modifyStatusText" class="modify-status"></p>
         </section>
 
         <!-- 🟢 TOTAL SALES HISTORY PANEL — permanent record, kabhi delete nahi
@@ -1028,7 +1083,7 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow" data-i18n="myplan.eyebrow">Subscription</p>
-              <h3 data-i18n="myplan.title">💳 Mera Plan</h3>
+              <h3 data-i18n="myplan.title">💳 My Plan</h3>
             </div>
           </div>
           <div class="mini-card" style="margin-bottom:16px;">
@@ -1041,15 +1096,15 @@
             <p id="myPlanPaymentMode" class="helper-text hidden" style="margin-bottom:10px;"></p>
             <p class="helper-text" style="margin-bottom:12px;">Secure payment via Razorpay — UPI, Card, Netbanking</p>
             <div class="btn-row" style="flex-wrap:wrap;gap:10px;">
-              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">🆓 Pro Dukaan — Bilkul FREE</button>
-              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹299 / 30 din</button>
+              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">🆓 Pro Shop — Completely FREE</button>
+              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹299 / 30 days</button>
             </div>
           </div>
           <div class="btn-row" style="flex-wrap:wrap;">
             <a href="pricing.html" target="_blank" rel="noopener" class="secondary" style="padding:10px 16px;border-radius:8px;text-decoration:none;">📋 Plan Details (Website)</a>
             <button type="button" id="refreshPlanBtn">🔄 Status Refresh</button>
           </div>
-          <p class="helper-text" style="margin-top:14px;">Professional apps ki tarah: <strong>sirf malik plan kharidta hai</strong>. Staff/Cashier/Manager ko aap invite code dein — unhe alag payment nahi.</p>
+          <p class="helper-text" style="margin-top:14px;">Like professional apps: <strong>only the owner purchases the plan</strong>. Share an invite code with Staff/Cashier/Manager — no separate payment for them.</p>
         </section>
 
         <!-- 🟢 BANK RECONCILIATION -->
@@ -1092,7 +1147,8 @@
         <h3 data-i18n="invoice.title">🧾 Invoice / Sales Voucher</h3>
       </div>
       <div class="inv-vch-meta">
-        <span class="inv-meta-chip" id="busyVchDate" title="Voucher Date">—</span>
+        <input type="date" id="invoiceDateInput" class="inv-date-input-hidden" aria-hidden="true" tabindex="-1" />
+        <span class="inv-meta-chip inv-date-clickable" id="busyVchDate" title="Date change — click karein">—</span>
         <span class="inv-meta-chip inv-vch-no" id="busyVchNo" title="Voucher No.">—</span>
         <label class="gst-toggle-wrap" title="GST ON / OFF">
           <span class="gst-toggle-label">GST</span>
@@ -1222,7 +1278,7 @@
         <p class="helper-text" style="margin:4px 0 0;">Stock + Supplier Bill — GST India standard (Vyapar/Tally style)</p>
       </div>
       <div class="inv-vch-meta">
-        <span class="inv-meta-chip" id="pvDateDisplay" title="Bill Date">—</span>
+        <span class="inv-meta-chip inv-date-clickable" id="pvDateDisplay" title="Date change — click karein">—</span>
       </div>
     </div>
 
@@ -1250,7 +1306,11 @@
       </label>
       <label class="voucher-field inv-full-span">
         <span class="voucher-label">Supplier / Party (Sundry Creditor) *</span>
-        <select id="pvPartyInput"><option value="">-- Select Supplier / Ledger --</option></select>
+        <div class="inv-party-autocomplete">
+          <input type="text" id="pvPartySearch" placeholder="Supplier name search (Ledger se)..." autocomplete="off" />
+          <input type="hidden" id="pvPartyInput" />
+          <ul id="pvPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+        </div>
       </label>
     </div>
 
@@ -1295,7 +1355,7 @@
                 <p class="helper-text" style="margin:4px 0 0;">Supplier / party ko payment — Cash, Bank, UPI (F5)</p>
               </div>
               <div class="inv-vch-meta">
-                <span class="inv-meta-chip" id="pmvDateDisplay" title="Voucher Date">—</span>
+                <span class="inv-meta-chip inv-date-clickable" id="pmvDateDisplay" title="Date change — click karein">—</span>
               </div>
             </div>
             <div class="grid-2 inv-party-grid">
@@ -1314,7 +1374,11 @@
               </label>
               <label class="voucher-field inv-full-span">
                 <span class="voucher-label">Paid To (Party / Ledger) *</span>
-                <select id="pmvPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+                <div class="inv-party-autocomplete">
+                  <input type="text" id="pmvPartySearch" placeholder="Party name search (Ledger se)..." autocomplete="off" />
+                  <input type="hidden" id="pmvPartyInput" />
+                  <ul id="pmvPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+                </div>
               </label>
               <label class="voucher-field inv-full-span">
                 <span class="voucher-label">Amount ₹ *</span>
@@ -1344,7 +1408,7 @@
                 <p class="helper-text" style="margin:4px 0 0;">Customer se payment receive — Cash, Bank, UPI (F6)</p>
               </div>
               <div class="inv-vch-meta">
-                <span class="inv-meta-chip" id="rcvDateDisplay" title="Voucher Date">—</span>
+                <span class="inv-meta-chip inv-date-clickable" id="rcvDateDisplay" title="Date change — click karein">—</span>
               </div>
             </div>
             <div class="grid-2 inv-party-grid">
@@ -1363,7 +1427,11 @@
               </label>
               <label class="voucher-field inv-full-span">
                 <span class="voucher-label">Received From (Party / Ledger) *</span>
-                <select id="rcvPartyInput"><option value="">-- Select Party / Ledger --</option></select>
+                <div class="inv-party-autocomplete">
+                  <input type="text" id="rcvPartySearch" placeholder="Party name search (Ledger se)..." autocomplete="off" />
+                  <input type="hidden" id="rcvPartyInput" />
+                  <ul id="rcvPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+                </div>
               </label>
               <label class="voucher-field inv-full-span">
                 <span class="voucher-label">Amount ₹ *</span>
@@ -1557,21 +1625,27 @@
     <div class="live-ai-header">
       <div class="live-ai-title">🤖 BolKarigar AI <span id="liveAiModelBadge" class="live-ai-model-badge"></span> <span id="liveAiStatusDot" class="live-ai-dot"></span></div>
       <div class="live-ai-header-actions">
-        <button id="liveAiLiveBtn" type="button" title="Live baatcheet — bolte raho, AI jawab dega" class="live-ai-live-btn">🎙️ Live</button>
-        <button id="liveAiClearBtn" type="button" title="Chat clear karo">🗑️</button>
-        <button id="liveAiCloseBtn" type="button" class="btn-close" title="Band karo">✕</button>
+        <button id="liveAiLiveBtn" type="button" title="Live mode — bolte raho, AI sunega aur jawab dega" class="live-ai-live-btn">🎙️ Live</button>
+        <button id="liveAiClearBtn" type="button" title="Chat clear">🗑️</button>
+        <button id="liveAiCloseBtn" type="button" class="btn-close" title="Close">✕</button>
       </div>
     </div>
     <div id="liveAiMessages" class="live-ai-messages">
       <div class="live-ai-msg live-ai-msg-bot">
-        Namaste! Main BolKarigar AI hoon — GPT-4o powered live assistant 🙂 Sawal poochho, ya seedha bolo: "invoice kholo", "todo me cement lana hai", "customer Ram ko laptop 25000 ka bill banao". Main yaad rakhta hoon aur live baat kar sakta hoon.
+        Namaste! Main BolKarigar AI hoon 🙂 Hindi / English / Hinglish me bol sakte ho. Sawal poochho ya seedha command do — "invoice kholo", "todo cement lana add karo", "Ramesh ko laptop 25000 ka bill banao". Live mode ON karke baat bhi kar sakte ho.
       </div>
     </div>
-    <div id="liveAiTyping" class="live-ai-typing hidden">BolKarigar AI soch raha hai...</div>
+    <div id="liveAiSuggestions" class="live-ai-suggestions">
+      <button type="button" class="live-ai-chip" data-prompt="invoice kaise banate hain?">🧾 Invoice</button>
+      <button type="button" class="live-ai-chip" data-prompt="udhar khata kya hai?">📖 Udhar</button>
+      <button type="button" class="live-ai-chip" data-prompt="todo me kaam add kaise karein?">✅ Todo</button>
+      <button type="button" class="live-ai-chip" data-prompt="stock inventory kaise manage karein?">📦 Stock</button>
+    </div>
+    <div id="liveAiTyping" class="live-ai-typing hidden"><span class="live-ai-typing-dots">BolKarigar AI soch raha hai</span></div>
     <div class="live-ai-input-row">
-      <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Bol kar poochho">🎤</button>
-      <input id="liveAiInput" type="text" placeholder="Kuch poochho ya command bolo..." autocomplete="off" />
-      <button id="liveAiSendBtn" type="button" class="live-ai-send-btn">Bhejo</button>
+      <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Bol kar poochho (Hindi/English)">🎤</button>
+      <input id="liveAiInput" type="text" placeholder="Hindi / English me likho ya bolo..." autocomplete="off" />
+      <button id="liveAiSendBtn" type="button" class="live-ai-send-btn">Send</button>
     </div>
   </div>
   <!-- 🟢 LIVE AI widget END -->
@@ -1679,10 +1753,11 @@
 
   <script src="responsive-ui.js?v=20260827r2"></script>
   <script src="help-modules.js?v=20260827r2"></script>
-  <script src="voice-controller.js?v=20260830r3"></script>
-  <script src="plan-pricing.js?v=20260830r1"></script>
+  <script src="voice-controller.js?v=20260909v1"></script>
+  <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
-  <script src="bolkarigar.js?v=20260902r1"></script>
+  <script src="modify-ui.js?v=20260907m4"></script>
+  <script src="bolkarigar.js?v=20260909v1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -1699,8 +1774,8 @@
     });
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
-  <script src="subscription-ui.js?v=20260902r1"></script>
-  <script src="dev-plan-toggle.js?v=20260902r1"></script>
+  <script src="subscription-ui.js?v=20260909r4"></script>
+  <script src="dev-plan-toggle.js?v=20260909r3"></script>
   <script src="inventory-ui.js?v=20260902r1"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
   <script src="payroll-ui.js?v=20260902r1"></script>

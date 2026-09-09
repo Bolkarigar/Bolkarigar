@@ -115,9 +115,9 @@ function showDataStatusBanner(me, serverInvoices, localInvoices) {
     msgs.push(`<strong>${escapeHtml(roleLabel)} Mode</strong> — ${escapeHtml(me.username || "")} | Owner ka data (limited access). Settings, Staff, Reports owner ke paas hain.`);
   }
   if (serverInvoices === 0 && localInvoices > 0) {
-    msgs.push(`Server par 0 invoice, lekin browser backup me <b>${localInvoices}</b> invoice mile — wahi dikha rahe hain. Owner account se login karke sync karein.`);
+    msgs.push(`Server has 0 invoices, but <b>${localInvoices}</b> found in browser backup — showing those. Log in with the owner account to sync.`);
   } else if ((me?.salesCount || 0) === 0 && (me?.invoicesCount || 0) === 0 && localInvoices === 0) {
-    msgs.push("Koi saved data nahi mila. Galat account se login to nahi? Owner email se dubara login karein — data delete nahi hua, sirf account alag ho sakta hai.");
+    msgs.push("No saved data found. Wrong account? Log in again with the owner email — data is not deleted, you may be on a different account.");
   } else if (me?.username) {
     msgs.push(`Account: <b>${escapeHtml(me.username)}</b> | Sales: ${me.salesCount || 0} | Invoices: ${me.invoicesCount || 0}`);
   }
@@ -155,7 +155,7 @@ function bkCanAccessTab(me, tabId) {
   // Security / App Lock — sab users ke liye (device-level)
   if (tabId === "securityPanel") return true;
   // Purchase / Payment / Receipt — Pro FREE par bhi (invoice jaisa), stale allowedTabs fix
-  if (tabId === "purchasePanel" || tabId === "paymentVoucherPanel" || tabId === "receiptVoucherPanel") {
+  if (tabId === "purchasePanel" || tabId === "paymentVoucherPanel" || tabId === "receiptVoucherPanel" || tabId === "modifyPanel") {
     if (sub?.fullAccess || sub?.isActive) {
       if (!me?.isStaff) return true;
       const role = me.role || "staff";
@@ -251,12 +251,12 @@ function applyRoleBasedUI(me) {
   }
 
   const khataWrite = bkHasPerm(me, "khata.write");
-  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel";
+  const khataPanelIds = "#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel, #modifyPanel";
   document.querySelectorAll(
     `${khataPanelIds} button:not([data-readonly-ok]), #ledgerPanel .udhar-pay-btn, #recordPaymentBtn`
   ).forEach((el) => {
     if (el.id === "importTallyBtn") return;
-    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel")) {
+    if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel, #modifyPanel")) {
       el.disabled = true;
       el.title = "Aapke role me Khata edit allowed nahi";
     }
@@ -308,11 +308,23 @@ function applyRoleBasedUI(me) {
   }
   if (typeof window.bkSyncBusinessCardPlan === "function") window.bkSyncBusinessCardPlan();
   if (typeof window.bkRenderBusinessCardGrid === "function") window.bkRenderBusinessCardGrid();
+  bkUpdateHeroModuleCount();
+}
+
+function bkUpdateHeroModuleCount() {
+  const el = document.getElementById("heroModuleCount");
+  if (!el) return;
+  const count = [...document.querySelectorAll(".tab-btn[data-tab]")].filter(
+    (btn) => btn.style.display !== "none"
+  ).length;
+  el.textContent = String(count);
 }
 
 window.bkCanAccessTab = bkCanAccessTab;
+window.bkUpdateHeroModuleCount = bkUpdateHeroModuleCount;
 
-async function loadServerData() {
+async function loadServerData(opts = {}) {
+  const silent = !!opts.silent;
   try {
     const token = getToken();
     const meRes = await fetch(`${API_URL}/api/auth/me`, {
@@ -320,26 +332,25 @@ async function loadServerData() {
     });
     if (meRes.ok) {
       const me = await meRes.json();
-      // Server restart se pehle purani allowedTabs me business card missing ho sakta hai
       if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
         ["businessCardPanel", "securityPanel", "purchasePanel"].forEach((tab) => {
           if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
         });
       }
       console.log('[BolKarigar] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
-      if (me.isStaff) showToast(`${me.roleLabel || me.role} login — invited by owner, no separate plan needed`, "info");
-      else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} days left`, "info");
+      if (!silent) {
+        if (me.isStaff) showToast(`${me.roleLabel || me.role} login — invited by owner, no separate plan needed`, "info");
+        else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} days left`, "info");
+      }
       window._bkAccountInfo = me;
       applyRoleBasedUI(me);
-
-      // Voice auto-start band — user khud Voice ON karega (repeat / mic noise se bachne ke liye)
 
       if (me.subscription?.isExpired) {
         const paywallText = document.getElementById("subscriptionPaywallText");
         if (paywallText) {
           paywallText.textContent = me.isStaff
-            ? "Is dukaan ka plan expire ho gaya. Aapko alag se kuch kharidne ki zaroorat nahi — malik se subscription renew karwain."
-            : "Business plan (₹299) renew karein — Pro plan bilkul FREE hai.";
+            ? "This shop's plan has expired. You do not need to buy anything separately — ask the owner to renew the subscription."
+            : "Renew Business plan (₹299/month). Pro plan is completely FREE.";
         }
       }
     }
@@ -685,9 +696,136 @@ function filterInvoiceLedgers(query) {
   return [...starts, ...contains].slice(0, 12);
 }
 
-function hideInvoicePartySuggest() {
-  const list = document.getElementById("invoicePartySuggest");
+function hideLedgerPartySuggest(suggestId) {
+  const list = document.getElementById(suggestId);
   if (list) list.classList.add("hidden");
+}
+
+function hideInvoicePartySuggest() {
+  hideLedgerPartySuggest("invoicePartySuggest");
+}
+
+function renderLedgerPartySuggest(listEl, matches, onPick) {
+  if (!listEl) return;
+  if (!matches.length) {
+    listEl.classList.add("hidden");
+    listEl.innerHTML = "";
+    return;
+  }
+  listEl.innerHTML = matches.map((ledger, i) => {
+    const meta = [ledger.ledgerGroup, ledger.mobile, ledger.gstin].filter(Boolean).join(" · ");
+    return `<li role="option" data-idx="${i}" tabindex="0">
+      ${escapeHtml(ledger.partyName)}
+      ${meta ? `<span class="party-meta">${escapeHtml(meta)}</span>` : ""}
+    </li>`;
+  }).join("");
+  listEl.classList.remove("hidden");
+  listEl._matches = matches;
+  listEl.querySelectorAll("li").forEach(li => {
+    li.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      const idx = parseInt(li.dataset.idx, 10);
+      if (listEl._matches && listEl._matches[idx]) onPick(listEl._matches[idx]);
+    });
+  });
+}
+
+function clearLedgerPartyAutocomplete(hiddenId, searchId, suggestId) {
+  const hidden = document.getElementById(hiddenId);
+  const search = document.getElementById(searchId);
+  if (hidden) hidden.value = "";
+  if (search) search.value = "";
+  if (suggestId) hideLedgerPartySuggest(suggestId);
+}
+
+const ledgerPartyAutocompleteInited = new Set();
+
+function setupLedgerPartyAutocomplete({ searchId, suggestId, hiddenId, onSelect }) {
+  if (ledgerPartyAutocompleteInited.has(searchId)) return;
+  ledgerPartyAutocompleteInited.add(searchId);
+
+  const input = document.getElementById(searchId);
+  const list = document.getElementById(suggestId);
+  if (!input || !list) return;
+
+  function pick(ledger) {
+    if (hiddenId) {
+      const hid = document.getElementById(hiddenId);
+      if (hid) hid.value = ledger._id || "";
+    }
+    input.value = ledger.partyName || "";
+    hideLedgerPartySuggest(suggestId);
+    if (onSelect) onSelect(ledger);
+  }
+
+  function syncHiddenFromTypedName() {
+    if (!hiddenId) return;
+    const hid = document.getElementById(hiddenId);
+    if (!hid?.value) return;
+    const ledger = invoiceLedgerCache.find(l => l._id === hid.value);
+    const typed = input.value.trim().toLowerCase();
+    if (!ledger || ledger.partyName.trim().toLowerCase() !== typed) hid.value = "";
+  }
+
+  function showSuggestions() {
+    syncHiddenFromTypedName();
+    const ensureCache = invoiceLedgerCache.length ? Promise.resolve() : loadInvoiceLedgers();
+    ensureCache.then(() => {
+      renderLedgerPartySuggest(list, filterInvoiceLedgers(input.value), pick);
+    });
+  }
+
+  input.addEventListener("input", () => {
+    showSuggestions();
+    if (searchId === "customerName" && typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+  });
+
+  input.addEventListener("focus", showSuggestions);
+
+  input.addEventListener("keydown", (e) => {
+    if (list.classList.contains("hidden")) return;
+    const items = [...list.querySelectorAll("li")];
+    if (!items.length) return;
+    let active = items.findIndex(li => li.classList.contains("active"));
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      active = (active + 1) % items.length;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      active = active <= 0 ? items.length - 1 : active - 1;
+    } else if (e.key === "Enter" && active >= 0) {
+      e.preventDefault();
+      const idx = parseInt(items[active].dataset.idx, 10);
+      if (list._matches && list._matches[idx]) pick(list._matches[idx]);
+      return;
+    } else if (e.key === "Escape") {
+      hideLedgerPartySuggest(suggestId);
+      return;
+    } else {
+      return;
+    }
+    items.forEach((li, i) => li.classList.toggle("active", i === active));
+  });
+
+  document.addEventListener("click", (e) => {
+    const wrap = input.closest(".inv-party-autocomplete");
+    if (wrap && !wrap.contains(e.target)) hideLedgerPartySuggest(suggestId);
+  });
+}
+
+function setupVoucherPartyAutocompletes() {
+  setupLedgerPartyAutocomplete({
+    searchId: "pvPartySearch",
+    suggestId: "pvPartySuggest",
+    hiddenId: "pvPartyInput",
+    onSelect: (ledger) => {
+      const gst = document.getElementById("pvSupplierGstinInput");
+      if (gst && !gst.value.trim() && ledger.gstin) gst.value = ledger.gstin;
+    }
+  });
+  setupLedgerPartyAutocomplete({ searchId: "pmvPartySearch", suggestId: "pmvPartySuggest", hiddenId: "pmvPartyInput" });
+  setupLedgerPartyAutocomplete({ searchId: "rcvPartySearch", suggestId: "rcvPartySuggest", hiddenId: "rcvPartyInput" });
+  setupLedgerPartyAutocomplete({ searchId: "voucherPartySearch", suggestId: "voucherPartySuggest", hiddenId: "voucherPartyInput" });
 }
 
 function applyInvoiceLedgerToForm(ledger) {
@@ -711,28 +849,7 @@ function applyInvoiceLedgerToForm(ledger) {
 
 function renderInvoicePartySuggest(matches) {
   const list = document.getElementById("invoicePartySuggest");
-  if (!list) return;
-  if (!matches.length) {
-    list.classList.add("hidden");
-    list.innerHTML = "";
-    return;
-  }
-  list.innerHTML = matches.map((ledger, i) => {
-    const meta = [ledger.ledgerGroup, ledger.mobile, ledger.gstin].filter(Boolean).join(" · ");
-    return `<li role="option" data-idx="${i}" tabindex="0">
-      ${escapeHtml(ledger.partyName)}
-      ${meta ? `<span class="party-meta">${escapeHtml(meta)}</span>` : ""}
-    </li>`;
-  }).join("");
-  list.classList.remove("hidden");
-  list._matches = matches;
-  list.querySelectorAll("li").forEach(li => {
-    li.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      const idx = parseInt(li.dataset.idx, 10);
-      if (list._matches && list._matches[idx]) applyInvoiceLedgerToForm(list._matches[idx]);
-    });
-  });
+  renderLedgerPartySuggest(list, matches, applyInvoiceLedgerToForm);
 }
 
 function showInvoicePartySuggestForInput() {
@@ -743,49 +860,10 @@ function showInvoicePartySuggestForInput() {
 }
 
 function setupInvoicePartyAutocomplete() {
-  const input = document.getElementById("customerName");
-  const list = document.getElementById("invoicePartySuggest");
-  if (!input || !list) return;
-
-  input.addEventListener("input", () => {
-    if (!invoiceLedgerCache.length) loadInvoiceLedgers().then(showInvoicePartySuggestForInput);
-    else showInvoicePartySuggestForInput();
-    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
-  });
-
-  input.addEventListener("focus", () => {
-    if (!invoiceLedgerCache.length) loadInvoiceLedgers().then(showInvoicePartySuggestForInput);
-    else showInvoicePartySuggestForInput();
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (list.classList.contains("hidden")) return;
-    const items = [...list.querySelectorAll("li")];
-    if (!items.length) return;
-    let active = items.findIndex(li => li.classList.contains("active"));
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      active = (active + 1) % items.length;
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      active = active <= 0 ? items.length - 1 : active - 1;
-    } else if (e.key === "Enter" && active >= 0) {
-      e.preventDefault();
-      const idx = parseInt(items[active].dataset.idx, 10);
-      if (list._matches && list._matches[idx]) applyInvoiceLedgerToForm(list._matches[idx]);
-      return;
-    } else if (e.key === "Escape") {
-      hideInvoicePartySuggest();
-      return;
-    } else {
-      return;
-    }
-    items.forEach((li, i) => li.classList.toggle("active", i === active));
-  });
-
-  document.addEventListener("click", (e) => {
-    const wrap = input.closest(".inv-party-autocomplete");
-    if (wrap && !wrap.contains(e.target)) hideInvoicePartySuggest();
+  setupLedgerPartyAutocomplete({
+    searchId: "customerName",
+    suggestId: "invoicePartySuggest",
+    onSelect: applyInvoiceLedgerToForm
   });
 }
 
@@ -854,6 +932,38 @@ function getInvoiceNumberPreview() {
   return `${counter}/${fyStartShort}-${fyEnd}`;
 }
 
+function formatVoucherDateChip(raw) {
+  if (!raw) return "—";
+  const d = raw instanceof Date ? raw : new Date(raw + (String(raw).length === 10 ? "T12:00:00" : ""));
+  if (isNaN(d.getTime())) return "—";
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()} (${days[d.getDay()]})`;
+}
+
+function getInvoiceSelectedDate() {
+  const inp = document.getElementById("invoiceDateInput");
+  if (inp?.value) return new Date(inp.value + "T12:00:00");
+  return new Date();
+}
+
+function ensureInvoiceDateDefault() {
+  const inp = document.getElementById("invoiceDateInput");
+  if (inp && !inp.value) inp.value = new Date().toISOString().slice(0, 10);
+}
+
+function setupClickableDateChip(chipId, inputId, onChange) {
+  const chip = document.getElementById(chipId);
+  const inp = document.getElementById(inputId);
+  if (!chip || !inp) return;
+  chip.addEventListener("click", () => {
+    if (typeof inp.showPicker === "function") inp.showPicker();
+    else { inp.focus(); inp.click(); }
+  });
+  inp.addEventListener("change", () => {
+    if (onChange) onChange();
+  });
+}
+
 function updateBusyVoucherMeta() {
   const dateEl = document.getElementById("busyVchDate");
   const vchEl = document.getElementById("busyVchNo");
@@ -862,12 +972,8 @@ function updateBusyVoucherMeta() {
   const gstSelect = document.getElementById("productGst");
 
   if (dateEl) {
-    const now = new Date();
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const dd = String(now.getDate()).padStart(2, "0");
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const yyyy = now.getFullYear();
-    dateEl.textContent = `${dd}-${mm}-${yyyy} (${days[now.getDay()]})`;
+    ensureInvoiceDateDefault();
+    dateEl.textContent = formatVoucherDateChip(getInvoiceSelectedDate());
   }
   if (vchEl) vchEl.textContent = getInvoiceNumberPreview();
 
@@ -1081,7 +1187,8 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
       body: JSON.stringify({
         invoiceNo, customer, product, hsn, qty, price, gstRate, totalAmount,
         paymentType: paymentType || "Cash",
-        status: isCredit ? "Pending" : "Paid"
+        status: isCredit ? "Pending" : "Paid",
+        voucherDate: document.getElementById("invoiceDateInput")?.value || undefined
       })
     });
     refreshUdharKhata();
@@ -1158,6 +1265,9 @@ window.addEventListener("load", () => {
   if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
   if (typeof applyInvoiceGstToggleUI === "function") applyInvoiceGstToggleUI();
   if (typeof setupInvoicePartyAutocomplete === "function") setupInvoicePartyAutocomplete();
+  if (typeof setupVoucherPartyAutocompletes === "function") setupVoucherPartyAutocompletes();
+  ensureInvoiceDateDefault();
+  setupClickableDateChip("busyVchDate", "invoiceDateInput", updateBusyVoucherMeta);
 });
 
 // ==========================================================================
@@ -1321,7 +1431,7 @@ let voiceUtteranceBuffer = "";
 let voiceUtteranceFlushTimer = null;
 let voiceRecPausedForTts = false;
 let voiceProcessingLock = false;
-const VOICE_FLUSH_MS = 2000;
+const VOICE_FLUSH_MS = 1600;
 
 window._bkPauseVoiceForTts = function () {
   voiceRecPausedForTts = true;
@@ -1430,7 +1540,17 @@ document.addEventListener("bk:langchange", () => {
   if (voiceToggle) voiceToggle.textContent = bkVoiceBtnLabel(voiceOn);
   const mode = root.getAttribute("data-theme") || "dark";
   setTheme(mode);
+  if (voiceOn && typeof restartRecognition === "function") {
+    try { recognition?.stop(); } catch { /* */ }
+    restartRecognition(350);
+  }
 });
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => bkUpdateHeroModuleCount());
+} else {
+  bkUpdateHeroModuleCount();
+}
 
 function openPanel(id) {
   const me = window._bkAccountInfo;
@@ -1458,6 +1578,7 @@ function openPanel(id) {
     window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
   }
   if (id === "invoicePanel") {
+    if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
     if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
     if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
     if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
@@ -1470,6 +1591,9 @@ function openPanel(id) {
   }
   if (id === "receiptVoucherPanel" && typeof window.refreshReceiptVoucherPanel === "function") {
     window.refreshReceiptVoucherPanel();
+  }
+  if (id === "modifyPanel" && typeof window.refreshModifyPanel === "function") {
+    window.refreshModifyPanel();
   }
   closeMobileSidebar();
   if (typeof window.enhanceMobileTables === "function") {
@@ -1837,6 +1961,12 @@ function parseCommands(raw) {
   if (text.includes("day book") || text.includes("डे बुक")) {
     openPanel("khataDaybookPanel");
     showCommand("Day Book open ho gaya.");
+    return true;
+  }
+
+  if (text.includes("modification") || text.includes("modify") || text.includes("edit account") || text.includes("संशोधन") || text.includes("बदलाव")) {
+    openPanel("modifyPanel");
+    showCommand("Modification Center open ho gaya.");
     return true;
   }
 
@@ -3061,6 +3191,8 @@ async function handleKhataSpeech(raw) {
     openPanel("purchasePanel");
   } else if (text.includes("day book")) {
     openPanel("khataDaybookPanel");
+  } else if (text.includes("modification") || text.includes("modify") || text.includes("संशोधन")) {
+    openPanel("modifyPanel");
   } else if (text.includes("item") || text.includes("stock")) {
     openPanel("khataItemsPanel");
   } else if (text.includes("voucher")) {
@@ -3289,25 +3421,29 @@ async function handleSpeech(rawText) {
 
     try {
       // Step A: Gemini API Server Call
+      const history = typeof window.bkGetChatHistory === "function" ? window.bkGetChatHistory() : [];
+      if (typeof window.bkPushChatHistory === "function") window.bkPushChatHistory("user", raw);
+
       const response = await fetch(`${API_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${getToken()}`
         },
-        body: JSON.stringify({ message: raw })
+        body: JSON.stringify({ message: raw, history })
       });
 
       const data = await response.json();
 
-      // Step B: AI reply milne par display aur speak karo
       if (data && data.reply) {
         const reply = data.reply;
+        if (typeof window.bkPushChatHistory === "function") window.bkPushChatHistory("assistant", reply);
         showCommand(reply);
         if (document.getElementById("aiReplyBox")) {
           document.getElementById("aiReplyBox").innerText = reply;
         }
-        speakText(reply);
+        speakText(reply, true);
+        voiceCommandSucceeded = true;
         return;
       }
 
@@ -4532,7 +4668,7 @@ async function printTallyBill() {
   const grandTotalStr = document.getElementById("grandTotal")?.textContent || "0.00";
   const grandTotalNum = parseFloat(grandTotalStr.replace(/,/g, '')) || 0;
 
-  const invoiceDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const invoiceDate = getInvoiceSelectedDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const invoiceNo = await getNextInvoiceNumber(companyName);
 
   // Auto-generated reference IRN/Ack (LOCAL ONLY — see disclaimer above)
@@ -4876,7 +5012,7 @@ async function printThermalBill() {
   const customer = document.getElementById("customerName")?.value.trim() || "Customer";
   const grandTotal = document.getElementById("grandTotal")?.textContent || "0.00";
   const invoiceNo = await getNextInvoiceNumber(companyName);
-  const date = new Date().toLocaleDateString("en-IN");
+  const date = getInvoiceSelectedDate().toLocaleDateString("en-IN");
   let lines = "";
   (state.invoices || []).forEach((item) => {
     const sub = (item.price || 0) * (item.qty || 1);
@@ -5176,16 +5312,20 @@ function getEWayBillDetails() {
 
   const chatHistory = [];
   let liveConvMode = false;
+  let liveMicBuffer = "";
+  let liveMicFlushTimer = null;
+  const LIVE_MIC_FLUSH_MS = 1200;
 
   function pushHistory(role, content) {
     const text = String(content || "").trim();
     if (!text) return;
     chatHistory.push({ role: role === "user" ? "user" : "assistant", content: text.slice(0, 2000) });
-    if (chatHistory.length > 20) chatHistory.splice(0, chatHistory.length - 20);
+    if (chatHistory.length > 24) chatHistory.splice(0, chatHistory.length - 24);
   }
 
   window.bkGetChatHistory = () => chatHistory.slice();
   window.bkClearChatHistory = () => { chatHistory.length = 0; };
+  window.bkPushChatHistory = pushHistory;
 
   function updateModelBadge(source, model) {
     if (!modelBadge) return;
@@ -5206,29 +5346,22 @@ function getEWayBillDetails() {
     return div;
   }
 
-  function speakText(text, onDone) {
-    try {
-      if (!("speechSynthesis" in window) || !text) {
-        if (typeof onDone === "function") onDone();
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "hi-IN";
-      utter.rate = 1;
-      const voices = window.speechSynthesis.getVoices();
-      const hindiVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
-      if (hindiVoice) utter.voice = hindiVoice;
-      utter.onend = utter.onerror = () => { if (typeof onDone === "function") onDone(); };
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
+  function speakAiReply(text, onDone) {
+    const done = () => {
+      if (liveConvMode && !aiListening) setTimeout(startLiveMic, 500);
       if (typeof onDone === "function") onDone();
+    };
+    if (typeof window.speakText === "function") {
+      window.speakText(text, true, done);
+      return;
     }
+    done();
   }
 
   function startLiveMic() {
-    if (!liveConvMode || aiListening || !micBtn) return;
-    micBtn.click();
+    if (!liveConvMode || aiListening) return;
+    if (typingIndicator && !typingIndicator.classList.contains("hidden")) return;
+    micBtn?.click();
   }
 
   // --- Mic button: single-shot speech recognition (app ke continuous voice se alag) ---
@@ -5250,17 +5383,29 @@ function getEWayBillDetails() {
   clearBtn?.addEventListener("click", () => {
     messagesBox.innerHTML = "";
     chatHistory.length = 0;
+    liveMicBuffer = "";
+    clearTimeout(liveMicFlushTimer);
     updateModelBadge();
-    addBubble("Chat clear kar diya. Bolo, kya madad chahiye?", "bot");
+    addBubble("Chat clear ho gaya. Hindi / English me boliye — kya madad chahiye?", "bot");
+  });
+
+  document.getElementById("liveAiSuggestions")?.addEventListener("click", (e) => {
+    const chip = e.target.closest(".live-ai-chip");
+    if (!chip?.dataset.prompt) return;
+    sendUserMessage(chip.dataset.prompt);
   });
 
   liveBtn?.addEventListener("click", () => {
     liveConvMode = !liveConvMode;
     liveBtn.classList.toggle("active", liveConvMode);
-    liveBtn.title = liveConvMode ? "Live mode ON — mic auto chalega" : "Live baatcheet ON karo";
+    liveBtn.title = liveConvMode ? "Live mode ON — mic auto chalega" : "Live conversation ON karo";
     if (liveConvMode) {
-      addBubble("🎙️ Live mode ON — boliye, main sun raha hoon.", "bot");
+      addBubble("🎙️ Live mode ON — Hindi ya English me boliye, rukne ke baad main jawab dunga.", "bot");
       startLiveMic();
+    } else {
+      aiRecognition?.stop();
+      liveMicBuffer = "";
+      clearTimeout(liveMicFlushTimer);
     }
   });
 
@@ -5386,7 +5531,7 @@ function getEWayBillDetails() {
     pushHistory("assistant", reply);
     addBubble(reply, kind || "bot");
     updateModelBadge(source, model);
-    speakText(reply, () => { if (liveConvMode) setTimeout(startLiveMic, 400); });
+    speakAiReply(reply);
   }
 
   async function fetchLiveChat(rawText) {
@@ -5399,9 +5544,11 @@ function getEWayBillDetails() {
       },
       body: JSON.stringify({ message: rawText, history: chatHistory.slice(0, -1) })
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data?.reply || data?.error || "Server error");
+      const err = new Error(data?.error || data?.reply || "Server error");
+      err.status = response.status;
+      throw err;
     }
     return data;
   }
@@ -5485,27 +5632,53 @@ function getEWayBillDetails() {
     if (e.key === "Enter") sendUserMessage(input.value);
   });
 
-  // --- Mic button: single-shot speech recognition (app ke continuous voice se alag) ---
+  let liveInterimEl = null;
+
+  function showLiveInterim(text) {
+    if (!text) {
+      liveInterimEl?.remove();
+      liveInterimEl = null;
+      return;
+    }
+    if (!liveInterimEl) {
+      liveInterimEl = document.createElement("div");
+      liveInterimEl.className = "live-ai-msg-interim";
+      messagesBox?.appendChild(liveInterimEl);
+    }
+    liveInterimEl.textContent = "🎤 " + text;
+    if (messagesBox) messagesBox.scrollTop = messagesBox.scrollHeight;
+  }
+
+  function flushLiveMicBuffer() {
+    liveMicFlushTimer = null;
+    const text = liveMicBuffer.trim();
+    liveMicBuffer = "";
+    showLiveInterim("");
+    if (text) sendUserMessage(text);
+  }
 
   function createAiRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
     const rec = new SpeechRecognition();
-    rec.lang = "hi-IN";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.continuous = false;
+    rec.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
+    rec.interimResults = true;
+    rec.maxAlternatives = 3;
+    rec.continuous = liveConvMode;
     return rec;
   }
 
   micBtn?.addEventListener("click", () => {
     if (aiListening) {
       aiRecognition?.stop();
+      liveMicBuffer = "";
+      clearTimeout(liveMicFlushTimer);
+      showLiveInterim("");
       return;
     }
     aiRecognition = createAiRecognition();
     if (!aiRecognition) {
-      addBubble("⚠️ Is browser me voice input support nahi hai.", "bot");
+      addBubble("⚠️ Is browser me voice input support nahi hai. Chrome / Edge try karein.", "bot");
       return;
     }
     aiListening = true;
@@ -5513,21 +5686,58 @@ function getEWayBillDetails() {
     statusDot?.classList.add("listening");
 
     aiRecognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      sendUserMessage(transcript);
+      let interim = "";
+      let finalText = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const piece = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += piece + " ";
+        else interim += piece;
+      }
+      if (liveConvMode) {
+        if (finalText.trim()) {
+          liveMicBuffer += (liveMicBuffer ? " " : "") + finalText.trim();
+          showLiveInterim(liveMicBuffer);
+          clearTimeout(liveMicFlushTimer);
+          liveMicFlushTimer = setTimeout(flushLiveMicBuffer, LIVE_MIC_FLUSH_MS);
+        } else if (interim.trim()) {
+          showLiveInterim(liveMicBuffer ? liveMicBuffer + " " + interim.trim() : interim.trim());
+        }
+      } else if (finalText.trim()) {
+        showLiveInterim("");
+        sendUserMessage(finalText.trim());
+        aiRecognition.stop();
+      } else if (interim.trim()) {
+        showLiveInterim(interim.trim());
+      }
     };
-    aiRecognition.onerror = () => {
+
+    aiRecognition.onerror = (ev) => {
+      const quiet = ev.error === "no-speech" || ev.error === "aborted";
+      if (!quiet && ev.error !== "not-allowed") {
+        addBubble("Mic error: " + ev.error + " — dubara try karein.", "bot");
+      }
       aiListening = false;
       micBtn.classList.remove("listening");
       statusDot?.classList.remove("listening");
+      showLiveInterim("");
     };
+
     aiRecognition.onend = () => {
       aiListening = false;
       micBtn.classList.remove("listening");
       statusDot?.classList.remove("listening");
+      if (liveConvMode && (!typingIndicator || typingIndicator.classList.contains("hidden"))) {
+        setTimeout(() => {
+          if (liveConvMode && !aiListening) micBtn?.click();
+        }, 350);
+      }
     };
 
     try { aiRecognition.start(); } catch (e) { aiListening = false; }
+  });
+
+  document.addEventListener("bk:langchange", () => {
+    if (aiRecognition) aiRecognition.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
   });
 })();
 // ==========================================================================
@@ -5547,6 +5757,7 @@ function getEWayBillDetails() {
     purchasePanel: () => { if (typeof window.refreshPurchasePanel === "function") window.refreshPurchasePanel(); },
     paymentVoucherPanel: () => { if (typeof window.refreshPaymentVoucherPanel === "function") window.refreshPaymentVoucherPanel(); },
     receiptVoucherPanel: () => { if (typeof window.refreshReceiptVoucherPanel === "function") window.refreshReceiptVoucherPanel(); },
+    modifyPanel: () => { if (typeof window.refreshModifyPanel === "function") window.refreshModifyPanel(); },
     khataDaybookPanel: () => loadKhataDaybook()
   };
 
@@ -5655,6 +5866,7 @@ function getEWayBillDetails() {
         <td>${escapeHtml(l.mobile) || "-"}</td>
         <td class="${l.currentBalance >= 0 ? 'khata-badge-debit' : 'khata-badge-credit'}">₹${Math.abs(l.currentBalance).toFixed(2)} ${l.currentBalance >= 0 ? "Dr" : "Cr"}</td>
         <td class="khata-act-group">
+          <button type="button" class="khata-act-btn" title="Account edit karo" aria-label="Edit account" onclick="typeof openModifyPanel==='function'&&openModifyPanel('account','${l._id}')">✏️ Edit</button>
           <button type="button" class="khata-act-btn" title="Ledger Statement dekho — saari transactions / खाता विवरण" aria-label="View ledger statement" onclick="viewKhataLedgerStatement('${l._id}')">📄 Statement</button>
           <button type="button" class="khata-act-btn" title="Tally Prime me sync karo / टैली में भेजें" aria-label="Sync to Tally" onclick="syncKhataLedgerToTally('${l._id}')">📊 Tally</button>
           <button type="button" class="khata-act-btn danger" title="Ledger delete karo / हटाएं" aria-label="Delete ledger" onclick="deleteKhataLedger('${l._id}')">🗑️ Delete</button>
@@ -5675,7 +5887,8 @@ function getEWayBillDetails() {
         <td>₹${i.purchasePrice}</td>
         <td>₹${i.sellingPrice}</td>
         <td>${i.stockQty}</td>
-        <td><button type="button" class="khata-act-btn danger" title="Item delete karo" aria-label="Delete item" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
+        <td><button type="button" class="khata-act-btn" title="Item edit" onclick="typeof openModifyPanel==='function'&&openModifyPanel('item','${i._id}')">✏️</button>
+          <button type="button" class="khata-act-btn danger" title="Item delete karo" aria-label="Delete item" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
       </tr>`).join("");
   }
 
@@ -5692,7 +5905,10 @@ function getEWayBillDetails() {
         <td>${escapeHtml(v.partyId?.partyName) || "-"}</td>
         <td>₹${v.amount.toFixed(2)}</td>
         <td>${escapeHtml(v.note) || "-"}</td>
-        <td>${v.syncedToTally ? "✅" : `<button type="button" onclick="syncKhataVoucherToTally('${v._id}')">📊 Sync</button>`}</td>
+        <td class="khata-act-group">
+          <button type="button" class="khata-act-btn" title="Voucher edit" onclick="typeof openModifyVoucherFromDaybook==='function'&&openModifyVoucherFromDaybook('${v._id}','${escapeHtml(v.voucherType || '')}')">✏️ Edit</button>
+          ${v.syncedToTally ? "✅" : `<button type="button" onclick="syncKhataVoucherToTally('${v._id}')">📊 Sync</button>`}
+        </td>
       </tr>`).join("");
   }
 
@@ -5950,11 +6166,8 @@ function getEWayBillDetails() {
       const res = await fetch(`${API_URL}/api/ledgers`, { headers: khataHeaders() });
       const data = await res.json();
       if (!data.success) return;
-      const options = '<option value="">-- Select Party / Ledger --</option>' +
-        data.ledgers.map(l => `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`).join("");
-      const partySel = document.getElementById("voucherPartyInput");
+      invoiceLedgerCache = data.ledgers || [];
       const secSel = document.getElementById("voucherSecondaryInput");
-      if (partySel) partySel.innerHTML = options;
       if (secSel) secSel.innerHTML = '<option value="">-- Select Second Ledger --</option>' +
         data.ledgers.map(l => `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`).join("");
     } catch (err) { console.error("Ledger dropdown load error:", err); }
@@ -5993,7 +6206,7 @@ function getEWayBillDetails() {
       voucherDate = document.getElementById("voucherPrDateInput")?.value || voucherDate;
     }
 
-    if (!partyId) { alert("Please select a party / ledger."); return; }
+    if (!partyId) { alert("Please select a party / ledger from the list."); return; }
     if (voucherType === "Purchase" && !supplierInvoiceNo) {
       alert("Please enter Supplier Invoice No. for the purchase bill."); return;
     }
@@ -6039,6 +6252,9 @@ function getEWayBillDetails() {
       document.getElementById("voucherQtyInput").value = "";
       document.getElementById("voucherRateInput").value = "";
       document.getElementById("voucherNoteInput").value = "";
+      if (typeof clearLedgerPartyAutocomplete === "function") {
+        clearLedgerPartyAutocomplete("voucherPartyInput", "voucherPartySearch", "voucherPartySuggest");
+      }
       if (voucherType === "Purchase") {
         document.getElementById("voucherBillNoInput").value = "";
         document.getElementById("voucherSupplierGstinInput").value = "";
@@ -6052,14 +6268,10 @@ function getEWayBillDetails() {
 
   // ---------- PURCHASE PANEL (sidebar — Invoice jaisa full page) ----------
   function updatePurchaseDateDisplay() {
-    const dateEl = document.getElementById("pvDateInput");
     const display = document.getElementById("pvDateDisplay");
     if (!display) return;
-    const raw = dateEl?.value;
-    if (!raw) { display.textContent = "—"; return; }
-    const d = new Date(raw + "T12:00:00");
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    display.textContent = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()} (${days[d.getDay()]})`;
+    const raw = document.getElementById("pvDateInput")?.value;
+    display.textContent = formatVoucherDateChip(raw);
   }
 
   async function loadPurchasePanelDropdowns() {
@@ -6070,14 +6282,8 @@ function getEWayBillDetails() {
       ]);
       const ledData = await ledRes.json();
       const itemData = await itemRes.json();
-      const partySel = document.getElementById("pvPartyInput");
+      if (ledData.success) invoiceLedgerCache = ledData.ledgers || [];
       const itemSel = document.getElementById("pvItemInput");
-      if (partySel && ledData.success) {
-        partySel.innerHTML = '<option value="">-- Select Supplier / Ledger --</option>' +
-          (ledData.ledgers || []).map(l =>
-            `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`
-          ).join("");
-      }
       if (itemSel && itemData.success) {
         itemSel.innerHTML = '<option value="">-- Select Item --</option>' +
           (itemData.items || []).map(i =>
@@ -6150,7 +6356,7 @@ function getEWayBillDetails() {
     const voucherDate = document.getElementById("pvDateInput")?.value || "";
     const statusText = document.getElementById("pvStatusText");
 
-    if (!partyId) { alert("Please select a supplier / party."); return; }
+    if (!partyId) { alert("Please select a supplier / party from the list."); return; }
     if (!supplierInvoiceNo) { alert("Please enter Supplier Invoice No. for the purchase bill."); return; }
 
     const items = [];
@@ -6183,7 +6389,9 @@ function getEWayBillDetails() {
       showToast("✅ Purchase bill saved!");
       ["pvBillNoInput", "pvSupplierGstinInput", "pvQtyInput", "pvRateInput", "pvAmountInput", "pvNoteInput"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-      document.getElementById("pvPartyInput").value = "";
+      if (typeof clearLedgerPartyAutocomplete === "function") {
+        clearLedgerPartyAutocomplete("pvPartyInput", "pvPartySearch", "pvPartySuggest");
+      }
       document.getElementById("pvItemInput").value = "";
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
@@ -6198,23 +6406,12 @@ function getEWayBillDetails() {
   };
 
   // ---------- PAYMENT & RECEIPT VOUCHER PANELS (Main section) ----------
-  function formatVoucherDateChip(raw) {
-    if (!raw) return "—";
-    const d = new Date(raw + "T12:00:00");
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()} (${days[d.getDay()]})`;
-  }
-
-  async function loadPayReceiptPartyDropdown(selectId, placeholder) {
+  async function ensurePayReceiptLedgerCache() {
+    if (invoiceLedgerCache.length) return;
     try {
       const res = await fetch(`${API_URL}/api/ledgers`, { headers: khataHeaders() });
       const data = await res.json();
-      const sel = document.getElementById(selectId);
-      if (!sel || !data.success) return;
-      sel.innerHTML = `<option value="">${placeholder}</option>` +
-        (data.ledgers || []).map(l =>
-          `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup)})</option>`
-        ).join("");
+      if (data.success) invoiceLedgerCache = data.ledgers || [];
     } catch (err) {
       console.error("Pay/Receipt ledger load:", err);
     }
@@ -6236,14 +6433,14 @@ function getEWayBillDetails() {
     const dateEl = document.getElementById("pmvDateInput");
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
     updatePaymentDateDisplay();
-    loadPayReceiptPartyDropdown("pmvPartyInput", "-- Select Party / Ledger --");
+    ensurePayReceiptLedgerCache();
   }
 
   function refreshReceiptVoucherPanel() {
     const dateEl = document.getElementById("rcvDateInput");
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
     updateReceiptDateDisplay();
-    loadPayReceiptPartyDropdown("rcvPartyInput", "-- Select Party / Ledger --");
+    ensurePayReceiptLedgerCache();
   }
 
   window.refreshPaymentVoucherPanel = refreshPaymentVoucherPanel;
@@ -6254,10 +6451,14 @@ function getEWayBillDetails() {
   document.getElementById("rcvDateInput")?.addEventListener("change", updateReceiptDateDisplay);
   document.getElementById("rcvDateInput")?.addEventListener("input", updateReceiptDateDisplay);
 
+  setupClickableDateChip("pvDateDisplay", "pvDateInput", updatePurchaseDateDisplay);
+  setupClickableDateChip("pmvDateDisplay", "pmvDateInput", updatePaymentDateDisplay);
+  setupClickableDateChip("rcvDateDisplay", "rcvDateInput", updateReceiptDateDisplay);
+
   async function saveSimpleVoucher(voucherType, fields) {
-    const { partyId, amount, paymentMode, voucherDate, note, statusId, clearIds, partySelectId } = fields;
+    const { partyId, amount, paymentMode, voucherDate, note, statusId, clearIds, partyHiddenId, partySearchId, partySuggestId } = fields;
     const statusText = document.getElementById(statusId);
-    if (!partyId) { alert("Please select a party / ledger."); return; }
+    if (!partyId) { alert("Please select a party / ledger from the list."); return; }
     if (!amount || amount <= 0) { alert("Please enter amount."); return; }
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
@@ -6272,7 +6473,9 @@ function getEWayBillDetails() {
       if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
       showToast(`✅ ${voucherType} voucher saved!`);
       clearIds.forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
-      if (partySelectId) { const el = document.getElementById(partySelectId); if (el) el.value = ""; }
+      if (partyHiddenId && partySearchId && typeof clearLedgerPartyAutocomplete === "function") {
+        clearLedgerPartyAutocomplete(partyHiddenId, partySearchId, partySuggestId);
+      }
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
       showToast("❌ " + err.message, "error");
@@ -6287,7 +6490,9 @@ function getEWayBillDetails() {
       voucherDate: document.getElementById("pmvDateInput")?.value || "",
       note: document.getElementById("pmvNoteInput")?.value.trim() || "",
       statusId: "pmvStatusText",
-      partySelectId: "pmvPartyInput",
+      partyHiddenId: "pmvPartyInput",
+      partySearchId: "pmvPartySearch",
+      partySuggestId: "pmvPartySuggest",
       clearIds: ["pmvAmountInput", "pmvNoteInput"]
     });
   });
@@ -6300,7 +6505,9 @@ function getEWayBillDetails() {
       voucherDate: document.getElementById("rcvDateInput")?.value || "",
       note: document.getElementById("rcvNoteInput")?.value.trim() || "",
       statusId: "rcvStatusText",
-      partySelectId: "rcvPartyInput",
+      partyHiddenId: "rcvPartyInput",
+      partySearchId: "rcvPartySearch",
+      partySuggestId: "rcvPartySuggest",
       clearIds: ["rcvAmountInput", "rcvNoteInput"]
     });
   });
@@ -6311,6 +6518,8 @@ function getEWayBillDetails() {
   window.openReceiptVoucherPanel = function () {
     if (typeof openPanel === "function") openPanel("receiptVoucherPanel");
   };
+
+  if (typeof setupVoucherPartyAutocompletes === "function") setupVoucherPartyAutocompletes();
 
   // ---------- DAY BOOK ----------
   async function loadKhataDaybook() {

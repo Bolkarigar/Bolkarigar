@@ -34,6 +34,15 @@
       alert("Please log in first — then you can test FREE Pro / ₹299 Business.");
       return;
     }
+    const sub = window._bkAccountInfo?.subscription;
+    if (planId === "business" && sub?.fullAccess) {
+      if (typeof showToast === "function") showToast(`Business plan already active — ${sub.daysLeft || 30} days left`, "info");
+      return;
+    }
+    if (planId === "pro" && sub?.plan === "pro" && !sub?.fullAccess) {
+      if (typeof showToast === "function") showToast("Pro Shop already active — completely FREE", "info");
+      return;
+    }
     try {
       const res = await fetch(`${API()}/api/dev/switch-plan`, {
         method: "POST",

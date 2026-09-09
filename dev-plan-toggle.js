@@ -3,7 +3,14 @@
  * Production me band: NODE_ENV=production aur DEV_PLAN_TOGGLE unset.
  */
 
-const { activateOwnerPlan, buildSubscriptionPayload, getSubscriptionForUser, PLANS } = require('./subscription');
+const {
+  activateOwnerPlan,
+  activateFreePro,
+  buildSubscriptionPayload,
+  getSubscriptionForUser,
+  sanitizeBusinessExpiry,
+  PLANS
+} = require('./subscription');
 
 function isDevPlanToggleEnabled() {
   if (process.env.DEV_PLAN_TOGGLE === 'true') return true;
@@ -28,7 +35,32 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
       }
 
       const plan = req.body?.plan === 'business' ? 'business' : 'pro';
-      activateOwnerPlan(user, plan, 30);
+
+      if (plan === 'pro') {
+        if (user.plan === 'pro' && user.subscriptionStatus === 'active' && !user.planExpiresAt) {
+          const subscription = await getSubscriptionForUser(User, user);
+          return res.json({
+            success: true,
+            plan,
+            subscription,
+            message: `Already on ${PLANS.pro.name} (${PLANS.pro.label})`
+          });
+        }
+        activateFreePro(user);
+      } else {
+        if (user.plan === 'business' && user.subscriptionStatus === 'active') {
+          sanitizeBusinessExpiry(user);
+          await user.save();
+          const subscription = await getSubscriptionForUser(User, user);
+          return res.json({
+            success: true,
+            plan,
+            subscription,
+            message: `Already on ${PLANS.business.name} — ${subscription.daysLeft} days left`
+          });
+        }
+        activateOwnerPlan(user, plan, 30, { extend: false });
+      }
       user.trialEndsAt = null;
       await user.save();
 
@@ -39,7 +71,7 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
         success: true,
         plan,
         subscription,
-        message: `Test UI: ${planInfo.name} (${planInfo.label})`
+        message: `Test UI: ${planInfo.name} (${planInfo.label}) — ${subscription.daysLeft || 30} days`
       });
     } catch (e) {
       console.error('Dev switch-plan error:', e);

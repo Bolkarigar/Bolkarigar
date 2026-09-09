@@ -1,6 +1,6 @@
 /**
  * BolKarigar — English + Hindi (navbar 🌐 toggle)
- * Default: Hindi. localStorage key: bk_ui_lang (en | hi)
+ * Default: English. localStorage key: bk_ui_lang (en | hi)
  */
 (function (global) {
   const STORAGE_KEY = 'bk_ui_lang';
@@ -191,7 +191,7 @@
     'forgot.notRegistered': 'OTP is sent only to registered signup email. Check spam folder.',
     'forgot.sent': 'If this email is registered, OTP has been sent. Check spam/junk too.',
     'paywall.title': 'Free Trial Ended',
-    'paywall.desc': 'Renew Business plan (₹299/month). Pro Dukaan is completely FREE.',
+    'paywall.desc': 'Renew Business plan (₹299/month). Pro Shop is completely FREE.',
     'paywall.staffNote': 'Staff do not need separate purchase — owner plan covers them.',
     'sub.bannerAction': 'My Plan',
     'menu.open': 'Open menu',
@@ -539,13 +539,14 @@
 
   function bkGetLang() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === 'en' ? 'en' : 'hi';
+    if (saved === 'hi') return 'hi';
+    return 'en';
   }
 
   function bkNormalizeLang() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== 'en' && saved !== 'hi') {
-      localStorage.setItem(STORAGE_KEY, 'hi');
+      localStorage.setItem(STORAGE_KEY, 'en');
     }
     return bkGetLang();
   }
