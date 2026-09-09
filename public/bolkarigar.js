@@ -4157,7 +4157,7 @@ async function checkTallyAgentReady() {
     if (data.canSync) return { canSync: true, agentConnected: data.agentConnected, localSetup: data.localSetup };
     return {
       canSync: false,
-      reason: "Desktop Agent is offline. On your Tally PC: (1) Download Agent from sidebar → Tally Sync Agent, (2) Paste pairing token, (3) Run Agent, (4) Open Tally → F1 → Connectivity → HTTP Server ON port 9000."
+      reason: "Agent window is closed. Double-click BolKarigar-Connect-Agent.bat again (token already saved — no need to paste again)."
     };
   } catch (e) {
     return { canSync: false, reason: "Network error while checking Desktop Agent." };
@@ -4179,10 +4179,10 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     if (!ready.canSync) {
       openTallyAgentSidebar();
       const msg =
-        "Tally sync needs the Desktop Agent running on this PC.\n\n" +
-        "1. Sidebar → Download & Run Agent\n" +
-        "2. Copy pairing token → paste in Agent\n" +
-        "3. Click Sync Tally again — Tally will open automatically";
+        "Agent window is not running.\n\n" +
+        "Token is already saved — just double-click BolKarigar-Connect-Agent.bat again.\n" +
+        "No need to paste token again.\n\n" +
+        "Then Sync Tally for Aman / any customer.";
       if (typeof showToast === "function") showToast(msg, "error");
       else alert(msg);
       if (typeof showCommand === "function") showCommand("Desktop Agent offline — download Agent from sidebar.");
@@ -4251,9 +4251,11 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     if (!response.ok) throw new Error(result.error || "Sync failed");
 
     const msg = result.message || "✅ Bill synced to Tally successfully!";
-    if (typeof showToast === "function") showToast(msg, "success");
-    else alert(msg);
-    if (typeof showCommand === "function") showCommand(msg);
+    const nextTip = " Next bill? Add customer + items → Sync Tally again (no token needed).";
+    if (typeof showToast === "function") showToast(msg + nextTip, "success");
+    else alert(msg + nextTip);
+    if (typeof showCommand === "function") showCommand(msg + nextTip);
+    try { localStorage.setItem("bk_agent_setup_done", "1"); } catch (_) {}
     return true;
 
   } catch (err) {
@@ -7050,10 +7052,10 @@ async function refreshTallyAgentStatus() {
         ? "🟡 Local Tally mode"
         : "🔴 Agent offline";
     const detail = data.agentConnected
-      ? "Desktop Agent is connected — you can sync to Tally."
+      ? "✅ Connected — sync unlimited bills today. Just click Sync Tally for each new invoice."
       : data.localSetup
-        ? "Running on same PC as Tally — direct sync available."
-        : "Start Desktop Agent on your Tally PC (download from below), paste token, then retry.";
+        ? "Local mode — direct sync available."
+        : "Agent offline. Run Connect Agent.bat once (token saved). Keep window minimized all day.";
     if (chip) {
       chip.textContent = label;
       chip.className = "tally-status-chip " + (online ? "tally-status-online" : "tally-status-offline");
@@ -7108,32 +7110,38 @@ function downloadAgentConnectBat() {
   const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
   const lines = [
     "@echo off",
-    "title BolKarigar Tally Agent",
+    "title BolKarigar Agent - Keep Open All Day",
     "chcp 65001 >nul",
     "cd /d \"%~dp0\"",
-    "echo BolKarigar — connecting Desktop Agent...",
-    "(",
-    "echo {",
-    `echo   \"backendUrl\": \"${backendUrl}\",`,
-    `echo   \"agentToken\": \"${token}\"`,
-    "echo }",
-    ") > agent-config.json",
     "if not exist BolKarigarTallyAgent.exe (",
-    "  echo.",
     "  echo ERROR: BolKarigarTallyAgent.exe not found in this folder!",
-    "  echo 1. Download Agent .exe from BolKarigar sidebar",
-    "  echo 2. Put this .bat file in the SAME folder as the .exe",
-    "  echo 3. Double-click this .bat again",
-    "  echo.",
+    "  echo Download .exe from BolKarigar sidebar and put in same folder.",
     "  pause",
     "  exit /b 1",
     ")",
-    "echo Config saved. Starting Agent...",
-    "start \"\" BolKarigarTallyAgent.exe",
+    "if not exist agent-config.json (",
+    "  echo Saving token (one time only)...",
+    "  (",
+    "  echo {",
+    `  echo   \"backendUrl\": \"${backendUrl}\",`,
+    `  echo   \"agentToken\": \"${token}\"`,
+    "  echo }",
+    "  ) > agent-config.json",
+    ") else (",
+    "  echo Token already saved in agent-config.json - no need to paste again.",
+    ")",
     "echo.",
-    "echo Keep the black Agent window OPEN.",
-    "echo In browser sidebar you should see: Agent connected",
-    "timeout /t 8 >nul"
+    "echo ==========================================",
+    "echo  BolKarigar Agent - UNLIMITED BILLS TODAY",
+    "echo  Minimize this window - DO NOT CLOSE",
+    "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
+    "echo ==========================================",
+    "echo.",
+    ":AGENT_LOOP",
+    "BolKarigarTallyAgent.exe",
+    "echo Agent stopped. Restarting in 5 sec... (Ctrl+C to quit)",
+    "timeout /t 5 >nul",
+    "goto AGENT_LOOP"
   ];
   const blob = new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
   const a = document.createElement("a");
@@ -7143,7 +7151,7 @@ function downloadAgentConnectBat() {
   URL.revokeObjectURL(a.href);
   openTallyAgentSidebar();
   if (typeof showToast === "function") {
-    showToast("Save .bat in same folder as Agent .exe, then double-click it.", "info");
+    showToast("Double-click .bat once in morning. Token saves forever — unlimited bills all day.", "info");
   }
 }
 
