@@ -4189,16 +4189,26 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const ewayDetails = getEWayBillDetails();
 
     if (typeof showCommand === 'function') {
-      showCommand("⌛ Syncing invoice to Tally Prime…");
+      showCommand("📂 Opening Tally Prime…");
     }
 
-    fetch(`${API_URL}/api/tally/open`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    }).catch(e => console.log("Open trigger sent"));
+    try {
+      await fetch(`${API_URL}/api/tally/open`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      // Agent ko Tally launch karne ka time do (HTTP Server port 9000)
+      await new Promise((r) => setTimeout(r, 3000));
+    } catch (e) {
+      console.log("Open Tally trigger:", e.message);
+    }
+
+    if (typeof showCommand === 'function') {
+      showCommand("⌛ Syncing invoice to Tally Prime…");
+    }
 
     const baseAmount = price * qty;
     const gstAmount = (baseAmount * (gstRate || 0)) / 100;

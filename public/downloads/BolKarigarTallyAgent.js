@@ -16,9 +16,62 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { exec } = require('child_process');
 
 const CONFIG_PATH = path.join(__dirname, 'agent-config.json');
 const TALLY_LOCAL_URL = 'http://localhost:9000';
+const TALLY_EXE_PATHS = [
+  'C:\\Program Files\\TallyPrime\\tally.exe',
+  'C:\\Program Files (x86)\\TallyPrime\\tally.exe',
+  'C:\\Tally.ERP9\\tally.exe'
+];
+const TALLY_PING_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>LicenseInfo</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
+
+function launchTallyPrime() {
+  if (process.platform !== 'win32') {
+    console.log('⚠️  Auto-launch works on Windows only — open Tally manually.');
+    return false;
+  }
+  for (const exePath of TALLY_EXE_PATHS) {
+    if (!fs.existsSync(exePath)) continue;
+    exec(`"${exePath}"`, { windowsHide: false }, (err) => {
+      if (err) console.error(`⚠️  Tally launch: ${err.message}`);
+      else console.log('✅ Tally Prime open ho rahi hai...');
+    });
+    return true;
+  }
+  console.warn('⚠️  tally.exe standard paths mein nahi mila — Tally manually kholo.');
+  return false;
+}
+
+async function isTallyHttpUp() {
+  try {
+    const res = await fetch(TALLY_LOCAL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/xml' },
+      body: TALLY_PING_XML,
+      timeout: 3000
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureTallyRunning() {
+  if (await isTallyHttpUp()) return true;
+  console.log('📂 Tally band lag rahi hai — auto open kar rahe hain...');
+  launchTallyPrime();
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    if (await isTallyHttpUp()) {
+      console.log(`✅ Tally ready (attempt ${attempt}).`);
+      return true;
+    }
+    console.log(`   ...Tally start ho rahi hai (${attempt}/8)`);
+  }
+  return false;
+}
 
 function loadConfig() {
   if (fs.existsSync(CONFIG_PATH)) {
@@ -86,12 +139,14 @@ function connect(config) {
     }
 
     if (msg.type === 'open_tally') {
-      console.log('📂 Cloud server ne Tally kholne ko kaha — agar band hai to manually khol lein (Agent khud auto-launch nahi karta, security ke liye).');
+      console.log('📂 Sync Tally click — Tally Prime auto open...');
+      await ensureTallyRunning();
       return;
     }
 
     if (msg.type === 'sync_request') {
       console.log(`📨 Naya sync request mila (id: ${msg.requestId}). Tally ko bhej rahe hain...`);
+      await ensureTallyRunning();
       try {
         const tallyRes = await fetch(TALLY_LOCAL_URL, {
           method: 'POST',
