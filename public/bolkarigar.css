@@ -3174,6 +3174,18 @@ body.app-lock-active { overflow: hidden; }
   border-color: rgba(245, 158, 11, 0.45);
   background: rgba(245, 158, 11, 0.12);
 }
+.tally-setup-steps {
+  margin: 8px 0 10px 18px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted, #94a3b8);
+}
+.tally-dl-primary {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+}
 .tally-dl-link-secondary {
   display: block;
   margin-top: 6px;

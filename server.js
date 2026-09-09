@@ -1649,6 +1649,39 @@ app.get('/api/tally/agent-status', authenticateToken, requireBusinessPlan, (req,
   });
 });
 
+app.get('/api/tally/agent-token', authenticateToken, requireBusinessPlan, async (req, res) => {
+  try {
+    let profile = await BusinessProfile.findOne({ userId: req.dataUserId });
+    if (!profile) {
+      profile = await BusinessProfile.create({ userId: req.dataUserId });
+    }
+    if (!profile.agentToken) {
+      profile.agentToken = crypto.randomBytes(24).toString('hex');
+      await profile.save();
+    }
+    res.json({ success: true, agentToken: profile.agentToken });
+  } catch (err) {
+    logger.error('Agent token fetch error:', err);
+    res.status(500).json({ success: false, error: 'Could not load agent token.' });
+  }
+});
+
+app.post('/api/tally/agent-token/regenerate', authenticateToken, requireOwner, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_TOKEN), async (req, res) => {
+  try {
+    const newToken = crypto.randomBytes(24).toString('hex');
+    const profile = await BusinessProfile.findOneAndUpdate(
+      { userId: req.dataUserId },
+      { $set: { agentToken: newToken } },
+      { new: true, upsert: true }
+    );
+    const existingWs = connectedAgents.get(String(req.dataUserId));
+    if (existingWs) { try { existingWs.close(4009, 'Token regenerated'); } catch {} }
+    res.json({ success: true, agentToken: profile.agentToken });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reset agent token.' });
+  }
+});
+
 app.get('/api/tally/diagnose', authenticateToken, requireBusinessPlan, async (req, res) => {
   const report = {
     tallyUrl: TALLY_XML_URL,
@@ -2665,7 +2698,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpag
 app.use('/downloads', express.static(path.join(__dirname, 'public', 'downloads')));
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ success: false, error: 'API route nahi mila. Server restart karein.' });
+    return res.status(404).json({ success: false, error: 'API route not found.' });
   }
   next();
 });
@@ -2730,43 +2763,6 @@ agentWss.on('connection', async (ws, req) => {
   } catch (err) {
     logger.error('[Desktop Agent] Connection setup error:', err);
     try { ws.close(1011, 'Server error'); } catch {}
-  }
-});
-
-// Agent ko apna pairing token dikhata hai — agar pehli baar hai to naya
-// generate karke BusinessProfile me save kar deta hai.
-app.get('/api/tally/agent-token', authenticateToken, requireBusinessPlan, async (req, res) => {
-  try {
-    let profile = await BusinessProfile.findOne({ userId: req.dataUserId });
-    if (!profile) {
-      profile = await BusinessProfile.create({ userId: req.dataUserId });
-    }
-    if (!profile.agentToken) {
-      profile.agentToken = crypto.randomBytes(24).toString('hex');
-      await profile.save();
-    }
-    res.json({ success: true, agentToken: profile.agentToken });
-  } catch (err) {
-    logger.error('Agent token fetch error:', err);
-    res.status(500).json({ success: false, error: 'Could not load agent token.' });
-  }
-});
-
-// Agar token leak ho jaaye to user isse reset kar sakta hai — purana token turant invalid ho jaata hai.
-app.post('/api/tally/agent-token/regenerate', authenticateToken, requireOwner, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_TOKEN), async (req, res) => {
-  try {
-    const newToken = crypto.randomBytes(24).toString('hex');
-    const profile = await BusinessProfile.findOneAndUpdate(
-      { userId: req.dataUserId },
-      { $set: { agentToken: newToken } },
-      { new: true, upsert: true }
-    );
-    // Purana connected agent (agar hai) turant disconnect karo taaki purana token kaam na kare.
-    const existingWs = connectedAgents.get(String(req.dataUserId));
-    if (existingWs) { try { existingWs.close(4009, 'Token regenerated'); } catch {} }
-    res.json({ success: true, agentToken: profile.agentToken });
-  } catch (err) {
-    res.status(500).json({ error: 'Could not reset agent token.' });
   }
 });
 

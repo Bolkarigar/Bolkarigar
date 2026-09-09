@@ -4177,12 +4177,15 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const token = getToken();
     const ready = await checkTallyAgentReady();
     if (!ready.canSync) {
-      const openGuide = confirm(
-        (ready.reason || "Desktop Agent not ready.") +
-        "\n\nOpen Tally Sync Agent setup in the sidebar now?"
-      );
-      if (openGuide) openTallyAgentSidebar();
-      if (typeof showCommand === "function") showCommand(ready.reason || "Desktop Agent not ready.");
+      openTallyAgentSidebar();
+      const msg =
+        "Tally sync needs the Desktop Agent running on this PC.\n\n" +
+        "1. Sidebar → Download & Run Agent\n" +
+        "2. Copy pairing token → paste in Agent\n" +
+        "3. Click Sync Tally again — Tally will open automatically";
+      if (typeof showToast === "function") showToast(msg, "error");
+      else alert(msg);
+      if (typeof showCommand === "function") showCommand("Desktop Agent offline — download Agent from sidebar.");
       return false;
     }
 
@@ -4289,10 +4292,6 @@ function combineInvoiceItemsForTally(items) {
 
 async function handleTallyVoiceCommand() {
   if (getAccountingMode() !== "tally") {
-    const switchMode = confirm(
-      "Accounting mode is set to BolKarigar Khata.\n\nSwitch to Tally Prime and sync this invoice?"
-    );
-    if (!switchMode) return;
     const tallyRadio = document.querySelector('input[name="accMode"][value="tally"]');
     if (tallyRadio) {
       tallyRadio.checked = true;
@@ -4332,17 +4331,10 @@ async function handleTallyVoiceCommand() {
     return;
   }
 
-  const baseTotal = price * qty;
-  const gstAmount = grandTotal - baseTotal;
-  const itemNote = tableItems.length > 1 ? `\nItems: ${tableItems.length} lines combined` : "";
-
-  const confirmSync = confirm(
-    `Sync this invoice to Tally Prime?\n\nCustomer: ${cust}\nProduct: ${prod}${itemNote}\nBase Amount: ₹${baseTotal.toFixed(2)}\nGST: ₹${gstAmount.toFixed(2)}\nGrand Total: ₹${grandTotal.toFixed(2)}\n\nDesktop Agent must be running on your Tally PC.`
-  );
-
-  if (confirmSync) {
-    await sendInvoiceToTally(cust, prod, price, qty, gstRate, custGstin, custState);
+  if (typeof showCommand === "function") {
+    showCommand(`Syncing ₹${grandTotal.toFixed(2)} bill for ${cust} to Tally…`);
   }
+  await sendInvoiceToTally(cust, prod, price, qty, gstRate, custGstin, custState);
 }
 
 // 🟢 GSTIN LIVE VALIDATION HINT — jaise hi user GSTIN type kare, turant chhota

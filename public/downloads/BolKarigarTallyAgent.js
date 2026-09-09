@@ -123,10 +123,11 @@ function connect(config) {
 
   ws = new WebSocket(wsUrl);
 
-  ws.on('open', () => {
-    reconnectDelay = 3000; // successful connect hone par retry-delay reset karo
-    console.log('✅ Cloud server se connected! Ab "Sync to Tally" browser se turant kaam karega.');
+  ws.on('open', async () => {
+    reconnectDelay = 3000;
+    console.log('✅ Cloud server se connected! Ab "Sync Tally" dabao — Tally auto khulegi.');
     console.log('   (Is window ko khula rakhein jab tak sync chahiye.)\n');
+    await ensureTallyRunning();
   });
 
   ws.on('message', async (raw) => {
