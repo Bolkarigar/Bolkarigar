@@ -233,6 +233,9 @@ function applyRoleBasedUI(me) {
     const inbuiltRadio = document.querySelector('input[name="accMode"][value="inbuilt"]');
     if (inbuiltRadio) inbuiltRadio.checked = true;
     if (typeof toggleTallyBtn === "function") toggleTallyBtn(false);
+  } else {
+    if (typeof loadAgentToken === "function") loadAgentToken();
+    if (typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
   }
 
   const installBtn = document.getElementById("installAppBtn");
@@ -4140,13 +4143,53 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 // ================= TALLY INTEGRATION =================
+async function checkTallyAgentReady() {
+  const token = getToken();
+  if (!token) return { canSync: false, reason: "Please log in first." };
+  try {
+    const res = await fetch(`${API_URL}/api/tally/agent-status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { canSync: false, reason: data.error || "Could not check Desktop Agent status." };
+    }
+    if (data.canSync) return { canSync: true, agentConnected: data.agentConnected, localSetup: data.localSetup };
+    return {
+      canSync: false,
+      reason: "Desktop Agent is offline. On your Tally PC: (1) Download Agent from sidebar → Tally Sync Agent, (2) Paste pairing token, (3) Run Agent, (4) Open Tally → F1 → Connectivity → HTTP Server ON port 9000."
+    };
+  } catch (e) {
+    return { canSync: false, reason: "Network error while checking Desktop Agent." };
+  }
+}
+
+function openTallyAgentSidebar() {
+  const card = document.querySelector(".sidebar-tally-card");
+  if (card) {
+    card.open = true;
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
 async function sendInvoiceToTally(customer, product, price, qty, gstRate, customerGstin, customerState) {
   try {
     const token = getToken();
-    const ewayDetails = getEWayBillDetails(); // Fetching E-Way bill details[cite: 2]
+    const ready = await checkTallyAgentReady();
+    if (!ready.canSync) {
+      const openGuide = confirm(
+        (ready.reason || "Desktop Agent not ready.") +
+        "\n\nOpen Tally Sync Agent setup in the sidebar now?"
+      );
+      if (openGuide) openTallyAgentSidebar();
+      if (typeof showCommand === "function") showCommand(ready.reason || "Desktop Agent not ready.");
+      return false;
+    }
+
+    const ewayDetails = getEWayBillDetails();
 
     if (typeof showCommand === 'function') {
-      showCommand("⌛ Opening Tally & Syncing with GST & E-Way Bill...");
+      showCommand("⌛ Syncing invoice to Tally Prime…");
     }
 
     fetch(`${API_URL}/api/tally/open`, {
@@ -4194,37 +4237,99 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Sync failed");
 
-    alert(result.message || "✅ Bill synced to Tally successfully!");
+    const msg = result.message || "✅ Bill synced to Tally successfully!";
+    if (typeof showToast === "function") showToast(msg, "success");
+    else alert(msg);
+    if (typeof showCommand === "function") showCommand(msg);
     return true;
 
   } catch (err) {
     console.error("Sync Error:", err);
-    alert("❌ Error: " + err.message);
+    const errMsg = err.message || "Tally sync failed.";
+    if (typeof showToast === "function") showToast("❌ " + errMsg, "error");
+    else alert("❌ Error: " + errMsg);
+    if (/agent/i.test(errMsg)) openTallyAgentSidebar();
     return false;
   }
 }
 
-async function handleTallyVoiceCommand() {
+function getInvoiceItemsForTallySync() {
   const cust = (document.getElementById("customerName")?.value || "").trim();
-  const prod = (document.getElementById("productName")?.value || "").trim();
-  const price = parseFloat(document.getElementById("productPrice")?.value || "0");
-  const qty = parseFloat(document.getElementById("productQty")?.value || "1");
-  const gstRate = parseFloat(document.getElementById("productGst")?.value || "0");
+  const all = state.invoices || [];
+  if (!all.length) return [];
+  if (!cust) return all;
+  const matched = all.filter((i) =>
+    String(i.customer || "General Customer").toLowerCase() === cust.toLowerCase()
+  );
+  return matched.length ? matched : all;
+}
+
+function combineInvoiceItemsForTally(items) {
+  const product = items.map((i) => i.product).filter(Boolean).join(", ");
+  const totalBase = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+  const totalGst = items.reduce((s, i) => {
+    const base = (Number(i.price) || 0) * (Number(i.qty) || 1);
+    return s + (base * (Number(i.gstRate) || 0)) / 100;
+  }, 0);
+  const grandTotal = totalBase + totalGst;
+  const gstRate = totalBase > 0 ? Math.round((totalGst / totalBase) * 10000) / 100 : 0;
+  const customer = (document.getElementById("customerName")?.value || items[0]?.customer || "").trim();
+  return { customer, product, price: totalBase, qty: 1, gstRate, grandTotal };
+}
+
+async function handleTallyVoiceCommand() {
+  if (getAccountingMode() !== "tally") {
+    const switchMode = confirm(
+      "Accounting mode is set to BolKarigar Khata.\n\nSwitch to Tally Prime and sync this invoice?"
+    );
+    if (!switchMode) return;
+    const tallyRadio = document.querySelector('input[name="accMode"][value="tally"]');
+    if (tallyRadio) {
+      tallyRadio.checked = true;
+      if (typeof toggleTallyBtn === "function") toggleTallyBtn(true);
+    }
+  }
+
+  const tableItems = getInvoiceItemsForTallySync();
+  let cust, prod, price, qty, gstRate, grandTotal;
+
+  if (tableItems.length) {
+    const combined = combineInvoiceItemsForTally(tableItems);
+    cust = combined.customer;
+    prod = combined.product;
+    price = combined.price;
+    qty = combined.qty;
+    gstRate = combined.gstRate;
+    grandTotal = combined.grandTotal;
+  } else {
+    cust = (document.getElementById("customerName")?.value || "").trim();
+    prod = (document.getElementById("productName")?.value || "").trim();
+    price = parseFloat(document.getElementById("productPrice")?.value || "0");
+    qty = parseFloat(document.getElementById("productQty")?.value || "1");
+    gstRate = isInvoiceGstEnabled()
+      ? parseFloat(document.getElementById("productGst")?.value || "0")
+      : 0;
+    const baseTotal = price * qty;
+    grandTotal = baseTotal + (baseTotal * gstRate) / 100;
+  }
+
   const custGstin = (document.getElementById("customerGstin")?.value || "").trim();
   const custState = (document.getElementById("buyerState")?.value || "").trim();
 
   if (!cust || !prod || price <= 0) {
-    showCommand("Tally me bhejne ke liye Customer, Product aur Price hona zaroori hai!");
-    alert("Please fill Customer, Product and valid Price in the invoice form first!");
+    showCommand("Add at least one item with Add Item (F2), then enter customer name.");
+    alert("Please add invoice items to the table and enter customer name before syncing to Tally.");
     return;
   }
 
   const baseTotal = price * qty;
-  const gstAmount = (baseTotal * gstRate) / 100;
-  const grandTotal = baseTotal + gstAmount;
+  const gstAmount = grandTotal - baseTotal;
+  const itemNote = tableItems.length > 1 ? `\nItems: ${tableItems.length} lines combined` : "";
 
-  const confirmSync = confirm(`Launch Tally Prime and sync this GST bill?\n\nCustomer: ${cust}\nProduct: ${prod}\nBase Amount: ₹${baseTotal.toFixed(2)}\nGST (${gstRate}%): ₹${gstAmount.toFixed(2)}\nGrand Total: ₹${grandTotal.toFixed(2)}`);
-  
+  const confirmSync = confirm(
+    `Sync this invoice to Tally Prime?\n\nCustomer: ${cust}\nProduct: ${prod}${itemNote}\nBase Amount: ₹${baseTotal.toFixed(2)}\nGST: ₹${gstAmount.toFixed(2)}\nGrand Total: ₹${grandTotal.toFixed(2)}\n\nDesktop Agent must be running on your Tally PC.`
+  );
+
   if (confirmSync) {
     await sendInvoiceToTally(cust, prod, price, qty, gstRate, custGstin, custState);
   }
@@ -6920,21 +7025,66 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", initSearchableStateDropdown);
 
 // ================= DESKTOP AGENT PAIRING TOKEN =================
+async function refreshTallyAgentStatus() {
+  const chip = document.getElementById("tallyAgentStatusChip");
+  const sidebar = document.getElementById("tallyAgentSidebarStatus");
+  const token = getToken();
+  if (!token) {
+    if (chip) { chip.textContent = "Login required"; chip.className = "tally-status-chip tally-status-offline"; }
+    if (sidebar) sidebar.textContent = "Log in to use Tally sync.";
+    window._bkTallyAgentConnected = false;
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/api/tally/agent-status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    const online = !!(data.agentConnected || data.localSetup);
+    window._bkTallyAgentConnected = !!data.agentConnected;
+    const label = data.agentConnected
+      ? "🟢 Agent connected"
+      : data.localSetup
+        ? "🟡 Local Tally mode"
+        : "🔴 Agent offline";
+    const detail = data.agentConnected
+      ? "Desktop Agent is connected — you can sync to Tally."
+      : data.localSetup
+        ? "Running on same PC as Tally — direct sync available."
+        : "Start Desktop Agent on your Tally PC (download from below), paste token, then retry.";
+    if (chip) {
+      chip.textContent = label;
+      chip.className = "tally-status-chip " + (online ? "tally-status-online" : "tally-status-offline");
+    }
+    if (sidebar) sidebar.textContent = detail;
+  } catch (_) {
+    if (chip) { chip.textContent = "Status unknown"; chip.className = "tally-status-chip tally-status-unknown"; }
+    if (sidebar) sidebar.textContent = "Could not check agent status — refresh page.";
+  }
+}
+
 async function loadAgentToken() {
   const el = document.getElementById("agentTokenDisplay");
   if (!el) return;
+  const token = getToken();
+  if (!token) {
+    el.textContent = "Login required";
+    return;
+  }
   try {
     const res = await fetch(`${API_URL}/api/tally/agent-token`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
-    const data = await res.json();
-    if (data.success) {
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.agentToken) {
       el.textContent = data.agentToken;
+    } else if (res.status === 403) {
+      el.textContent = "Business plan required";
     } else {
-      el.textContent = "Error — dobara try karein";
+      el.textContent = data.error || "Error — try again";
     }
   } catch (err) {
-    el.textContent = "Load nahi ho paya";
+    el.textContent = "Could not load token";
   }
 }
 
@@ -6966,8 +7116,18 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
   }
 });
 
-loadAgentToken();
-
+function initTallyAgentUi() {
+  if (typeof loadAgentToken === "function") loadAgentToken();
+  if (typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTallyAgentUi);
+} else {
+  initTallyAgentUi();
+}
+setInterval(() => {
+  if (getToken() && typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
+}, 25000);
 
 function speakCardText(cardId, buttonElem) {
   const SUNO_LABEL = "🔊 Suno / सुनो";

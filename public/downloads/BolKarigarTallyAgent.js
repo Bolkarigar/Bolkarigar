@@ -47,7 +47,8 @@ async function ensureConfig() {
   console.log('\n=== BolKarigar Desktop Agent — Pehli Baar Setup ===\n');
   console.log('Yeh jaankari aapko BolKarigar app ke andar "Settings → Desktop Agent" section mein milegi.\n');
 
-  const backendUrl = await askQuestion('Cloud server ka address (jaise https://apnaapp.com ya http://localhost:5002): ');
+  const defaultUrl = 'https://bolkarigar.onrender.com';
+  const backendUrl = await askQuestion(`Cloud server address [Enter = ${defaultUrl}]: `) || defaultUrl;
   const agentToken = await askQuestion('Aapka Agent Pairing Token: ');
 
   config = {

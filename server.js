@@ -1612,12 +1612,12 @@ function sendToAgentAndWait(userId, xml, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const ws = connectedAgents.get(String(userId));
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      return reject(new Error('Desktop Agent connected nahi hai. Apne dukaan ke PC par Agent chalu karein.'));
+      return reject(new Error('Desktop Agent is not connected. Start the Agent on your Tally PC.'));
     }
     const requestId = crypto.randomUUID();
     const timeoutHandle = setTimeout(() => {
       pendingAgentRequests.delete(requestId);
-      reject(new Error('Agent ne 20 second mein jawab nahi diya. Confirm karein Tally Prime us PC par khuli hai.'));
+      reject(new Error('Agent did not respond in 20 seconds. Confirm Tally Prime is open on that PC.'));
     }, timeoutMs);
 
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle });
@@ -1637,6 +1637,18 @@ function sendOpenTallyToAgent(userId) {
 // Tally Prime ko launch karne ki koshish karta hai — agar Desktop Agent
 // connected hai to usi ko instruction bhejta hai (kyunki Tally uske PC par
 // hai), warna (single-PC local setup ke liye) seedha is machine par exec karta hai.
+app.get('/api/tally/agent-status', authenticateToken, requireBusinessPlan, (req, res) => {
+  const userId = String(req.dataUserId);
+  const agentConnected = connectedAgents.has(userId);
+  const localSetup = isLikelyLocalSetup(req);
+  res.json({
+    success: true,
+    agentConnected,
+    localSetup,
+    canSync: agentConnected || localSetup
+  });
+});
+
 app.get('/api/tally/diagnose', authenticateToken, requireBusinessPlan, async (req, res) => {
   const report = {
     tallyUrl: TALLY_XML_URL,
@@ -1667,12 +1679,12 @@ app.get('/api/tally/diagnose', authenticateToken, requireBusinessPlan, async (re
 
 app.post('/api/tally/open', authenticateToken, requireBusinessPlan, (req, res) => {
   if (sendOpenTallyToAgent(req.dataUserId)) {
-    return res.json({ success: true, launched: true, message: 'Desktop Agent ko Tally kholne ka signal bhej diya.' });
+    return res.json({ success: true, launched: true, message: 'Sent open-Tally signal to Desktop Agent.' });
   }
 
   if (!isLikelyLocalSetup(req)) {
     return res.status(400).json({
-      error: 'Koi Desktop Agent connected nahi mila, aur yeh app kisi doosre server se access ho raha hai. Apne dukaan ke PC par Desktop Agent chalu karein (Settings → Desktop Agent se download karein).'
+      error: 'No Desktop Agent connected. On your Tally PC: download Desktop Agent from the sidebar, paste the pairing token, then start the Agent. Tally Prime must be open with HTTP Server ON (port 9000).'
     });
   }
   const commonPaths = [
@@ -1688,21 +1700,21 @@ app.post('/api/tally/open', authenticateToken, requireBusinessPlan, (req, res) =
       break;
     } catch (e) { /* try next path */ }
   }
-  res.json({ success: true, launched, message: launched ? 'Tally launch trigger kiya.' : 'Tally auto-launch nahi ho paya — manually khol lein.' });
+  res.json({ success: true, launched, message: launched ? 'Tally launch triggered.' : 'Could not auto-launch Tally — open it manually.' });
 });
 
 app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
   const agentConnected = connectedAgents.has(String(req.dataUserId));
   if (!agentConnected && !isLikelyLocalSetup(req)) {
     return res.status(400).json({
-      error: 'Koi Desktop Agent connected nahi mila, aur yeh app kisi doosre server se access ho raha hai. Apne dukaan ke PC par Desktop Agent chalu karein (Settings → Desktop Agent se download karein), phir dobara try karein.'
+      error: 'No Desktop Agent connected. Start BolKarigar Desktop Agent on the PC where Tally runs (sidebar → Tally Sync Agent → download .exe, paste token). Then try Sync again.'
     });
   }
   try {
     const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState } = req.body;
 
     if (!customer || !product || !price || !qty) {
-      return res.status(400).json({ error: 'Customer, product, price aur quantity zaroori hain.' });
+      return res.status(400).json({ error: 'Customer, product, price and quantity are required.' });
     }
 
     const profile = await BusinessProfile.findOne({ userId: req.dataUserId });
@@ -1767,7 +1779,7 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
 
       return res.json({
         success: true,
-        message: `✅ Tally me sync ho gaya! (${syncResult.mode}, date: ${syncResult.date})`,
+        message: `✅ Synced to Tally! (${syncResult.mode}, date: ${syncResult.date})`,
         voucherId: savedVoucher._id,
         ledgerId: ledger ? ledger._id : null,
         tallyMode: syncResult.mode
@@ -1778,13 +1790,13 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
       // record safe hai — silently fake success mat do.
       return res.status(502).json({
         error: agentConnected
-          ? `Desktop Agent se voucher process karne mein dikkat aayi (${tallyErr.message}). Confirm karein Tally Prime us PC par khuli hai aur Settings → Connectivity me HTTP Server ON hai. Aapki invoice BolKarigar Khata mein save ho chuki hai.`
-          : `Tally se connect nahi ho paya (${tallyErr.message}). Confirm karein Tally Prime khula hai aur Settings → Connectivity me HTTP Server "Both"/"Server" par ON hai, port 9000. Aapki invoice BolKarigar Khata mein save ho chuki hai.`
+          ? `Desktop Agent could not process the voucher (${tallyErr.message}). Confirm Tally Prime is open on that PC and Settings → Connectivity → HTTP Server is ON (port 9000). Your invoice is saved in BolKarigar Khata.`
+          : `Could not connect to Tally (${tallyErr.message}). Confirm Tally Prime is open and Settings → Connectivity → HTTP Server is ON (Both/Server), port 9000. Your invoice is saved in BolKarigar Khata.`
       });
     }
   } catch (err) {
     logger.error('Tally sync-invoice error:', err);
-    res.status(500).json({ error: `Tally sync mein dikkat aayi: ${err.message}` });
+    res.status(500).json({ error: `Tally sync failed: ${err.message}` });
   }
 });
 // 🟢 TALLY PRIME INTEGRATION — END
@@ -1953,7 +1965,7 @@ async function relayXmlToTally(userId, xml, req) {
     return sendToAgentAndWait(userId, xml);
   }
   if (!isLikelyLocalSetup(req)) {
-    throw new Error('Desktop Agent connected nahi hai aur server cloud par hai. Apne Tally wale PC par Agent chalao.');
+    throw new Error('Desktop Agent is not connected and the app is on cloud hosting. Run the Agent on your Tally PC.');
   }
   const tallyRes = await fetchTallyWithRetry(TALLY_XML_URL, {
     method: 'POST',
@@ -2736,7 +2748,7 @@ app.get('/api/tally/agent-token', authenticateToken, requireBusinessPlan, async 
     res.json({ success: true, agentToken: profile.agentToken });
   } catch (err) {
     logger.error('Agent token fetch error:', err);
-    res.status(500).json({ error: 'Agent token laane mein dikkat aayi.' });
+    res.status(500).json({ success: false, error: 'Could not load agent token.' });
   }
 });
 
@@ -2754,7 +2766,7 @@ app.post('/api/tally/agent-token/regenerate', authenticateToken, requireOwner, r
     if (existingWs) { try { existingWs.close(4009, 'Token regenerated'); } catch {} }
     res.json({ success: true, agentToken: profile.agentToken });
   } catch (err) {
-    res.status(500).json({ error: 'Agent token reset karne mein dikkat aayi.' });
+    res.status(500).json({ error: 'Could not reset agent token.' });
   }
 });
 

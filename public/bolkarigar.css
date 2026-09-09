@@ -3134,11 +3134,60 @@ body.app-lock-active { overflow: hidden; }
   gap: 10px 16px;
   font-size: 13px;
 }
-.inv-acc-mode label {
-  display: inline-flex;
+.inv-tally-mode-block {
+  display: block;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 120, 215, 0.35);
+  border-radius: 10px;
+  background: rgba(0, 120, 215, 0.06);
+}
+.inv-tally-mode-head {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  cursor: pointer;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.inv-tally-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+.inv-tally-hint { margin: 8px 0 0; font-size: 12px; }
+.tally-status-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+}
+.tally-status-chip.tally-status-online {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+}
+.tally-status-chip.tally-status-offline {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+}
+.tally-dl-link-secondary {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.tally-agent-sidebar-status {
+  font-size: 12px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  line-height: 1.45;
 }
 .inv-item-entry {
   display: flex;

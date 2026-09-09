@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260909v1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260909tally2">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
@@ -203,6 +203,9 @@
           <div class="sidebar-tally-body">
             <p class="helper-text" data-i18n="tally.hint">Cloud server par Tally sync ke liye apne PC par Agent chalao.</p>
             <a href="/downloads/BolKarigarTallyAgent.exe" download class="tally-dl-link" data-i18n="tally.download">📥 Download Agent (.exe)</a>
+            <a href="/downloads/start-agent.bat" download class="tally-dl-link tally-dl-link-secondary">▶️ Start Agent (Windows .bat)</a>
+            <a href="/downloads/BolKarigarTallyAgent.js" download class="tally-dl-link tally-dl-link-secondary">📄 Agent script (.js) — Node.js fallback</a>
+            <p id="tallyAgentSidebarStatus" class="tally-agent-sidebar-status">Checking Desktop Agent…</p>
             <p class="helper-text" style="margin-top:8px;" data-i18n="tally.token">Pairing Token:</p>
             <div class="tally-token-row">
               <code id="agentTokenDisplay">Loading...</code>
@@ -1181,18 +1184,25 @@
     </div>
 
     <details class="inv-advanced-box">
-      <summary>E-Way Bill &amp; Accounting Mode</summary>
+      <summary>E-Way Bill (optional)</summary>
       <div class="grid-2" style="margin-top:10px;">
         <input type="text" id="ewayBillNo" placeholder="E-Way Bill No." />
         <input type="text" id="vehicleNo" placeholder="Vehicle No." />
         <input type="number" id="distanceKm" placeholder="Distance (KM)" min="0" step="1" inputmode="numeric" />
       </div>
-      <div id="accModeSection" class="inv-acc-mode">
+    </details>
+
+    <div id="accModeSection" class="inv-acc-mode inv-tally-mode-block">
+      <div class="inv-tally-mode-head">
         <strong>⚙️ Accounting Mode</strong>
+        <span id="tallyAgentStatusChip" class="tally-status-chip tally-status-unknown" title="Desktop Agent connection">Checking agent…</span>
+      </div>
+      <div class="inv-tally-mode-options">
         <label><input type="radio" name="accMode" value="inbuilt" checked onclick="toggleTallyBtn(false)"> BolKarigar Khata</label>
         <label id="tallyAccModeOption"><input type="radio" name="accMode" value="tally" onclick="toggleTallyBtn(true)"> Tally Prime</label>
       </div>
-    </details>
+      <p id="tallyModeHint" class="helper-text inv-tally-hint hidden">Select <strong>Tally Prime</strong> to show the Sync button. Cloud app needs Desktop Agent running on your Tally PC.</p>
+    </div>
 
     <div class="inv-item-entry">
       <span class="inv-entry-label">Item Entry</span>
@@ -1611,9 +1621,11 @@
 <script>
     function toggleTallyBtn(showTally) {
       const tallyBtn = document.getElementById('tallySyncBtn');
+      const hint = document.getElementById('tallyModeHint');
       if (tallyBtn) {
         tallyBtn.style.display = showTally ? 'inline-block' : 'none';
       }
+      if (hint) hint.classList.toggle('hidden', !showTally);
     }
   </script>
   <!-- ================================================================== -->
@@ -1757,7 +1769,7 @@
   <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
   <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260909v1"></script>
+  <script src="bolkarigar.js?v=20260909tally2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
