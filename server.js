@@ -2021,7 +2021,9 @@ async function relayXmlToTally(userId, xml, req) {
 // Tally EDU + full license dono ke liye — multiple strategies try karta hai
 async function syncVoucherToTallyWithFallback(userId, req, params) {
   const eduDates = getTallyEduSafeDates();
-  const companyName = await resolveTallyCompanyName(userId, req);
+  const agentConnected = connectedAgents.has(String(userId));
+  // With Desktop Agent, use whichever company is open in Tally Gateway (no SVCURRENTCOMPANY)
+  const companyName = agentConnected ? '' : await resolveTallyCompanyName(userId, req);
   const cust = sanitizeTallyLedgerName(params.customer);
   const base = {
     customer: cust,
@@ -2067,17 +2069,21 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
   for (const strategy of strategies) {
     if (strategy.needsGstMasters && !gstMastersSent) {
       logger.info('[Tally Sync] GST masters bhej rahe hain...');
-      const gstMasters = buildTallyLedgerMastersXml({
-        customer: cust,
-        customerGstin: params.customerGstin,
-        customerState: params.customerState,
-        gstRate: params.gstRate,
-        isInterState: isInterStateSale(params.companyState, params.customerState),
-        companyName
-      });
-      const gstMasterResp = await relayXmlToTally(userId, gstMasters, req);
-      logger.info('[Tally Sync] GST Masters:', gstMasterResp.substring(0, 400));
-      parseTallyMasterResponse(gstMasterResp);
+      try {
+        const gstMasters = buildTallyLedgerMastersXml({
+          customer: cust,
+          customerGstin: params.customerGstin,
+          customerState: params.customerState,
+          gstRate: params.gstRate,
+          isInterState: isInterStateSale(params.companyState, params.customerState),
+          companyName
+        });
+        const gstMasterResp = await relayXmlToTally(userId, gstMasters, req);
+        logger.info('[Tally Sync] GST Masters:', gstMasterResp.substring(0, 400));
+        if (!gstMasterResp.includes('Unknown Request')) parseTallyMasterResponse(gstMasterResp);
+      } catch (gstErr) {
+        logger.info('[Tally Sync] GST master import non-fatal:', gstErr.message);
+      }
       gstMastersSent = true;
     }
 
@@ -2100,10 +2106,13 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     }
   }
 
-  const hint = companyName
-    ? `Company: "${companyName}". Tally EDU me date 1st/2nd/last honi chahiye.`
-    : 'Tally me company select karein ya .env me TALLY_COMPANY_NAME set karein.';
-  throw lastError || new Error(`Tally me voucher save nahi ho paya. ${hint}`);
+  const hint = agentConnected
+    ? 'Tally Gateway me company select karein (e.g. Lokansh Ltd). EDU mode: date 1st/2nd/last of month only.'
+    : companyName
+      ? `Company: "${companyName}". Tally EDU me date 1st/2nd/last honi chahiye.`
+      : 'Tally me company select karein ya .env me TALLY_COMPANY_NAME set karein.';
+  const errMsg = lastError?.message || 'Tally did not create voucher';
+  throw new Error(`${errMsg}. ${hint}`);
 }
 
 function parseTallySyncResponse(tallyResponseText) {
@@ -2777,8 +2786,12 @@ agentWss.on('connection', async (ws, req) => {
         if (pending) {
           clearTimeout(pending.timeoutHandle);
           pendingAgentRequests.delete(msg.requestId);
-          if (msg.ok) pending.resolve(msg.responseText || '');
-          else pending.reject(new Error(msg.error || 'Tally rejected the voucher'));
+          // Agent relay succeeded if we got Tally XML back — server parses CREATED/LINEERROR
+          if (msg.responseText != null && msg.responseText !== '') {
+            pending.resolve(msg.responseText);
+          } else {
+            pending.reject(new Error(msg.error || 'Desktop Agent could not reach Tally on port 9000'));
+          }
         }
       }
     });

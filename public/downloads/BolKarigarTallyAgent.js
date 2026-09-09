@@ -9,7 +9,7 @@ const path = require('path');
 const readline = require('readline');
 const { exec } = require('child_process');
 
-const AGENT_VERSION = '2026.09.09b';
+const AGENT_VERSION = '2026.09.09c';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_LOCAL_URL = 'http://localhost:9000';
 const TALLY_EXE_PATHS = [
@@ -64,6 +64,21 @@ async function isTallyHttpUp() {
   } catch {
     return false;
   }
+}
+
+function extractTallyLineError(text) {
+  const patterns = [
+    /<LINEERROR>(.*?)<\/LINEERROR>/gis,
+    /<REMOTELINEERROR>(.*?)<\/REMOTELINEERROR>/gis,
+    /<ERRORMESSAGE>(.*?)<\/ERRORMESSAGE>/gis
+  ];
+  for (const re of patterns) {
+    for (const m of String(text || '').matchAll(re)) {
+      const msg = m[1].replace(/<[^>]+>/g, '').trim();
+      if (msg) return msg;
+    }
+  }
+  return '';
 }
 
 function isTallyXmlSuccess(text, httpOk) {
@@ -224,20 +239,23 @@ function connect(config) {
           timeout: 45000
         });
         const responseText = await tallyRes.text();
-        const ok = isTallyXmlSuccess(responseText, tallyRes.ok);
-        if (ok) {
+        const tallyOk = isTallyXmlSuccess(responseText, tallyRes.ok);
+        const lineErr = extractTallyLineError(responseText);
+        if (tallyOk) {
           console.log('✅ Tally accepted data.');
+        } else if (lineErr) {
+          console.log(`↩ Tally reply: ${lineErr}`);
         } else {
-          const errLine = (responseText.match(/<LINEERROR>(.*?)<\/LINEERROR>/i) || [])[1] || 'Tally rejected voucher (check company selected)';
-          console.error('❌ Tally error:', errLine.replace(/<[^>]+>/g, '').trim());
+          console.log('↩ Tally reply received (server will try next format)...');
         }
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'sync_result',
             requestId: msg.requestId,
-            ok,
+            ok: true,
             responseText,
-            error: ok ? undefined : 'Tally did not create voucher — select company in Tally Gateway'
+            tallyOk,
+            error: lineErr || undefined
           }));
         }
       } catch (err) {
