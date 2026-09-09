@@ -9,6 +9,7 @@ const path = require('path');
 const readline = require('readline');
 const { exec } = require('child_process');
 
+const AGENT_VERSION = '2026.09.09b';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_LOCAL_URL = 'http://localhost:9000';
 const TALLY_EXE_PATHS = [
@@ -280,7 +281,8 @@ function connect(config) {
 }
 
 (async () => {
-  console.log('=== BolKarigar Tally Sync Agent ===');
+  console.log(`=== BolKarigar Tally Sync Agent v${AGENT_VERSION} ===`);
+  console.log('(If you see "Waiting for Tally" right after connect, download NEW .exe from sidebar)\n');
   const config = await ensureConfig();
   connect(config);
 })();
