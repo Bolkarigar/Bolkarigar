@@ -7137,11 +7137,10 @@ function downloadAgentConnectBat() {
     "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
     "echo ==========================================",
     "echo.",
-    ":AGENT_LOOP",
     "BolKarigarTallyAgent.exe",
-    "echo Agent stopped. Restarting in 5 sec... (Ctrl+C to quit)",
-    "timeout /t 5 >nul",
-    "goto AGENT_LOOP"
+    "echo.",
+    "echo Agent closed. Double-click this file again to reconnect.",
+    "pause"
   ];
   const blob = new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
   const a = document.createElement("a");

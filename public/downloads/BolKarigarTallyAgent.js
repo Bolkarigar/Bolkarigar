@@ -65,18 +65,31 @@ async function isTallyHttpUp() {
   }
 }
 
+function isTallyXmlSuccess(text, httpOk) {
+  if (!httpOk || !text) return false;
+  if (text.includes('Unknown Request')) return false;
+  const created = parseInt((text.match(/<CREATED>(\d+)<\/CREATED>/i) || [0, 0])[1], 10);
+  const altered = parseInt((text.match(/<ALTERED>(\d+)<\/ALTERED>/i) || [0, 0])[1], 10);
+  const imported = parseInt((text.match(/<IMPORTED>(\d+)<\/IMPORTED>/i) || [0, 0])[1], 10);
+  const exceptions = parseInt((text.match(/<EXCEPTIONS>(\d+)<\/EXCEPTIONS>/i) || [0, 0])[1], 10);
+  if (exceptions > 0) return false;
+  if (created >= 1 || altered >= 1 || imported >= 1) return true;
+  if (text.includes('<LASTVCHID>')) return true;
+  return false;
+}
+
 async function ensureTallyRunning() {
   if (await isTallyHttpUp()) return true;
-  console.log('Tally not responding — auto-opening Tally Prime...');
+  console.log('Tally not responding — opening Tally Prime...');
   launchTallyPrime();
-  for (let attempt = 1; attempt <= 10; attempt++) {
-    await new Promise((r) => setTimeout(r, 2000));
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    await new Promise((r) => setTimeout(r, 1500));
     if (await isTallyHttpUp()) {
-      console.log(`Tally ready (attempt ${attempt}).`);
+      console.log(`Tally ready (${attempt}/6).`);
       return true;
     }
-    console.log(`Waiting for Tally... (${attempt}/10)`);
   }
+  console.warn('Tally HTTP port 9000 not ready — confirm HTTP Server is ON in Tally.');
   return false;
 }
 
@@ -168,63 +181,74 @@ function connect(config) {
   console.log(`Connecting to ${base} ...`);
   console.log(`Config file: ${getConfigPath()}`);
 
-  ws = new WebSocket(wsUrl);
+  ws = new WebSocket(wsUrl, { perMessageDeflate: false });
 
-  ws.on('open', async () => {
+  ws.on('open', () => {
     reconnectDelay = 3000;
-    console.log('\n✅ CONNECTED to BolKarigar cloud!');
-    console.log('Keep this window open. Click Sync Tally in browser — Tally will open automatically.\n');
+    console.log('\n✅ CONNECTED — ready for Sync Tally (keep this window open)\n');
     if (pingTimer) clearInterval(pingTimer);
     pingTimer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.ping(); } catch {}
+        try { ws.send(JSON.stringify({ type: 'agent_ping', t: Date.now() })); } catch {}
       }
-    }, 20000);
-    await ensureTallyRunning();
+    }, 12000);
   });
 
   ws.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
-    if (msg.type === 'connected') {
-      console.log(msg.message || 'Agent registered.');
+    if (msg.type === 'connected' || msg.type === 'agent_pong') {
+      if (msg.type === 'connected') console.log(msg.message || 'Agent registered.');
       return;
     }
 
     if (msg.type === 'open_tally') {
-      console.log('Sync Tally clicked — opening Tally Prime...');
-      await ensureTallyRunning();
+      console.log('Opening Tally Prime...');
+      ensureTallyRunning().catch(() => {});
       return;
     }
 
     if (msg.type === 'sync_request') {
-      console.log(`Sync request ${msg.requestId} — sending to Tally...`);
-      await ensureTallyRunning();
+      console.log(`📨 Sync bill to Tally (${msg.requestId})...`);
       try {
+        const tallyUp = await ensureTallyRunning();
+        if (!tallyUp) {
+          throw new Error('Tally HTTP Server not responding on port 9000');
+        }
         const tallyRes = await fetch(TALLY_LOCAL_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/xml' },
           body: msg.xml,
-          timeout: 20000
+          timeout: 45000
         });
         const responseText = await tallyRes.text();
-        console.log(`Tally response HTTP ${tallyRes.status}`);
-        ws.send(JSON.stringify({
-          type: 'sync_result',
-          requestId: msg.requestId,
-          ok: tallyRes.ok,
-          responseText
-        }));
+        const ok = isTallyXmlSuccess(responseText, tallyRes.ok);
+        if (ok) {
+          console.log('✅ Tally accepted data.');
+        } else {
+          const errLine = (responseText.match(/<LINEERROR>(.*?)<\/LINEERROR>/i) || [])[1] || 'Tally rejected voucher (check company selected)';
+          console.error('❌ Tally error:', errLine.replace(/<[^>]+>/g, '').trim());
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'sync_result',
+            requestId: msg.requestId,
+            ok,
+            responseText,
+            error: ok ? undefined : 'Tally did not create voucher — select company in Tally Gateway'
+          }));
+        }
       } catch (err) {
-        console.error(`Tally error: ${err.message}`);
-        console.error('Open Tally → F1 → Connectivity → HTTP Server ON, port 9000.');
-        ws.send(JSON.stringify({
-          type: 'sync_result',
-          requestId: msg.requestId,
-          ok: false,
-          error: `Could not reach Tally on localhost:9000 — ${err.message}`
-        }));
+        console.error(`❌ Sync failed: ${err.message}`);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'sync_result',
+            requestId: msg.requestId,
+            ok: false,
+            error: err.message
+          }));
+        }
       }
     }
   });

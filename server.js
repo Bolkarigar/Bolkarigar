@@ -1612,16 +1612,16 @@ function cleanToken(value) {
   return String(value || '').trim().replace(/\s+/g, '');
 }
 
-function sendToAgentAndWait(userId, xml, timeoutMs = 20000) {
+function sendToAgentAndWait(userId, xml, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     const ws = connectedAgents.get(String(userId));
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      return reject(new Error('Desktop Agent is not connected. Start the Agent on your Tally PC.'));
+      return reject(new Error('Desktop Agent is not connected. Run Connect Agent.bat and keep the window open.'));
     }
     const requestId = crypto.randomUUID();
     const timeoutHandle = setTimeout(() => {
       pendingAgentRequests.delete(requestId);
-      reject(new Error('Agent did not respond in 20 seconds. Confirm Tally Prime is open on that PC.'));
+      reject(new Error('Agent did not respond in 60 seconds. Keep Agent window open and Tally HTTP Server ON (port 9000).'));
     }, timeoutMs);
 
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle });
@@ -2717,7 +2717,25 @@ app.get('*', (req, res) => {
 // — isse pata chalta hai yeh connection KIS user/company ka hai.
 // ==================================================================================
 const server = http.createServer(app);
-const agentWss = new WebSocket.Server({ server, path: '/agent-ws' });
+const agentWss = new WebSocket.Server({
+  server,
+  path: '/agent-ws',
+  perMessageDeflate: false,
+  maxPayload: 8 * 1024 * 1024
+});
+
+const agentWsHeartbeat = setInterval(() => {
+  agentWss.clients.forEach((client) => {
+    if (client.isAlive === false) {
+      try { client.terminate(); } catch {}
+      return;
+    }
+    client.isAlive = false;
+    try { client.ping(); } catch {}
+  });
+}, 25000);
+
+agentWss.on('close', () => clearInterval(agentWsHeartbeat));
 
 agentWss.on('connection', async (ws, req) => {
   try {
@@ -2733,8 +2751,14 @@ agentWss.on('connection', async (ws, req) => {
       return;
     }
     const userId = String(profile.userId);
+    const existing = connectedAgents.get(userId);
+    if (existing && existing !== ws && existing.readyState === WebSocket.OPEN) {
+      try { existing.close(4000, 'Replaced'); } catch {}
+    }
     connectedAgents.set(userId, ws);
     ws.userId = userId;
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
     logger.info(`[Desktop Agent] Connected — user ${userId} (${profile.companyName || 'company'})`);
     ws.send(JSON.stringify({ type: 'connected', message: 'BolKarigar Desktop Agent connected!' }));
 
@@ -2742,16 +2766,21 @@ agentWss.on('connection', async (ws, req) => {
       let msg;
       try { msg = JSON.parse(raw); } catch { return; }
 
+      if (msg.type === 'agent_ping') {
+        ws.isAlive = true;
+        try { ws.send(JSON.stringify({ type: 'agent_pong', t: Date.now() })); } catch {}
+        return;
+      }
+
       if (msg.type === 'sync_result' && msg.requestId) {
         const pending = pendingAgentRequests.get(msg.requestId);
         if (pending) {
           clearTimeout(pending.timeoutHandle);
           pendingAgentRequests.delete(msg.requestId);
           if (msg.ok) pending.resolve(msg.responseText || '');
-          else pending.reject(new Error(msg.error || 'Agent se unknown error'));
+          else pending.reject(new Error(msg.error || 'Tally rejected the voucher'));
         }
       }
-      // 'ping'/'pong' type heartbeat messages yahan chahe to future me handle kar sakte hain.
     });
 
     ws.on('close', () => {
