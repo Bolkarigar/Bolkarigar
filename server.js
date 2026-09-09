@@ -1608,6 +1608,10 @@ function isLikelyLocalSetup(req) {
 const connectedAgents = new Map();       // userId (string) -> WebSocket
 const pendingAgentRequests = new Map();  // requestId -> { resolve, reject, timeoutHandle }
 
+function cleanToken(value) {
+  return String(value || '').trim().replace(/\s+/g, '');
+}
+
 function sendToAgentAndWait(userId, xml, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const ws = connectedAgents.get(String(userId));
@@ -2718,7 +2722,7 @@ const agentWss = new WebSocket.Server({ server, path: '/agent-ws' });
 agentWss.on('connection', async (ws, req) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const token = url.searchParams.get('token');
+    const token = cleanToken(url.searchParams.get('token'));
     if (!token) {
       ws.close(4001, 'Token missing');
       return;

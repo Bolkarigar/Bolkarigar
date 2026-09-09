@@ -7079,7 +7079,9 @@ async function loadAgentToken() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.agentToken) {
-      el.textContent = data.agentToken;
+      const token = String(data.agentToken).trim().replace(/\s+/g, "");
+      el.dataset.token = token;
+      el.textContent = token;
     } else if (res.status === 403) {
       el.textContent = "Business plan required";
     } else {
@@ -7090,10 +7092,67 @@ async function loadAgentToken() {
   }
 }
 
-document.getElementById("copyAgentTokenBtn")?.addEventListener("click", () => {
+function getAgentPairingToken() {
   const el = document.getElementById("agentTokenDisplay");
-  if (!el || !el.textContent || el.textContent === "Loading...") return;
-  navigator.clipboard.writeText(el.textContent).then(() => {
+  if (!el) return "";
+  const raw = el.dataset.token || el.textContent || "";
+  return raw.trim().replace(/\s+/g, "");
+}
+
+function downloadAgentConnectBat() {
+  const token = getAgentPairingToken();
+  if (!token || token === "Loading..." || /required|error|login/i.test(token)) {
+    alert("Pairing token is not ready yet. Refresh the page and wait a few seconds.");
+    return;
+  }
+  const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
+  const lines = [
+    "@echo off",
+    "title BolKarigar Tally Agent",
+    "chcp 65001 >nul",
+    "cd /d \"%~dp0\"",
+    "echo BolKarigar — connecting Desktop Agent...",
+    "(",
+    "echo {",
+    `echo   \"backendUrl\": \"${backendUrl}\",`,
+    `echo   \"agentToken\": \"${token}\"`,
+    "echo }",
+    ") > agent-config.json",
+    "if not exist BolKarigarTallyAgent.exe (",
+    "  echo.",
+    "  echo ERROR: BolKarigarTallyAgent.exe not found in this folder!",
+    "  echo 1. Download Agent .exe from BolKarigar sidebar",
+    "  echo 2. Put this .bat file in the SAME folder as the .exe",
+    "  echo 3. Double-click this .bat again",
+    "  echo.",
+    "  pause",
+    "  exit /b 1",
+    ")",
+    "echo Config saved. Starting Agent...",
+    "start \"\" BolKarigarTallyAgent.exe",
+    "echo.",
+    "echo Keep the black Agent window OPEN.",
+    "echo In browser sidebar you should see: Agent connected",
+    "timeout /t 8 >nul"
+  ];
+  const blob = new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "BolKarigar-Connect-Agent.bat";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  openTallyAgentSidebar();
+  if (typeof showToast === "function") {
+    showToast("Save .bat in same folder as Agent .exe, then double-click it.", "info");
+  }
+}
+
+document.getElementById("connectAgentBtn")?.addEventListener("click", downloadAgentConnectBat);
+
+document.getElementById("copyAgentTokenBtn")?.addEventListener("click", () => {
+  const token = getAgentPairingToken();
+  if (!token) return;
+  navigator.clipboard.writeText(token).then(() => {
     const btn = document.getElementById("copyAgentTokenBtn");
     const original = btn.textContent;
     btn.textContent = "Copied!";
@@ -7110,8 +7169,10 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
     });
     const data = await res.json();
     if (data.success) {
-      document.getElementById("agentTokenDisplay").textContent = data.agentToken;
-      alert("New token created! Update it in your Desktop Agent 'agent-config.json' (or delete the file and restart the Agent).");
+      const el = document.getElementById("agentTokenDisplay");
+      const token = String(data.agentToken).trim().replace(/\s+/g, "");
+      if (el) { el.dataset.token = token; el.textContent = token; }
+      alert("New token created! Click Step 2: Connect Agent again to update your PC.");
     }
   } catch (err) {
     alert("There was a problem resetting the token.");

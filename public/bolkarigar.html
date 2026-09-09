@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260909tally4">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260909tally5">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
@@ -203,11 +203,12 @@
           <div class="sidebar-tally-body">
             <p class="helper-text">One-time setup on this PC (where Tally is installed):</p>
             <ol class="tally-setup-steps">
-              <li>Download Agent below → double-click to run</li>
-              <li>Copy pairing token → paste when Agent asks</li>
-              <li>Keep Agent window open — Tally will auto-open on sync</li>
+              <li><strong>Step 1:</strong> Download Agent (.exe) — same folder mein rakhein</li>
+              <li><strong>Step 2:</strong> Click <em>Connect Agent</em> — auto-config + Agent start</li>
+              <li><strong>Step 3:</strong> Sidebar mein <strong>🟢 Agent connected</strong> dikhe, phir Sync Tally</li>
             </ol>
-            <a href="/downloads/BolKarigarTallyAgent.exe" download class="tally-dl-link tally-dl-primary">📥 Download &amp; Run Agent (Windows)</a>
+            <a href="/downloads/BolKarigarTallyAgent.exe" download class="tally-dl-link tally-dl-primary">📥 Step 1: Download Agent (.exe)</a>
+            <button type="button" id="connectAgentBtn" class="tally-dl-link tally-connect-btn">▶️ Step 2: Connect Agent (auto)</button>
             <p id="tallyAgentSidebarStatus" class="tally-agent-sidebar-status">Checking Desktop Agent…</p>
             <p class="helper-text" style="margin-top:8px;" data-i18n="tally.token">Pairing Token:</p>
             <div class="tally-token-row">
@@ -1772,7 +1773,7 @@
   <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
   <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260909tally4"></script>
+  <script src="bolkarigar.js?v=20260909tally5"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

@@ -1,15 +1,6 @@
 // ==================================================================================
 // BolKarigar Tally Sync — Desktop Agent
 // ==================================================================================
-// Yeh chhota program aapke DUKAAN ke PC par chalta hai (jahan Tally Prime bhi
-// khuli hoti hai). Yeh cloud server se connected rehta hai, aur jab bhi aap
-// browser se "Sync to Tally" dabate hain, cloud server yahan XML bhejta hai —
-// yeh Agent us XML ko seedha aapki isi PC par chal rahi Tally Prime
-// (http://localhost:9000) ko bhej deta hai, aur result wapas cloud ko bhej deta hai.
-//
-// ISKO BAND MAT KARO jab tak aap Tally sync use karna chahte hain — yeh jitni
-// der khula rahega, utni der cloud app se sync kaam karega.
-// ==================================================================================
 
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
@@ -18,29 +9,45 @@ const path = require('path');
 const readline = require('readline');
 const { exec } = require('child_process');
 
-const CONFIG_PATH = path.join(__dirname, 'agent-config.json');
+const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_LOCAL_URL = 'http://localhost:9000';
 const TALLY_EXE_PATHS = [
   'C:\\Program Files\\TallyPrime\\tally.exe',
   'C:\\Program Files (x86)\\TallyPrime\\tally.exe',
-  'C:\\Tally.ERP9\\tally.exe'
+  'C:\\Tally.ERP9\\tally.exe',
+  'C:\\Program Files\\Tally\\TallyPrime\\tally.exe'
 ];
 const TALLY_PING_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>LicenseInfo</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
 
+function getConfigDir() {
+  // pkg .exe: config must live next to the .exe (snapshot folder is read-only)
+  if (process.pkg) return path.dirname(process.execPath);
+  return __dirname;
+}
+
+function getConfigPath() {
+  return path.join(getConfigDir(), 'agent-config.json');
+}
+
+function cleanToken(value) {
+  return String(value || '').trim().replace(/\s+/g, '');
+}
+
 function launchTallyPrime() {
   if (process.platform !== 'win32') {
-    console.log('⚠️  Auto-launch works on Windows only — open Tally manually.');
+    console.log('Auto-launch works on Windows only.');
     return false;
   }
   for (const exePath of TALLY_EXE_PATHS) {
     if (!fs.existsSync(exePath)) continue;
     exec(`"${exePath}"`, { windowsHide: false }, (err) => {
-      if (err) console.error(`⚠️  Tally launch: ${err.message}`);
-      else console.log('✅ Tally Prime open ho rahi hai...');
+      if (err) console.error(`Tally launch: ${err.message}`);
+      else console.log('Tally Prime opening...');
     });
     return true;
   }
-  console.warn('⚠️  tally.exe standard paths mein nahi mila — Tally manually kholo.');
+  exec('cmd /c start "" tally', { windowsHide: true }, () => {});
+  console.warn('tally.exe not found in standard paths — trying Windows start tally...');
   return false;
 }
 
@@ -60,32 +67,61 @@ async function isTallyHttpUp() {
 
 async function ensureTallyRunning() {
   if (await isTallyHttpUp()) return true;
-  console.log('📂 Tally band lag rahi hai — auto open kar rahe hain...');
+  console.log('Tally not responding — auto-opening Tally Prime...');
   launchTallyPrime();
-  for (let attempt = 1; attempt <= 8; attempt++) {
+  for (let attempt = 1; attempt <= 10; attempt++) {
     await new Promise((r) => setTimeout(r, 2000));
     if (await isTallyHttpUp()) {
-      console.log(`✅ Tally ready (attempt ${attempt}).`);
+      console.log(`Tally ready (attempt ${attempt}).`);
       return true;
     }
-    console.log(`   ...Tally start ho rahi hai (${attempt}/8)`);
+    console.log(`Waiting for Tally... (${attempt}/10)`);
   }
   return false;
 }
 
 function loadConfig() {
-  if (fs.existsSync(CONFIG_PATH)) {
+  const configPath = getConfigPath();
+  if (fs.existsSync(configPath)) {
     try {
-      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (cfg.agentToken) cfg.agentToken = cleanToken(cfg.agentToken);
+      return cfg;
     } catch {
-      console.error('⚠️  agent-config.json padhne mein dikkat aayi, naya banayenge.');
+      console.error('Could not read agent-config.json — will create a new one.');
+    }
+  }
+  const pairingPath = path.join(getConfigDir(), 'pairing.txt');
+  if (fs.existsSync(pairingPath)) {
+    const token = cleanToken(fs.readFileSync(pairingPath, 'utf8'));
+    if (token) {
+      const cfg = { backendUrl: DEFAULT_BACKEND, agentToken: token };
+      saveConfig(cfg);
+      try { fs.unlinkSync(pairingPath); } catch {}
+      return cfg;
     }
   }
   return null;
 }
 
 function saveConfig(config) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+  const configPath = getConfigPath();
+  const normalized = {
+    backendUrl: String(config.backendUrl || DEFAULT_BACKEND).replace(/\/+$/, ''),
+    agentToken: cleanToken(config.agentToken)
+  };
+  fs.writeFileSync(configPath, JSON.stringify(normalized, null, 2), 'utf8');
+  console.log(`Config saved: ${configPath}`);
+  return normalized;
+}
+
+function parseArgs() {
+  const out = {};
+  for (const arg of process.argv.slice(2)) {
+    if (arg.startsWith('--token=')) out.agentToken = cleanToken(arg.slice(8));
+    if (arg.startsWith('--url=')) out.backendUrl = arg.slice(6).replace(/\/+$/, '');
+  }
+  return out;
 }
 
 function askQuestion(query) {
@@ -94,39 +130,56 @@ function askQuestion(query) {
 }
 
 async function ensureConfig() {
+  const args = parseArgs();
   let config = loadConfig();
-  if (config && config.backendUrl && config.agentToken) return config;
+  if (config && config.backendUrl && config.agentToken) {
+    if (args.agentToken) config.agentToken = args.agentToken;
+    if (args.backendUrl) config.backendUrl = args.backendUrl;
+    return saveConfig(config);
+  }
 
-  console.log('\n=== BolKarigar Desktop Agent — Pehli Baar Setup ===\n');
-  console.log('Yeh jaankari aapko BolKarigar app ke andar "Settings → Desktop Agent" section mein milegi.\n');
+  console.log('\n=== BolKarigar Desktop Agent — Setup ===\n');
+  console.log(`Config folder: ${getConfigDir()}`);
+  console.log('Tip: In BolKarigar sidebar click "Connect Agent" to auto-create config.\n');
 
-  const defaultUrl = 'https://bolkarigar.onrender.com';
-  const backendUrl = await askQuestion(`Cloud server address [Enter = ${defaultUrl}]: `) || defaultUrl;
-  const agentToken = await askQuestion('Aapka Agent Pairing Token: ');
+  const backendUrl = args.backendUrl
+    || (await askQuestion(`Server URL [Enter = ${DEFAULT_BACKEND}]: `)) || DEFAULT_BACKEND;
+  const agentToken = args.agentToken
+    || cleanToken(await askQuestion('Paste Pairing Token from BolKarigar sidebar: '));
 
-  config = {
-    backendUrl: backendUrl.replace(/\/+$/, ''),
-    agentToken: agentToken
-  };
-  saveConfig(config);
-  console.log('\n✅ Config save ho gayi (agent-config.json). Agli baar yeh sawaal nahi puchega.\n');
-  return config;
+  if (!agentToken) {
+    console.error('Token is required. Copy it from BolKarigar → Tally Sync Agent → Copy.');
+    process.exit(1);
+  }
+
+  return saveConfig({ backendUrl, agentToken });
 }
 
 let ws = null;
+let pingTimer = null;
 let reconnectDelay = 3000;
 const MAX_RECONNECT_DELAY = 30000;
 
 function connect(config) {
-  const wsUrl = config.backendUrl.replace(/^http/, 'ws') + `/agent-ws?token=${encodeURIComponent(config.agentToken)}`;
-  console.log(`🔌 Connect ho raha hai: ${config.backendUrl} ...`);
+  const token = cleanToken(config.agentToken);
+  const base = String(config.backendUrl || DEFAULT_BACKEND).replace(/\/+$/, '');
+  const wsUrl = base.replace(/^http/i, 'ws') + `/agent-ws?token=${encodeURIComponent(token)}`;
+
+  console.log(`Connecting to ${base} ...`);
+  console.log(`Config file: ${getConfigPath()}`);
 
   ws = new WebSocket(wsUrl);
 
   ws.on('open', async () => {
     reconnectDelay = 3000;
-    console.log('✅ Cloud server se connected! Ab "Sync Tally" dabao — Tally auto khulegi.');
-    console.log('   (Is window ko khula rakhein jab tak sync chahiye.)\n');
+    console.log('\n✅ CONNECTED to BolKarigar cloud!');
+    console.log('Keep this window open. Click Sync Tally in browser — Tally will open automatically.\n');
+    if (pingTimer) clearInterval(pingTimer);
+    pingTimer = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try { ws.ping(); } catch {}
+      }
+    }, 20000);
     await ensureTallyRunning();
   });
 
@@ -135,28 +188,28 @@ function connect(config) {
     try { msg = JSON.parse(raw); } catch { return; }
 
     if (msg.type === 'connected') {
-      console.log(`ℹ️  ${msg.message}`);
+      console.log(msg.message || 'Agent registered.');
       return;
     }
 
     if (msg.type === 'open_tally') {
-      console.log('📂 Sync Tally click — Tally Prime auto open...');
+      console.log('Sync Tally clicked — opening Tally Prime...');
       await ensureTallyRunning();
       return;
     }
 
     if (msg.type === 'sync_request') {
-      console.log(`📨 Naya sync request mila (id: ${msg.requestId}). Tally ko bhej rahe hain...`);
+      console.log(`Sync request ${msg.requestId} — sending to Tally...`);
       await ensureTallyRunning();
       try {
         const tallyRes = await fetch(TALLY_LOCAL_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/xml' },
           body: msg.xml,
-          timeout: 15000
+          timeout: 20000
         });
         const responseText = await tallyRes.text();
-        console.log(`✅ Tally se response mila (status ${tallyRes.status}). Cloud ko bhej rahe hain...`);
+        console.log(`Tally response HTTP ${tallyRes.status}`);
         ws.send(JSON.stringify({
           type: 'sync_result',
           requestId: msg.requestId,
@@ -164,39 +217,46 @@ function connect(config) {
           responseText
         }));
       } catch (err) {
-        console.error(`❌ Tally se connect nahi ho paya: ${err.message}`);
-        console.error('   Confirm karein Tally Prime khuli hai aur Settings → Connectivity → "TallyPrime acts as: Server/Both", Port 9000 hai.');
+        console.error(`Tally error: ${err.message}`);
+        console.error('Open Tally → F1 → Connectivity → HTTP Server ON, port 9000.');
         ws.send(JSON.stringify({
           type: 'sync_result',
           requestId: msg.requestId,
           ok: false,
-          error: `Agent Tally se connect nahi kar paya: ${err.message}`
+          error: `Could not reach Tally on localhost:9000 — ${err.message}`
         }));
       }
     }
   });
 
   ws.on('close', (code, reason) => {
+    if (pingTimer) clearInterval(pingTimer);
+    const why = reason ? reason.toString() : '';
+    if (code === 4001) {
+      console.error('\n❌ Token missing in connection URL.\n');
+      process.exit(1);
+    }
     if (code === 4003) {
-      console.error('\n❌ Agent Token galat hai. agent-config.json delete karke dobara sahi token daalein.\n');
+      console.error('\n❌ Invalid pairing token. In BolKarigar: Copy token again → run Connect Agent.bat\n');
       process.exit(1);
     }
     if (code === 4009) {
-      console.error('\n⚠️  Aapka token app se reset kar diya gaya hai. Naya token lekar agent-config.json update karein.\n');
+      console.error('\n⚠️ Token was reset in app. Download new Connect Agent.bat from sidebar.\n');
       process.exit(1);
     }
-    console.log(`🔌 Connection cut gaya. ${reconnectDelay / 1000}s mein dobara try karenge...`);
+    console.log(`Disconnected (${code}${why ? ': ' + why : ''}). Retry in ${reconnectDelay / 1000}s...`);
     setTimeout(() => connect(config), reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_DELAY);
   });
 
   ws.on('error', (err) => {
-    console.error(`⚠️  Connection error: ${err.message}`);
+    console.error(`Connection error: ${err.message}`);
+    console.error('Check internet firewall allows WebSocket (wss) to bolkarigar.onrender.com');
   });
 }
 
 (async () => {
-  console.log('=== BolKarigar Tally Sync — Desktop Agent ===');
+  console.log('=== BolKarigar Tally Sync Agent ===');
   const config = await ensureConfig();
   connect(config);
 })();

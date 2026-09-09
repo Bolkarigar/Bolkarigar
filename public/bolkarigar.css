@@ -373,7 +373,9 @@
   .tally-token-row code {
     flex: 1;
     font-size: 10px;
-    word-break: break-all;
+    white-space: nowrap;
+    overflow-x: auto;
+    word-break: normal;
     background: rgba(180,131,22,.25);
     padding: 6px;
     border-radius: 6px;
@@ -3186,6 +3188,21 @@ body.app-lock-active { overflow: hidden; }
   margin-top: 4px;
   font-weight: 600;
 }
+.tally-connect-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+.tally-connect-btn:hover { filter: brightness(1.08); }
 .tally-dl-link-secondary {
   display: block;
   margin-top: 6px;
