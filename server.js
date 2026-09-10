@@ -1683,6 +1683,31 @@ function sendOpenTallyToAgent(userId) {
   return false;
 }
 
+function sendTallyCheckToAgent(userId) {
+  return new Promise((resolve, reject) => {
+    const ws = connectedAgents.get(String(userId));
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return reject(new Error('Desktop Agent is not connected. Run Connect Agent.bat.'));
+    }
+    const requestId = crypto.randomUUID();
+    const timeoutHandle = setTimeout(() => {
+      pendingAgentRequests.delete(requestId);
+      reject(new Error('Tally HTTP check timed out. Keep Agent window open.'));
+    }, 20000);
+    pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle, kind: 'tally_check' });
+    ws.send(JSON.stringify({ type: 'tally_check', requestId }));
+  });
+}
+
+const TALLY_HTTP_SETUP_STEPS = [
+  'Tally window par click karein',
+  'Lokansh Ltd company select karein',
+  'F12 dabayein → F1 → Connectivity',
+  'HTTP Server = Yes (ya Both), Port = 9000',
+  'Accept / Save dabayein',
+  'BolKarigar sidebar me "Test Tally HTTP" dabayein — green ho to Sync Tally'
+];
+
 // Tally Prime ko launch karne ki koshish karta hai — agar Desktop Agent
 // connected hai to usi ko instruction bhejta hai (kyunki Tally uske PC par
 // hai), warna (single-PC local setup ke liye) seedha is machine par exec karta hai.
@@ -1696,6 +1721,54 @@ app.get('/api/tally/agent-status', authenticateToken, requireBusinessPlan, (req,
     localSetup,
     canSync: agentConnected || localSetup
   });
+});
+
+app.get('/api/tally/http-status', authenticateToken, requireBusinessPlan, async (req, res) => {
+  const userId = String(req.dataUserId);
+  const agentConnected = connectedAgents.has(userId);
+  if (!agentConnected) {
+    return res.json({
+      success: true,
+      agentConnected: false,
+      httpReady: false,
+      message: 'Desktop Agent offline. Run Connect Agent.bat and keep window open.',
+      steps: TALLY_HTTP_SETUP_STEPS
+    });
+  }
+  try {
+    const check = await sendTallyCheckToAgent(userId);
+    const httpReady = !!check.httpUp;
+    let message = 'Tally HTTP port 9000 is ON — sync will work.';
+    if (!httpReady) {
+      if (check.tallyRunning && !check.portOpen) {
+        message = 'Tally is OPEN but HTTP Server is OFF on port 9000. Enable it in Tally Connectivity settings (steps below).';
+      } else if (check.portOpen && !check.httpUp) {
+        message = 'Port 9000 is open but Tally is not responding. Select company (Lokansh Ltd) in Tally Gateway, then enable HTTP Server.';
+      } else if (!check.tallyRunning) {
+        message = 'Tally is not running. Open Tally Prime, select company, enable HTTP Server on port 9000.';
+      } else {
+        message = 'Tally HTTP not ready. Follow steps below, then click Test Tally HTTP again.';
+      }
+    }
+    res.json({
+      success: true,
+      agentConnected: true,
+      httpReady,
+      portOpen: !!check.portOpen,
+      tallyRunning: !!check.tallyRunning,
+      agentVersion: check.agentVersion || '',
+      message,
+      steps: httpReady ? [] : TALLY_HTTP_SETUP_STEPS
+    });
+  } catch (err) {
+    res.status(502).json({
+      success: false,
+      agentConnected: true,
+      httpReady: false,
+      message: err.message,
+      steps: TALLY_HTTP_SETUP_STEPS
+    });
+  }
 });
 
 app.get('/api/tally/agent-token', authenticateToken, requireBusinessPlan, async (req, res) => {
@@ -2844,6 +2917,16 @@ agentWss.on('connection', async (ws, req) => {
       if (msg.type === 'agent_ping') {
         ws.isAlive = true;
         try { ws.send(JSON.stringify({ type: 'agent_pong', t: Date.now() })); } catch {}
+        return;
+      }
+
+      if (msg.type === 'tally_check_result' && msg.requestId) {
+        const pending = pendingAgentRequests.get(msg.requestId);
+        if (pending) {
+          clearTimeout(pending.timeoutHandle);
+          pendingAgentRequests.delete(msg.requestId);
+          pending.resolve(msg);
+        }
         return;
       }
 

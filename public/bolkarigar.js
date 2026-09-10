@@ -4143,6 +4143,42 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 // ================= TALLY INTEGRATION =================
+async function checkTallyHttpStatus() {
+  const token = getToken();
+  if (!token) return { httpReady: false, message: "Login required.", steps: [] };
+  try {
+    const res = await fetch(`${API_URL}/api/tally/http-status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    return {
+      httpReady: !!data.httpReady,
+      agentConnected: !!data.agentConnected,
+      message: data.message || data.error || "Could not check Tally HTTP.",
+      steps: data.steps || [],
+      portOpen: data.portOpen,
+      tallyRunning: data.tallyRunning
+    };
+  } catch {
+    return { httpReady: false, message: "Network error checking Tally HTTP.", steps: [] };
+  }
+}
+
+async function ensureTallyHttpBeforeSync() {
+  const status = await checkTallyHttpStatus();
+  if (status.httpReady) return true;
+  const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
+  const msg =
+    "⚠️ Tally HTTP Server band hai — isliye bill add nahi ho raha!\n\n" +
+    (status.message || "") +
+    (steps ? `\n\n${steps}` : "") +
+    "\n\nHTTP ON karke sidebar me 'Test Tally HTTP' dabao — green message aaye tab Sync Tally.";
+  if (typeof showToast === "function") showToast(msg, "error");
+  else alert(msg);
+  openTallyAgentSidebar();
+  return false;
+}
+
 async function checkTallyAgentReady() {
   const token = getToken();
   if (!token) return { canSync: false, reason: "Please log in first." };
@@ -4194,6 +4230,11 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
       else alert(msg);
       if (typeof showCommand === "function") showCommand("Desktop Agent offline — download Agent from sidebar.");
       return false;
+    }
+
+    if (ready.agentConnected) {
+      const httpOk = await ensureTallyHttpBeforeSync();
+      if (!httpOk) return false;
     }
 
     const ewayDetails = getEWayBillDetails();
@@ -7060,11 +7101,26 @@ async function refreshTallyAgentStatus() {
       : data.localSetup
         ? "🟡 Local Tally mode"
         : "🔴 Agent offline";
-    const detail = data.agentConnected
+    let detail = data.agentConnected
       ? "✅ Connected — sync unlimited bills today. Just click Sync Tally for each new invoice."
       : data.localSetup
         ? "Local mode — direct sync available."
         : "Agent offline. Run Connect Agent.bat once (token saved). Keep window minimized all day.";
+    if (data.agentConnected) {
+      try {
+        const http = await checkTallyHttpStatus();
+        if (http.httpReady) {
+          detail = "✅ Agent + Tally HTTP OK — Sync Tally dabao.";
+          if (chip) chip.textContent = "🟢 Tally ready";
+        } else if (http.tallyRunning) {
+          detail = "⚠️ Agent OK but HTTP Server OFF — F12→F1→Connectivity→HTTP Yes, Port 9000. Then Test Tally HTTP.";
+          if (chip) chip.textContent = "🟡 HTTP OFF";
+        } else {
+          detail = "⚠️ Agent OK — open Tally + enable HTTP port 9000, then Test Tally HTTP.";
+          if (chip) chip.textContent = "🟡 Setup Tally";
+        }
+      } catch (_) { /* keep default detail */ }
+    }
     if (chip) {
       chip.textContent = label;
       chip.className = "tally-status-chip " + (online ? "tally-status-online" : "tally-status-offline");
@@ -7162,6 +7218,22 @@ function downloadAgentConnectBat() {
     showToast("Double-click .bat once in morning. Token saves forever — unlimited bills all day.", "info");
   }
 }
+
+document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () => {
+  const btn = document.getElementById("testTallyHttpBtn");
+  if (btn) btn.textContent = "Testing…";
+  const status = await checkTallyHttpStatus();
+  if (btn) btn.textContent = "🔌 Test Tally HTTP (port 9000)";
+  if (status.httpReady) {
+    const okMsg = "✅ Tally HTTP port 9000 ON — ab Sync Tally dabao!";
+    if (typeof showToast === "function") showToast(okMsg, "success");
+    else alert(okMsg);
+  } else {
+    const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
+    alert(`❌ ${status.message}\n\n${steps}`);
+  }
+  refreshTallyAgentStatus();
+});
 
 document.getElementById("connectAgentBtn")?.addEventListener("click", downloadAgentConnectBat);
 

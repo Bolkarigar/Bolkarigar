@@ -8,8 +8,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const { exec } = require('child_process');
+const net = require('net');
 
-const AGENT_VERSION = '2026.09.10d';
+const AGENT_VERSION = '2026.09.11';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_URL_CANDIDATES = ['http://localhost:9000', 'http://127.0.0.1:9000'];
 let tallyLocalUrl = TALLY_URL_CANDIDATES[0];
@@ -76,11 +77,21 @@ function printHttpServerSteps() {
   console.log('  Tally HTTP Server ON karna ZAROORI hai (1 minute)');
   console.log('  1. Tally window par click karein');
   console.log('  2. Company select karein (Lokansh Ltd)');
-  console.log('  3. F12 dabayein → F1 → Connectivity');
+  console.log('  3. F1 → Settings → Connectivity (ya Configure → Client/Server)');
   console.log('  4. HTTP Server = Yes (ya Both)');
   console.log('  5. Port = 9000 → Accept / Save');
   console.log('  6. BolKarigar me dubara Sync Tally dabayein');
   console.log('══════════════════════════════════════════════════\n');
+}
+
+function isPort9000Open() {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port: 9000 });
+    socket.setTimeout(4000);
+    socket.on('connect', () => { socket.destroy(); resolve(true); });
+    socket.on('timeout', () => { socket.destroy(); resolve(false); });
+    socket.on('error', () => resolve(false));
+  });
 }
 
 async function isTallyHttpUp() {
@@ -309,6 +320,30 @@ function connect(config) {
     if (msg.type === 'open_tally') {
       if (Date.now() - lastTallyLaunchAt > 60000) {
         ensureTallyRunning().catch(() => {});
+      }
+      return;
+    }
+
+    if (msg.type === 'tally_check') {
+      const tallyRunning = await isTallyProcessRunning();
+      const portOpen = await isPort9000Open();
+      const httpUp = await isTallyHttpUp();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'tally_check_result',
+          requestId: msg.requestId,
+          tallyRunning,
+          portOpen,
+          httpUp,
+          agentVersion: AGENT_VERSION
+        }));
+      }
+      if (httpUp) {
+        console.log('✅ Test: Tally HTTP port 9000 OK.');
+      } else if (tallyRunning) {
+        console.log('❌ Test: Tally open but HTTP Server OFF — F12 → F1 → Connectivity → HTTP Yes, Port 9000');
+      } else {
+        console.log('❌ Test: Tally not running or HTTP off.');
       }
       return;
     }
