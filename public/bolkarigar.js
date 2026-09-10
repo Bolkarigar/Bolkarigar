@@ -189,6 +189,8 @@ function bkStaffFallbackTab(me) {
 
 function bkCanAccessTab(me, tabId) {
   const sub = me?.subscription;
+  // Overview detail pages (Total Sales, Purchase, etc.) — same access as Overview
+  if (tabId === "businessRecordsPanel") return bkCanAccessTab(me, "overviewPanel");
   // Staff Meri Hajri — Pro/Business active plan par; allowedTabs se pehle check karo
   if (tabId === "payrollPanel") {
     if (!me?.isStaff) return !!sub?.fullAccess;
@@ -382,7 +384,7 @@ async function loadServerData(opts = {}) {
     if (meRes.ok) {
       const me = await meRes.json();
       if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
-        ["businessCardPanel", "securityPanel", "purchasePanel"].forEach((tab) => {
+        ["businessCardPanel", "securityPanel", "purchasePanel", "businessRecordsPanel"].forEach((tab) => {
           if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
         });
       }
