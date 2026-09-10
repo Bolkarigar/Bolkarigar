@@ -1713,6 +1713,7 @@ const TALLY_HTTP_SETUP_STEPS = [
   'F1 → Settings → Connectivity → Client/Server Configuration',
   'TallyPrime acts as = Server ya Both',
   'HTTP Server = Yes, Port = 9000 → Accept',
+  'Tally band karke dubara kholo (HTTP apply hone ke liye restart zaroori)',
   'BolKarigar sidebar → "Test Tally HTTP" — green aaye tab Sync Tally',
   'EDU note: voucher sirf month ki 1st, 2nd ya last date par dikhega Day Book mein'
 ];
@@ -1747,12 +1748,15 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
   try {
     const check = await sendTallyCheckToAgent(userId);
     const httpReady = !!check.httpUp;
-    let message = 'Tally HTTP port 9000 is ON — sync will work.';
-    if (!httpReady) {
+    const tallyPort = check.tallyPort || 9000;
+    let message = `Tally HTTP port ${tallyPort} is ON — sync will work.`;
+    if (httpReady && check.weakHttp) {
+      message = `Port ${tallyPort} is open — select your company in Tally Gateway (e.g. Lokansh Ltd), then Sync Tally.`;
+    } else if (!httpReady) {
       if (check.tallyRunning && !check.portOpen) {
-        message = 'Tally is OPEN but HTTP Server is OFF on port 9000. Enable it in Tally Connectivity settings (steps below).';
+        message = 'Tally is OPEN but HTTP Server is OFF on port 9000. Enable it, Accept, then RESTART Tally once.';
       } else if (check.portOpen && !check.httpUp) {
-        message = 'Port 9000 is open but Tally is not responding. Select company (Lokansh Ltd) in Tally Gateway, then enable HTTP Server.';
+        message = 'Port is open but Tally is not responding. Select company in Gateway, then restart Tally.';
       } else if (!check.tallyRunning) {
         message = 'Tally is not running. Open Tally Prime, select company, enable HTTP Server on port 9000.';
       } else {
@@ -1763,11 +1767,13 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
       success: true,
       agentConnected: true,
       httpReady,
+      weakHttp: !!check.weakHttp,
+      tallyPort,
       portOpen: !!check.portOpen,
       tallyRunning: !!check.tallyRunning,
       agentVersion: check.agentVersion || '',
       message,
-      steps: httpReady ? [] : TALLY_HTTP_SETUP_STEPS
+      steps: httpReady && !check.weakHttp ? [] : TALLY_HTTP_SETUP_STEPS
     });
   } catch (err) {
     res.status(502).json({
