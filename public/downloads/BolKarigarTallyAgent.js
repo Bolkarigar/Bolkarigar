@@ -11,7 +11,7 @@ const { exec } = require('child_process');
 const net = require('net');
 const http = require('http');
 
-const AGENT_VERSION = '2026.09.11odbc';
+const AGENT_VERSION = '2026.09.11http2';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_HOSTS = ['127.0.0.1', 'localhost'];
 const TALLY_PORTS = [9000, 9001, 9002];
@@ -24,6 +24,8 @@ const TALLY_EXE_PATHS = [
 ];
 const TALLY_PING_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>LicenseInfo</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
 const TALLY_COMPANIES_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>List of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
+const TALLY_COMPANIES_COLLECTION_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>List of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
+const TALLY_PROBE_XMLS = [TALLY_COMPANIES_XML, TALLY_COMPANIES_COLLECTION_XML, TALLY_PING_XML];
 const TALLY_HTTP_HELP =
   'Tally HTTP Server OFF. ODBC ON is NOT enough. F1 → Settings → Advanced Configuration → HTTP Server = Yes (port 9000). Also Connectivity → acts as Both. Restart Tally, select company, then Sync.';
 const TALLY_ODBC_ONLY_HELP =
@@ -79,23 +81,27 @@ function isTallyProcessRunning() {
 
 function printHttpServerSteps(extra) {
   console.log('\n══════════════════════════════════════════════════');
-  console.log('  ⚠️  ODBC ON ≠ HTTP ON  (aapki screenshot mein sirf ODBC ON hai)');
-  console.log('  BolKarigar = XML over HTTP. Excel/ODBC setting kaam nahi karegi.');
+  console.log('  ⚠️  ODBC ON ≠ HTTP ON');
+  console.log('  Aapki screen mein sirf "Enable ODBC = Yes" dikh raha hai.');
+  console.log('  BolKarigar ko alag se "Enable HTTP Server = Yes" chahiye.');
   if (extra) console.log(`  ${extra}`);
   console.log('');
-  console.log('  STEP A — HTTP Server (ZAROORI):');
-  console.log('    F1 → Settings → Advanced Configuration');
-  console.log('    → Enable HTTP Server = Yes (port 9000 default)');
-  console.log('    → Accept / Save');
-  console.log('');
-  console.log('  STEP B — Connectivity (supporting):');
+  console.log('  METHOD 1 — Connectivity screen (same screen, neeche scroll):');
   console.log('    F1 → Settings → Connectivity → Client/Server');
   console.log('    → TallyPrime acts as = Both');
-  console.log('    → Accept');
+  console.log('    → Enable ODBC Server = Yes');
+  console.log('    → Enable HTTP Server = Yes   ← YEH LINE ALG HAI (ODBC ke neeche)');
+  console.log('    → Port = 9000 → Accept (Ctrl+A)');
   console.log('');
-  console.log('  STEP C — Company + restart:');
-  console.log('    Gateway se company select (Lokansh Ltd) → Tally restart');
+  console.log('  METHOD 2 — Advanced Configuration (agar upar HTTP na dikhe):');
+  console.log('    F1 → Settings → Advanced Configuration');
+  console.log('    → Enable HTTP Server = Yes (port 9000)');
+  console.log('    → Accept / Save');
+  console.log('');
+  console.log('  STEP C — Company + restart (ZAROORI):');
+  console.log('    Gateway → company select karein (Lokansh Ltd) → Tally band karke dubara kholo');
   console.log('    BolKarigar → Test Tally HTTP → Sync Tally');
+  console.log('  EDU note: voucher Day Book mein 1st / 2nd / last date par dikhega.');
   console.log('══════════════════════════════════════════════════\n');
 }
 
@@ -150,7 +156,15 @@ function tallyHttpResponseOk(status, text) {
   if (/connection refused|econnrefused/i.test(body)) return false;
   if (body.includes('<ENVELOPE') || body.includes('<RESPONSE') || body.includes('TALLY')) return true;
   if (body.includes('LINEERROR') || body.includes('Unknown Request')) return true;
-  return body.length >= 8;
+  if (body.includes('<COMPANY') || body.includes('<COLLECTION')) return true;
+  return body.length >= 12 && /xml/i.test(body.slice(0, 120));
+}
+
+function looksLikeOdbcOnlyResponse(text) {
+  const body = String(text || '').trim();
+  if (!body) return false;
+  if (body.includes('<ENVELOPE') || body.includes('<RESPONSE') || body.includes('TALLY')) return false;
+  return true;
 }
 
 async function postTallyXml(host, port, body) {
@@ -185,6 +199,7 @@ async function probeTallyHttp() {
   let anyPortOpen = false;
   let openHost = '';
   let openPort = 0;
+  let lastProbe = { status: 0, text: '', host: '', port: 0 };
 
   for (const port of TALLY_PORTS) {
     for (const host of TALLY_HOSTS) {
@@ -196,9 +211,10 @@ async function probeTallyHttp() {
       }
       if (!portOpen) continue;
 
-      for (const body of [TALLY_COMPANIES_XML, TALLY_PING_XML]) {
+      for (const body of TALLY_PROBE_XMLS) {
         try {
           const res = await postTallyXml(host, port, body);
+          lastProbe = { status: res.status || 0, text: res.text || '', host, port };
           if (tallyHttpResponseOk(res.status, res.text)) {
             tallyLocalUrl = res.url || `http://${host}:${port}`;
             tallyHttpKnownDown = false;
@@ -207,12 +223,26 @@ async function probeTallyHttp() {
               portOpen: true,
               host,
               port,
-              weak: false
+              weak: false,
+              companyRequired: false
             };
           }
-        } catch {
-          /* try next payload */
+        } catch (err) {
+          lastProbe = { status: 0, text: String(err.message || ''), host, port };
         }
+      }
+
+      try {
+        const getRes = await fetchWithTimeout(`http://${host}:${port}/`, { method: 'GET' }, 5000);
+        const getText = await getRes.text();
+        lastProbe = { status: getRes.status || 0, text: getText || '', host, port };
+        if (tallyHttpResponseOk(getRes.status, getText)) {
+          tallyLocalUrl = `http://${host}:${port}`;
+          tallyHttpKnownDown = false;
+          return { httpUp: true, portOpen: true, host, port, weak: false, companyRequired: false };
+        }
+      } catch {
+        /* GET optional */
       }
     }
   }
@@ -220,17 +250,23 @@ async function probeTallyHttp() {
   if (anyPortOpen) {
     tallyLocalUrl = `http://${openHost}:${openPort}`;
     tallyHttpKnownDown = true;
+    const emptyBody = !lastProbe.text || lastProbe.text.trim().length < 5;
+    const companyRequired = emptyBody || /no company|company not|select company|could not find company/i.test(lastProbe.text);
+    const odbcOnly = !companyRequired && (emptyBody || looksLikeOdbcOnlyResponse(lastProbe.text));
     return {
       httpUp: false,
       portOpen: true,
-      odbcOnly: true,
+      odbcOnly,
+      companyRequired,
       host: openHost,
       port: openPort,
-      weak: false
+      weak: false,
+      probeStatus: lastProbe.status,
+      probeSnippet: String(lastProbe.text || '').replace(/\s+/g, ' ').slice(0, 120)
     };
   }
 
-  return { httpUp: false, portOpen: false, odbcOnly: false, host: '', port: 0, weak: false };
+  return { httpUp: false, portOpen: false, odbcOnly: false, companyRequired: false, host: '', port: 0, weak: false };
 }
 
 async function isPort9000Open() {
@@ -424,9 +460,13 @@ function connect(config) {
     const probe = await probeTallyHttp();
     if (probe.httpUp) {
       console.log(`✅ Tally HTTP port ${probe.port} OK — sync will work.\n`);
+    } else if (probe.companyRequired) {
+      console.log(`⚠️  Port ${probe.port} open but company select nahi hai!\n`);
+      console.log('   Gateway → company select karein → Tally restart → Test dubara.\n');
     } else if (probe.odbcOnly) {
       console.log(`❌ Port ${probe.port} open but sirf ODBC ON hai — HTTP Server OFF!\n`);
-      printHttpServerSteps('Advanced Configuration mein HTTP Server enable karein (ODBC screen enough nahi).');
+      if (probe.probeSnippet) console.log(`   Last response: ${probe.probeSnippet}\n`);
+      printHttpServerSteps('Connectivity screen par "Enable HTTP Server = Yes" alag se ON karein.');
     } else if (await isTallyProcessRunning()) {
       console.log('⚠️  Tally open hai but port 9000 closed — HTTP Server ON karein, phir Tally restart.\n');
       printHttpServerSteps('Port 9000 abhi band hai — Advanced Configuration → HTTP Server = Yes.');
@@ -470,16 +510,21 @@ function connect(config) {
           portOpen,
           httpUp,
           odbcOnly: !!probe.odbcOnly,
+          companyRequired: !!probe.companyRequired,
           weakHttp: !!probe.weak,
           tallyPort: probe.port || 9000,
+          probeSnippet: probe.probeSnippet || '',
           agentVersion: AGENT_VERSION
         }));
       }
       if (httpUp) {
         console.log(`✅ Test: Tally HTTP port ${probe.port || 9000} OK.`);
+      } else if (probe.companyRequired) {
+        console.log('❌ Test: Port open but company not selected in Tally Gateway.');
+        console.log('   Gateway → company select → Tally restart → Test again.');
       } else if (probe.odbcOnly) {
         console.log('❌ Test: ODBC ON hai par HTTP Server OFF!');
-        console.log('   F1 → Settings → Advanced Configuration → HTTP Server = Yes');
+        console.log('   F1 → Connectivity → Enable HTTP Server = Yes (ODBC ke alag line par)');
         printHttpServerSteps();
       } else if (tallyRunning) {
         console.log('❌ Test: Tally open but HTTP port closed — Advanced Configuration → HTTP Server = Yes.');

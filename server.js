@@ -1701,20 +1701,20 @@ function sendTallyCheckToAgent(userId) {
     const timeoutHandle = setTimeout(() => {
       pendingAgentRequests.delete(requestId);
       reject(new Error('Tally HTTP check timed out. Keep Agent window open.'));
-    }, 20000);
+    }, 45000);
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle, kind: 'tally_check' });
     ws.send(JSON.stringify({ type: 'tally_check', requestId }));
   });
 }
 
 const TALLY_HTTP_SETUP_STEPS = [
-  '⚠️ ODBC ON ≠ HTTP ON — "Enable ODBC" screen BolKarigar ke liye enough NAHI hai',
-  'STEP 1 (main): F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes (port 9000)',
-  'STEP 2: F1 → Settings → Connectivity → Client/Server → TallyPrime acts as = Both → Accept',
-  'STEP 3: Gateway se company select karein (Lokansh Ltd)',
-  'STEP 4: Tally band karke dubara kholo (HTTP apply hone ke liye)',
+  '⚠️ ODBC ON ≠ HTTP ON — sirf "Enable ODBC = Yes" kaafi NAHI hai',
+  'STEP 1: F1 → Settings → Connectivity → Client/Server → acts as = Both',
+  'STEP 2: Same screen par alag line: Enable HTTP Server = Yes (ODBC ke neeche) + Port 9000',
+  'STEP 3: Agar HTTP line na dikhe → F1 → Advanced Configuration → HTTP Server = Yes',
+  'STEP 4: Gateway se company select karein → Tally restart',
   'STEP 5: BolKarigar → Test Tally HTTP — green aaye tab Sync Tally',
-  'EDU note: voucher sirf month ki 1st, 2nd ya last date par dikhega Day Book mein'
+  'EDU note: Day Book mein voucher 1st / 2nd / last date par dikhega'
 ];
 
 // Tally Prime ko launch karne ki koshish karta hai — agar Desktop Agent
@@ -1748,17 +1748,20 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
     const check = await sendTallyCheckToAgent(userId);
     const httpReady = !!check.httpUp;
     const odbcOnly = !!check.odbcOnly;
+    const companyRequired = !!check.companyRequired;
     const tallyPort = check.tallyPort || 9000;
     let message = `Tally HTTP port ${tallyPort} is ON — sync will work.`;
-    if (!httpReady && odbcOnly) {
-      message = 'Port 9000 open but only ODBC is ON — NOT HTTP Server. F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes. ODBC screen is different!';
+    if (!httpReady && companyRequired) {
+      message = 'Port 9000 open but no company selected in Tally. Gateway → select company → restart Tally → Test again.';
+    } else if (!httpReady && odbcOnly) {
+      message = 'Port 9000 open but only ODBC is ON — NOT HTTP Server. F1 → Connectivity → Enable HTTP Server = Yes (separate line below ODBC). Or Advanced Configuration → HTTP Server = Yes.';
     } else if (!httpReady) {
       if (check.tallyRunning && !check.portOpen) {
-        message = 'Tally is OPEN but HTTP Server is OFF. F1 → Settings → Advanced Configuration → HTTP Server = Yes, then restart Tally.';
+        message = 'Tally is OPEN but HTTP Server is OFF. F1 → Connectivity → Enable HTTP Server = Yes, Port 9000, then restart Tally.';
       } else if (check.portOpen && !check.httpUp) {
-        message = 'Port is open but HTTP XML not responding. Enable HTTP Server in Advanced Configuration (not ODBC only).';
+        message = 'Port is open but HTTP XML not responding. Enable HTTP Server (not ODBC only) and select company in Gateway.';
       } else if (!check.tallyRunning) {
-        message = 'Tally is not running. Open Tally Prime, enable HTTP Server in Advanced Configuration, select company.';
+        message = 'Tally is not running. Open Tally Prime, enable HTTP Server, select company.';
       } else {
         message = 'Tally HTTP not ready. Follow steps below, then click Test Tally HTTP again.';
       }
@@ -1768,11 +1771,13 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
       agentConnected: true,
       httpReady,
       odbcOnly,
+      companyRequired,
       weakHttp: !!check.weakHttp,
       tallyPort,
       portOpen: !!check.portOpen,
       tallyRunning: !!check.tallyRunning,
       agentVersion: check.agentVersion || '',
+      probeSnippet: check.probeSnippet || '',
       message,
       steps: httpReady ? [] : TALLY_HTTP_SETUP_STEPS
     });
