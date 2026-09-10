@@ -18,7 +18,7 @@ const PLANS = {
 /** Pro (FREE) — sidebar tabs included in free plan */
 const PRO_PLAN_TABS = [
   'overviewPanel', 'invoicePanel', 'purchasePanel', 'paymentVoucherPanel', 'receiptVoucherPanel',
-  'voicePanel', 'inventoryPanel', 'totalSalesPanel',
+  'voicePanel', 'inventoryPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
   'modifyPanel',
   'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'

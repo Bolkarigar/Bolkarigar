@@ -10,8 +10,8 @@
       plans: ["pro"],
       color: "#3b82f6",
       title: "📊 Overview (Dashboard / डैशबोर्ड)",
-      hindi: "Yeh aapka AI Accountant dashboard hai. Total Sales, Expenses, Pending Udhar aur Net Profit ek nazar mein dikhte hain.",
-      english: "Real-time business dashboard showing Total Sales, Expenses, Net Profit, and Outstanding Balance."
+      hindi: "Dashboard par Total Sales, Expenses, Udhar, Net Profit dikhte hain. Neeche Business Records tabs me Sales, Purchase, Payment, Receipt aur Customer Detail bhi hai.",
+      english: "Dashboard with sales, expenses, udhar, profit — plus Business Records tabs for Sales, Purchase, Payment, Receipt and Customer Detail."
     },
     {
       id: "invoicePanel",
@@ -30,15 +30,6 @@
       title: "📦 Inventory (Stock / स्टॉक)",
       hindi: "Dukaan ya godam mein kitna saman bacha hai, unit price aur total stock value track karein. Low stock alert bhi milta hai.",
       english: "Track product stock quantities, unit prices, and total inventory value with low-stock alerts."
-    },
-    {
-      id: "totalSalesPanel",
-      panelId: "totalSalesPanel",
-      plans: ["pro"],
-      color: "#0ea5e9",
-      title: "📊 Total Sales (Bikri Report / कुल बिक्री)",
-      hindi: "Saari sales ki list, date-wise filter, customer/product search aur total revenue summary yahan dekhein.",
-      english: "View all sales records with date filters, search, and revenue summaries."
     },
     {
       id: "ledgerPanel",

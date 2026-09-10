@@ -2471,6 +2471,87 @@ body.sidebar-open .sidebar-tally-card {
     gap: 8px;
   }
 
+.overview-records-hub {
+  margin: 18px 0 20px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+}
+.overview-records-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.overview-records-totals {
+  margin-bottom: 12px;
+}
+.overview-rec-total-card {
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+}
+.overview-rec-total-card span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.overview-rec-total-card strong {
+  font-size: 1.05rem;
+  color: #38bdf8;
+}
+.overview-rec-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.overview-rec-tab {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.overview-rec-tab.active {
+  background: rgba(56,189,248,.15);
+  border-color: rgba(56,189,248,.45);
+  color: #7dd3fc;
+}
+.overview-rec-pane { display: none; }
+.overview-rec-pane.active { display: block; }
+.overview-rec-pane-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.overview-rec-pane-toolbar .panel-search-input {
+  flex: 1;
+  min-width: 180px;
+  max-width: 100%;
+  margin-top: 0;
+}
+.overview-customer-search {
+  margin-top: 8px;
+  align-items: center;
+}
+.overview-customer-summary {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,.12);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
   .inv-field-span2 { grid-column: auto; }
 
   .panel-header {

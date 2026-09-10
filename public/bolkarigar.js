@@ -211,6 +211,9 @@ function applyRoleBasedUI(me) {
     banner.classList.add("hidden");
   }
 
+  document.querySelector('.tab-btn[data-tab="totalSalesPanel"]')?.remove();
+  document.getElementById("totalSalesPanel")?.remove();
+
   document.querySelectorAll(".tab-btn[data-tab]").forEach((btn) => {
     const tab = btn.dataset.tab;
     const show = bkCanAccessTab(me, tab);
@@ -1556,6 +1559,12 @@ if (document.readyState === "loading") {
 }
 
 function openPanel(id) {
+  if (id === "totalSalesPanel") {
+    id = "overviewPanel";
+    if (typeof window.bkOverviewSwitchTab === "function") {
+      setTimeout(() => window.bkOverviewSwitchTab("sales"), 0);
+    }
+  }
   const me = window._bkAccountInfo;
   if (me && !bkCanAccessTab(me, id)) {
     showToast("This section is not allowed for your role.", "error");
@@ -1577,8 +1586,11 @@ function openPanel(id) {
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
   }
-  if (id === "totalSalesPanel" && !wasAlreadyActive && typeof window.bkRefreshSalesPanel === "function") {
-    window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
+  if (id === "overviewPanel") {
+    if (typeof window.bkRefreshOverviewRecords === "function") window.bkRefreshOverviewRecords();
+    else if (typeof window.bkRefreshSalesPanel === "function") {
+      window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
+    }
   }
   if (id === "invoicePanel") {
     if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
@@ -1782,7 +1794,7 @@ function parseCommands(raw) {
     text.includes("कुल बिक्री") || text.includes("सेल्स") || text.includes("sales report")
   ) {
     openPanel("totalSalesPanel");
-    showCommand("Total Sales History open ho gayi.", { speak: true });
+    showCommand("Overview — Total Sales open ho gayi.", { speak: true });
     return true;
   }
   
@@ -1940,7 +1952,7 @@ function parseCommands(raw) {
     text.includes("कुल बिक्री") || text.includes("सेल्स") || text.includes("sales report")
   ) {
     openPanel("totalSalesPanel");
-    showCommand("Total Sales History open ho gayi.", { speak: true });
+    showCommand("Overview — Total Sales open ho gayi.", { speak: true });
     return true;
   }
 
@@ -2825,6 +2837,7 @@ window.bkParseSearchQuery = parseSearchQuery;
 function getActiveSearchInput(preferPanelId) {
   const panelId = preferPanelId || document.querySelector(".panel.active")?.id;
   const byPanel = {
+    overviewPanel: "salesSearchInput",
     totalSalesPanel: "salesSearchInput",
     inventoryPanel: "invSearch",
     mediaPanel: "searchInput"
@@ -2856,9 +2869,11 @@ async function applyVoiceSearch(query, opts) {
   const targetPanel = forcePanel || activeId;
   const value = clear ? "" : String(query || "").trim();
 
-  if (targetPanel === "totalSalesPanel" || activeId === "totalSalesPanel") {
-    if (activeId !== "totalSalesPanel" && typeof openPanel === "function") {
+  if (targetPanel === "totalSalesPanel" || activeId === "totalSalesPanel" || forcePanel === "totalSalesPanel") {
+    if (activeId !== "overviewPanel" && activeId !== "totalSalesPanel" && typeof openPanel === "function") {
       openPanel("totalSalesPanel");
+    } else if (activeId === "overviewPanel" && typeof window.bkOverviewSwitchTab === "function") {
+      window.bkOverviewSwitchTab("sales");
     }
     if (typeof window._bkPauseVoiceForTts === "function") window._bkPauseVoiceForTts();
     const inp = document.getElementById("salesSearchInput");
@@ -2965,7 +2980,7 @@ function clearActivePanelForm() {
     showCommand("Converter clear kar diya.");
     return;
   }
-  if (activeId === "totalSalesPanel") {
+  if (activeId === "totalSalesPanel" || activeId === "overviewPanel") {
     if (typeof window.bkSetSalesSearch === "function") {
       window.bkSetSalesSearch("");
     }
@@ -4460,6 +4475,8 @@ async function refreshOverviewSalesFromHistory() {
     );
     const salesEl = document.getElementById("totalSalesVal");
     if (salesEl) salesEl.textContent = `₹${total.toFixed(2)}`;
+    const ovSalesEl = document.getElementById("ovTotalSalesAmt");
+    if (ovSalesEl) ovSalesEl.textContent = `₹${total.toFixed(2)}`;
     const netEl = document.getElementById("netProfitVal");
     if (netEl) netEl.textContent = `₹${(total - expenses).toFixed(2)}`;
     return total;
@@ -6724,7 +6741,7 @@ function getEWayBillDetails() {
 // history kabhi affect nahi hoti.
 // ==========================================================================
 (function () {
-  const salesPanel = document.getElementById("totalSalesPanel");
+  const salesPanel = document.getElementById("overviewTabSales");
   if (!salesPanel) return;
 
   let currentPage = 1;
@@ -6909,11 +6926,6 @@ function getEWayBillDetails() {
     return true;
   };
 
-  document.querySelector('.tab-btn[data-tab="totalSalesPanel"]')?.addEventListener("click", () => {
-    currentPage = 1;
-    loadSalesHistory();
-  });
-
   document.getElementById("salesApplyDateBtn")?.addEventListener("click", () => {
     const from = document.getElementById("salesFromDate")?.value || "";
     const to = document.getElementById("salesToDate")?.value || "";
@@ -6969,6 +6981,245 @@ function getEWayBillDetails() {
     if (currentPage < currentTotalPages) { currentPage++; loadSalesHistory(); }
   });
 })();
+
+// ==========================================================================
+// 🟢 OVERVIEW — Business Records (Sales, Purchase, Payment, Receipt, Customer)
+// ==========================================================================
+(function () {
+  const hub = document.querySelector(".overview-records-hub");
+  if (!hub) return;
+
+  let activeOvTab = "sales";
+  const voucherCache = { Purchase: [], Payment: [], Receipt: [] };
+
+  function fmtMoney(n) {
+    return `₹${(parseFloat(n) || 0).toFixed(2)}`;
+  }
+
+  function fmtDate(d) {
+    try { return new Date(d).toLocaleDateString("en-IN"); } catch { return "—"; }
+  }
+
+  window.bkOverviewSwitchTab = function (tab) {
+    activeOvTab = tab || "sales";
+    document.querySelectorAll(".overview-rec-tab").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.ovTab === activeOvTab);
+    });
+    document.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+      pane.classList.toggle("active", pane.dataset.ovPane === activeOvTab);
+    });
+    if (activeOvTab === "sales" && typeof window.bkRefreshSalesPanel === "function") {
+      window.bkRefreshSalesPanel({ resetPage: true });
+    } else if (activeOvTab === "customer") {
+      loadCustomerList();
+    } else if (["purchase", "payment", "receipt"].includes(activeOvTab)) {
+      const typeMap = { purchase: "Purchase", payment: "Payment", receipt: "Receipt" };
+      loadVoucherTab(typeMap[activeOvTab]);
+    }
+    hub.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  document.querySelectorAll(".overview-rec-tab").forEach((btn) => {
+    btn.addEventListener("click", () => window.bkOverviewSwitchTab(btn.dataset.ovTab));
+  });
+
+  async function loadVoucherTab(type) {
+    const key = type;
+    const bodyId = type === "Purchase" ? "ovPurchaseBody" : type === "Payment" ? "ovPaymentBody" : "ovReceiptBody";
+    const searchId = type === "Purchase" ? "ovPurchaseSearch" : type === "Payment" ? "ovPaymentSearch" : "ovReceiptSearch";
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>`;
+    try {
+      const res = await fetch(`${API_URL}/api/vouchers?type=${encodeURIComponent(type)}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Load failed");
+      voucherCache[key] = data.vouchers || [];
+      renderVoucherTab(type);
+    } catch (err) {
+      const cols = type === "Purchase" ? 6 : 5;
+      body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">Error: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function renderVoucherTab(type) {
+    const key = type;
+    const bodyId = type === "Purchase" ? "ovPurchaseBody" : type === "Payment" ? "ovPaymentBody" : "ovReceiptBody";
+    const searchId = type === "Purchase" ? "ovPurchaseSearch" : type === "Payment" ? "ovPaymentSearch" : "ovReceiptSearch";
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+    const q = (document.getElementById(searchId)?.value || "").trim().toLowerCase();
+    let rows = voucherCache[key] || [];
+    if (q) {
+      rows = rows.filter((v) => {
+        const party = (v.partyId?.partyName || "").toLowerCase();
+        const note = (v.note || "").toLowerCase();
+        const bill = (v.supplierInvoiceNo || "").toLowerCase();
+        return party.includes(q) || note.includes(q) || bill.includes(q);
+      });
+    }
+    if (!rows.length) {
+      const cols = type === "Purchase" ? 6 : 5;
+      body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">No records found.</td></tr>`;
+      return;
+    }
+    if (type === "Purchase") {
+      body.innerHTML = rows.map((v) => `
+        <tr>
+          <td>${fmtDate(v.date)}</td>
+          <td>${escapeHtml(v.partyId?.partyName || "—")}</td>
+          <td>${escapeHtml(v.supplierInvoiceNo || "—")}</td>
+          <td style="color:#f59e0b;font-weight:700;">${fmtMoney(v.amount)}</td>
+          <td>${escapeHtml(v.paymentMode || "—")}</td>
+          <td>${escapeHtml(v.note || "—")}</td>
+        </tr>`).join("");
+    } else {
+      body.innerHTML = rows.map((v) => `
+        <tr>
+          <td>${fmtDate(v.date)}</td>
+          <td>${escapeHtml(v.partyId?.partyName || "—")}</td>
+          <td style="color:#${type === "Receipt" ? "22c55e" : "ef4444"};font-weight:700;">${fmtMoney(v.amount)}</td>
+          <td>${escapeHtml(v.paymentMode || "—")}</td>
+          <td>${escapeHtml(v.note || "—")}</td>
+        </tr>`).join("");
+    }
+    if (typeof window.enhanceMobileTables === "function") {
+      requestAnimationFrame(() => window.enhanceMobileTables(document.getElementById(`overviewTab${type}`)));
+    }
+  }
+
+  async function loadOverviewTotals() {
+    try {
+      const hdrs = { Authorization: `Bearer ${getToken()}` };
+      const [salesRes, purRes, payRes, recRes] = await Promise.all([
+        fetch(`${API_URL}/api/sales?limit=100&page=1`, { headers: hdrs }),
+        fetch(`${API_URL}/api/vouchers?type=Purchase`, { headers: hdrs }),
+        fetch(`${API_URL}/api/vouchers?type=Payment`, { headers: hdrs }),
+        fetch(`${API_URL}/api/vouchers?type=Receipt`, { headers: hdrs })
+      ]);
+      const salesData = await salesRes.json();
+      let salesTotal = 0;
+      if (salesData.success) {
+        salesTotal = (salesData.records || []).reduce((s, r) => s + (parseFloat(r.totalAmount) || 0), 0);
+        if ((salesData.totalPages || 1) > 1 && typeof window.refreshOverviewSalesFromHistory === "function") {
+          const full = await window.refreshOverviewSalesFromHistory();
+          if (full != null) salesTotal = full;
+        }
+      }
+      const purData = await purRes.json();
+      const payData = await payRes.json();
+      const recData = await recRes.json();
+      const sumV = (list) => (list || []).reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
+      const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = fmtMoney(val); };
+      el("ovTotalSalesAmt", salesTotal);
+      el("ovTotalPurchaseAmt", purData.success ? sumV(purData.vouchers) : 0);
+      el("ovTotalPaymentAmt", payData.success ? sumV(payData.vouchers) : 0);
+      el("ovTotalReceiptAmt", recData.success ? sumV(recData.vouchers) : 0);
+    } catch (e) {
+      console.warn("Overview totals:", e);
+    }
+  }
+
+  async function loadCustomerList() {
+    const dl = document.getElementById("ovCustomerList");
+    if (!dl) return;
+    try {
+      const res = await fetch(`${API_URL}/api/ledgers`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const data = await res.json();
+      if (!data.success) return;
+      dl.innerHTML = (data.ledgers || [])
+        .map((l) => `<option value="${escapeHtml(l.partyName)}"></option>`)
+        .join("");
+    } catch (_) { /* optional */ }
+  }
+
+  async function showCustomerQuickSummary(name) {
+    const box = document.getElementById("ovCustomerQuickSummary");
+    if (!box || !name) return;
+    box.classList.remove("hidden");
+    box.innerHTML = "Loading customer summary...";
+    try {
+      const hdrs = { Authorization: `Bearer ${getToken()}` };
+      const [salesRes, payRes] = await Promise.all([
+        fetch(`${API_URL}/api/sales?search=${encodeURIComponent(name)}&limit=100`, { headers: hdrs }),
+        fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, { headers: hdrs })
+      ]);
+      const salesData = await salesRes.json();
+      const payData = await payRes.json();
+      let billed = 0, paid = 0;
+      (salesData.records || []).forEach((r) => {
+        const amt = parseFloat(r.totalAmount) || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
+        billed += amt;
+        const isCredit = r.status === "Pending" || r.paymentType === "Credit";
+        if (!isCredit) paid += amt;
+      });
+      (payData.payments || []).forEach((p) => { paid += parseFloat(p.amount) || 0; });
+      const pending = billed - paid;
+      box.innerHTML = `<strong>${escapeHtml(name)}</strong><br>
+        Total Billed: ${fmtMoney(billed)} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
+        <span style="color:${pending > 0 ? "#f59e0b" : "#22c55e"}">Pending: ${fmtMoney(pending)}</span>
+        <br><span style="color:#94a3b8;font-size:12px;">Click "View Customer Detail" for full transaction list.</span>`;
+    } catch (err) {
+      box.textContent = "Could not load summary: " + err.message;
+    }
+  }
+
+  window.bkRefreshOverviewRecords = function () {
+    loadOverviewTotals();
+    loadCustomerList();
+    if (activeOvTab === "sales" && typeof window.bkRefreshSalesPanel === "function") {
+      window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
+    } else if (activeOvTab === "customer") {
+      const name = document.getElementById("ovCustomerSearch")?.value?.trim();
+      if (name) showCustomerQuickSummary(name);
+    } else {
+      const typeMap = { purchase: "Purchase", payment: "Payment", receipt: "Receipt" };
+      if (typeMap[activeOvTab]) loadVoucherTab(typeMap[activeOvTab]);
+    }
+  };
+
+  document.getElementById("overviewRecordsRefreshBtn")?.addEventListener("click", () => {
+    window.bkRefreshOverviewRecords();
+    if (typeof showToast === "function") showToast("Records refreshed.", "success");
+  });
+
+  ["ovPurchaseSearch", "ovPaymentSearch", "ovReceiptSearch"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", () => {
+      const map = { ovPurchaseSearch: "Purchase", ovPaymentSearch: "Payment", ovReceiptSearch: "Receipt" };
+      renderVoucherTab(map[id]);
+    });
+  });
+
+  document.getElementById("ovPurchaseRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Purchase"));
+  document.getElementById("ovPaymentRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Payment"));
+  document.getElementById("ovReceiptRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Receipt"));
+
+  document.getElementById("ovCustomerViewBtn")?.addEventListener("click", () => {
+    const name = document.getElementById("ovCustomerSearch")?.value?.trim();
+    if (!name) {
+      if (typeof showToast === "function") showToast("Enter customer name first.", "error");
+      return;
+    }
+    if (typeof showUdharDetail === "function") showUdharDetail(name);
+    else if (typeof showToast === "function") showToast("Customer detail modal not ready — refresh page.", "error");
+  });
+
+  document.getElementById("ovCustomerSearch")?.addEventListener("change", (e) => {
+    const name = e.target.value?.trim();
+    if (name) showCustomerQuickSummary(name);
+  });
+
+  if (document.getElementById("overviewPanel")?.classList.contains("active")) {
+    loadOverviewTotals();
+    loadCustomerList();
+    if (typeof window.bkRefreshSalesPanel === "function") {
+      window.bkRefreshSalesPanel({ resetPage: true });
+    }
+  }
+})();
+
 // ==========================================================================
 // 🟢 TOTAL SALES HISTORY — END
 // ==========================================================================

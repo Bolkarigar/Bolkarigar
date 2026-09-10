@@ -394,7 +394,7 @@
     populateLedgerGroups();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=6').then((reg) => {
+      navigator.serviceWorker.register('/sw.js?v=7').then((reg) => {
         reg.update().catch(() => {});
         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       }).catch(() => {});
