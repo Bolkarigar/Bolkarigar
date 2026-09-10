@@ -6994,13 +6994,13 @@ function getEWayBillDetails() {
 
   let activeOvTab = null;
   const voucherCache = { Purchase: [], Payment: [], Receipt: [] };
-  const TAB_LABELS = {
-    sales: "Total Sales",
-    purchase: "Total Purchase",
-    payment: "Total Payment",
-    receipt: "Total Receipt",
-    customer: "Customer Detail"
-  };
+  const RECORD_TYPES = [
+    { id: "sales", icon: "📊", label: "Total Sales", desc: "Sales list, search & date filter", amountId: "ovTotalSalesAmt" },
+    { id: "purchase", icon: "📥", label: "Total Purchase", desc: "Supplier bills & purchases", amountId: "ovTotalPurchaseAmt" },
+    { id: "payment", icon: "💸", label: "Total Payment", desc: "Payments made to parties", amountId: "ovTotalPaymentAmt" },
+    { id: "receipt", icon: "💰", label: "Total Receipt", desc: "Money received from parties", amountId: "ovTotalReceiptAmt" },
+    { id: "customer", icon: "👤", label: "Customer Detail", desc: "Customer sales, payments & udhar", amountId: null }
+  ];
 
   function fmtMoney(n) {
     return `₹${(parseFloat(n) || 0).toFixed(2)}`;
@@ -7010,25 +7010,55 @@ function getEWayBillDetails() {
     try { return new Date(d).toLocaleDateString("en-IN"); } catch { return "—"; }
   }
 
+  function esc(s) {
+    return typeof escapeHtml === "function" ? escapeHtml(s) : String(s || "");
+  }
+
+  function getAmountText(amountId) {
+    if (!amountId) return "";
+    const el = document.getElementById(amountId);
+    const t = (el?.textContent || "").trim();
+    return t && t !== "₹0.00" ? t : "";
+  }
+
+  function renderTypeGrid() {
+    const grid = document.getElementById("overviewTypeGrid");
+    if (!grid) return;
+    grid.innerHTML = RECORD_TYPES.map((t) => {
+      const amt = getAmountText(t.amountId);
+      return `
+        <button type="button" class="modify-type-card${activeOvTab === t.id ? " selected" : ""}" data-ov-type="${t.id}">
+          <span class="modify-type-icon">${t.icon}</span>
+          <span class="modify-type-label">${esc(t.label)}</span>
+          <span class="modify-type-desc">${esc(t.desc)}${amt ? `<br><strong style="color:#38bdf8;margin-top:4px;display:inline-block;">${esc(amt)}</strong>` : ""}</span>
+        </button>`;
+    }).join("");
+    grid.querySelectorAll("[data-ov-type]").forEach((btn) => {
+      btn.addEventListener("click", () => window.bkOverviewSwitchTab(btn.dataset.ovType));
+    });
+  }
+
   function updateOverviewHeader(label) {
     const title = document.getElementById("overviewSectionTitle");
     const eyebrow = document.getElementById("overviewSectionEyebrow");
-    const activeLbl = document.getElementById("overviewRecActiveLabel");
+    const detailTitle = document.getElementById("overviewRecDetailTitle");
     if (label) {
       if (title) title.textContent = label;
-      if (eyebrow) eyebrow.textContent = "Business Records — Overview";
-      if (activeLbl) {
-        activeLbl.textContent = `📂 Open: ${label}`;
-        activeLbl.classList.remove("hidden");
-      }
+      if (eyebrow) eyebrow.textContent = "Business Records";
+      if (detailTitle) detailTitle.textContent = label;
     } else {
       if (title) title.textContent = "AI Accountant & Business Overview";
       if (eyebrow) eyebrow.textContent = "Dashboard Summary";
-      if (activeLbl) {
-        activeLbl.textContent = "";
-        activeLbl.classList.add("hidden");
-      }
+      if (detailTitle) detailTitle.textContent = "Records";
     }
+  }
+
+  function showPane(tabId) {
+    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+      const on = pane.dataset.ovPane === tabId;
+      pane.hidden = !on;
+      pane.classList.toggle("active", on);
+    });
   }
 
   function loadActiveTabData() {
@@ -7045,55 +7075,35 @@ function getEWayBillDetails() {
 
   window.bkOverviewResetView = function () {
     activeOvTab = null;
-    hub.querySelectorAll(".overview-rec-tab").forEach((btn) => btn.classList.remove("active"));
-    hub.querySelectorAll(".overview-rec-total-card").forEach((btn) => btn.classList.remove("active"));
-    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => pane.classList.remove("active"));
-    document.getElementById("overviewRecBody")?.classList.add("hidden");
-    document.getElementById("overviewRecCloseBtn")?.classList.add("hidden");
+    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+      pane.hidden = true;
+      pane.classList.remove("active");
+    });
+    document.getElementById("overviewRecMenu")?.classList.remove("hidden");
+    document.getElementById("overviewRecDetail")?.classList.add("hidden");
+    renderTypeGrid();
     updateOverviewHeader(null);
   };
 
   window.bkOverviewSwitchTab = function (tab, label) {
     const nextTab = tab || "sales";
+    const meta = RECORD_TYPES.find((t) => t.id === nextTab);
     activeOvTab = nextTab;
-    const displayLabel = label || TAB_LABELS[nextTab] || nextTab;
+    const displayLabel = label || meta?.label || nextTab;
 
-    hub.querySelectorAll(".overview-rec-tab").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.ovTab === nextTab);
-    });
-    hub.querySelectorAll(".overview-rec-total-card").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.ovOpenTab === nextTab);
-    });
-    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
-      pane.classList.toggle("active", pane.dataset.ovPane === nextTab);
-    });
-
-    const body = document.getElementById("overviewRecBody");
-    if (body) body.classList.remove("hidden");
-    document.getElementById("overviewRecCloseBtn")?.classList.remove("hidden");
+    document.getElementById("overviewRecMenu")?.classList.add("hidden");
+    document.getElementById("overviewRecDetail")?.classList.remove("hidden");
+    showPane(nextTab);
     updateOverviewHeader(displayLabel);
+    renderTypeGrid();
     loadActiveTabData();
 
     requestAnimationFrame(() => {
-      body?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      document.getElementById("overviewRecDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
 
-  hub.addEventListener("click", (e) => {
-    const tabBtn = e.target.closest("[data-ov-tab]");
-    if (tabBtn && hub.contains(tabBtn)) {
-      e.preventDefault();
-      window.bkOverviewSwitchTab(tabBtn.dataset.ovTab, tabBtn.dataset.ovLabel);
-      return;
-    }
-    const cardBtn = e.target.closest("[data-ov-open-tab]");
-    if (cardBtn && hub.contains(cardBtn)) {
-      e.preventDefault();
-      window.bkOverviewSwitchTab(cardBtn.dataset.ovOpenTab, cardBtn.dataset.ovLabel);
-    }
-  });
-
-  document.getElementById("overviewRecCloseBtn")?.addEventListener("click", () => {
+  document.getElementById("overviewRecBackBtn")?.addEventListener("click", () => {
     window.bkOverviewResetView();
   });
 
@@ -7191,6 +7201,7 @@ function getEWayBillDetails() {
       el("ovTotalPurchaseAmt", purData.success ? sumV(purData.vouchers) : 0);
       el("ovTotalPaymentAmt", payData.success ? sumV(payData.vouchers) : 0);
       el("ovTotalReceiptAmt", recData.success ? sumV(recData.vouchers) : 0);
+      renderTypeGrid();
     } catch (e) {
       console.warn("Overview totals:", e);
     }
@@ -7290,12 +7301,9 @@ function getEWayBillDetails() {
     if (name) showCustomerQuickSummary(name);
   });
 
+  renderTypeGrid();
   if (document.getElementById("overviewPanel")?.classList.contains("active")) {
     loadOverviewTotals();
-    const salesBody = document.getElementById("salesHistoryBody");
-    if (salesBody && !salesBody.dataset.loaded) {
-      salesBody.innerHTML = "<tr><td colspan='8' style='text-align:center;color:#94a3b8;'>Total Sales button dabao — records yahan dikhenge.</td></tr>";
-    }
   }
 })();
 
