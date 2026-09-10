@@ -1024,7 +1024,8 @@ textarea.form-input {
   gap: 6px;
   margin-left: auto;
 }
-.sales-quick-btn.active {
+.sales-quick-btn.active,
+.voucher-quick-btn.active {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(56, 189, 248, 0.12);

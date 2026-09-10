@@ -7096,12 +7096,117 @@ function getEWayBillDetails() {
 
   let activeOvTab = null;
   const voucherCache = { Purchase: [], Payment: [], Receipt: [] };
+  const voucherDates = {
+    Purchase: { from: "", to: "", quick: "" },
+    Payment: { from: "", to: "", quick: "" },
+    Receipt: { from: "", to: "", quick: "" },
+    Customer: { from: "", to: "", quick: "" }
+  };
+  const VOUCHER_TYPE_META = {
+    Purchase: { prefix: "ovPurchase" },
+    Payment: { prefix: "ovPayment" },
+    Receipt: { prefix: "ovReceipt" },
+    Customer: { prefix: "ovCustomer" }
+  };
+
+  function toInputDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getVoucherQuickRangeDates(range) {
+    const now = new Date();
+    if (range === "thisMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toInputDate(start), to: toInputDate(now) };
+    }
+    if (range === "lastMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: toInputDate(start), to: toInputDate(end) };
+    }
+    if (range === "thisYear") {
+      const start = new Date(now.getFullYear(), 0, 1);
+      return { from: toInputDate(start), to: toInputDate(now) };
+    }
+    return { from: "", to: "" };
+  }
+
+  function fmtDisplayInputDate(s) {
+    if (!s) return "—";
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  }
+
+  function syncVoucherDateInputs(type) {
+    const meta = VOUCHER_TYPE_META[type];
+    if (!meta) return;
+    const st = voucherDates[type];
+    const fromEl = document.getElementById(`${meta.prefix}FromDate`);
+    const toEl = document.getElementById(`${meta.prefix}ToDate`);
+    if (fromEl) fromEl.value = st.from;
+    if (toEl) toEl.value = st.to;
+  }
+
+  function updateVoucherDateLabel(type) {
+    const meta = VOUCHER_TYPE_META[type];
+    if (!meta) return;
+    const label = document.getElementById(`${meta.prefix}DateFilterLabel`);
+    if (!label) return;
+    const st = voucherDates[type];
+    if (!st.from && !st.to) {
+      label.classList.add("hidden");
+      label.textContent = "";
+      return;
+    }
+    label.textContent = `Filtered: ${fmtDisplayInputDate(st.from)} to ${fmtDisplayInputDate(st.to)}`;
+    label.classList.remove("hidden");
+  }
+
+  function setVoucherQuickRangeActive(type, range) {
+    document.querySelectorAll(`.voucher-quick-btn[data-voucher-type="${type}"]`).forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.range === range);
+    });
+  }
+
+  function isInDateRange(value, from, to) {
+    if (!from && !to) return true;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return true;
+    if (from) {
+      const start = new Date(from);
+      start.setHours(0, 0, 0, 0);
+      if (d < start) return false;
+    }
+    if (to) {
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+      if (d > end) return false;
+    }
+    return true;
+  }
+
+  function applyVoucherDateFilter(type, from, to, quick) {
+    if (!voucherDates[type]) return;
+    voucherDates[type] = { from: from || "", to: to || "", quick: quick || "" };
+    syncVoucherDateInputs(type);
+    updateVoucherDateLabel(type);
+    setVoucherQuickRangeActive(type, quick || "");
+    if (type === "Customer") {
+      const name = document.getElementById("ovCustomerSearch")?.value?.trim();
+      if (name) showCustomerQuickSummary(name);
+      return;
+    }
+    loadVoucherTab(type);
+  }
   const RECORD_TYPES = [
     { id: "sales", icon: "📊", label: "Total Sales", desc: "Sales list, search & date filter", amountId: "ovTotalSalesAmt" },
-    { id: "purchase", icon: "📥", label: "Total Purchase", desc: "Supplier bills & purchases", amountId: "ovTotalPurchaseAmt" },
-    { id: "payment", icon: "💸", label: "Total Payment", desc: "Payments made to parties", amountId: "ovTotalPaymentAmt" },
-    { id: "receipt", icon: "💰", label: "Total Receipt", desc: "Money received from parties", amountId: "ovTotalReceiptAmt" },
-    { id: "customer", icon: "👤", label: "Customer Detail", desc: "Customer sales, payments & credit", amountId: null }
+    { id: "purchase", icon: "📥", label: "Total Purchase", desc: "Supplier bills, search & date filter", amountId: "ovTotalPurchaseAmt" },
+    { id: "payment", icon: "💸", label: "Total Payment", desc: "Payments list, search & date filter", amountId: "ovTotalPaymentAmt" },
+    { id: "receipt", icon: "💰", label: "Total Receipt", desc: "Receipts list, search & date filter", amountId: "ovTotalReceiptAmt" },
+    { id: "customer", icon: "👤", label: "Customer Detail", desc: "Customer account with date filter", amountId: null }
   ];
 
   function fmtMoney(n) {
@@ -7197,9 +7302,14 @@ function getEWayBillDetails() {
     const searchId = type === "Purchase" ? "ovPurchaseSearch" : type === "Payment" ? "ovPaymentSearch" : "ovReceiptSearch";
     const body = document.getElementById(bodyId);
     if (!body) return;
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>`;
+    const cols = type === "Purchase" ? 6 : 5;
+    body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">Loading...</td></tr>`;
     try {
-      const res = await fetch(`${API_URL}/api/vouchers?type=${encodeURIComponent(type)}`, {
+      const st = voucherDates[type] || { from: "", to: "" };
+      const params = new URLSearchParams({ type });
+      if (st.from) params.set("fromDate", st.from);
+      if (st.to) params.set("toDate", st.to);
+      const res = await fetch(`${API_URL}/api/vouchers?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       const data = await res.json();
@@ -7230,7 +7340,9 @@ function getEWayBillDetails() {
     }
     if (!rows.length) {
       const cols = type === "Purchase" ? 6 : 5;
-      body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">No records found.</td></tr>`;
+      const st = voucherDates[type] || { from: "", to: "" };
+      const emptyMsg = q || st.from || st.to ? "No records found for this filter." : "No records found.";
+      body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">${emptyMsg}</td></tr>`;
       window.bkSetTableAmountTotal(body, { hide: true });
       return;
     }
@@ -7323,8 +7435,12 @@ function getEWayBillDetails() {
     box.innerHTML = "Loading customer summary...";
     try {
       const hdrs = { Authorization: `Bearer ${getToken()}` };
+      const st = voucherDates.Customer || { from: "", to: "" };
+      const salesParams = new URLSearchParams({ search: name, limit: "100" });
+      if (st.from) salesParams.set("fromDate", st.from);
+      if (st.to) salesParams.set("toDate", st.to);
       const [salesRes, payRes] = await Promise.all([
-        fetch(`${API_URL}/api/sales?search=${encodeURIComponent(name)}&limit=100`, { headers: hdrs }),
+        fetch(`${API_URL}/api/sales?${salesParams.toString()}`, { headers: hdrs }),
         fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, { headers: hdrs })
       ]);
       const salesData = await salesRes.json();
@@ -7336,11 +7452,17 @@ function getEWayBillDetails() {
         const isCredit = r.status === "Pending" || r.paymentType === "Credit";
         if (!isCredit) paid += amt;
       });
-      (payData.payments || []).forEach((p) => { paid += parseFloat(p.amount) || 0; });
+      (payData.payments || [])
+        .filter((p) => isInDateRange(p.date, st.from, st.to))
+        .forEach((p) => { paid += parseFloat(p.amount) || 0; });
       const pending = billed - paid;
+      const dateNote = st.from || st.to
+        ? `<br><span style="color:#94a3b8;font-size:12px;">Filtered: ${fmtDisplayInputDate(st.from)} to ${fmtDisplayInputDate(st.to)}</span>`
+        : "";
       box.innerHTML = `<strong>${escapeHtml(name)}</strong><br>
         Total Billed: ${fmtMoney(billed)} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
         <span style="color:${pending > 0 ? "#f59e0b" : "#22c55e"}">Pending: ${fmtMoney(pending)}</span>
+        ${dateNote}
         <br><span style="color:#94a3b8;font-size:12px;">Click "View Customer Detail" for full transaction list.</span>`;
     } catch (err) {
       box.textContent = "Could not load summary: " + err.message;
@@ -7381,6 +7503,36 @@ function getEWayBillDetails() {
   document.getElementById("ovPurchaseRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Purchase"));
   document.getElementById("ovPaymentRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Payment"));
   document.getElementById("ovReceiptRefreshBtn")?.addEventListener("click", () => loadVoucherTab("Receipt"));
+
+  ["Purchase", "Payment", "Receipt", "Customer"].forEach((type) => {
+    const meta = VOUCHER_TYPE_META[type];
+    if (!meta) return;
+    document.getElementById(`${meta.prefix}ApplyDateBtn`)?.addEventListener("click", () => {
+      const from = document.getElementById(`${meta.prefix}FromDate`)?.value || "";
+      const to = document.getElementById(`${meta.prefix}ToDate`)?.value || "";
+      if (from && to && from > to) {
+        if (typeof showToast === "function") showToast("From date must be before To date.", "error");
+        return;
+      }
+      applyVoucherDateFilter(type, from, to, "");
+    });
+    document.getElementById(`${meta.prefix}ClearDateBtn`)?.addEventListener("click", () => {
+      applyVoucherDateFilter(type, "", "", "");
+    });
+    [`${meta.prefix}FromDate`, `${meta.prefix}ToDate`].forEach((id) => {
+      document.getElementById(id)?.addEventListener("change", () => setVoucherQuickRangeActive(type, ""));
+    });
+  });
+
+  document.querySelectorAll(".voucher-quick-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.voucherType;
+      const range = btn.dataset.range;
+      if (!type || !VOUCHER_TYPE_META[type]) return;
+      const { from, to } = getVoucherQuickRangeDates(range);
+      applyVoucherDateFilter(type, from, to, range);
+    });
+  });
 
   document.getElementById("ovCustomerViewBtn")?.addEventListener("click", () => {
     const name = document.getElementById("ovCustomerSearch")?.value?.trim();
