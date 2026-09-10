@@ -1747,14 +1747,20 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
   try {
     const check = await sendTallyCheckToAgent(userId);
     const httpReady = !!check.httpUp;
+    const portOpen = !!check.portOpen;
+    const canTrySync = !!check.canTrySync || (portOpen && !!check.tallyRunning);
     const odbcOnly = !!check.odbcOnly;
     const companyRequired = !!check.companyRequired;
     const tallyPort = check.tallyPort || 9000;
     let message = `Tally HTTP port ${tallyPort} is ON — sync will work.`;
     if (!httpReady && companyRequired) {
       message = 'Port 9000 open but no company selected in Tally. Gateway → select company → restart Tally → Test again.';
+    } else if (!httpReady && canTrySync && companyRequired) {
+      message = 'Port 9000 open — company Tally mein load karein (Gateway → company → Day Book), phir Sync Tally dabao.';
+    } else if (!httpReady && canTrySync) {
+      message = 'Port 9000 open — XML test fail hua par sync try ho sakta hai. Company Day Book mein khuli ho, phir Sync Tally dabao.';
     } else if (!httpReady && odbcOnly) {
-      message = 'Port 9000 open but only ODBC is ON — NOT HTTP Server. F1 → Connectivity → Enable HTTP Server = Yes (separate line below ODBC). Or Advanced Configuration → HTTP Server = Yes.';
+      message = 'Port 9000 open but XML not responding. F1 → Connectivity → Both + ODBC Yes. Company load karein. Browser me http://127.0.0.1:9000 try karein.';
     } else if (!httpReady) {
       if (check.tallyRunning && !check.portOpen) {
         message = 'Tally is OPEN but HTTP Server is OFF. F1 → Connectivity → Enable HTTP Server = Yes, Port 9000, then restart Tally.';
@@ -1770,11 +1776,12 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
       success: true,
       agentConnected: true,
       httpReady,
+      canTrySync,
       odbcOnly,
       companyRequired,
-      weakHttp: !!check.weakHttp,
+      weakHttp: !!check.weakHttp || canTrySync,
       tallyPort,
-      portOpen: !!check.portOpen,
+      portOpen,
       tallyRunning: !!check.tallyRunning,
       agentVersion: check.agentVersion || '',
       probeSnippet: check.probeSnippet || '',

@@ -4226,6 +4226,7 @@ async function checkTallyHttpStatus() {
       agentConnected: !!data.agentConnected,
       odbcOnly: !!data.odbcOnly,
       companyRequired: !!data.companyRequired,
+      canTrySync: !!data.canTrySync,
       probeSnippet: data.probeSnippet || "",
       message: data.message || data.error || "Could not check Tally HTTP.",
       steps: data.steps || [],
@@ -4240,12 +4241,17 @@ async function checkTallyHttpStatus() {
 async function ensureTallyHttpBeforeSync() {
   const status = await checkTallyHttpStatus();
   if (status.httpReady) return true;
+  if (status.canTrySync || status.portOpen) {
+    const warn = status.message || "Port 9000 open — sync try ho raha hai. Company Day Book mein khuli honi chahiye.";
+    if (typeof showToast === "function") showToast(warn, "info");
+    return true;
+  }
   const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
   const msg =
-    "⚠️ Tally HTTP Server band hai — isliye bill add nahi ho raha!\n\n" +
+    "⚠️ Tally port 9000 band hai — sync nahi ho sakta.\n\n" +
     (status.message || "") +
     (steps ? `\n\n${steps}` : "") +
-    "\n\nHTTP ON karke sidebar me 'Test Tally HTTP' dabao — green message aaye tab Sync Tally.";
+    "\n\nTally mein F1 → Connectivity → Both + ODBC Yes, Port 9000. Company select karein. Phir Sync Tally.";
   if (typeof showToast === "function") showToast(msg, "error");
   else alert(msg);
   openTallyAgentSidebar();
@@ -7793,21 +7799,18 @@ async function refreshTallyAgentStatus() {
           pillKind = "ready";
           pillText = "Ready to sync";
           chipLabel = "🟢 Tally ready";
-        } else if (http.companyRequired) {
-          detail = "⚠️ Port 9000 open — Tally mein company select karein (Gateway), phir Tally restart + Test.";
+        } else if (http.canTrySync || http.portOpen) {
+          detail = http.companyRequired
+            ? "🟡 Port 9000 open — company Tally mein load karein (Day Book), phir Sync Tally dabao."
+            : "🟡 Port 9000 open — Sync Tally try kar sakte ho (company Day Book mein khuli ho).";
           pillKind = "warn";
-          pillText = "Select company";
-          chipLabel = "🟡 No company";
-        } else if (http.odbcOnly) {
-          detail = "⚠️ Sirf ODBC ON hai — HTTP Server alag se ON karein (Connectivity screen par ODBC ke neeche wali line).";
-          pillKind = "warn";
-          pillText = "Enable HTTP Server";
-          chipLabel = "🟡 ODBC only";
+          pillText = "Port open — try Sync";
+          chipLabel = "🟡 Port 9000 open";
         } else if (http.tallyRunning) {
-          detail = "⚠️ Agent OK but HTTP Server OFF — F1 → Advanced Configuration → HTTP Server = Yes. Then Test Tally HTTP.";
+          detail = "⚠️ Tally open but port 9000 closed — F1 → Connectivity → Both + ODBC Yes, Port 9000, restart Tally.";
           pillKind = "warn";
-          pillText = "Enable HTTP Server";
-          chipLabel = "🟡 HTTP OFF";
+          pillText = "Enable port 9000";
+          chipLabel = "🟡 Port closed";
         } else {
           detail = "⚠️ Agent OK — open Tally, select company, enable HTTP port 9000, then Test Tally HTTP.";
           pillKind = "warn";
@@ -7906,6 +7909,10 @@ document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () 
     const okMsg = "✅ Tally HTTP port 9000 ON — ab Sync Tally dabao!";
     if (typeof showToast === "function") showToast(okMsg, "success");
     else alert(okMsg);
+  } else if (status.canTrySync || status.portOpen) {
+    const tryMsg = "🟡 Port 9000 open — Sync Tally try kar sakte ho. Company Day Book mein khuli honi chahiye.";
+    if (typeof showToast === "function") showToast(tryMsg, "info");
+    else alert(`${tryMsg}\n\n${status.message || ""}`);
   } else {
     const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
     alert(`❌ ${status.message}\n\n${steps}`);

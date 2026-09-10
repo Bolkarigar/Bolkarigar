@@ -11,7 +11,7 @@ const { exec } = require('child_process');
 const net = require('net');
 const http = require('http');
 
-const AGENT_VERSION = '2026.09.11http2';
+const AGENT_VERSION = '2026.09.11http3';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_HOSTS = ['127.0.0.1', 'localhost'];
 const TALLY_PORTS = [9000, 9001, 9002];
@@ -25,7 +25,13 @@ const TALLY_EXE_PATHS = [
 const TALLY_PING_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>LicenseInfo</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
 const TALLY_COMPANIES_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>List of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
 const TALLY_COMPANIES_COLLECTION_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Collection</TYPE><ID>List of Companies</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
-const TALLY_PROBE_XMLS = [TALLY_COMPANIES_XML, TALLY_COMPANIES_COLLECTION_XML, TALLY_PING_XML];
+const TALLY_PROBE_XMLS = [
+  TALLY_COMPANIES_COLLECTION_XML,
+  TALLY_COMPANIES_XML,
+  TALLY_PING_XML,
+  '<?xml version="1.0"?><ENVELOPE><HEADER><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>License Info</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>'
+];
+const TALLY_HTTP_CONTENT_TYPES = ['UTF-8', 'text/xml; charset=UTF-8', 'text/XML', 'application/xml'];
 const TALLY_HTTP_HELP =
   'Tally HTTP Server OFF. ODBC ON is NOT enough. F1 → Settings → Advanced Configuration → HTTP Server = Yes (port 9000). Also Connectivity → acts as Both. Restart Tally, select company, then Sync.';
 const TALLY_ODBC_ONLY_HELP =
@@ -124,16 +130,19 @@ function isPortOpen(host, port) {
   });
 }
 
-function httpPostNative(host, port, body, timeoutMs) {
+function httpPostNative(host, port, body, timeoutMs, contentType) {
   return new Promise((resolve, reject) => {
     const payload = String(body || '');
+    const ct = contentType || 'UTF-8';
     const req = http.request({
-      hostname: host,
+      host,
       port,
       path: '/',
       method: 'POST',
       headers: {
-        'Content-Type': 'text/xml; charset=UTF-8',
+        'Content-Type': ct,
+        'Accept': '*/*',
+        'Connection': 'close',
         'Content-Length': Buffer.byteLength(payload)
       },
       timeout: timeoutMs
@@ -170,29 +179,35 @@ function looksLikeOdbcOnlyResponse(text) {
 async function postTallyXml(host, port, body) {
   const url = `http://${host}:${port}`;
   const payloads = String(body || '');
-  const contentTypes = [
-    'text/xml; charset=UTF-8',
-    'text/XML',
-    'application/xml',
-    'UTF-8'
-  ];
-  for (const ct of contentTypes) {
+  let last = { status: 0, text: '' };
+  for (const ct of TALLY_HTTP_CONTENT_TYPES) {
     try {
-      const res = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: { 'Content-Type': ct },
-        body: payloads
-      }, 8000);
-      const text = await res.text();
-      if (tallyHttpResponseOk(res.status, text)) {
-        return { status: res.status, text, url };
+      const r = await httpPostNative(host, port, payloads, 20000, ct);
+      last = r;
+      if (tallyHttpResponseOk(r.status, r.text)) {
+        return { status: r.status, text: r.text, url };
       }
     } catch {
       /* try next content-type */
     }
   }
-  return httpPostNative(host, port, payloads, 8000)
-    .then((r) => ({ status: r.status, text: r.text, url }));
+  for (const ct of TALLY_HTTP_CONTENT_TYPES) {
+    try {
+      const res = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': ct, Connection: 'close' },
+        body: payloads
+      }, 20000);
+      const text = await res.text();
+      last = { status: res.status, text };
+      if (tallyHttpResponseOk(res.status, text)) {
+        return { status: res.status, text, url };
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  return { status: last.status, text: last.text, url };
 }
 
 async function probeTallyHttp() {
@@ -249,20 +264,21 @@ async function probeTallyHttp() {
 
   if (anyPortOpen) {
     tallyLocalUrl = `http://${openHost}:${openPort}`;
-    tallyHttpKnownDown = true;
     const emptyBody = !lastProbe.text || lastProbe.text.trim().length < 5;
-    const companyRequired = emptyBody || /no company|company not|select company|could not find company/i.test(lastProbe.text);
-    const odbcOnly = !companyRequired && (emptyBody || looksLikeOdbcOnlyResponse(lastProbe.text));
+    const companyRequired = emptyBody || /no company|company not|select company|could not find company|not loaded/i.test(lastProbe.text);
+    const odbcOnly = !companyRequired && !emptyBody && looksLikeOdbcOnlyResponse(lastProbe.text);
+    const canTrySync = true;
     return {
       httpUp: false,
       portOpen: true,
       odbcOnly,
       companyRequired,
+      canTrySync,
+      weak: canTrySync,
       host: openHost,
       port: openPort,
-      weak: false,
       probeStatus: lastProbe.status,
-      probeSnippet: String(lastProbe.text || '').replace(/\s+/g, ' ').slice(0, 120)
+      probeSnippet: String(lastProbe.text || lastProbe.status || 'empty').replace(/\s+/g, ' ').slice(0, 160)
     };
   }
 
@@ -511,7 +527,8 @@ function connect(config) {
           httpUp,
           odbcOnly: !!probe.odbcOnly,
           companyRequired: !!probe.companyRequired,
-          weakHttp: !!probe.weak,
+          canTrySync: !!probe.canTrySync || !!probe.portOpen,
+          weakHttp: !!probe.weak || (!probe.httpUp && !!probe.portOpen),
           tallyPort: probe.port || 9000,
           probeSnippet: probe.probeSnippet || '',
           agentVersion: AGENT_VERSION
@@ -541,28 +558,54 @@ function connect(config) {
       }
       syncInProgress = true;
       try {
-        let tallyUp;
+        tallyHttpKnownDown = false;
+        const probe = await probeTallyHttp();
         if (msg.prepareTally) {
           console.log('📨 Sync bill to Tally — preparing Tally (once)...');
-          tallyUp = await ensureTallyRunning();
-        } else if (tallyHttpKnownDown) {
-          tallyUp = false;
-        } else {
-          tallyUp = await isTallyHttpUp();
+          if (!probe.portOpen) await ensureTallyRunning();
+        }
+        if (!probe.portOpen) {
+          throw new Error(TALLY_HTTP_HELP);
+        }
+        if (!probe.httpUp) {
+          console.log(`⚠️  Port ${probe.port || 9000} open — sync try kar rahe hain (company Tally mein khuli honi chahiye)...`);
         }
 
-        if (!tallyUp) {
-          const probe = await probeTallyHttp();
-          throw new Error(probe.odbcOnly ? TALLY_ODBC_ONLY_HELP : TALLY_HTTP_HELP);
+        let responseText = '';
+        let tallyResOk = false;
+        let lastSyncErr = null;
+        for (const ct of TALLY_HTTP_CONTENT_TYPES) {
+          try {
+            const r = await httpPostNative(
+              probe.host || '127.0.0.1',
+              probe.port || 9000,
+              msg.xml,
+              60000,
+              ct
+            );
+            responseText = r.text || '';
+            tallyResOk = r.status >= 200 && r.status < 500;
+            if (responseText.length > 3) break;
+          } catch (err) {
+            lastSyncErr = err;
+          }
         }
-
-        const tallyRes = await fetchWithTimeout(tallyLocalUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/xml; charset=UTF-8' },
-          body: msg.xml
-        }, 45000);
-        const responseText = await tallyRes.text();
-        const tallyOk = isTallyXmlSuccess(responseText, tallyRes.ok);
+        if (!responseText && lastSyncErr) {
+          try {
+            const tallyRes = await fetchWithTimeout(tallyLocalUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'UTF-8', Connection: 'close' },
+              body: msg.xml
+            }, 60000);
+            responseText = await tallyRes.text();
+            tallyResOk = tallyRes.ok;
+          } catch (err) {
+            throw new Error(probe.companyRequired
+              ? 'Port 9000 open but company not loaded. Gateway → company select → Day Book kholo → Sync again.'
+              : (err.message || TALLY_HTTP_HELP));
+          }
+        }
+        const tallyOk = isTallyXmlSuccess(responseText, tallyResOk);
         const lineErr = extractTallyLineError(responseText);
         if (tallyOk) {
           console.log('✅ Tally accepted data — check Day Book in Tally.');
