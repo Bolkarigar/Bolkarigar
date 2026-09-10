@@ -1603,7 +1603,7 @@ if (document.readyState === "loading") {
 
 function openPanel(id) {
   if (id === "totalSalesPanel") {
-    id = "overviewPanel";
+    id = "businessRecordsPanel";
     window._bkOverviewPendingTab = { tab: "sales", label: "Total Sales" };
   }
   const me = window._bkAccountInfo;
@@ -1628,14 +1628,19 @@ function openPanel(id) {
     window.BolKarigarPayroll.loadPayrollPanel();
   }
   if (id === "overviewPanel") {
-    const pending = window._bkOverviewPendingTab;
-    if (pending && typeof window.bkOverviewSwitchTab === "function") {
-      window._bkOverviewPendingTab = null;
-      setTimeout(() => window.bkOverviewSwitchTab(pending.tab, pending.label), 0);
-    } else if (typeof window.bkOverviewResetView === "function") {
-      window.bkOverviewResetView();
-    }
+    if (typeof window.bkOverviewResetView === "function") window.bkOverviewResetView();
     if (typeof window.bkRefreshOverviewTotals === "function") window.bkRefreshOverviewTotals();
+    document.querySelector(".panel-area")?.scrollTo({ top: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+  if (id === "businessRecordsPanel") {
+    const pending = window._bkOverviewPendingTab;
+    if (pending && typeof window.bkOverviewApplyTab === "function") {
+      window._bkOverviewPendingTab = null;
+      setTimeout(() => window.bkOverviewApplyTab(pending.tab, pending.label), 0);
+    } else if (typeof window.bkOverviewRefreshActiveTab === "function") {
+      window.bkOverviewRefreshActiveTab();
+    }
     document.querySelector(".panel-area")?.scrollTo({ top: 0, behavior: "auto" });
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -2885,6 +2890,7 @@ function getActiveSearchInput(preferPanelId) {
   const panelId = preferPanelId || document.querySelector(".panel.active")?.id;
   const byPanel = {
     overviewPanel: "salesSearchInput",
+    businessRecordsPanel: "salesSearchInput",
     totalSalesPanel: "salesSearchInput",
     inventoryPanel: "invSearch",
     mediaPanel: "searchInput"
@@ -2916,8 +2922,8 @@ async function applyVoiceSearch(query, opts) {
   const targetPanel = forcePanel || activeId;
   const value = clear ? "" : String(query || "").trim();
 
-  if (targetPanel === "totalSalesPanel" || activeId === "totalSalesPanel" || forcePanel === "totalSalesPanel") {
-    if (activeId !== "overviewPanel" && activeId !== "totalSalesPanel" && typeof openPanel === "function") {
+  if (targetPanel === "totalSalesPanel" || targetPanel === "businessRecordsPanel" || activeId === "totalSalesPanel" || activeId === "businessRecordsPanel" || forcePanel === "totalSalesPanel" || forcePanel === "businessRecordsPanel") {
+    if (activeId !== "businessRecordsPanel" && activeId !== "totalSalesPanel" && typeof openPanel === "function") {
       openPanel("totalSalesPanel");
     } else if (activeId === "overviewPanel" && typeof window.bkOverviewSwitchTab === "function") {
       window.bkOverviewSwitchTab("sales");
@@ -7083,8 +7089,8 @@ function getEWayBillDetails() {
 // 🟢 OVERVIEW — Business Records (Sales, Purchase, Payment, Receipt, Customer)
 // ==========================================================================
 (function () {
-  const hub = document.getElementById("overviewRecordsHub");
-  if (!hub) return;
+  const recordsPanel = document.getElementById("businessRecordsPanel");
+  if (!recordsPanel) return;
 
   let activeOvTab = null;
   const voucherCache = { Purchase: [], Payment: [], Receipt: [] };
@@ -7122,23 +7128,13 @@ function getEWayBillDetails() {
     });
   }
 
-  function updateOverviewHeader(label) {
-    const title = document.getElementById("overviewSectionTitle");
-    const eyebrow = document.getElementById("overviewSectionEyebrow");
-    const detailTitle = document.getElementById("overviewRecDetailTitle");
-    if (label) {
-      if (title) title.textContent = label;
-      if (eyebrow) eyebrow.textContent = "Business Records";
-      if (detailTitle) detailTitle.textContent = label;
-    } else {
-      if (title) title.textContent = "AI Accountant & Business Overview";
-      if (eyebrow) eyebrow.textContent = "Dashboard Summary";
-      if (detailTitle) detailTitle.textContent = "Records";
-    }
+  function updateRecordsTitle(label) {
+    const title = document.getElementById("businessRecordsTitle");
+    if (title) title.textContent = label || "Records";
   }
 
   function showPane(tabId) {
-    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+    recordsPanel.querySelectorAll(".overview-rec-pane").forEach((pane) => {
       const on = pane.dataset.ovPane === tabId;
       pane.hidden = !on;
       pane.classList.toggle("active", on);
@@ -7159,36 +7155,38 @@ function getEWayBillDetails() {
 
   window.bkOverviewResetView = function () {
     activeOvTab = null;
-    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+    recordsPanel.querySelectorAll(".overview-rec-pane").forEach((pane) => {
       pane.hidden = true;
       pane.classList.remove("active");
     });
-    document.getElementById("overviewRecMenu")?.classList.remove("hidden");
-    document.getElementById("overviewRecDetail")?.classList.add("hidden");
     renderTypeGrid();
-    updateOverviewHeader(null);
+    updateRecordsTitle("Records");
   };
 
-  window.bkOverviewSwitchTab = function (tab, label) {
+  window.bkOverviewApplyTab = function (tab, label) {
     const nextTab = tab || "sales";
     const meta = RECORD_TYPES.find((t) => t.id === nextTab);
     activeOvTab = nextTab;
     const displayLabel = label || meta?.label || nextTab;
-
-    document.getElementById("overviewRecMenu")?.classList.add("hidden");
-    document.getElementById("overviewRecDetail")?.classList.remove("hidden");
     showPane(nextTab);
-    updateOverviewHeader(displayLabel);
+    updateRecordsTitle(displayLabel);
     renderTypeGrid();
     loadActiveTabData();
+  };
 
-    requestAnimationFrame(() => {
-      document.getElementById("overviewRecDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  window.bkOverviewRefreshActiveTab = function () {
+    if (!activeOvTab) return;
+    loadActiveTabData();
+  };
+
+  window.bkOverviewSwitchTab = function (tab, label) {
+    window.bkOverviewApplyTab(tab, label);
+    if (typeof openPanel === "function") openPanel("businessRecordsPanel");
   };
 
   document.getElementById("overviewRecBackBtn")?.addEventListener("click", () => {
     window.bkOverviewResetView();
+    if (typeof openPanel === "function") openPanel("overviewPanel");
   });
 
   async function loadVoucherTab(type) {

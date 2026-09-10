@@ -3670,6 +3670,7 @@ body.app-lock-active { overflow: hidden; }
 }
 #overviewPanel .overview-refresh-btn,
 #overviewPanel .overview-tool-card,
+#overviewRecPicker .modify-type-card,
 #overviewRecordsHub .modify-type-card {
   background: var(--card) !important;
   color: var(--text) !important;
@@ -3683,9 +3684,23 @@ body.app-lock-active { overflow: hidden; }
 .overview-rec-totals-row {
   margin-bottom: 4px;
 }
+#overviewRecPicker .modify-type-card,
 #overviewRecordsHub .modify-type-card {
   cursor: pointer;
 }
+.business-records-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.business-records-header-actions {
+  margin: 0;
+  flex-wrap: wrap;
+}
+#businessRecordsPanel .overview-rec-pane[hidden] { display: none !important; }
+#businessRecordsPanel .overview-rec-pane.active { display: block; }
 .overview-rec-detail.hidden { display: none !important; }
 .overview-rec-detail {
   margin-top: 14px;
@@ -3743,6 +3758,9 @@ body.app-lock-active { overflow: hidden; }
   font-size: 13px;
   line-height: 1.5;
 }
+#businessRecordsPanel .sales-filter-row button.secondary,
+#businessRecordsPanel .overview-rec-pane-toolbar .secondary,
+#businessRecordsPanel .panel-pagination-bar button,
 #overviewRecordsHub .sales-filter-row button.secondary,
 #overviewRecordsHub .overview-rec-pane-toolbar .secondary,
 #overviewRecordsHub .panel-pagination-bar button {
@@ -3750,11 +3768,13 @@ body.app-lock-active { overflow: hidden; }
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
 }
+#businessRecordsPanel #salesApplyDateBtn,
 #overviewRecordsHub #salesApplyDateBtn {
   background: rgba(56,189,248,.25) !important;
   color: #e0f2fe !important;
   border: 1px solid rgba(56,189,248,.45) !important;
 }
+#businessRecordsPanel #ovCustomerViewBtn,
 #overviewRecordsHub #ovCustomerViewBtn {
   background: rgba(56,189,248,.2) !important;
   color: #e0f2fe !important;
