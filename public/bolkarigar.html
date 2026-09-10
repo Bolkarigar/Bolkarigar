@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260911records">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui2">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260909r1"></script>
   <script>
-    window.BK_APP_BUILD = '20260911records';
+    window.BK_APP_BUILD = '20260911ui2';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260911records">
+<body data-build="20260911ui2">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -230,8 +230,8 @@
         <section class="panel active" id="overviewPanel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow" data-i18n="overview.eyebrow">Dashboard Summary</p>
-              <h3 data-i18n="overview.title">AI Accountant & Business Overview</h3>
+              <p class="eyebrow" id="overviewSectionEyebrow" data-i18n="overview.eyebrow">Dashboard Summary</p>
+              <h3 id="overviewSectionTitle" data-i18n="overview.title">AI Accountant & Business Overview</h3>
             </div>
           </div>
           <div id="dataStatusBanner" class="hidden" style="margin-bottom:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);font-size:13px;line-height:1.5;"></div>
@@ -263,26 +263,54 @@
   </div>
 </div>
 
-          <div class="overview-records-hub">
+          <div id="lowStockAlertBox" class="hidden" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.1);font-size:13px;"></div>
+
+          <p class="nav-group-label" style="margin:16px 0 8px;"><span data-i18n="overview.dailyTitle">Aaj ka Hisaab (Daily Summary)</span> — <span id="todayDateLabel" style="color:#38bdf8;font-weight:600;"></span></p>
+          <div class="grid-2" style="margin-bottom:12px;">
+            <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCash">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUpi">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #f59e0b;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUdhar">Aaj Udhar Sale</p><h3 id="dailyCreditVal" style="margin:4px 0;color:#f59e0b;">₹0.00</h3></div>
+            <div class="mini-card" style="border-left:4px solid #3b82f6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCollection">Aaj Collection</p><h3 id="dailyCollectionsVal" style="margin:4px 0;color:#3b82f6;">₹0.00</h3></div>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;"><span data-i18n="overview.todayBills">Aaj ke bills:</span> <strong id="dailyInvoiceCount">0</strong> &nbsp;|&nbsp; <button type="button" id="refreshDailyBtn" class="secondary" style="padding:4px 10px;font-size:12px;" data-i18n="overview.refresh">🔄 Refresh</button></p>
+
+          <div class="overview-grid">
+            <div class="mini-card"><h4 data-i18n="overview.cardVoiceTitle">Voice Command</h4><p data-i18n="overview.cardVoiceDesc">Mic se command bolkar tabs open karo aur bills banao.</p></div>
+            <div class="mini-card"><h4 data-i18n="overview.cardProjectTitle">Project Tracker</h4><p data-i18n="overview.cardProjectDesc">Customer, site, budget aur status ke saath project save karo.</p></div>
+            <div class="mini-card"><h4 data-i18n="overview.cardExpenseTitle">Expense + Invoice</h4><p data-i18n="overview.cardExpenseDesc">Rate, quantity aur total automatic calculate hota hai.</p></div>
+            <div class="mini-card"><h4 data-i18n="overview.cardUtilityTitle">Utility Pack</h4><p data-i18n="overview.cardUtilityDesc">Todo, notes, QR, calculator, converter aur media tools included hain.</p></div>
+            <div class="mini-card" style="border:1px solid rgba(34,197,94,.35);cursor:pointer" onclick="typeof openPanel==='function'&&openPanel('securityPanel')">
+              <h4>🔐 App Lock / Security</h4>
+              <p>PIN ya Face ID se app lock karein — Khatabook jaisa.</p>
+              <button type="button" class="secondary" style="margin-top:8px" onclick="event.stopPropagation();typeof openPanel==='function'&&openPanel('securityPanel')">Security Kholo</button>
+            </div>
+          </div>
+
+          <div class="overview-records-hub" id="overviewRecordsHub">
             <div class="overview-records-head">
-              <p class="nav-group-label" style="margin:0;">Business Records</p>
-              <button type="button" id="overviewRecordsRefreshBtn" class="secondary" style="padding:4px 12px;font-size:12px;">🔄 Refresh All</button>
+              <div>
+                <p class="nav-group-label" style="margin:0;">Business Records</p>
+                <p class="helper-text" style="margin:4px 0 0;">Neeche button dabao — record yahan khulega (shuru mein band).</p>
+              </div>
+              <button type="button" id="overviewRecordsRefreshBtn" class="secondary overview-rec-refresh-btn">🔄 Refresh</button>
             </div>
             <div class="overview-records-totals grid-2">
-              <div class="mini-card overview-rec-total-card"><span>Total Sales</span><strong id="ovTotalSalesAmt">₹0.00</strong></div>
-              <div class="mini-card overview-rec-total-card"><span>Total Purchase</span><strong id="ovTotalPurchaseAmt">₹0.00</strong></div>
-              <div class="mini-card overview-rec-total-card"><span>Total Payment</span><strong id="ovTotalPaymentAmt">₹0.00</strong></div>
-              <div class="mini-card overview-rec-total-card"><span>Total Receipt</span><strong id="ovTotalReceiptAmt">₹0.00</strong></div>
+              <button type="button" class="overview-rec-total-card" data-ov-open-tab="sales" data-ov-label="Total Sales"><span>Total Sales</span><strong id="ovTotalSalesAmt">₹0.00</strong></button>
+              <button type="button" class="overview-rec-total-card" data-ov-open-tab="purchase" data-ov-label="Total Purchase"><span>Total Purchase</span><strong id="ovTotalPurchaseAmt">₹0.00</strong></button>
+              <button type="button" class="overview-rec-total-card" data-ov-open-tab="payment" data-ov-label="Total Payment"><span>Total Payment</span><strong id="ovTotalPaymentAmt">₹0.00</strong></button>
+              <button type="button" class="overview-rec-total-card" data-ov-open-tab="receipt" data-ov-label="Total Receipt"><span>Total Receipt</span><strong id="ovTotalReceiptAmt">₹0.00</strong></button>
             </div>
             <div class="overview-rec-tabs" role="tablist">
-              <button type="button" class="overview-rec-tab active" data-ov-tab="sales">📊 Total Sales</button>
-              <button type="button" class="overview-rec-tab" data-ov-tab="purchase">📥 Total Purchase</button>
-              <button type="button" class="overview-rec-tab" data-ov-tab="payment">💸 Total Payment</button>
-              <button type="button" class="overview-rec-tab" data-ov-tab="receipt">💰 Total Receipt</button>
-              <button type="button" class="overview-rec-tab" data-ov-tab="customer">👤 Customer Detail</button>
+              <button type="button" class="overview-rec-tab" data-ov-tab="sales" data-ov-label="Total Sales">📊 Total Sales</button>
+              <button type="button" class="overview-rec-tab" data-ov-tab="purchase" data-ov-label="Total Purchase">📥 Total Purchase</button>
+              <button type="button" class="overview-rec-tab" data-ov-tab="payment" data-ov-label="Total Payment">💸 Total Payment</button>
+              <button type="button" class="overview-rec-tab" data-ov-tab="receipt" data-ov-label="Total Receipt">💰 Total Receipt</button>
+              <button type="button" class="overview-rec-tab" data-ov-tab="customer" data-ov-label="Customer Detail">👤 Customer Detail</button>
             </div>
+            <p id="overviewRecActiveLabel" class="overview-rec-active-label hidden"></p>
+            <div id="overviewRecBody" class="overview-rec-body hidden">
 
-            <div id="overviewTabSales" class="overview-rec-pane active" data-ov-pane="sales">
+            <div id="overviewTabSales" class="overview-rec-pane" data-ov-pane="sales">
               <div class="overview-rec-pane-toolbar">
                 <input type="text" id="salesSearchInput" class="panel-search-input" placeholder="🔍 Customer or Invoice No..." />
               </div>
@@ -301,7 +329,7 @@
               <div class="table-wrap" style="margin-top:12px;">
                 <table>
                   <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Product</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
-                  <tbody id="salesHistoryBody"><tr><td colspan="8" style="text-align:center;">Loading...</td></tr></tbody>
+                  <tbody id="salesHistoryBody"><tr><td colspan="8" style="text-align:center;color:#94a3b8;">Total Sales button dabao — records yahan dikhenge.</td></tr></tbody>
                 </table>
               </div>
               <div class="panel-pagination-bar">
@@ -360,30 +388,10 @@
               </div>
               <div id="ovCustomerQuickSummary" class="overview-customer-summary hidden"></div>
             </div>
-          </div>
 
-          <div id="lowStockAlertBox" class="hidden" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.1);font-size:13px;"></div>
-
-          <p class="nav-group-label" style="margin:16px 0 8px;"><span data-i18n="overview.dailyTitle">Aaj ka Hisaab (Daily Summary)</span> — <span id="todayDateLabel" style="color:#38bdf8;font-weight:600;"></span></p>
-          <div class="grid-2" style="margin-bottom:12px;">
-            <div class="mini-card" style="border-left:4px solid #10b981;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCash">Aaj Cash</p><h3 id="dailyCashVal" style="margin:4px 0;color:#10b981;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #8b5cf6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUpi">Aaj UPI</p><h3 id="dailyUpiVal" style="margin:4px 0;color:#8b5cf6;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #f59e0b;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajUdhar">Aaj Udhar Sale</p><h3 id="dailyCreditVal" style="margin:4px 0;color:#f59e0b;">₹0.00</h3></div>
-            <div class="mini-card" style="border-left:4px solid #3b82f6;"><p style="color:#94a3b8;margin:0;font-size:.8rem;" data-i18n="overview.aajCollection">Aaj Collection</p><h3 id="dailyCollectionsVal" style="margin:4px 0;color:#3b82f6;">₹0.00</h3></div>
-          </div>
-          <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;"><span data-i18n="overview.todayBills">Aaj ke bills:</span> <strong id="dailyInvoiceCount">0</strong> &nbsp;|&nbsp; <button type="button" id="refreshDailyBtn" class="secondary" style="padding:4px 10px;font-size:12px;" data-i18n="overview.refresh">🔄 Refresh</button></p>
-
-          <div class="overview-grid">
-            <div class="mini-card"><h4 data-i18n="overview.cardVoiceTitle">Voice Command</h4><p data-i18n="overview.cardVoiceDesc">Mic se command bolkar tabs open karo aur bills banao.</p></div>
-            <div class="mini-card"><h4 data-i18n="overview.cardProjectTitle">Project Tracker</h4><p data-i18n="overview.cardProjectDesc">Customer, site, budget aur status ke saath project save karo.</p></div>
-            <div class="mini-card"><h4 data-i18n="overview.cardExpenseTitle">Expense + Invoice</h4><p data-i18n="overview.cardExpenseDesc">Rate, quantity aur total automatic calculate hota hai.</p></div>
-            <div class="mini-card"><h4 data-i18n="overview.cardUtilityTitle">Utility Pack</h4><p data-i18n="overview.cardUtilityDesc">Todo, notes, QR, calculator, converter aur media tools included hain.</p></div>
-            <div class="mini-card" style="border:1px solid rgba(34,197,94,.35);cursor:pointer" onclick="typeof openPanel==='function'&&openPanel('securityPanel')">
-              <h4>🔐 App Lock / Security</h4>
-              <p>PIN ya Face ID se app lock karein — Khatabook jaisa.</p>
-              <button type="button" class="secondary" style="margin-top:8px" onclick="event.stopPropagation();typeof openPanel==='function'&&openPanel('securityPanel')">Security Kholo</button>
-            </div>
-          </div>
+            </div><!-- /overviewRecBody -->
+            <button type="button" id="overviewRecCloseBtn" class="secondary overview-rec-close-btn hidden">✕ Band karo</button>
+          </div><!-- /overview-records-hub -->
         </section>
 
         <!-- VOICE PANEL -->
@@ -1818,7 +1826,7 @@
   <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
   <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260911records"></script>
+  <script src="bolkarigar.js?v=20260911ui2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

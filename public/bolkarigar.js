@@ -1561,9 +1561,7 @@ if (document.readyState === "loading") {
 function openPanel(id) {
   if (id === "totalSalesPanel") {
     id = "overviewPanel";
-    if (typeof window.bkOverviewSwitchTab === "function") {
-      setTimeout(() => window.bkOverviewSwitchTab("sales"), 0);
-    }
+    window._bkOverviewPendingTab = { tab: "sales", label: "Total Sales" };
   }
   const me = window._bkAccountInfo;
   if (me && !bkCanAccessTab(me, id)) {
@@ -1587,10 +1585,14 @@ function openPanel(id) {
     window.BolKarigarPayroll.loadPayrollPanel();
   }
   if (id === "overviewPanel") {
-    if (typeof window.bkRefreshOverviewRecords === "function") window.bkRefreshOverviewRecords();
-    else if (typeof window.bkRefreshSalesPanel === "function") {
-      window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
+    const pending = window._bkOverviewPendingTab;
+    if (pending && typeof window.bkOverviewSwitchTab === "function") {
+      window._bkOverviewPendingTab = null;
+      setTimeout(() => window.bkOverviewSwitchTab(pending.tab, pending.label), 0);
+    } else if (typeof window.bkOverviewResetView === "function") {
+      window.bkOverviewResetView();
     }
+    if (typeof window.bkRefreshOverviewTotals === "function") window.bkRefreshOverviewTotals();
   }
   if (id === "invoicePanel") {
     if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
@@ -6886,6 +6888,7 @@ function getEWayBillDetails() {
       const nextBtn = document.getElementById("salesNextBtn");
       if (prevBtn) prevBtn.disabled = data.page <= 1;
       if (nextBtn) nextBtn.disabled = data.page >= data.totalPages || total === 0;
+      body.dataset.loaded = "1";
       if (typeof window.enhanceMobileTables === "function") {
         requestAnimationFrame(() => window.enhanceMobileTables(salesPanel));
       }
@@ -6986,11 +6989,18 @@ function getEWayBillDetails() {
 // 🟢 OVERVIEW — Business Records (Sales, Purchase, Payment, Receipt, Customer)
 // ==========================================================================
 (function () {
-  const hub = document.querySelector(".overview-records-hub");
+  const hub = document.getElementById("overviewRecordsHub");
   if (!hub) return;
 
-  let activeOvTab = "sales";
+  let activeOvTab = null;
   const voucherCache = { Purchase: [], Payment: [], Receipt: [] };
+  const TAB_LABELS = {
+    sales: "Total Sales",
+    purchase: "Total Purchase",
+    payment: "Total Payment",
+    receipt: "Total Receipt",
+    customer: "Customer Detail"
+  };
 
   function fmtMoney(n) {
     return `₹${(parseFloat(n) || 0).toFixed(2)}`;
@@ -7000,14 +7010,29 @@ function getEWayBillDetails() {
     try { return new Date(d).toLocaleDateString("en-IN"); } catch { return "—"; }
   }
 
-  window.bkOverviewSwitchTab = function (tab) {
-    activeOvTab = tab || "sales";
-    document.querySelectorAll(".overview-rec-tab").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.ovTab === activeOvTab);
-    });
-    document.querySelectorAll(".overview-rec-pane").forEach((pane) => {
-      pane.classList.toggle("active", pane.dataset.ovPane === activeOvTab);
-    });
+  function updateOverviewHeader(label) {
+    const title = document.getElementById("overviewSectionTitle");
+    const eyebrow = document.getElementById("overviewSectionEyebrow");
+    const activeLbl = document.getElementById("overviewRecActiveLabel");
+    if (label) {
+      if (title) title.textContent = label;
+      if (eyebrow) eyebrow.textContent = "Business Records — Overview";
+      if (activeLbl) {
+        activeLbl.textContent = `📂 Open: ${label}`;
+        activeLbl.classList.remove("hidden");
+      }
+    } else {
+      if (title) title.textContent = "AI Accountant & Business Overview";
+      if (eyebrow) eyebrow.textContent = "Dashboard Summary";
+      if (activeLbl) {
+        activeLbl.textContent = "";
+        activeLbl.classList.add("hidden");
+      }
+    }
+  }
+
+  function loadActiveTabData() {
+    if (!activeOvTab) return;
     if (activeOvTab === "sales" && typeof window.bkRefreshSalesPanel === "function") {
       window.bkRefreshSalesPanel({ resetPage: true });
     } else if (activeOvTab === "customer") {
@@ -7016,11 +7041,60 @@ function getEWayBillDetails() {
       const typeMap = { purchase: "Purchase", payment: "Payment", receipt: "Receipt" };
       loadVoucherTab(typeMap[activeOvTab]);
     }
-    hub.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  window.bkOverviewResetView = function () {
+    activeOvTab = null;
+    hub.querySelectorAll(".overview-rec-tab").forEach((btn) => btn.classList.remove("active"));
+    hub.querySelectorAll(".overview-rec-total-card").forEach((btn) => btn.classList.remove("active"));
+    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => pane.classList.remove("active"));
+    document.getElementById("overviewRecBody")?.classList.add("hidden");
+    document.getElementById("overviewRecCloseBtn")?.classList.add("hidden");
+    updateOverviewHeader(null);
   };
 
-  document.querySelectorAll(".overview-rec-tab").forEach((btn) => {
-    btn.addEventListener("click", () => window.bkOverviewSwitchTab(btn.dataset.ovTab));
+  window.bkOverviewSwitchTab = function (tab, label) {
+    const nextTab = tab || "sales";
+    activeOvTab = nextTab;
+    const displayLabel = label || TAB_LABELS[nextTab] || nextTab;
+
+    hub.querySelectorAll(".overview-rec-tab").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.ovTab === nextTab);
+    });
+    hub.querySelectorAll(".overview-rec-total-card").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.ovOpenTab === nextTab);
+    });
+    hub.querySelectorAll(".overview-rec-pane").forEach((pane) => {
+      pane.classList.toggle("active", pane.dataset.ovPane === nextTab);
+    });
+
+    const body = document.getElementById("overviewRecBody");
+    if (body) body.classList.remove("hidden");
+    document.getElementById("overviewRecCloseBtn")?.classList.remove("hidden");
+    updateOverviewHeader(displayLabel);
+    loadActiveTabData();
+
+    requestAnimationFrame(() => {
+      body?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  hub.addEventListener("click", (e) => {
+    const tabBtn = e.target.closest("[data-ov-tab]");
+    if (tabBtn && hub.contains(tabBtn)) {
+      e.preventDefault();
+      window.bkOverviewSwitchTab(tabBtn.dataset.ovTab, tabBtn.dataset.ovLabel);
+      return;
+    }
+    const cardBtn = e.target.closest("[data-ov-open-tab]");
+    if (cardBtn && hub.contains(cardBtn)) {
+      e.preventDefault();
+      window.bkOverviewSwitchTab(cardBtn.dataset.ovOpenTab, cardBtn.dataset.ovLabel);
+    }
+  });
+
+  document.getElementById("overviewRecCloseBtn")?.addEventListener("click", () => {
+    window.bkOverviewResetView();
   });
 
   async function loadVoucherTab(type) {
@@ -7166,12 +7240,17 @@ function getEWayBillDetails() {
     }
   }
 
+  window.bkRefreshOverviewTotals = function () {
+    loadOverviewTotals();
+  };
+
   window.bkRefreshOverviewRecords = function () {
     loadOverviewTotals();
-    loadCustomerList();
+    if (!activeOvTab) return;
     if (activeOvTab === "sales" && typeof window.bkRefreshSalesPanel === "function") {
       window.bkRefreshSalesPanel({ resetPage: true, syncFromInput: true });
     } else if (activeOvTab === "customer") {
+      loadCustomerList();
       const name = document.getElementById("ovCustomerSearch")?.value?.trim();
       if (name) showCustomerQuickSummary(name);
     } else {
@@ -7213,9 +7292,9 @@ function getEWayBillDetails() {
 
   if (document.getElementById("overviewPanel")?.classList.contains("active")) {
     loadOverviewTotals();
-    loadCustomerList();
-    if (typeof window.bkRefreshSalesPanel === "function") {
-      window.bkRefreshSalesPanel({ resetPage: true });
+    const salesBody = document.getElementById("salesHistoryBody");
+    if (salesBody && !salesBody.dataset.loaded) {
+      salesBody.innerHTML = "<tr><td colspan='8' style='text-align:center;color:#94a3b8;'>Total Sales button dabao — records yahan dikhenge.</td></tr>";
     }
   }
 })();
