@@ -1708,13 +1708,12 @@ function sendTallyCheckToAgent(userId) {
 }
 
 const TALLY_HTTP_SETUP_STEPS = [
-  'Tally Prime EDU bhi same setting use karta hai — HTTP ON zaroori hai',
-  'Tally window par click karein → company select karein (Lokansh Ltd)',
-  'F1 → Settings → Connectivity → Client/Server Configuration',
-  'TallyPrime acts as = Server ya Both',
-  'HTTP Server = Yes, Port = 9000 → Accept',
-  'Tally band karke dubara kholo (HTTP apply hone ke liye restart zaroori)',
-  'BolKarigar sidebar → "Test Tally HTTP" — green aaye tab Sync Tally',
+  '⚠️ ODBC ON ≠ HTTP ON — "Enable ODBC" screen BolKarigar ke liye enough NAHI hai',
+  'STEP 1 (main): F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes (port 9000)',
+  'STEP 2: F1 → Settings → Connectivity → Client/Server → TallyPrime acts as = Both → Accept',
+  'STEP 3: Gateway se company select karein (Lokansh Ltd)',
+  'STEP 4: Tally band karke dubara kholo (HTTP apply hone ke liye)',
+  'STEP 5: BolKarigar → Test Tally HTTP — green aaye tab Sync Tally',
   'EDU note: voucher sirf month ki 1st, 2nd ya last date par dikhega Day Book mein'
 ];
 
@@ -1748,17 +1747,18 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
   try {
     const check = await sendTallyCheckToAgent(userId);
     const httpReady = !!check.httpUp;
+    const odbcOnly = !!check.odbcOnly;
     const tallyPort = check.tallyPort || 9000;
     let message = `Tally HTTP port ${tallyPort} is ON — sync will work.`;
-    if (httpReady && check.weakHttp) {
-      message = `Port ${tallyPort} is open — select your company in Tally Gateway (e.g. Lokansh Ltd), then Sync Tally.`;
+    if (!httpReady && odbcOnly) {
+      message = 'Port 9000 open but only ODBC is ON — NOT HTTP Server. F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes. ODBC screen is different!';
     } else if (!httpReady) {
       if (check.tallyRunning && !check.portOpen) {
-        message = 'Tally is OPEN but HTTP Server is OFF on port 9000. Enable it, Accept, then RESTART Tally once.';
+        message = 'Tally is OPEN but HTTP Server is OFF. F1 → Settings → Advanced Configuration → HTTP Server = Yes, then restart Tally.';
       } else if (check.portOpen && !check.httpUp) {
-        message = 'Port is open but Tally is not responding. Select company in Gateway, then restart Tally.';
+        message = 'Port is open but HTTP XML not responding. Enable HTTP Server in Advanced Configuration (not ODBC only).';
       } else if (!check.tallyRunning) {
-        message = 'Tally is not running. Open Tally Prime, select company, enable HTTP Server on port 9000.';
+        message = 'Tally is not running. Open Tally Prime, enable HTTP Server in Advanced Configuration, select company.';
       } else {
         message = 'Tally HTTP not ready. Follow steps below, then click Test Tally HTTP again.';
       }
@@ -1767,13 +1767,14 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
       success: true,
       agentConnected: true,
       httpReady,
+      odbcOnly,
       weakHttp: !!check.weakHttp,
       tallyPort,
       portOpen: !!check.portOpen,
       tallyRunning: !!check.tallyRunning,
       agentVersion: check.agentVersion || '',
       message,
-      steps: httpReady && !check.weakHttp ? [] : TALLY_HTTP_SETUP_STEPS
+      steps: httpReady ? [] : TALLY_HTTP_SETUP_STEPS
     });
   } catch (err) {
     res.status(502).json({

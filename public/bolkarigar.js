@@ -4154,6 +4154,7 @@ async function checkTallyHttpStatus() {
     return {
       httpReady: !!data.httpReady,
       agentConnected: !!data.agentConnected,
+      odbcOnly: !!data.odbcOnly,
       message: data.message || data.error || "Could not check Tally HTTP.",
       steps: data.steps || [],
       portOpen: data.portOpen,
@@ -7204,10 +7205,15 @@ async function refreshTallyAgentStatus() {
           pillKind = "ready";
           pillText = "Ready to sync";
           chipLabel = "🟢 Tally ready";
-        } else if (http.tallyRunning) {
-          detail = "⚠️ Agent OK but HTTP Server OFF — F1 → Connectivity → HTTP Yes, Port 9000. Then Test Tally HTTP.";
+        } else if (http.odbcOnly) {
+          detail = "⚠️ ODBC ON hai par HTTP Server OFF — F1 → Advanced Configuration → HTTP Server = Yes (ODBC screen enough nahi).";
           pillKind = "warn";
-          pillText = "Enable HTTP port 9000";
+          pillText = "Enable HTTP (not ODBC)";
+          chipLabel = "🟡 ODBC only";
+        } else if (http.tallyRunning) {
+          detail = "⚠️ Agent OK but HTTP Server OFF — F1 → Advanced Configuration → HTTP Server = Yes. Then Test Tally HTTP.";
+          pillKind = "warn";
+          pillText = "Enable HTTP Server";
           chipLabel = "🟡 HTTP OFF";
         } else {
           detail = "⚠️ Agent OK — open Tally, select company, enable HTTP port 9000, then Test Tally HTTP.";
