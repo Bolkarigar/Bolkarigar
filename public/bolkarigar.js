@@ -7014,25 +7014,15 @@ function getEWayBillDetails() {
     return typeof escapeHtml === "function" ? escapeHtml(s) : String(s || "");
   }
 
-  function getAmountText(amountId) {
-    if (!amountId) return "";
-    const el = document.getElementById(amountId);
-    const t = (el?.textContent || "").trim();
-    return t && t !== "₹0.00" ? t : "";
-  }
-
   function renderTypeGrid() {
     const grid = document.getElementById("overviewTypeGrid");
     if (!grid) return;
-    grid.innerHTML = RECORD_TYPES.map((t) => {
-      const amt = getAmountText(t.amountId);
-      return `
+    grid.innerHTML = RECORD_TYPES.map((t) => `
         <button type="button" class="modify-type-card${activeOvTab === t.id ? " selected" : ""}" data-ov-type="${t.id}">
           <span class="modify-type-icon">${t.icon}</span>
           <span class="modify-type-label">${esc(t.label)}</span>
-          <span class="modify-type-desc">${esc(t.desc)}${amt ? `<br><strong style="color:#38bdf8;margin-top:4px;display:inline-block;">${esc(amt)}</strong>` : ""}</span>
-        </button>`;
-    }).join("");
+          <span class="modify-type-desc">${esc(t.desc)}</span>
+        </button>`).join("");
     grid.querySelectorAll("[data-ov-type]").forEach((btn) => {
       btn.addEventListener("click", () => window.bkOverviewSwitchTab(btn.dataset.ovType));
     });
@@ -7198,6 +7188,7 @@ function getEWayBillDetails() {
       const sumV = (list) => (list || []).reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
       const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = fmtMoney(val); };
       el("ovTotalSalesAmt", salesTotal);
+      el("totalSalesVal", salesTotal);
       el("ovTotalPurchaseAmt", purData.success ? sumV(purData.vouchers) : 0);
       el("ovTotalPaymentAmt", payData.success ? sumV(payData.vouchers) : 0);
       el("ovTotalReceiptAmt", recData.success ? sumV(recData.vouchers) : 0);
