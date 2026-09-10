@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui5">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui8">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260909r1"></script>
   <script>
-    window.BK_APP_BUILD = '20260911ui5';
+    window.BK_APP_BUILD = '20260911ui8';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260911ui5">
+<body data-build="20260911ui8">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -264,67 +264,6 @@
 
           <div id="lowStockAlertBox" class="modify-panel-card overview-alert-card overview-alert-danger hidden"></div>
 
-          <div class="modify-panel-card overview-section-card">
-            <p class="voucher-label" style="margin-bottom:10px;"><span data-i18n="overview.dailyTitle">Aaj ka Hisaab</span> — <span id="todayDateLabel" class="overview-date-label"></span></p>
-            <div class="overview-stat-grid">
-              <div class="overview-stat-card stat-cash">
-                <span class="overview-stat-icon">💵</span>
-                <span class="overview-stat-label" data-i18n="overview.aajCash">Aaj Cash</span>
-                <strong class="overview-stat-value" id="dailyCashVal">₹0.00</strong>
-              </div>
-              <div class="overview-stat-card stat-upi">
-                <span class="overview-stat-icon">📱</span>
-                <span class="overview-stat-label" data-i18n="overview.aajUpi">Aaj UPI</span>
-                <strong class="overview-stat-value" id="dailyUpiVal">₹0.00</strong>
-              </div>
-              <div class="overview-stat-card stat-credit">
-                <span class="overview-stat-icon">📝</span>
-                <span class="overview-stat-label" data-i18n="overview.aajUdhar">Aaj Udhar Sale</span>
-                <strong class="overview-stat-value" id="dailyCreditVal">₹0.00</strong>
-              </div>
-              <div class="overview-stat-card stat-collection">
-                <span class="overview-stat-icon">🏦</span>
-                <span class="overview-stat-label" data-i18n="overview.aajCollection">Aaj Collection</span>
-                <strong class="overview-stat-value" id="dailyCollectionsVal">₹0.00</strong>
-              </div>
-            </div>
-            <div class="overview-daily-footer">
-              <span class="overview-daily-bills"><span data-i18n="overview.todayBills">Aaj ke bills:</span> <strong id="dailyInvoiceCount">0</strong></span>
-              <button type="button" id="refreshDailyBtn" class="secondary overview-refresh-btn" data-i18n="overview.refresh">🔄 Refresh</button>
-            </div>
-          </div>
-
-          <div class="modify-panel-card overview-section-card">
-            <p class="voucher-label" style="margin-bottom:10px;">Quick Tools</p>
-            <div class="modify-type-grid overview-tool-grid">
-              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('voicePanel')">
-                <span class="modify-type-icon">🎤</span>
-                <span class="modify-type-label" data-i18n="overview.cardVoiceTitle">Voice Command</span>
-                <span class="modify-type-desc" data-i18n="overview.cardVoiceDesc">Mic se command bolkar tabs open karo.</span>
-              </button>
-              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('projectPanel')">
-                <span class="modify-type-icon">📁</span>
-                <span class="modify-type-label" data-i18n="overview.cardProjectTitle">Project Tracker</span>
-                <span class="modify-type-desc" data-i18n="overview.cardProjectDesc">Customer, site, budget track karo.</span>
-              </button>
-              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('invoicePanel')">
-                <span class="modify-type-icon">🧾</span>
-                <span class="modify-type-label" data-i18n="overview.cardExpenseTitle">Expense + Invoice</span>
-                <span class="modify-type-desc" data-i18n="overview.cardExpenseDesc">Rate, qty aur total auto calculate.</span>
-              </button>
-              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('todoPanel')">
-                <span class="modify-type-icon">🧰</span>
-                <span class="modify-type-label" data-i18n="overview.cardUtilityTitle">Utility Pack</span>
-                <span class="modify-type-desc" data-i18n="overview.cardUtilityDesc">Todo, QR, calculator, notes.</span>
-              </button>
-              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('securityPanel')">
-                <span class="modify-type-icon">🔐</span>
-                <span class="modify-type-label">App Lock / Security</span>
-                <span class="modify-type-desc">PIN ya Face ID se app lock.</span>
-              </button>
-            </div>
-          </div>
-
           <div class="modify-panel-card overview-section-card" id="overviewRecordsHub">
             <p class="voucher-label" style="margin-bottom:10px;">Business Records</p>
             <div class="overview-stat-grid overview-rec-totals-row">
@@ -346,7 +285,7 @@
               </div>
             </div>
             <div id="overviewRecMenu">
-              <p class="voucher-label" style="margin:14px 0 10px;">Kya dekhna hai? (button dabao)</p>
+              <p class="voucher-label" style="margin:14px 0 10px;">What do you want to view? (Click a button)</p>
               <div id="overviewTypeGrid" class="modify-type-grid"></div>
             </div>
             <div id="overviewRecDetail" class="overview-rec-detail hidden">
@@ -376,7 +315,7 @@
               <div class="table-wrap" style="margin-top:12px;">
                 <table>
                   <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Product</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
-                  <tbody id="salesHistoryBody"><tr><td colspan="8" style="text-align:center;color:#94a3b8;">Total Sales button dabao — records yahan dikhenge.</td></tr></tbody>
+                  <tbody id="salesHistoryBody"><tr><td colspan="8" style="text-align:center;color:#94a3b8;">Click Total Sales to load records here.</td></tr></tbody>
                 </table>
               </div>
               <div class="panel-pagination-bar">
@@ -427,7 +366,7 @@
             </div>
 
             <div id="overviewTabCustomer" class="overview-rec-pane" data-ov-pane="customer" hidden>
-              <p class="helper-text">Customer ka poora hisaab — sales, payments, pending udhar.</p>
+              <p class="helper-text">Full customer account — sales, payments, and pending credit.</p>
               <div class="overview-customer-search grid-2">
                 <input type="text" id="ovCustomerSearch" list="ovCustomerList" placeholder="Customer / party name..." autocomplete="off" />
                 <datalist id="ovCustomerList"></datalist>
@@ -439,6 +378,67 @@
               </div><!-- /overviewRecPaneHost -->
             </div><!-- /overviewRecDetail -->
           </div><!-- /overviewRecordsHub -->
+
+          <div class="modify-panel-card overview-section-card">
+            <p class="voucher-label" style="margin-bottom:10px;">Today's Summary — <span id="todayDateLabel" class="overview-date-label"></span></p>
+            <div class="overview-stat-grid">
+              <div class="overview-stat-card stat-cash">
+                <span class="overview-stat-icon">💵</span>
+                <span class="overview-stat-label">Today Cash</span>
+                <strong class="overview-stat-value" id="dailyCashVal">₹0.00</strong>
+              </div>
+              <div class="overview-stat-card stat-upi">
+                <span class="overview-stat-icon">📱</span>
+                <span class="overview-stat-label">Today UPI</span>
+                <strong class="overview-stat-value" id="dailyUpiVal">₹0.00</strong>
+              </div>
+              <div class="overview-stat-card stat-credit">
+                <span class="overview-stat-icon">📝</span>
+                <span class="overview-stat-label">Today Credit Sale</span>
+                <strong class="overview-stat-value" id="dailyCreditVal">₹0.00</strong>
+              </div>
+              <div class="overview-stat-card stat-collection">
+                <span class="overview-stat-icon">🏦</span>
+                <span class="overview-stat-label">Today Collection</span>
+                <strong class="overview-stat-value" id="dailyCollectionsVal">₹0.00</strong>
+              </div>
+            </div>
+            <div class="overview-daily-footer">
+              <span class="overview-daily-bills">Today's bills: <strong id="dailyInvoiceCount">0</strong></span>
+              <button type="button" id="refreshDailyBtn" class="secondary overview-refresh-btn" data-i18n="overview.refresh">🔄 Refresh</button>
+            </div>
+          </div>
+
+          <div class="modify-panel-card overview-section-card">
+            <p class="voucher-label" style="margin-bottom:10px;">Quick Tools</p>
+            <div class="modify-type-grid overview-tool-grid">
+              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('voicePanel')">
+                <span class="modify-type-icon">🎤</span>
+                <span class="modify-type-label" data-i18n="overview.cardVoiceTitle">Voice Command</span>
+                <span class="modify-type-desc">Open tabs and create bills with voice commands.</span>
+              </button>
+              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('projectPanel')">
+                <span class="modify-type-icon">📁</span>
+                <span class="modify-type-label" data-i18n="overview.cardProjectTitle">Project Tracker</span>
+                <span class="modify-type-desc">Track customer, site, budget and status.</span>
+              </button>
+              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('invoicePanel')">
+                <span class="modify-type-icon">🧾</span>
+                <span class="modify-type-label" data-i18n="overview.cardExpenseTitle">Expense + Invoice</span>
+                <span class="modify-type-desc">Rate, quantity and total auto-calculated.</span>
+              </button>
+              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('todoPanel')">
+                <span class="modify-type-icon">🧰</span>
+                <span class="modify-type-label" data-i18n="overview.cardUtilityTitle">Utility Pack</span>
+                <span class="modify-type-desc" data-i18n="overview.cardUtilityDesc">Todo, QR, calculator, notes.</span>
+              </button>
+              <button type="button" class="modify-type-card overview-tool-card" onclick="typeof openPanel==='function'&&openPanel('securityPanel')">
+                <span class="modify-type-icon">🔐</span>
+                <span class="modify-type-label">App Lock / Security</span>
+                <span class="modify-type-desc">Lock app with PIN or Face ID.</span>
+              </button>
+            </div>
+          </div>
         </section>
 
         <!-- VOICE PANEL -->
@@ -1873,7 +1873,7 @@
   <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
   <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260911ui5"></script>
+  <script src="bolkarigar.js?v=20260911ui8"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

@@ -1636,6 +1636,8 @@ function openPanel(id) {
       window.bkOverviewResetView();
     }
     if (typeof window.bkRefreshOverviewTotals === "function") window.bkRefreshOverviewTotals();
+    document.querySelector(".panel-area")?.scrollTo({ top: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
   if (id === "invoicePanel") {
     if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
@@ -6886,7 +6888,7 @@ function getEWayBillDetails() {
       const [y, m, d] = s.split("-");
       return `${d}/${m}/${y}`;
     };
-    label.textContent = `Filtered: ${fmt(currentFromDate)} se ${fmt(currentToDate)} tak`;
+    label.textContent = `Filtered: ${fmt(currentFromDate)} to ${fmt(currentToDate)}`;
     label.classList.remove("hidden");
   }
 
@@ -7091,7 +7093,7 @@ function getEWayBillDetails() {
     { id: "purchase", icon: "📥", label: "Total Purchase", desc: "Supplier bills & purchases", amountId: "ovTotalPurchaseAmt" },
     { id: "payment", icon: "💸", label: "Total Payment", desc: "Payments made to parties", amountId: "ovTotalPaymentAmt" },
     { id: "receipt", icon: "💰", label: "Total Receipt", desc: "Money received from parties", amountId: "ovTotalReceiptAmt" },
-    { id: "customer", icon: "👤", label: "Customer Detail", desc: "Customer sales, payments & udhar", amountId: null }
+    { id: "customer", icon: "👤", label: "Customer Detail", desc: "Customer sales, payments & credit", amountId: null }
   ];
 
   function fmtMoney(n) {
