@@ -1612,7 +1612,9 @@ function cleanToken(value) {
   return String(value || '').trim().replace(/\s+/g, '');
 }
 
-function sendToAgentAndWait(userId, xml, timeoutMs = 60000) {
+function sendToAgentAndWait(userId, xml, agentOpts = {}) {
+  const timeoutMs = agentOpts.timeoutMs || 60000;
+  const prepareTally = !!agentOpts.prepareTally;
   return new Promise((resolve, reject) => {
     const ws = connectedAgents.get(String(userId));
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -1625,7 +1627,7 @@ function sendToAgentAndWait(userId, xml, timeoutMs = 60000) {
     }, timeoutMs);
 
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle });
-    ws.send(JSON.stringify({ type: 'sync_request', requestId, xml }));
+    ws.send(JSON.stringify({ type: 'sync_request', requestId, xml, prepareTally }));
   });
 }
 
@@ -1996,10 +1998,10 @@ function buildTallyLedgerMasterXml({ partyName, ledgerGroup, gstin, state, compa
   return wrapTallyImportXml('All Masters', companyName || '', inner);
 }
 
-async function relayXmlToTally(userId, xml, req) {
+async function relayXmlToTally(userId, xml, req, agentOpts = {}) {
   const agentConnected = connectedAgents.has(String(userId));
   if (agentConnected) {
-    return sendToAgentAndWait(userId, xml);
+    return sendToAgentAndWait(userId, xml, agentOpts);
   }
   if (!isLikelyLocalSetup(req)) {
     throw new Error('Desktop Agent is not connected and the app is on cloud hosting. Run the Agent on your Tally PC.');
@@ -2036,8 +2038,20 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     companyName
   };
 
-  logger.info('[Tally Sync] Company:', companyName || '(auto-detect fail — Tally me company select karein)');
+  logger.info('[Tally Sync] Company:', companyName || '(open company in Tally Gateway)');
   logger.info('[Tally Sync] Customer ledger:', cust);
+
+  let agentTallyPrepared = false;
+  const agentRelay = (xml) => {
+    const opts = {};
+    if (agentConnected && !agentTallyPrepared) {
+      opts.prepareTally = true;
+      agentTallyPrepared = true;
+    }
+    return relayXmlToTally(userId, xml, req, opts);
+  };
+
+  const isTallyHttpFatal = (err) => /HTTP Server|port 9000|could not reach Tally|not responding on port/i.test(String(err?.message || ''));
 
   logger.info('[Tally Sync] Step 1: Minimal ledger masters...');
   const minMasters = buildTallyMinimalMastersXml({
@@ -2046,12 +2060,13 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     companyName
   });
   try {
-    const masterResp = await relayXmlToTally(userId, minMasters, req);
+    const masterResp = await agentRelay(minMasters);
     logger.info('[Tally Sync] Masters:', masterResp.substring(0, 500));
     if (!masterResp.includes('Unknown Request')) parseTallyMasterResponse(masterResp);
     else logger.info('[Tally Sync] Master import skipped (Tally response issue)');
   } catch (masterErr) {
     logger.info('[Tally Sync] Master import non-fatal:', masterErr.message);
+    if (isTallyHttpFatal(masterErr)) throw masterErr;
   }
 
   const strategies = [
@@ -2078,7 +2093,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
           isInterState: isInterStateSale(params.companyState, params.customerState),
           companyName
         });
-        const gstMasterResp = await relayXmlToTally(userId, gstMasters, req);
+        const gstMasterResp = await agentRelay(gstMasters);
         logger.info('[Tally Sync] GST Masters:', gstMasterResp.substring(0, 400));
         if (!gstMasterResp.includes('Unknown Request')) parseTallyMasterResponse(gstMasterResp);
       } catch (gstErr) {
@@ -2091,7 +2106,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
       try {
         const voucherXml = strategy.build(eduDate);
         logger.info(`[Tally Sync] Trying: ${strategy.label} @ date ${eduDate}`);
-        const resp = await relayXmlToTally(userId, voucherXml, req);
+        const resp = await agentRelay(voucherXml);
         logger.info('[Tally Sync] Response:', resp.substring(0, 600));
         if (tallyVoucherSuccess(resp)) {
           return { mode: strategy.label, date: eduDate, xml: voucherXml, response: resp, companyName };
@@ -2102,6 +2117,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
       } catch (err) {
         lastError = err;
         logger.info(`[Tally Sync] ${strategy.label} @ ${eduDate} fail:`, err.message);
+        if (isTallyHttpFatal(err)) throw err;
       }
     }
   }

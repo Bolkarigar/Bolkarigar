@@ -4172,7 +4172,14 @@ function openTallyAgentSidebar() {
   }
 }
 
+let tallySyncInProgress = false;
+
 async function sendInvoiceToTally(customer, product, price, qty, gstRate, customerGstin, customerState) {
+  if (tallySyncInProgress) {
+    if (typeof showToast === "function") showToast("Sync already in progress — please wait...", "info");
+    return false;
+  }
+  tallySyncInProgress = true;
   try {
     const token = getToken();
     const ready = await checkTallyAgentReady();
@@ -4192,25 +4199,24 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const ewayDetails = getEWayBillDetails();
 
     if (typeof showCommand === 'function') {
-      showCommand("📂 Opening Tally Prime…");
+      showCommand(ready.agentConnected
+        ? "⌛ Syncing to Tally (Agent will open Tally once if needed)…"
+        : "⌛ Syncing invoice to Tally Prime…");
     }
 
-    try {
-      await fetch(`${API_URL}/api/tally/open`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      // Agent ko Tally launch karne ka time do (HTTP Server port 9000)
-      await new Promise((r) => setTimeout(r, 3000));
-    } catch (e) {
-      console.log("Open Tally trigger:", e.message);
-    }
-
-    if (typeof showCommand === 'function') {
-      showCommand("⌛ Syncing invoice to Tally Prime…");
+    if (!ready.agentConnected) {
+      try {
+        await fetch(`${API_URL}/api/tally/open`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        await new Promise((r) => setTimeout(r, 3000));
+      } catch (e) {
+        console.log("Open Tally trigger:", e.message);
+      }
     }
 
     const baseAmount = price * qty;
@@ -4265,6 +4271,8 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     else alert("❌ Error: " + errMsg);
     if (/agent/i.test(errMsg)) openTallyAgentSidebar();
     return false;
+  } finally {
+    tallySyncInProgress = false;
   }
 }
 
