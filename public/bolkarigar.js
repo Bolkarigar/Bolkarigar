@@ -4200,10 +4200,12 @@ async function checkTallyAgentReady() {
   }
 }
 
-function openTallyAgentSidebar() {
+function openTallyAgentSidebar(opts = {}) {
+  const expand = opts.expand !== false;
   const card = document.querySelector(".sidebar-tally-card");
-  if (card) {
-    card.open = true;
+  if (!card) return;
+  if (expand) card.open = true;
+  if (opts.scroll) {
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 }
@@ -4220,7 +4222,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     const token = getToken();
     const ready = await checkTallyAgentReady();
     if (!ready.canSync) {
-      openTallyAgentSidebar();
+      openTallyAgentSidebar({ scroll: true });
       const msg =
         "Agent window is not running.\n\n" +
         "Token is already saved — just double-click BolKarigar-Connect-Agent.bat again.\n" +
@@ -7080,8 +7082,6 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", initSearchableStateDropdown);
 
 // ================= DESKTOP AGENT PAIRING TOKEN =================
-let _bkTallySidebarAutoOpened = false;
-
 function setTallySetupPill(kind, text) {
   const pill = document.getElementById("tallySetupStatusPill");
   if (!pill) return;
@@ -7192,10 +7192,8 @@ async function refreshTallyAgentStatus() {
     let pillText = data.agentConnected ? "Agent online" : (data.localSetup ? "Local mode" : "Agent offline — setup needed");
     let chipLabel = label;
 
-    if (!data.agentConnected && !_bkTallySidebarAutoOpened) {
-      openTallyAgentSidebar();
-      _bkTallySidebarAutoOpened = true;
-      if (!getAgentPairingToken()) loadAgentToken();
+    if (!data.agentConnected && !getAgentPairingToken()) {
+      loadAgentToken();
     }
 
     if (data.agentConnected) {

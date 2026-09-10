@@ -264,10 +264,11 @@
     overflow: hidden;
   }
   .sidebar-nav-scroll {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 220px);
     padding-right: 4px;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -338,11 +339,18 @@
     color: #4ade80 !important;
   }
   .sidebar-tally-card {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    max-height: 38vh;
+    overflow-y: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: rgba(0,0,0,.15);
     font-size: 12px;
+    scrollbar-width: thin;
+  }
+  .sidebar-tally-card:not([open]) {
+    max-height: none;
+    overflow: visible;
   }
   .sidebar-tally-card summary {
     padding: 10px 12px;
@@ -2311,7 +2319,7 @@ body.sidebar-open .sidebar-tally-card {
 
   .sidebar-nav-scroll {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 45vh;
     max-height: none;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -2321,11 +2329,15 @@ body.sidebar-open .sidebar-tally-card {
   }
 
   .sidebar-tally-card {
-    flex-shrink: 0;
-    max-height: 28vh;
+    flex: 0 1 auto;
+    max-height: 32vh;
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+  }
+  .sidebar-tally-card:not([open]) {
+    max-height: none;
+    overflow: visible;
   }
   .sidebar-tally-card::-webkit-scrollbar {
     width: 0;
