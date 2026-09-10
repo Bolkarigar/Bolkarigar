@@ -9,7 +9,7 @@ const path = require('path');
 const readline = require('readline');
 const { exec } = require('child_process');
 
-const AGENT_VERSION = '2026.09.10';
+const AGENT_VERSION = '2026.09.10d';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_URL_CANDIDATES = ['http://localhost:9000', 'http://127.0.0.1:9000'];
 let tallyLocalUrl = TALLY_URL_CANDIDATES[0];
@@ -21,7 +21,7 @@ const TALLY_EXE_PATHS = [
 ];
 const TALLY_PING_XML = '<?xml version="1.0"?><ENVELOPE><HEADER><VERSION>1</VERSION><TALLYREQUEST>Export</TALLYREQUEST><TYPE>Data</TYPE><ID>LicenseInfo</ID></HEADER><BODY><DESC><STATICVARIABLES><SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></DESC></BODY></ENVELOPE>';
 const TALLY_HTTP_HELP =
-  'Tally HTTP Server OFF. Fix once: open Tally → select company → press F12 → F1 → Connectivity → HTTP Server = Yes, Port = 9000 → Accept. Then click Sync Tally again (do NOT close Agent).';
+  'Tally HTTP Server OFF on port 9000. In Tally: select company → F12 → F1 → Connectivity → HTTP Server = Yes, Port 9000 → Accept. Then Sync Tally again.';
 
 let lastTallyLaunchAt = 0;
 const TALLY_LAUNCH_COOLDOWN_MS = 3 * 60 * 1000;
@@ -58,6 +58,31 @@ function launchTallyPrime() {
   return false;
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isTallyProcessRunning() {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') return resolve(false);
+    exec('tasklist /FI "IMAGENAME eq tally.exe" /NH', { windowsHide: true }, (err, stdout) => {
+      resolve(!err && /tally\.exe/i.test(String(stdout || '')));
+    });
+  });
+}
+
+function printHttpServerSteps() {
+  console.log('\n══════════════════════════════════════════════════');
+  console.log('  Tally HTTP Server ON karna ZAROORI hai (1 minute)');
+  console.log('  1. Tally window par click karein');
+  console.log('  2. Company select karein (Lokansh Ltd)');
+  console.log('  3. F12 dabayein → F1 → Connectivity');
+  console.log('  4. HTTP Server = Yes (ya Both)');
+  console.log('  5. Port = 9000 → Accept / Save');
+  console.log('  6. BolKarigar me dubara Sync Tally dabayein');
+  console.log('══════════════════════════════════════════════════\n');
+}
+
 async function isTallyHttpUp() {
   for (const url of TALLY_URL_CANDIDATES) {
     try {
@@ -65,10 +90,10 @@ async function isTallyHttpUp() {
         method: 'POST',
         headers: { 'Content-Type': 'text/xml' },
         body: TALLY_PING_XML,
-        timeout: 4000
+        timeout: 8000
       });
       const text = await res.text();
-      if (res.ok && text && (text.includes('<ENVELOPE') || text.includes('TALLY'))) {
+      if (res.status === 200 && text && text.length > 10 && !/not found|refused/i.test(text)) {
         tallyLocalUrl = url;
         tallyHttpKnownDown = false;
         return true;
@@ -108,36 +133,57 @@ function isTallyXmlSuccess(text, httpOk) {
   return false;
 }
 
+async function waitForTallyHttp(maxWaitSec, label) {
+  const steps = Math.ceil(maxWaitSec / 3);
+  for (let attempt = 1; attempt <= steps; attempt++) {
+    if (await isTallyHttpUp()) {
+      console.log(`✅ Tally HTTP port 9000 ready (${label}, ${attempt * 3}s).`);
+      return true;
+    }
+    if (attempt === 1 || attempt % 4 === 0) {
+      console.log(`   Waiting for Tally HTTP... (${attempt * 3}s / ${maxWaitSec}s)`);
+    }
+    await sleep(3000);
+  }
+  return false;
+}
+
 async function ensureTallyRunning() {
-  if (await isTallyHttpUp()) return true;
+  if (await isTallyHttpUp()) {
+    console.log('✅ Tally HTTP port 9000 already ON.');
+    return true;
+  }
+
+  const tallyRunning = await isTallyProcessRunning();
+  if (tallyRunning) {
+    console.log('\n⚠️  Tally OPEN hai par HTTP Server band hai (port 9000).');
+    printHttpServerSteps();
+    const ok = await waitForTallyHttp(60, 'after HTTP ON');
+    if (!ok) tallyHttpKnownDown = true;
+    return ok;
+  }
 
   const now = Date.now();
   if (now - lastTallyLaunchAt < TALLY_LAUNCH_COOLDOWN_MS) {
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      await new Promise((r) => setTimeout(r, 1500));
-      if (await isTallyHttpUp()) {
-        console.log(`Tally HTTP ready (${attempt}/4).`);
-        return true;
-      }
+    console.log('Tally HTTP not ready — waiting (not opening again)...');
+    const ok = await waitForTallyHttp(20, 'retry');
+    if (!ok) {
+      tallyHttpKnownDown = true;
+      printHttpServerSteps();
     }
-    tallyHttpKnownDown = true;
-    console.warn(TALLY_HTTP_HELP);
-    return false;
+    return ok;
   }
 
   lastTallyLaunchAt = now;
-  console.log('Tally not on port 9000 — opening Tally Prime once...');
+  console.log('Tally not running — opening Tally Prime once...');
+  console.log('(Company select karein + HTTP Server ON karein jab Tally khule)\n');
   launchTallyPrime();
-  for (let attempt = 1; attempt <= 12; attempt++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    if (await isTallyHttpUp()) {
-      console.log(`Tally HTTP ready (${attempt}/12).`);
-      return true;
-    }
+  const ok = await waitForTallyHttp(90, 'after launch');
+  if (!ok) {
+    tallyHttpKnownDown = true;
+    printHttpServerSteps();
   }
-  tallyHttpKnownDown = true;
-  console.warn(TALLY_HTTP_HELP);
-  return false;
+  return ok;
 }
 
 function loadConfig() {
@@ -232,9 +278,17 @@ function connect(config) {
 
   ws = new WebSocket(wsUrl, { perMessageDeflate: false });
 
-  ws.on('open', () => {
+  ws.on('open', async () => {
     reconnectDelay = 3000;
     console.log('\n✅ CONNECTED — ready for Sync Tally (keep this window open)\n');
+    if (await isTallyHttpUp()) {
+      console.log('✅ Tally HTTP port 9000 OK — sync will work.\n');
+    } else if (await isTallyProcessRunning()) {
+      console.log('⚠️  Tally open hai but HTTP Server OFF — enable port 9000 before Sync.\n');
+      printHttpServerSteps();
+    } else {
+      console.log('ℹ️  Tally not detected — Sync will open Tally once.\n');
+    }
     if (pingTimer) clearInterval(pingTimer);
     pingTimer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {

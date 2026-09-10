@@ -2094,6 +2094,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     const opts = {};
     if (agentConnected && !agentTallyPrepared) {
       opts.prepareTally = true;
+      opts.timeoutMs = 120000;
       agentTallyPrepared = true;
     }
     return relayXmlToTally(userId, xml, req, opts);
