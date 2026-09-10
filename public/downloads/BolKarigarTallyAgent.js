@@ -104,7 +104,7 @@ function isTallyXmlSuccess(text, httpOk) {
   const exceptions = parseInt((text.match(/<EXCEPTIONS>(\d+)<\/EXCEPTIONS>/i) || [0, 0])[1], 10);
   if (exceptions > 0) return false;
   if (created >= 1 || altered >= 1 || imported >= 1) return true;
-  if (text.includes('<LASTVCHID>')) return true;
+  if (altered >= 1 && /<VOUCHER[\s>]/i.test(text)) return true;
   return false;
 }
 

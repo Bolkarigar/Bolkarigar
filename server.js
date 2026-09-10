@@ -1256,12 +1256,52 @@ function tallyDateYmd(date = new Date()) {
 
 // Tally EDU mode sirf mahine ki 1st, 2nd, ya LAST date par voucher accept karta hai
 function getTallyEduSafeDates(ref = new Date()) {
-  const y = ref.getFullYear();
-  const m = ref.getMonth();
+  const d = ref instanceof Date && !isNaN(ref) ? ref : new Date();
+  const y = d.getFullYear();
+  const m = d.getMonth();
   const lastDay = new Date(y, m + 1, 0).getDate();
   const pad = (n) => String(n).padStart(2, '0');
-  const fmt = (d) => `${y}${pad(m + 1)}${pad(d)}`;
+  const fmt = (day) => `${y}${pad(m + 1)}${pad(day)}`;
   return [...new Set([fmt(1), fmt(2), fmt(lastDay)])];
+}
+
+function parseInvoiceDateYmd(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
+  const dmy = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if (dmy) return new Date(parseInt(dmy[3], 10), parseInt(dmy[2], 10) - 1, parseInt(dmy[1], 10));
+  const parsed = new Date(s);
+  return isNaN(parsed) ? null : parsed;
+}
+
+// Invoice date + current month + previous month (Tally books often still on prior month)
+function getTallyEduSafeDatesForSync(invoiceDateStr) {
+  const ordered = [];
+  const seen = new Set();
+  const add = (ref) => {
+    for (const d of getTallyEduSafeDates(ref)) {
+      if (!seen.has(d)) {
+        seen.add(d);
+        ordered.push(d);
+      }
+    }
+  };
+  const invoiceDate = parseInvoiceDateYmd(invoiceDateStr);
+  if (invoiceDate) add(invoiceDate);
+  add(new Date());
+  const prev = new Date(invoiceDate || new Date());
+  prev.setMonth(prev.getMonth() - 1);
+  add(prev);
+  return ordered;
+}
+
+function formatTallyDisplayDate(ymd) {
+  const s = String(ymd || '');
+  if (s.length !== 8) return s;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${parseInt(s.slice(6, 8), 10)}-${months[parseInt(s.slice(4, 6), 10) - 1]}-${s.slice(2, 4)}`;
 }
 
 function tallyVoucherCreated(text) {
@@ -1271,10 +1311,13 @@ function tallyVoucherCreated(text) {
 function tallyVoucherSuccess(text) {
   const created = tallyVoucherCreated(text);
   const imported = parseInt((text.match(/<IMPORTED>(\d+)<\/IMPORTED>/i) || [0, 0])[1], 10);
+  const altered = parseInt((text.match(/<ALTERED>(\d+)<\/ALTERED>/i) || [0, 0])[1], 10);
   const exceptions = parseInt((text.match(/<EXCEPTIONS>(\d+)<\/EXCEPTIONS>/i) || [0, 0])[1], 10);
   const lineErrors = extractTallyErrors(text);
+  if (exceptions > 0 || lineErrors.length) return false;
   if (created >= 1 || imported >= 1) return true;
-  if (exceptions === 0 && !lineErrors.length && text.includes('<LASTVCHID>')) return true;
+  // ALTERED counts only for voucher import (not master-only responses)
+  if (altered >= 1 && /<VOUCHER[\s>]/i.test(text)) return true;
   return false;
 }
 
@@ -1750,7 +1793,7 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
     });
   }
   try {
-    const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState } = req.body;
+    const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState, invoiceDate, paymentType } = req.body;
 
     if (!customer || !product || !price || !qty) {
       return res.status(400).json({ error: 'Customer, product, price and quantity are required.' });
@@ -1764,7 +1807,8 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
 
     const voucherParams = {
       customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst,
-      ewayBillNo, vehicleNo, customerGstin, customerState: resolvedCustomerState, companyState
+      ewayBillNo, vehicleNo, customerGstin, customerState: resolvedCustomerState, companyState,
+      invoiceDate, paymentType: String(paymentType || 'Credit').trim()
     };
 
     // Pehle Khata Pro me ledger + voucher (duplicate se bachne ke liye recent match dhundo)
@@ -1775,13 +1819,12 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
 
     let savedVoucher = null;
     if (ledger) {
-      const since = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       savedVoucher = await Voucher.findOne({
         userId: req.dataUserId,
         partyId: ledger._id,
         voucherType: 'Sales',
         amount: saleAmount,
-        syncedToTally: false,
         date: { $gte: since }
       }).sort({ date: -1 });
 
@@ -1796,9 +1839,10 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
           syncedToTally: false
         });
         await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: saleAmount } });
-      } else {
-        await savedVoucher.save();
       }
+      savedVoucher.syncedToTally = false;
+      savedVoucher.note = `${customer} | ${product} x${qty}`;
+      await savedVoucher.save();
     } else {
       savedVoucher = await Voucher.create({
         userId: req.dataUserId,
@@ -1816,12 +1860,15 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
       savedVoucher.syncedToTally = true;
       await savedVoucher.save();
 
+      const tallyWhen = formatTallyDisplayDate(syncResult.date);
       return res.json({
         success: true,
-        message: `✅ Synced to Tally! (${syncResult.mode}, date: ${syncResult.date})`,
+        message: `✅ Synced to Tally! ${customer} — ₹${saleAmount}. In Tally open Day Book and select date ${tallyWhen} (EDU mode: 1st/2nd/last of month).`,
         voucherId: savedVoucher._id,
         ledgerId: ledger ? ledger._id : null,
-        tallyMode: syncResult.mode
+        tallyMode: syncResult.mode,
+        tallyDate: syncResult.date,
+        tallyDateDisplay: tallyWhen
       });
     } catch (tallyErr) {
       logger.error('Tally sync error:', tallyErr.message);
@@ -2022,8 +2069,9 @@ async function relayXmlToTally(userId, xml, req, agentOpts = {}) {
 
 // Tally EDU + full license dono ke liye — multiple strategies try karta hai
 async function syncVoucherToTallyWithFallback(userId, req, params) {
-  const eduDates = getTallyEduSafeDates();
+  const eduDates = getTallyEduSafeDatesForSync(params.invoiceDate);
   const agentConnected = connectedAgents.has(String(userId));
+  const isCashSale = /^(cash|upi|bank)$/i.test(String(params.paymentType || '').trim());
   // With Desktop Agent, use whichever company is open in Tally Gateway (no SVCURRENTCOMPANY)
   const companyName = agentConnected ? '' : await resolveTallyCompanyName(userId, req);
   const cust = sanitizeTallyLedgerName(params.customer);
@@ -2069,14 +2117,15 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     if (isTallyHttpFatal(masterErr)) throw masterErr;
   }
 
-  const strategies = [
-    { label: 'Journal (party)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account' }) },
-    { label: 'Journal (Cash fallback)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account', partyLedger: 'Cash' }) },
-    { label: 'Journal (Sales)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales' }) },
-    { label: 'EDU-Simple (Sales Account)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account' }) },
-    { label: 'EDU-Simple (Cash)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account', partyLedger: 'Cash' }) },
-    { label: 'GST-Full', build: (d) => buildTallySalesVoucherXml({ ...params, customer: cust, tallyDate: d, companyName }), needsGstMasters: true }
-  ];
+  const journalParty = { label: 'Journal (party)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account' }) };
+  const journalCash = { label: 'Journal (Cash)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account', partyLedger: 'Cash' }) };
+  const journalSales = { label: 'Journal (Sales)', build: (d) => buildTallyJournalVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales' }) };
+  const eduSales = { label: 'EDU-Simple (Sales Account)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account' }) };
+  const eduCash = { label: 'EDU-Simple (Cash)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account', partyLedger: 'Cash' }) };
+  const gstFull = { label: 'GST-Full', build: (d) => buildTallySalesVoucherXml({ ...params, customer: cust, tallyDate: d, companyName }), needsGstMasters: true };
+  const strategies = isCashSale
+    ? [journalCash, journalParty, journalSales, eduCash, eduSales, gstFull]
+    : [journalParty, journalCash, journalSales, eduSales, eduCash, gstFull];
 
   let lastError = null;
   let gstMastersSent = false;

@@ -4246,7 +4246,8 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
         sgst: taxMode.isIntraState ? gstAmount / 2 : 0,
         customerGstin: customerGstin || "",
         customerState: taxMode.buyerState || customerState || "",
-        // E-Way Bill Parameters sent to Tally
+        invoiceDate: document.getElementById("invoiceDateInput")?.value || new Date().toISOString().slice(0, 10),
+        paymentType: document.getElementById("invoicePaymentType")?.value || "Credit",
         ewayBillNo: ewayDetails.ewayBillNo,
         vehicleNo: ewayDetails.vehicleNo,
         distanceKm: ewayDetails.distanceKm
