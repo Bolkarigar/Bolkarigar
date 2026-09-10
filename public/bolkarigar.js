@@ -62,6 +62,49 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+/** Table ke neeche amount total bar — page total + optional grand total */
+window.bkSetTableAmountTotal = function (target, options) {
+  const opts = typeof options === "number" ? { amount: options } : (options || {});
+  const body = typeof target === "string" ? document.getElementById(target) : target;
+  if (!body) return;
+  const wrap = body.closest(".table-wrap") || body.parentElement;
+  if (!wrap) return;
+
+  let bar = wrap.querySelector(":scope > .table-amount-total-bar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.className = "table-amount-total-bar";
+    wrap.appendChild(bar);
+  }
+
+  if (opts.hide) {
+    bar.classList.add("hidden");
+    bar.innerHTML = "";
+    return;
+  }
+
+  const fmt = (n) => `₹${(parseFloat(n) || 0).toFixed(2)}`;
+  const lines = Array.isArray(opts.lines)
+    ? opts.lines
+    : [{ label: opts.label || "Total Amount", amount: opts.amount ?? 0, color: opts.color || "#22c55e" }];
+
+  const rowsMeta = opts.rows != null
+    ? `<span class="table-total-meta"> (${opts.rows} row${opts.rows === 1 ? "" : "s"})</span>`
+    : "";
+
+  bar.innerHTML = lines.map((ln, i) => `
+    <div class="table-total-row${i ? " table-total-row-sub" : ""}">
+      <span>${escapeHtml(ln.label)}${i === 0 ? rowsMeta : ""}</span>
+      <strong style="color:${ln.color || "#22c55e"}">${fmt(ln.amount)}</strong>
+    </div>`).join("");
+
+  if (opts.grand != null && Math.abs((opts.grand || 0) - (lines[0]?.amount || 0)) > 0.009) {
+    bar.innerHTML += `<div class="table-total-grand">All records total: <strong>${fmt(opts.grand)}</strong></div>`;
+  }
+
+  bar.classList.remove("hidden");
+};
+
 let editingIndex = -1; // -1 means abhi koi item edit nahi ho raha hai
 
 // Session Check
@@ -4545,13 +4588,18 @@ async function refreshUdharKhata(localFallback = {}) {
     if (!rows.length) {
       ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No Udhar Records Found.</td></tr>`;
       if (document.getElementById("totalUdharVal")) document.getElementById("totalUdharVal").innerText = "₹0.00";
+      window.bkSetTableAmountTotal(ledgerBody, { hide: true });
       return;
     }
+    let pageBilled = 0, pagePaid = 0, pagePending = 0;
     rows.forEach(row => {
       const pending = row.pending ?? row.ledgerBalance ?? 0;
       const cust = row.partyName || row.customer;
       const billed = row.billed ?? pending;
       const paid = row.paid ?? 0;
+      pageBilled += Number(billed) || 0;
+      pagePaid += Number(paid) || 0;
+      pagePending += Number(pending) || 0;
       const tr = document.createElement("tr");
       tr.innerHTML = `
           <td>${escapeHtml(cust)}</td>
@@ -4579,6 +4627,21 @@ async function refreshUdharKhata(localFallback = {}) {
     if (document.getElementById("totalUdharVal")) {
       document.getElementById("totalUdharVal").innerText = `₹${totalUdhar.toFixed(2)}`;
     }
+    let allBilled = 0, allPaid = 0, allPending = 0;
+    udharAllRows.forEach((row) => {
+      allBilled += Number(row.billed ?? row.pending ?? row.ledgerBalance ?? 0) || 0;
+      allPaid += Number(row.paid ?? 0) || 0;
+      allPending += Number(row.pending ?? row.ledgerBalance ?? 0) || 0;
+    });
+    window.bkSetTableAmountTotal(ledgerBody, {
+      lines: [
+        { label: "Page Billed", amount: pageBilled, color: "#38bdf8" },
+        { label: "Page Paid", amount: pagePaid, color: "#22c55e" },
+        { label: "Page Pending", amount: pagePending, color: "#f59e0b" }
+      ],
+      rows: rows.length,
+      grand: udharAllRows.length > rows.length ? allPending : null
+    });
   }
 
   function renderUdharRows(rows) {
@@ -4682,6 +4745,7 @@ async function showUdharDetail(customerName) {
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="5" style="text-align:center;">Koi transaction nahi mila.</td></tr>`;
+    window.bkSetTableAmountTotal(body, { hide: true });
   } else {
     body.innerHTML = rows.map(r => `
       <tr style="${r.isPayment ? 'background:rgba(34,197,94,.08)' : ''}">
@@ -4694,6 +4758,16 @@ async function showUdharDetail(customerName) {
   }
 
   const pending = Math.max(0, totalBilled - totalPaid);
+  if (rows.length) {
+    window.bkSetTableAmountTotal(body, {
+      lines: [
+        { label: "Total Billed", amount: totalBilled, color: "#38bdf8" },
+        { label: "Total Paid", amount: totalPaid, color: "#22c55e" },
+        { label: "Pending Udhar", amount: pending, color: "#f59e0b" }
+      ],
+      rows: rows.length
+    });
+  }
   if (title) title.textContent = `📖 ${customerName} — Pending: ₹${pending.toFixed(2)}`;
 
   const payBtn = document.getElementById("udharDetailPayBtn");
@@ -6078,8 +6152,11 @@ function getEWayBillDetails() {
     const rows = getKhataPageSlice("daybook");
     if (!khataPag.daybook.data.length) {
       body.innerHTML = `<tr><td colspan='6'>Abhi koi voucher nahi bana.</td></tr>`;
+      window.bkSetTableAmountTotal(body, { hide: true });
       return;
     }
+    const pageSum = rows.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
+    const grandSum = khataPag.daybook.data.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
     body.innerHTML = rows.map(v => `
       <tr>
         <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
@@ -6092,6 +6169,12 @@ function getEWayBillDetails() {
           ${v.syncedToTally ? "✅" : `<button type="button" onclick="syncKhataVoucherToTally('${v._id}')">📊 Sync</button>`}
         </td>
       </tr>`).join("");
+    window.bkSetTableAmountTotal(body, {
+      label: "Page Total",
+      amount: pageSum,
+      rows: rows.length,
+      grand: khataPag.daybook.data.length > rows.length ? grandSum : null
+    });
   }
 
   // ---------- LEDGERS ----------
@@ -6859,7 +6942,9 @@ function getEWayBillDetails() {
           ? "Is filter me koi record nahi mila."
           : "Abhi koi sale record nahi hai.";
         body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>${emptyMsg}</td></tr>`;
+        window.bkSetTableAmountTotal(body, { hide: true });
       } else {
+        const pageSum = data.records.reduce((s, r) => s + (parseFloat(r.totalAmount) || 0), 0);
         body.innerHTML = data.records.map(r => `
           <tr>
             <td>${new Date(r.date).toLocaleDateString("en-IN")}</td>
@@ -6871,6 +6956,12 @@ function getEWayBillDetails() {
             <td>${r.paymentType || "Cash"}</td>
             <td><span style="background:#22c55e22;color:#22c55e;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12px;">${r.status || "Paid"}</span></td>
           </tr>`).join("");
+        window.bkSetTableAmountTotal(body, {
+          label: "Page Total",
+          amount: pageSum,
+          rows: data.records.length,
+          grand: (data.totalPages || 1) > 1 ? null : pageSum
+        });
       }
 
       const total = data.total || 0;
@@ -6896,6 +6987,7 @@ function getEWayBillDetails() {
       if (token !== salesLoadToken) return;
       if (err?.name === "AbortError") return;
       body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>Error: ${err.message}</td></tr>`;
+      window.bkSetTableAmountTotal(body, { hide: true });
     } finally {
       if (token === salesLoadToken) salesLoading = false;
     }
@@ -7137,8 +7229,12 @@ function getEWayBillDetails() {
     if (!rows.length) {
       const cols = type === "Purchase" ? 6 : 5;
       body.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;">No records found.</td></tr>`;
+      window.bkSetTableAmountTotal(body, { hide: true });
       return;
     }
+    const pageSum = rows.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
+    const allRows = voucherCache[key] || [];
+    const grandSum = allRows.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
     if (type === "Purchase") {
       body.innerHTML = rows.map((v) => `
         <tr>
@@ -7159,6 +7255,13 @@ function getEWayBillDetails() {
           <td>${escapeHtml(v.note || "—")}</td>
         </tr>`).join("");
     }
+    window.bkSetTableAmountTotal(body, {
+      label: rows.length < allRows.length ? "Filtered Total" : "Total Amount",
+      amount: pageSum,
+      rows: rows.length,
+      grand: rows.length < allRows.length ? grandSum : null,
+      color: type === "Receipt" ? "#22c55e" : type === "Payment" ? "#ef4444" : "#f59e0b"
+    });
     if (typeof window.enhanceMobileTables === "function") {
       requestAnimationFrame(() => window.enhanceMobileTables(document.getElementById(`overviewTab${type}`)));
     }
