@@ -47,6 +47,15 @@ function requireBusinessPlan(req, res, next) {
   });
 }
 
+/** Tally Agent + sync — Business plan OR explicit tallySync feature */
+function requireTallyAccess(req, res, next) {
+  if (req.subscription?.fullAccess || req.subscription?.tallySync) return next();
+  return res.status(403).json({
+    error: 'Tally sync requires Business plan (₹299). Open My Plan to upgrade.',
+    code: 'PLAN_UPGRADE_REQUIRED'
+  });
+}
+
 /** Active Pro (free) or Business — for AI chat, voice parse, basic features */
 function requireActivePlan(req, res, next) {
   if (req.subscription?.isActive) return next();
@@ -353,6 +362,7 @@ module.exports = {
   PRO_PLAN_TABS,
   getPlanFeatures,
   requireBusinessPlan,
+  requireTallyAccess,
   requireActivePlan,
   startOwnerTrial,
   ensureOwnerSubscription,

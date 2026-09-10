@@ -37,6 +37,7 @@ const {
   setupSubscription,
   isPathSubscriptionExempt,
   requireBusinessPlan,
+  requireTallyAccess,
   requireActivePlan
 } = require('./subscription');
 const { setupRazorpayPayments, getRazorpayMode } = require('./razorpay-payments');
@@ -446,6 +447,12 @@ authenticateToken = (req, res, next) => {
       req.dataUserId = String(user.id);
       req.userRole = 'owner';
       req.isStaffAccount = false;
+      try {
+        const fallbackUser = await User.findById(user.id);
+        if (fallbackUser) {
+          req.subscription = await getSubscriptionForUser(User, fallbackUser);
+        }
+      } catch { /* subscription optional on fallback */ }
     }
     next();
   });
@@ -1713,7 +1720,7 @@ const TALLY_HTTP_SETUP_STEPS = [
 // Tally Prime ko launch karne ki koshish karta hai — agar Desktop Agent
 // connected hai to usi ko instruction bhejta hai (kyunki Tally uske PC par
 // hai), warna (single-PC local setup ke liye) seedha is machine par exec karta hai.
-app.get('/api/tally/agent-status', authenticateToken, requireBusinessPlan, (req, res) => {
+app.get('/api/tally/agent-status', authenticateToken, requireTallyAccess, (req, res) => {
   const userId = String(req.dataUserId);
   const agentConnected = connectedAgents.has(userId);
   const localSetup = isLikelyLocalSetup(req);
@@ -1725,7 +1732,7 @@ app.get('/api/tally/agent-status', authenticateToken, requireBusinessPlan, (req,
   });
 });
 
-app.get('/api/tally/http-status', authenticateToken, requireBusinessPlan, async (req, res) => {
+app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (req, res) => {
   const userId = String(req.dataUserId);
   const agentConnected = connectedAgents.has(userId);
   if (!agentConnected) {
@@ -1773,24 +1780,33 @@ app.get('/api/tally/http-status', authenticateToken, requireBusinessPlan, async 
   }
 });
 
-app.get('/api/tally/agent-token', authenticateToken, requireBusinessPlan, async (req, res) => {
+app.get('/api/tally/agent-token', authenticateToken, requireTallyAccess, async (req, res) => {
   try {
-    let profile = await BusinessProfile.findOne({ userId: req.dataUserId });
-    if (!profile) {
-      profile = await BusinessProfile.create({ userId: req.dataUserId });
+    const ownerId = req.dataUserId;
+    let profile = await BusinessProfile.findOne({ userId: ownerId });
+    let token = profile?.agentToken ? String(profile.agentToken).trim() : '';
+
+    if (!token) {
+      const legacyUser = await User.findById(ownerId).select('agentToken').lean();
+      if (legacyUser?.agentToken) token = String(legacyUser.agentToken).trim();
     }
-    if (!profile.agentToken) {
-      profile.agentToken = crypto.randomBytes(24).toString('hex');
+    if (!token) token = crypto.randomBytes(24).toString('hex');
+
+    if (!profile) {
+      profile = await BusinessProfile.create({ userId: ownerId, agentToken: token });
+    } else if (profile.agentToken !== token) {
+      profile.agentToken = token;
       await profile.save();
     }
-    res.json({ success: true, agentToken: profile.agentToken });
+
+    res.json({ success: true, agentToken: token });
   } catch (err) {
     logger.error('Agent token fetch error:', err);
-    res.status(500).json({ success: false, error: 'Could not load agent token.' });
+    res.status(500).json({ success: false, error: 'Could not load agent token. Try again in a few seconds.' });
   }
 });
 
-app.post('/api/tally/agent-token/regenerate', authenticateToken, requireOwner, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_TOKEN), async (req, res) => {
+app.post('/api/tally/agent-token/regenerate', authenticateToken, requireOwner, requireTallyAccess, requirePermission(PERMISSIONS.TALLY_TOKEN), async (req, res) => {
   try {
     const newToken = crypto.randomBytes(24).toString('hex');
     const profile = await BusinessProfile.findOneAndUpdate(
@@ -1860,7 +1876,7 @@ app.post('/api/tally/open', authenticateToken, requireBusinessPlan, (req, res) =
   res.json({ success: true, launched, message: launched ? 'Tally launch triggered.' : 'Could not auto-launch Tally — open it manually.' });
 });
 
-app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
+app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
   const agentConnected = connectedAgents.has(String(req.dataUserId));
   if (!agentConnected && !isLikelyLocalSetup(req)) {
     return res.status(400).json({

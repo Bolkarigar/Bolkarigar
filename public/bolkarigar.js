@@ -7080,6 +7080,86 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", initSearchableStateDropdown);
 
 // ================= DESKTOP AGENT PAIRING TOKEN =================
+let _bkTallySidebarAutoOpened = false;
+
+function setTallySetupPill(kind, text) {
+  const pill = document.getElementById("tallySetupStatusPill");
+  if (!pill) return;
+  pill.className = "tally-setup-pill tally-setup-pill--" + (kind || "checking");
+  pill.textContent = text || "";
+}
+
+function setAgentTokenUi(value, isError) {
+  const el = document.getElementById("agentTokenDisplay");
+  const hint = document.getElementById("agentTokenHint");
+  if (!el) return;
+  const clean = String(value || "").trim().replace(/\s+/g, "");
+  if (clean && !isError && clean.length >= 16) {
+    el.dataset.token = clean;
+    el.value = clean;
+    el.classList.remove("tally-token-error");
+    if (hint) hint.textContent = "Token ready. Click Connect Agent — it saves to agent-config.json on your PC.";
+    return;
+  }
+  el.dataset.token = "";
+  el.value = value || "";
+  el.classList.toggle("tally-token-error", !!isError);
+  if (hint && isError) hint.textContent = "Could not load token. Click Reload Token or refresh the page (Ctrl+Shift+R).";
+}
+
+async function fetchAgentPairingTokenFromServer(force) {
+  const auth = getToken();
+  if (!auth) throw new Error("Login required");
+  const res = await fetch(`${API_URL}/api/tally/agent-token`, {
+    headers: { Authorization: `Bearer ${auth}` },
+    cache: "no-store"
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 403) {
+    throw new Error(data.error || "Business plan (₹299) required for Tally sync.");
+  }
+  if (res.status === 402) {
+    throw new Error(data.error || "Plan expired — renew from My Plan.");
+  }
+  if (res.status === 404) {
+    throw new Error("Server update pending — hard refresh (Ctrl+Shift+R) and try again.");
+  }
+  if (!res.ok) {
+    throw new Error(data.error || `Token error (${res.status})`);
+  }
+  const pairing = String(data.agentToken || "").trim().replace(/\s+/g, "");
+  if (!pairing) throw new Error("Server returned empty token — click Reload Token.");
+  setAgentTokenUi(pairing, false);
+  return pairing;
+}
+
+async function loadAgentToken(retries = 4) {
+  const el = document.getElementById("agentTokenDisplay");
+  if (!el) return "";
+  if (!getToken()) {
+    setAgentTokenUi("Login required", true);
+    return "";
+  }
+  const cached = getAgentPairingToken();
+  if (cached && cached.length >= 16) return cached;
+
+  setAgentTokenUi("", false);
+  el.placeholder = "Loading token…";
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetchAgentPairingTokenFromServer(false);
+    } catch (err) {
+      if (attempt >= retries) {
+        setAgentTokenUi(err.message || "Could not load token", true);
+        return "";
+      }
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
+  }
+  return "";
+}
+
 async function refreshTallyAgentStatus() {
   const chip = document.getElementById("tallyAgentStatusChip");
   const sidebar = document.getElementById("tallyAgentSidebarStatus");
@@ -7087,6 +7167,7 @@ async function refreshTallyAgentStatus() {
   if (!token) {
     if (chip) { chip.textContent = "Login required"; chip.className = "tally-status-chip tally-status-offline"; }
     if (sidebar) sidebar.textContent = "Log in to use Tally sync.";
+    setTallySetupPill("offline", "Login required");
     window._bkTallyAgentConnected = false;
     return;
   }
@@ -7103,74 +7184,77 @@ async function refreshTallyAgentStatus() {
         ? "🟡 Local Tally mode"
         : "🔴 Agent offline";
     let detail = data.agentConnected
-      ? "✅ Connected — sync unlimited bills today. Just click Sync Tally for each new invoice."
+      ? "✅ Connected — click Sync Tally for each new invoice."
       : data.localSetup
         ? "Local mode — direct sync available."
-        : "Agent offline. Run Connect Agent.bat once (token saved). Keep window minimized all day.";
+        : "Agent offline. Click Step 2: Connect Agent, then keep the window minimized.";
+    let pillKind = data.agentConnected ? "ready" : (data.localSetup ? "warn" : "offline");
+    let pillText = data.agentConnected ? "Agent online" : (data.localSetup ? "Local mode" : "Agent offline — setup needed");
+    let chipLabel = label;
+
+    if (!data.agentConnected && !_bkTallySidebarAutoOpened) {
+      openTallyAgentSidebar();
+      _bkTallySidebarAutoOpened = true;
+      if (!getAgentPairingToken()) loadAgentToken();
+    }
+
     if (data.agentConnected) {
       try {
         const http = await checkTallyHttpStatus();
         if (http.httpReady) {
-          detail = "✅ Agent + Tally HTTP OK — Sync Tally dabao.";
-          if (chip) chip.textContent = "🟢 Tally ready";
+          detail = "✅ Agent + Tally HTTP OK — you can Sync Tally now.";
+          pillKind = "ready";
+          pillText = "Ready to sync";
+          chipLabel = "🟢 Tally ready";
         } else if (http.tallyRunning) {
-          detail = "⚠️ Agent OK but HTTP Server OFF — F12→F1→Connectivity→HTTP Yes, Port 9000. Then Test Tally HTTP.";
-          if (chip) chip.textContent = "🟡 HTTP OFF";
+          detail = "⚠️ Agent OK but HTTP Server OFF — F1 → Connectivity → HTTP Yes, Port 9000. Then Test Tally HTTP.";
+          pillKind = "warn";
+          pillText = "Enable HTTP port 9000";
+          chipLabel = "🟡 HTTP OFF";
         } else {
-          detail = "⚠️ Agent OK — open Tally + enable HTTP port 9000, then Test Tally HTTP.";
-          if (chip) chip.textContent = "🟡 Setup Tally";
+          detail = "⚠️ Agent OK — open Tally, select company, enable HTTP port 9000, then Test Tally HTTP.";
+          pillKind = "warn";
+          pillText = "Open Tally + HTTP 9000";
+          chipLabel = "🟡 Setup Tally";
         }
       } catch (_) { /* keep default detail */ }
     }
+    setTallySetupPill(pillKind, pillText);
     if (chip) {
-      chip.textContent = label;
+      chip.textContent = chipLabel;
       chip.className = "tally-status-chip " + (online ? "tally-status-online" : "tally-status-offline");
     }
     if (sidebar) sidebar.textContent = detail;
   } catch (_) {
+    setTallySetupPill("offline", "Status unknown");
     if (chip) { chip.textContent = "Status unknown"; chip.className = "tally-status-chip tally-status-unknown"; }
     if (sidebar) sidebar.textContent = "Could not check agent status — refresh page.";
-  }
-}
-
-async function loadAgentToken() {
-  const el = document.getElementById("agentTokenDisplay");
-  if (!el) return;
-  const token = getToken();
-  if (!token) {
-    el.textContent = "Login required";
-    return;
-  }
-  try {
-    const res = await fetch(`${API_URL}/api/tally/agent-token`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.agentToken) {
-      const token = String(data.agentToken).trim().replace(/\s+/g, "");
-      el.dataset.token = token;
-      el.textContent = token;
-    } else if (res.status === 403) {
-      el.textContent = "Business plan required";
-    } else {
-      el.textContent = data.error || "Error — try again";
-    }
-  } catch (err) {
-    el.textContent = "Could not load token";
   }
 }
 
 function getAgentPairingToken() {
   const el = document.getElementById("agentTokenDisplay");
   if (!el) return "";
-  const raw = el.dataset.token || el.textContent || "";
-  return raw.trim().replace(/\s+/g, "");
+  const raw = el.dataset.token || el.value || "";
+  const clean = raw.trim().replace(/\s+/g, "");
+  if (!clean || clean.length < 16 || /required|error|login|loading|pending/i.test(clean)) return "";
+  return clean;
 }
 
-function downloadAgentConnectBat() {
-  const token = getAgentPairingToken();
-  if (!token || token === "Loading..." || /required|error|login/i.test(token)) {
-    alert("Pairing token is not ready yet. Refresh the page and wait a few seconds.");
+async function downloadAgentConnectBat() {
+  let pairingToken = getAgentPairingToken();
+  if (!pairingToken) {
+    const btn = document.getElementById("connectAgentBtn");
+    if (btn) btn.disabled = true;
+    try {
+      pairingToken = await loadAgentToken(5);
+    } catch (_) { /* loadAgentToken sets UI */ }
+    if (btn) btn.disabled = false;
+  }
+  const token = pairingToken || getAgentPairingToken();
+  if (!token) {
+    alert("Pairing token could not load.\n\n1. Hard refresh: Ctrl+Shift+R\n2. Click Reload Token in sidebar\n3. Ensure Business plan is active (My Plan)");
+    openTallyAgentSidebar();
     return;
   }
   const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
@@ -7185,17 +7269,13 @@ function downloadAgentConnectBat() {
     "  pause",
     "  exit /b 1",
     ")",
-    "if not exist agent-config.json (",
-    "  echo Saving token (one time only)...",
-    "  (",
+    "echo Saving pairing token to agent-config.json...",
+    "(",
     "  echo {",
     `  echo   \"backendUrl\": \"${backendUrl}\",`,
     `  echo   \"agentToken\": \"${token}\"`,
     "  echo }",
-    "  ) > agent-config.json",
-    ") else (",
-    "  echo Token already saved in agent-config.json - no need to paste again.",
-    ")",
+    ") > agent-config.json",
     "echo.",
     "echo ==========================================",
     "echo  BolKarigar Agent - UNLIMITED BILLS TODAY",
@@ -7236,7 +7316,19 @@ document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () 
   refreshTallyAgentStatus();
 });
 
-document.getElementById("connectAgentBtn")?.addEventListener("click", downloadAgentConnectBat);
+document.getElementById("connectAgentBtn")?.addEventListener("click", () => { downloadAgentConnectBat(); });
+document.getElementById("reloadAgentTokenBtn")?.addEventListener("click", async () => {
+  const btn = document.getElementById("reloadAgentTokenBtn");
+  if (btn) btn.textContent = "Loading…";
+  try {
+    await fetchAgentPairingTokenFromServer(true);
+    if (typeof showToast === "function") showToast("Pairing token loaded.", "success");
+  } catch (err) {
+    setAgentTokenUi(err.message || "Could not load token", true);
+    if (typeof showToast === "function") showToast(err.message || "Token load failed", "error");
+  }
+  if (btn) btn.textContent = "↻ Reload Token";
+});
 
 document.getElementById("copyAgentTokenBtn")?.addEventListener("click", () => {
   const token = getAgentPairingToken();
@@ -7258,9 +7350,7 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
     });
     const data = await res.json();
     if (data.success) {
-      const el = document.getElementById("agentTokenDisplay");
-      const token = String(data.agentToken).trim().replace(/\s+/g, "");
-      if (el) { el.dataset.token = token; el.textContent = token; }
+      setAgentTokenUi(String(data.agentToken).trim().replace(/\s+/g, ""), false);
       alert("New token created! Click Step 2: Connect Agent again to update your PC.");
     }
   } catch (err) {
@@ -7269,8 +7359,10 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
 });
 
 function initTallyAgentUi() {
-  if (typeof loadAgentToken === "function") loadAgentToken();
-  if (typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
+  if (getToken()) {
+    if (typeof loadAgentToken === "function") loadAgentToken();
+    if (typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
+  }
 }
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initTallyAgentUi);
