@@ -4289,6 +4289,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
         customerState: taxMode.buyerState || customerState || "",
         invoiceDate: document.getElementById("invoiceDateInput")?.value || new Date().toISOString().slice(0, 10),
         paymentType: document.getElementById("invoicePaymentType")?.value || "Credit",
+        tallyEdu: true,
         ewayBillNo: ewayDetails.ewayBillNo,
         vehicleNo: ewayDetails.vehicleNo,
         distanceKm: ewayDetails.distanceKm

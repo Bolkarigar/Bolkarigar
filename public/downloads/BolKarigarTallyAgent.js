@@ -10,7 +10,7 @@ const readline = require('readline');
 const { exec } = require('child_process');
 const net = require('net');
 
-const AGENT_VERSION = '2026.09.11';
+const AGENT_VERSION = '2026.09.11edu';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_URL_CANDIDATES = ['http://localhost:9000', 'http://127.0.0.1:9000'];
 let tallyLocalUrl = TALLY_URL_CANDIDATES[0];
@@ -169,7 +169,7 @@ async function ensureTallyRunning() {
   if (tallyRunning) {
     console.log('\n⚠️  Tally OPEN hai par HTTP Server band hai (port 9000).');
     printHttpServerSteps();
-    const ok = await waitForTallyHttp(60, 'after HTTP ON');
+    const ok = await waitForTallyHttp(30, 'after HTTP ON');
     if (!ok) tallyHttpKnownDown = true;
     return ok;
   }
@@ -189,7 +189,7 @@ async function ensureTallyRunning() {
   console.log('Tally not running — opening Tally Prime once...');
   console.log('(Company select karein + HTTP Server ON karein jab Tally khule)\n');
   launchTallyPrime();
-  const ok = await waitForTallyHttp(90, 'after launch');
+  const ok = await waitForTallyHttp(45, 'after launch');
   if (!ok) {
     tallyHttpKnownDown = true;
     printHttpServerSteps();

@@ -1664,9 +1664,10 @@ function sendToAgentAndWait(userId, xml, agentOpts = {}) {
       return reject(new Error('Desktop Agent is not connected. Run Connect Agent.bat and keep the window open.'));
     }
     const requestId = crypto.randomUUID();
+    const timeoutSec = Math.round(timeoutMs / 1000);
     const timeoutHandle = setTimeout(() => {
       pendingAgentRequests.delete(requestId);
-      reject(new Error('Agent did not respond in 60 seconds. Keep Agent window open and Tally HTTP Server ON (port 9000).'));
+      reject(new Error(`Agent did not respond in ${timeoutSec} seconds. Enable Tally HTTP Server (port 9000) — F1 → Settings → Connectivity → HTTP Yes. Then Test Tally HTTP in sidebar.`));
     }, timeoutMs);
 
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle });
@@ -1700,12 +1701,13 @@ function sendTallyCheckToAgent(userId) {
 }
 
 const TALLY_HTTP_SETUP_STEPS = [
-  'Tally window par click karein',
-  'Lokansh Ltd company select karein',
-  'F12 dabayein → F1 → Connectivity',
-  'HTTP Server = Yes (ya Both), Port = 9000',
-  'Accept / Save dabayein',
-  'BolKarigar sidebar me "Test Tally HTTP" dabayein — green ho to Sync Tally'
+  'Tally Prime EDU bhi same setting use karta hai — HTTP ON zaroori hai',
+  'Tally window par click karein → company select karein (Lokansh Ltd)',
+  'F1 → Settings → Connectivity → Client/Server Configuration',
+  'TallyPrime acts as = Server ya Both',
+  'HTTP Server = Yes, Port = 9000 → Accept',
+  'BolKarigar sidebar → "Test Tally HTTP" — green aaye tab Sync Tally',
+  'EDU note: voucher sirf month ki 1st, 2nd ya last date par dikhega Day Book mein'
 ];
 
 // Tally Prime ko launch karne ki koshish karta hai — agar Desktop Agent
@@ -1866,7 +1868,7 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
     });
   }
   try {
-    const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState, invoiceDate, paymentType } = req.body;
+    const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState, invoiceDate, paymentType, tallyEdu } = req.body;
 
     if (!customer || !product || !price || !qty) {
       return res.status(400).json({ error: 'Customer, product, price and quantity are required.' });
@@ -1881,7 +1883,8 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireBusinessPlan, requ
     const voucherParams = {
       customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst,
       ewayBillNo, vehicleNo, customerGstin, customerState: resolvedCustomerState, companyState,
-      invoiceDate, paymentType: String(paymentType || 'Credit').trim()
+      invoiceDate, paymentType: String(paymentType || 'Credit').trim(),
+      tallyEdu: tallyEdu !== false
     };
 
     // Pehle Khata Pro me ledger + voucher (duplicate se bachne ke liye recent match dhundo)
@@ -2167,7 +2170,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
     const opts = {};
     if (agentConnected && !agentTallyPrepared) {
       opts.prepareTally = true;
-      opts.timeoutMs = 120000;
+      opts.timeoutMs = 180000;
       agentTallyPrepared = true;
     }
     return relayXmlToTally(userId, xml, req, opts);
@@ -2197,9 +2200,17 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
   const eduSales = { label: 'EDU-Simple (Sales Account)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account' }) };
   const eduCash = { label: 'EDU-Simple (Cash)', build: (d) => buildTallySimpleSalesVoucherXml({ ...base, tallyDate: d, salesLedgerName: 'Sales Account', partyLedger: 'Cash' }) };
   const gstFull = { label: 'GST-Full', build: (d) => buildTallySalesVoucherXml({ ...params, customer: cust, tallyDate: d, companyName }), needsGstMasters: true };
-  const strategies = isCashSale
-    ? [journalCash, journalParty, journalSales, eduCash, eduSales, gstFull]
-    : [journalParty, journalCash, journalSales, eduSales, eduCash, gstFull];
+
+  const isEduMode = !!params.tallyEdu;
+  const datesToTry = isEduMode
+    ? [...new Set([eduDates[0], eduDates[eduDates.length - 1]].filter(Boolean))]
+    : eduDates;
+  const strategies = isEduMode
+    ? (isCashSale ? [journalCash, journalParty, eduCash] : [journalParty, journalCash, eduSales])
+    : (isCashSale
+      ? [journalCash, journalParty, journalSales, eduCash, eduSales, gstFull]
+      : [journalParty, journalCash, journalSales, eduSales, eduCash, gstFull]);
+  if (isEduMode) logger.info('[Tally Sync] Tally EDU mode — Journal vouchers on dates:', datesToTry.join(', '));
 
   let lastError = null;
   let gstMastersSent = false;
@@ -2225,7 +2236,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
       gstMastersSent = true;
     }
 
-    for (const eduDate of eduDates) {
+    for (const eduDate of datesToTry) {
       try {
         const voucherXml = strategy.build(eduDate);
         logger.info(`[Tally Sync] Trying: ${strategy.label} @ date ${eduDate}`);
@@ -2246,7 +2257,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
   }
 
   const hint = agentConnected
-    ? 'Tally Gateway me company select karein (e.g. Lokansh Ltd). EDU mode: date 1st/2nd/last of month only.'
+    ? 'Tally EDU: HTTP Server ON (port 9000) + Day Book mein 1st/2nd/last date of month dekhein — aaj ki date par entry nahi dikhti.'
     : companyName
       ? `Company: "${companyName}". Tally EDU me date 1st/2nd/last honi chahiye.`
       : 'Tally me company select karein ya .env me TALLY_COMPANY_NAME set karein.';
