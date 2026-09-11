@@ -361,16 +361,33 @@
   }
   .sidebar-tally-card summary::-webkit-details-marker { display: none; }
   .sidebar-tally-body { padding: 0 12px 12px; }
+  .sidebar-tally-body .tally-actions-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .sidebar-tally-body .tally-actions-stack > * {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sidebar-tally-body .tally-dl-link + .tally-dl-link,
+  .sidebar-tally-body .tally-dl-link + .tally-connect-btn,
+  .sidebar-tally-body .tally-connect-btn + .tally-test-http-btn {
+    margin-top: 10px;
+  }
   .tally-dl-link {
     display: block;
     text-align: center;
     background: #3b82f6;
     color: #fff;
-    padding: 8px;
+    padding: 9px 12px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
     font-size: 12px;
+    line-height: 1.35;
   }
   .tally-token-row {
     display: flex;
@@ -3330,11 +3347,35 @@ body.app-lock-active { overflow: hidden; }
   line-height: 1.5;
   color: var(--muted, #94a3b8);
 }
+.sidebar-tally-body .tally-actions-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 12px;
+}
+.sidebar-tally-body .tally-actions-stack > .tally-dl-link,
+.sidebar-tally-body .tally-actions-stack > .tally-connect-btn,
+.sidebar-tally-body .tally-actions-stack > .tally-test-http-btn {
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.sidebar-tally-body .tally-actions-stack > * + * {
+  margin-top: 0;
+}
+.sidebar-tally-body .tally-dl-link + .tally-dl-link {
+  margin-top: 10px !important;
+}
+.sidebar-tally-body .tally-dl-link + .tally-connect-btn {
+  margin-top: 10px !important;
+}
+.sidebar-tally-body .tally-connect-btn + .tally-test-http-btn {
+  margin-top: 10px !important;
+}
 .tally-test-http-btn {
   display: block;
   width: 100%;
-  margin-top: 6px;
-  padding: 8px 10px;
+  padding: 9px 12px;
   border-radius: 8px;
   border: 1px solid rgba(59, 130, 246, 0.5);
   background: rgba(59, 130, 246, 0.15);
@@ -3347,15 +3388,34 @@ body.app-lock-active { overflow: hidden; }
 .tally-test-http-btn:hover {
   background: rgba(59, 130, 246, 0.28);
 }
-.tally-dl-primary {
+.tally-dl-link {
   display: block;
-  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  background: #3b82f6;
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 8px;
+  text-decoration: none;
   font-weight: 600;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.tally-dl-link:hover {
+  filter: brightness(1.08);
+}
+.tally-dl-primary {
+  font-weight: 700;
+  font-size: 13px;
+}
+.tally-dl-secondary {
+  background: rgba(59, 130, 246, 0.85);
+  font-size: 12px;
 }
 .tally-connect-btn {
   display: block;
   width: 100%;
-  margin-top: 8px;
   padding: 10px 12px;
   border: none;
   border-radius: 8px;
@@ -3369,7 +3429,6 @@ body.app-lock-active { overflow: hidden; }
 .tally-connect-btn:hover { filter: brightness(1.08); }
 .tally-dl-link-secondary {
   display: block;
-  margin-top: 6px;
   font-size: 12px;
   opacity: 0.9;
 }

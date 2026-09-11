@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui14">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui16">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260909r1"></script>
   <script>
-    window.BK_APP_BUILD = '20260911ui14';
+    window.BK_APP_BUILD = '20260911ui16';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260911ui14">
+<body data-build="20260911ui16">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -209,11 +209,13 @@
               <li><strong>4.</strong> Each new bill → click <strong>Sync Tally</strong></li>
             </ol>
             <p class="tally-http-hint tally-http-hint-warn">⚠️ ODBC ON ≠ HTTP ON. F1 → Connectivity → <strong>Both</strong> + <strong>Enable HTTP Server = Yes</strong> (ODBC ke neeche alag line) + Port <strong>9000</strong> → Accept → Tally restart.<br>Company ke <strong>andar</strong> jao (Day Book khula ho). Browser test: <strong>http://127.0.0.1:9000</strong><br>Agent <strong>vhttp4</strong> download karein (purana band karke naya). EDU: Day Book mein <strong>1st/2nd/last</strong> date.</p>
-            <a href="/downloads/BolKarigarTallyAgent.exe?v=20260911http4" download="BolKarigarTallyAgent.exe" class="tally-dl-link tally-dl-primary">📥 Step 1 — Download Agent (.exe) — vhttp4</a>
-            <a href="/downloads/BolKarigarTallyAgent.js?v=20260911http4" download="BolKarigarTallyAgent.js" class="tally-dl-link">📄 Agent source (.js) — Node.js fallback</a>
-            <a href="/downloads/Test-Tally-HTTP-9000.bat" download="Test-Tally-HTTP-9000.bat" class="tally-dl-link">🧪 Test Tally HTTP (PC par double-click)</a>
-            <button type="button" id="connectAgentBtn" class="tally-dl-link tally-connect-btn">▶️ Step 2 — Connect Agent (token saves forever)</button>
-            <button type="button" id="testTallyHttpBtn" class="tally-dl-link tally-test-http-btn">🔌 Test Tally HTTP (port 9000)</button>
+            <div class="tally-actions-stack">
+              <a href="/downloads/BolKarigarTallyAgent.exe?v=20260911http4" download="BolKarigarTallyAgent.exe" class="tally-dl-link tally-dl-primary">📥 Step 1 — Download Agent (.exe) — vhttp4</a>
+              <a href="/downloads/BolKarigarTallyAgent.js?v=20260911http4" download="BolKarigarTallyAgent.js" class="tally-dl-link tally-dl-secondary">📄 Agent source (.js) — Node.js fallback</a>
+              <a href="/downloads/Test-Tally-HTTP-9000.bat" download="Test-Tally-HTTP-9000.bat" class="tally-dl-link tally-dl-secondary">🧪 Test Tally HTTP (PC par double-click)</a>
+              <button type="button" id="connectAgentBtn" class="tally-connect-btn">▶️ Step 2 — Connect Agent (token saves forever)</button>
+              <button type="button" id="testTallyHttpBtn" class="tally-test-http-btn">🔌 Test Tally HTTP (port 9000)</button>
+            </div>
             <p id="tallyAgentSidebarStatus" class="tally-agent-sidebar-status">Checking Desktop Agent…</p>
             <label class="tally-token-label" for="agentTokenDisplay">Pairing Token</label>
             <div class="tally-token-row">
