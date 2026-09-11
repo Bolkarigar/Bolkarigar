@@ -249,9 +249,9 @@
       panelId: null,
       plans: ["business"],
       color: "#16a34a",
-      title: "🔗 Tally Sync (Tally Prime कनेक्ट)",
-      hindi: "Desktop Agent download karein, Tally Prime me HTTP Server ON karein, phir invoice se Sync to Tally dabayein — sales voucher seedha Tally mein.",
-      english: "Connect Tally Prime via Desktop Agent and sync sales vouchers from Invoice with one click."
+      title: "🔗 Tally Sync (Optional)",
+      hindi: "Roz ke liye BolKarigar Khata best hai. Tally chahiye ho to: Agent vhttp5 → F1 → Connectivity → Client/Server → HTTP Server Yes, Port 9000 → company Day Book → Test green → Sync enable.",
+      english: "Use BolKarigar Khata daily. Optional Tally sync needs Desktop Agent + Tally HTTP on port 9000 (Client/Server screen, not Timeout Configuration)."
     }
   ];
 

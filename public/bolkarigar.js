@@ -4296,6 +4296,18 @@ let tallySyncStartedAt = 0;
 const TALLY_SYNC_STALE_MS = 120000;
 
 async function sendInvoiceToTally(customer, product, price, qty, gstRate, customerGstin, customerState) {
+  const tallyBtn = document.getElementById("tallySyncBtn");
+  if (tallyBtn && tallyBtn.disabled) {
+    const st = window._bkTallyHttpStatus || {};
+    const msg = st.agentConnected
+      ? "Tally HTTP abhi ready nahi. F1 → Connectivity → Client/Server → HTTP Server = Yes, Port 9000. Test green hone par Sync enable hoga. Abhi BolKarigar Khata use karein."
+      : "Agent offline hai. Connect Agent.bat chalao, ya BolKarigar Khata se bill save karein.";
+    if (typeof showToast === "function") showToast(msg, "error");
+    else alert(msg);
+    openTallyAgentSidebar({ scroll: true });
+    return false;
+  }
+
   if (tallySyncInProgress) {
     const elapsed = Date.now() - tallySyncStartedAt;
     if (elapsed < TALLY_SYNC_STALE_MS) {
@@ -7703,6 +7715,79 @@ document.addEventListener("click", function(event) {
 document.addEventListener("DOMContentLoaded", initSearchableStateDropdown);
 
 // ================= DESKTOP AGENT PAIRING TOKEN =================
+window._bkTallyHttpStatus = { httpReady: false, canTrySync: false, agentConnected: false, message: "" };
+
+function updateTallySyncButtonState() {
+  const tallyBtn = document.getElementById("tallySyncBtn");
+  const khataHint = document.getElementById("tallyKhataHint");
+  const tallyHint = document.getElementById("tallyModeHint");
+  const gate = document.getElementById("tallyHttpGateBanner");
+  const showTally = document.querySelector('input[name="accMode"][value="tally"]')?.checked;
+  const st = window._bkTallyHttpStatus || {};
+
+  if (khataHint) khataHint.classList.toggle("hidden", !!showTally);
+  if (tallyHint) tallyHint.classList.toggle("hidden", !showTally);
+  if (gate) gate.classList.toggle("hidden", !showTally);
+
+  if (!tallyBtn) return;
+  if (!showTally) {
+    tallyBtn.style.display = "none";
+    tallyBtn.disabled = true;
+    return;
+  }
+
+  tallyBtn.style.display = "inline-block";
+
+  if (!st.agentConnected && !window._bkTallyAgentConnected) {
+    tallyBtn.disabled = true;
+    tallyBtn.textContent = "📊 Sync Tally (agent offline)";
+    tallyBtn.title = "Pehle Connect Agent.bat chalao — phir HTTP test green hone par Sync enable hoga.";
+    if (gate) {
+      gate.className = "tally-http-gate";
+      gate.innerHTML = "🔴 <strong>Agent offline.</strong> Sidebar → Connect Agent. Roz ka kaam <strong>BolKarigar Khata</strong> se chala sakte ho.";
+    }
+    return;
+  }
+
+  if (st.httpReady) {
+    tallyBtn.disabled = false;
+    tallyBtn.textContent = "📊 Sync Tally";
+    tallyBtn.title = "Invoice Tally Prime mein bhejo";
+    if (gate) {
+      gate.className = "tally-http-gate tally-http-gate--ready";
+      gate.textContent = "✅ Tally HTTP ready — Sync button enabled.";
+    }
+    return;
+  }
+
+  if (st.canTrySync) {
+    tallyBtn.disabled = false;
+    tallyBtn.textContent = "📊 Sync Tally (try)";
+    tallyBtn.title = "Port 9000 open — company Day Book mein khuli ho to try karein";
+    if (gate) {
+      gate.className = "tally-http-gate tally-http-gate--try";
+      gate.innerHTML = "🟡 Port open — Day Book mein company khuli ho to Sync try kar sakte ho. Best: Test Tally HTTP green karein.";
+    }
+    return;
+  }
+
+  tallyBtn.disabled = true;
+  tallyBtn.textContent = "📊 Sync Tally (HTTP setup pending)";
+  tallyBtn.title = "HTTP ready hone par Sync enable hoga";
+  if (gate) {
+    gate.className = "tally-http-gate";
+    gate.innerHTML =
+      "⚠️ <strong>Sync abhi band hai</strong> — Tally mein: F1 → Settings → <strong>Connectivity → Client/Server</strong> " +
+      "(Timeout Configuration nahi). Acts as = Server/Both, <strong>HTTP Server = Yes</strong>, Port 9000 → Accept → restart. " +
+      "Company Day Book kholo → sidebar se Test Tally HTTP. <em>EDU: voucher 1st/2nd/last date par.</em>";
+  }
+}
+
+window.updateTallySyncButtonState = updateTallySyncButtonState;
+window.toggleTallyBtn = function (showTally) {
+  updateTallySyncButtonState();
+};
+
 function setTallySetupPill(kind, text) {
   const pill = document.getElementById("tallySetupStatusPill");
   if (!pill) return;
@@ -7817,9 +7902,22 @@ async function refreshTallyAgentStatus() {
       loadAgentToken();
     }
 
+    window._bkTallyHttpStatus = {
+      httpReady: false,
+      canTrySync: false,
+      agentConnected: !!data.agentConnected,
+      message: detail
+    };
+
     if (data.agentConnected) {
       try {
         const http = await checkTallyHttpStatus({ silent: true });
+        window._bkTallyHttpStatus = {
+          httpReady: !!http.httpReady,
+          canTrySync: !!http.canTrySync || !!http.portOpen,
+          agentConnected: true,
+          message: http.message || ""
+        };
         if (http.agentVersion && !String(http.agentVersion).includes('http4') && !String(http.agentVersion).includes('http5')) {
           detail = `⚠️ Purana Agent chal raha hai (${http.agentVersion}). Sidebar se naya Agent vhttp5 download karein.`;
           pillKind = "warn";
@@ -7856,10 +7954,12 @@ async function refreshTallyAgentStatus() {
       chip.className = "tally-status-chip " + (online ? "tally-status-online" : "tally-status-offline");
     }
     if (sidebar) sidebar.textContent = detail;
+    updateTallySyncButtonState();
   } catch (_) {
     setTallySetupPill("offline", "Status unknown");
     if (chip) { chip.textContent = "Status unknown"; chip.className = "tally-status-chip tally-status-unknown"; }
     if (sidebar) sidebar.textContent = "Could not check agent status — refresh page.";
+    updateTallySyncButtonState();
   }
 }
 
@@ -7955,6 +8055,7 @@ document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () 
     else alert("❌ " + failMsg);
   }
   refreshTallyAgentStatus();
+  updateTallySyncButtonState();
 });
 
 document.getElementById("connectAgentBtn")?.addEventListener("click", () => { downloadAgentConnectBat(); });
@@ -8000,6 +8101,11 @@ document.getElementById("regenerateAgentTokenBtn")?.addEventListener("click", as
 });
 
 function initTallyAgentUi() {
+  const inbuiltRadio = document.querySelector('input[name="accMode"][value="inbuilt"]');
+  if (inbuiltRadio && !document.querySelector('input[name="accMode"]:checked')) {
+    inbuiltRadio.checked = true;
+  }
+  updateTallySyncButtonState();
   if (getToken()) {
     if (typeof loadAgentToken === "function") loadAgentToken();
     if (typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
