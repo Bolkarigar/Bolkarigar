@@ -1701,7 +1701,7 @@ function sendTallyCheckToAgent(userId, opts = {}) {
     const timeoutHandle = setTimeout(() => {
       pendingAgentRequests.delete(requestId);
       reject(new Error('Tally HTTP check timed out. Keep Agent window open.'));
-    }, 45000);
+    }, 20000);
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle, kind: 'tally_check' });
     ws.send(JSON.stringify({ type: 'tally_check', requestId, silent: !!opts.silent }));
   });
@@ -1896,11 +1896,15 @@ app.post('/api/tally/open', authenticateToken, requireBusinessPlan, (req, res) =
 });
 
 app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
-  const agentConnected = connectedAgents.has(String(req.dataUserId));
+  const userId = String(req.dataUserId);
+  const agentConnected = connectedAgents.has(userId);
   if (!agentConnected && !isLikelyLocalSetup(req)) {
     return res.status(400).json({
       error: 'No Desktop Agent connected. Start BolKarigar Desktop Agent on the PC where Tally runs (sidebar → Tally Sync Agent → download .exe, paste token). Then try Sync again.'
     });
+  }
+  if (agentConnected) {
+    sendOpenTallyToAgent(userId);
   }
   try {
     const { customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst, ewayBillNo, vehicleNo, customerGstin, customerState, invoiceDate, paymentType, tallyEdu } = req.body;

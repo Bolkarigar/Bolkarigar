@@ -4323,20 +4323,25 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     }
 
     if (ready.agentConnected) {
-      const http = await checkTallyHttpStatus({ silent: true });
-      if (http.agentVersion && !String(http.agentVersion).includes("http4")) {
-        openTallyAgentSidebar({ scroll: true });
-        const oldAgentMsg =
-          "Purana Agent chal raha hai (" + http.agentVersion + ").\n\n" +
-          "1. Agent window band karein (X)\n" +
-          "2. Sidebar se naya Agent vhttp4 download karein\n" +
-          "3. Purane folder mein naya .exe rakhein\n" +
-          "4. Connect Agent dubara chalao\n\n" +
-          "Token dubara paste karne ki zaroorat nahi — agent-config.json mein saved hai.";
-        if (typeof showToast === "function") showToast(oldAgentMsg, "error");
-        else alert(oldAgentMsg);
-        return false;
-      }
+      try {
+        const ctrl = new AbortController();
+        const verTimer = setTimeout(() => ctrl.abort(), 8000);
+        const verRes = await fetch(`${API_URL}/api/tally/http-status?silent=1`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: ctrl.signal
+        });
+        clearTimeout(verTimer);
+        const http = await verRes.json().catch(() => ({}));
+        const ver = String(http.agentVersion || "");
+        if (ver && !ver.includes("http4") && !ver.includes("http5")) {
+          openTallyAgentSidebar({ scroll: true });
+          const oldAgentMsg =
+            "Purana Agent chal raha hai (" + ver + "). Sidebar se naya Agent vhttp5 download karein, purana band karke dubara Connect Agent chalao.";
+          if (typeof showToast === "function") showToast(oldAgentMsg, "error");
+          else alert(oldAgentMsg);
+          return false;
+        }
+      } catch (_) { /* skip version check on timeout */ }
     }
 
     const ewayDetails = getEWayBillDetails();
@@ -4347,7 +4352,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
         : "⌛ Syncing invoice to Tally Prime…");
     }
 
-    if (!ready.agentConnected) {
+    if (ready.agentConnected) {
       try {
         await fetch(`${API_URL}/api/tally/open`, {
           method: 'POST',
@@ -4356,7 +4361,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
             'Authorization': `Bearer ${token}`
           }
         });
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 4000));
       } catch (e) {
         console.log("Open Tally trigger:", e.message);
       }
@@ -7815,10 +7820,10 @@ async function refreshTallyAgentStatus() {
     if (data.agentConnected) {
       try {
         const http = await checkTallyHttpStatus({ silent: true });
-        if (http.agentVersion && !String(http.agentVersion).includes('http4')) {
-          detail = `⚠️ Purana Agent chal raha hai (${http.agentVersion}). Sidebar se naya Agent vhttp4 download karein.`;
+        if (http.agentVersion && !String(http.agentVersion).includes('http4') && !String(http.agentVersion).includes('http5')) {
+          detail = `⚠️ Purana Agent chal raha hai (${http.agentVersion}). Sidebar se naya Agent vhttp5 download karein.`;
           pillKind = "warn";
-          pillText = "Update Agent vhttp4";
+          pillText = "Update Agent vhttp5";
           chipLabel = "🟡 Old agent";
         } else if (http.httpReady) {
           detail = "✅ Agent + Tally HTTP OK — you can Sync Tally now.";
@@ -7886,7 +7891,7 @@ async function downloadAgentConnectBat() {
   const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
   const lines = [
     "@echo off",
-    "title BolKarigar Agent vhttp4 - Keep Open",
+    "title BolKarigar Agent vhttp5 - Keep Open",
     "chcp 65001 >nul",
     "cd /d \"%~dp0\"",
     "if not exist BolKarigarTallyAgent.exe if not exist BolKarigarTallyAgent.js (",
@@ -7904,7 +7909,7 @@ async function downloadAgentConnectBat() {
     ") > agent-config.json",
     "echo.",
     "echo ==========================================",
-    "echo  BolKarigar Agent vhttp4 - UNLIMITED BILLS",
+    "echo  BolKarigar Agent vhttp5 - UNLIMITED BILLS",
     "echo  Minimize this window - DO NOT CLOSE",
     "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
     "echo ==========================================",
@@ -7945,8 +7950,9 @@ document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () 
     if (typeof showToast === "function") showToast(tryMsg, "info");
     else alert(`${tryMsg}\n\n${status.message || ""}`);
   } else {
-    const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
-    alert(`❌ ${status.message}\n\n${steps}`);
+    const failMsg = status.message || "Tally HTTP not ready.";
+    if (typeof showToast === "function") showToast("❌ " + failMsg, "error");
+    else alert("❌ " + failMsg);
   }
   refreshTallyAgentStatus();
 });

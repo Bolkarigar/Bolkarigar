@@ -11,7 +11,9 @@ const { exec } = require('child_process');
 const net = require('net');
 const http = require('http');
 
-const AGENT_VERSION = '2026.09.11http4';
+const AGENT_VERSION = '2026.09.11http5';
+const PROBE_POST_TIMEOUT_MS = 5000;
+const QUICK_PROBE_CACHE_MS = 12000;
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_HOSTS = ['127.0.0.1', 'localhost'];
 const TALLY_PORTS = [9000, 9001, 9002];
@@ -120,10 +122,13 @@ function fetchWithTimeout(url, options, ms) {
   });
 }
 
-function isPortOpen(host, port) {
+let probeCache = null;
+let probeCacheAt = 0;
+
+function isPortOpen(host, port, timeoutMs = 2000) {
   return new Promise((resolve) => {
     const socket = net.connect({ host, port });
-    socket.setTimeout(4000);
+    socket.setTimeout(timeoutMs);
     socket.on('connect', () => { socket.destroy(); resolve(true); });
     socket.on('timeout', () => { socket.destroy(); resolve(false); });
     socket.on('error', () => resolve(false));
@@ -176,13 +181,13 @@ function looksLikeOdbcOnlyResponse(text) {
   return true;
 }
 
-async function postTallyXml(host, port, body) {
+async function postTallyXml(host, port, body, timeoutMs = PROBE_POST_TIMEOUT_MS) {
   const url = `http://${host}:${port}`;
   const payloads = String(body || '');
   let last = { status: 0, text: '' };
   for (const ct of TALLY_HTTP_CONTENT_TYPES) {
     try {
-      const r = await httpPostNative(host, port, payloads, 20000, ct);
+      const r = await httpPostNative(host, port, payloads, timeoutMs, ct);
       last = r;
       if (tallyHttpResponseOk(r.status, r.text)) {
         return { status: r.status, text: r.text, url };
@@ -197,7 +202,7 @@ async function postTallyXml(host, port, body) {
         method: 'POST',
         headers: { 'Content-Type': ct, Connection: 'close' },
         body: payloads
-      }, 20000);
+      }, timeoutMs);
       const text = await res.text();
       last = { status: res.status, text };
       if (tallyHttpResponseOk(res.status, text)) {
@@ -210,11 +215,86 @@ async function postTallyXml(host, port, body) {
   return { status: last.status, text: last.text, url };
 }
 
+async function quickProbeTallyHttp(useCache = true) {
+  if (useCache && probeCache && Date.now() - probeCacheAt < QUICK_PROBE_CACHE_MS) {
+    return probeCache;
+  }
+  const port = 9000;
+  let host = '127.0.0.1';
+  let portOpen = await isPortOpen(host, port);
+  if (!portOpen) {
+    host = 'localhost';
+    portOpen = await isPortOpen(host, port);
+  }
+  const tallyRunning = await isTallyProcessRunning();
+
+  if (!portOpen) {
+    probeCache = {
+      httpUp: false,
+      portOpen: false,
+      odbcOnly: false,
+      companyRequired: false,
+      canTrySync: false,
+      weak: false,
+      host: '',
+      port: 0,
+      tallyRunning
+    };
+    probeCacheAt = Date.now();
+    return probeCache;
+  }
+
+  let lastText = '';
+  try {
+    const r = await httpPostNative(host, port, TALLY_PING_XML, PROBE_POST_TIMEOUT_MS, 'UTF-8');
+    lastText = r.text || '';
+    if (tallyHttpResponseOk(r.status, lastText)) {
+      tallyLocalUrl = `http://${host}:${port}`;
+      probeCache = {
+        httpUp: true,
+        portOpen: true,
+        host,
+        port,
+        weak: false,
+        companyRequired: false,
+        odbcOnly: false,
+        canTrySync: true,
+        tallyRunning: true
+      };
+      probeCacheAt = Date.now();
+      return probeCache;
+    }
+  } catch (err) {
+    lastText = String(err.message || '');
+  }
+
+  const emptyBody = !lastText || lastText.trim().length < 5;
+  const companyRequired = emptyBody || /no company|company not|select company|could not find company|not loaded/i.test(lastText);
+  tallyLocalUrl = `http://${host}:${port}`;
+  probeCache = {
+    httpUp: false,
+    portOpen: true,
+    host,
+    port,
+    odbcOnly: !companyRequired && !emptyBody && looksLikeOdbcOnlyResponse(lastText),
+    companyRequired,
+    canTrySync: true,
+    weak: true,
+    probeSnippet: String(lastText || 'empty').replace(/\s+/g, ' ').slice(0, 160),
+    tallyRunning: tallyRunning || true
+  };
+  probeCacheAt = Date.now();
+  return probeCache;
+}
+
 async function probeTallyHttp() {
-  let anyPortOpen = false;
-  let openHost = '';
-  let openPort = 0;
-  let lastProbe = { status: 0, text: '', host: '', port: 0 };
+  const quick = await quickProbeTallyHttp(false);
+  if (quick.httpUp || !quick.portOpen) return quick;
+
+  let anyPortOpen = quick.portOpen;
+  let openHost = quick.host || '';
+  let openPort = quick.port || 0;
+  let lastProbe = { status: 0, text: quick.probeSnippet || '', host: openHost, port: openPort };
 
   for (const port of TALLY_PORTS) {
     for (const host of TALLY_HOSTS) {
@@ -469,7 +549,7 @@ function connect(config) {
   ws.on('open', async () => {
     reconnectDelay = 3000;
     console.log('\n✅ CONNECTED — ready for Sync Tally (keep this window open)\n');
-    const probe = await probeTallyHttp();
+    const probe = await quickProbeTallyHttp(false);
     if (probe.httpUp) {
       console.log(`✅ Tally HTTP port ${probe.port} OK — sync will work.\n`);
     } else if (probe.companyRequired) {
@@ -503,15 +583,15 @@ function connect(config) {
     }
 
     if (msg.type === 'open_tally') {
-      if (Date.now() - lastTallyLaunchAt > 60000) {
-        ensureTallyRunning().catch(() => {});
-      }
+      console.log('📂 Open Tally signal — launching Tally Prime...');
+      lastTallyLaunchAt = Date.now();
+      launchTallyPrime();
       return;
     }
 
     if (msg.type === 'tally_check') {
       const tallyRunning = await isTallyProcessRunning();
-      const probe = await probeTallyHttp();
+      const probe = await quickProbeTallyHttp(!msg.silent);
       const portOpen = !!probe.portOpen;
       const httpUp = !!probe.httpUp;
       if (ws.readyState === WebSocket.OPEN) {
@@ -562,13 +642,17 @@ function connect(config) {
       syncStartedAt = Date.now();
       try {
         tallyHttpKnownDown = false;
-        const probe = await probeTallyHttp();
-        if (msg.prepareTally) {
-          console.log('📨 Sync bill to Tally — preparing Tally (once)...');
-          if (!probe.portOpen) await ensureTallyRunning();
+        probeCache = null;
+        let probe = await quickProbeTallyHttp(false);
+        if (!probe.portOpen) {
+          console.log('📨 Sync — Tally not on port 9000, opening Tally Prime...');
+          lastTallyLaunchAt = Date.now();
+          launchTallyPrime();
+          await sleep(10000);
+          probe = await quickProbeTallyHttp(false);
         }
         if (!probe.portOpen) {
-          throw new Error(TALLY_HTTP_HELP);
+          throw new Error('Tally port 9000 band hai. Tally kholo → F1 → Connectivity → HTTP Server = Yes, Port 9000 → restart.');
         }
         if (!probe.httpUp) {
           console.log(`⚠️  Port ${probe.port || 9000} open — sync try kar rahe hain (company Tally mein khuli honi chahiye)...`);
