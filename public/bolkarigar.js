@@ -4213,11 +4213,12 @@ document.getElementById("logoutBtn")?.addEventListener("click", () => {
 });
 
 // ================= TALLY INTEGRATION =================
-async function checkTallyHttpStatus() {
+async function checkTallyHttpStatus(opts = {}) {
   const token = getToken();
   if (!token) return { httpReady: false, message: "Login required.", steps: [] };
   try {
-    const res = await fetch(`${API_URL}/api/tally/http-status`, {
+    const q = opts.silent ? "?silent=1" : "";
+    const res = await fetch(`${API_URL}/api/tally/http-status${q}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json().catch(() => ({}));
@@ -4231,7 +4232,8 @@ async function checkTallyHttpStatus() {
       message: data.message || data.error || "Could not check Tally HTTP.",
       steps: data.steps || [],
       portOpen: data.portOpen,
-      tallyRunning: data.tallyRunning
+      tallyRunning: data.tallyRunning,
+      agentVersion: data.agentVersion || ""
     };
   } catch {
     return { httpReady: false, message: "Network error checking Tally HTTP.", steps: [] };
@@ -4290,13 +4292,20 @@ function openTallyAgentSidebar(opts = {}) {
 }
 
 let tallySyncInProgress = false;
+let tallySyncStartedAt = 0;
+const TALLY_SYNC_STALE_MS = 120000;
 
 async function sendInvoiceToTally(customer, product, price, qty, gstRate, customerGstin, customerState) {
   if (tallySyncInProgress) {
-    if (typeof showToast === "function") showToast("Sync already in progress — please wait...", "info");
-    return false;
+    const elapsed = Date.now() - tallySyncStartedAt;
+    if (elapsed < TALLY_SYNC_STALE_MS) {
+      if (typeof showToast === "function") showToast("Sync already in progress — please wait...", "info");
+      return false;
+    }
+    tallySyncInProgress = false;
   }
   tallySyncInProgress = true;
+  tallySyncStartedAt = Date.now();
   try {
     const token = getToken();
     const ready = await checkTallyAgentReady();
@@ -4314,8 +4323,20 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
     }
 
     if (ready.agentConnected) {
-      const httpOk = await ensureTallyHttpBeforeSync();
-      if (!httpOk) return false;
+      const http = await checkTallyHttpStatus({ silent: true });
+      if (http.agentVersion && !String(http.agentVersion).includes("http4")) {
+        openTallyAgentSidebar({ scroll: true });
+        const oldAgentMsg =
+          "Purana Agent chal raha hai (" + http.agentVersion + ").\n\n" +
+          "1. Agent window band karein (X)\n" +
+          "2. Sidebar se naya Agent vhttp4 download karein\n" +
+          "3. Purane folder mein naya .exe rakhein\n" +
+          "4. Connect Agent dubara chalao\n\n" +
+          "Token dubara paste karne ki zaroorat nahi — agent-config.json mein saved hai.";
+        if (typeof showToast === "function") showToast(oldAgentMsg, "error");
+        else alert(oldAgentMsg);
+        return false;
+      }
     }
 
     const ewayDetails = getEWayBillDetails();
@@ -7793,8 +7814,13 @@ async function refreshTallyAgentStatus() {
 
     if (data.agentConnected) {
       try {
-        const http = await checkTallyHttpStatus();
-        if (http.httpReady) {
+        const http = await checkTallyHttpStatus({ silent: true });
+        if (http.agentVersion && !String(http.agentVersion).includes('http4')) {
+          detail = `⚠️ Purana Agent chal raha hai (${http.agentVersion}). Sidebar se naya Agent vhttp4 download karein.`;
+          pillKind = "warn";
+          pillText = "Update Agent vhttp4";
+          chipLabel = "🟡 Old agent";
+        } else if (http.httpReady) {
           detail = "✅ Agent + Tally HTTP OK — you can Sync Tally now.";
           pillKind = "ready";
           pillText = "Ready to sync";
@@ -7860,12 +7886,12 @@ async function downloadAgentConnectBat() {
   const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
   const lines = [
     "@echo off",
-    "title BolKarigar Agent - Keep Open All Day",
+    "title BolKarigar Agent vhttp4 - Keep Open",
     "chcp 65001 >nul",
     "cd /d \"%~dp0\"",
-    "if not exist BolKarigarTallyAgent.exe (",
+    "if not exist BolKarigarTallyAgent.exe if not exist BolKarigarTallyAgent.js (",
     "  echo ERROR: BolKarigarTallyAgent.exe not found in this folder!",
-    "  echo Download .exe from BolKarigar sidebar and put in same folder.",
+    "  echo Download vhttp4 .exe from BolKarigar sidebar and put in same folder.",
     "  pause",
     "  exit /b 1",
     ")",
@@ -7878,12 +7904,17 @@ async function downloadAgentConnectBat() {
     ") > agent-config.json",
     "echo.",
     "echo ==========================================",
-    "echo  BolKarigar Agent - UNLIMITED BILLS TODAY",
+    "echo  BolKarigar Agent vhttp4 - UNLIMITED BILLS",
     "echo  Minimize this window - DO NOT CLOSE",
     "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
     "echo ==========================================",
     "echo.",
-    "BolKarigarTallyAgent.exe",
+    "if exist BolKarigarTallyAgent.exe (",
+    "  BolKarigarTallyAgent.exe",
+    ") else (",
+    "  echo Running latest agent via Node.js...",
+    "  node BolKarigarTallyAgent.js",
+    ")",
     "echo.",
     "echo Agent closed. Double-click this file again to reconnect.",
     "pause"
@@ -7896,7 +7927,7 @@ async function downloadAgentConnectBat() {
   URL.revokeObjectURL(a.href);
   openTallyAgentSidebar();
   if (typeof showToast === "function") {
-    showToast("Double-click .bat once in morning. Token saves forever — unlimited bills all day.", "info");
+    showToast("Double-click .bat — token saves forever in agent-config.json. No daily key needed.", "info");
   }
 }
 
@@ -7975,7 +8006,7 @@ if (document.readyState === "loading") {
 }
 setInterval(() => {
   if (getToken() && typeof refreshTallyAgentStatus === "function") refreshTallyAgentStatus();
-}, 25000);
+}, 60000);
 
 function speakCardText(cardId, buttonElem) {
   const SUNO_LABEL = "🔊 Suno / सुनो";

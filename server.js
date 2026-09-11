@@ -1691,7 +1691,7 @@ function sendOpenTallyToAgent(userId) {
   return false;
 }
 
-function sendTallyCheckToAgent(userId) {
+function sendTallyCheckToAgent(userId, opts = {}) {
   return new Promise((resolve, reject) => {
     const ws = connectedAgents.get(String(userId));
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -1703,7 +1703,7 @@ function sendTallyCheckToAgent(userId) {
       reject(new Error('Tally HTTP check timed out. Keep Agent window open.'));
     }, 45000);
     pendingAgentRequests.set(requestId, { resolve, reject, timeoutHandle, kind: 'tally_check' });
-    ws.send(JSON.stringify({ type: 'tally_check', requestId }));
+    ws.send(JSON.stringify({ type: 'tally_check', requestId, silent: !!opts.silent }));
   });
 }
 
@@ -1745,7 +1745,7 @@ app.get('/api/tally/http-status', authenticateToken, requireTallyAccess, async (
     });
   }
   try {
-    const check = await sendTallyCheckToAgent(userId);
+    const check = await sendTallyCheckToAgent(userId, { silent: req.query.silent === '1' });
     const httpReady = !!check.httpUp;
     const portOpen = !!check.portOpen;
     const canTrySync = !!check.canTrySync || (portOpen && !!check.tallyRunning);
@@ -2200,16 +2200,7 @@ async function syncVoucherToTallyWithFallback(userId, req, params) {
   logger.info('[Tally Sync] Company:', companyName || '(open company in Tally Gateway)');
   logger.info('[Tally Sync] Customer ledger:', cust);
 
-  let agentTallyPrepared = false;
-  const agentRelay = (xml) => {
-    const opts = {};
-    if (agentConnected && !agentTallyPrepared) {
-      opts.prepareTally = true;
-      opts.timeoutMs = 180000;
-      agentTallyPrepared = true;
-    }
-    return relayXmlToTally(userId, xml, req, opts);
-  };
+  const agentRelay = (xml) => relayXmlToTally(userId, xml, req, { timeoutMs: 120000 });
 
   const isTallyHttpFatal = (err) => /HTTP Server|port 9000|could not reach Tally|not responding on port/i.test(String(err?.message || ''));
 

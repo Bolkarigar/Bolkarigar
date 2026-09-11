@@ -11,7 +11,7 @@ const { exec } = require('child_process');
 const net = require('net');
 const http = require('http');
 
-const AGENT_VERSION = '2026.09.11http3';
+const AGENT_VERSION = '2026.09.11http4';
 const DEFAULT_BACKEND = 'https://bolkarigar.onrender.com';
 const TALLY_HOSTS = ['127.0.0.1', 'localhost'];
 const TALLY_PORTS = [9000, 9001, 9002];
@@ -341,41 +341,35 @@ async function waitForTallyHttp(maxWaitSec, label) {
 }
 
 async function ensureTallyRunning() {
-  if (await isTallyHttpUp()) {
-    console.log('✅ Tally HTTP port 9000 already ON.');
+  const probe = await probeTallyHttp();
+  if (probe.httpUp) {
+    console.log('✅ Tally HTTP port 9000 ready.');
+    return true;
+  }
+  if (probe.portOpen) {
+    console.log(`🟡 Port ${probe.port || 9000} open — sync try hoga (company Day Book mein khuli ho).`);
     return true;
   }
 
   const tallyRunning = await isTallyProcessRunning();
   if (tallyRunning) {
-    console.log('\n⚠️  Tally OPEN hai par HTTP Server band hai (port 9000).');
+    console.log('\n⚠️  Tally open hai par port 9000 band.');
     printHttpServerSteps();
-    const ok = await waitForTallyHttp(30, 'after HTTP ON');
-    if (!ok) tallyHttpKnownDown = true;
-    return ok;
+    return false;
   }
 
   const now = Date.now();
   if (now - lastTallyLaunchAt < TALLY_LAUNCH_COOLDOWN_MS) {
-    console.log('Tally HTTP not ready — waiting (not opening again)...');
-    const ok = await waitForTallyHttp(20, 'retry');
-    if (!ok) {
-      tallyHttpKnownDown = true;
-      printHttpServerSteps();
-    }
-    return ok;
+    console.log('Tally not ready — port 9000 closed. F1 → Connectivity → Both + ODBC Yes.');
+    return false;
   }
 
   lastTallyLaunchAt = now;
   console.log('Tally not running — opening Tally Prime once...');
-  console.log('(Company select karein + HTTP Server ON karein jab Tally khule)\n');
   launchTallyPrime();
-  const ok = await waitForTallyHttp(45, 'after launch');
-  if (!ok) {
-    tallyHttpKnownDown = true;
-    printHttpServerSteps();
-  }
-  return ok;
+  await sleep(8000);
+  const after = await probeTallyHttp();
+  return !!(after.httpUp || after.portOpen);
 }
 
 function loadConfig() {
@@ -460,6 +454,8 @@ let pingTimer = null;
 let reconnectDelay = 3000;
 const MAX_RECONNECT_DELAY = 30000;
 let syncInProgress = false;
+let syncStartedAt = 0;
+const SYNC_STALE_MS = 120000;
 
 function connect(config) {
   const token = cleanToken(config.agentToken);
@@ -534,29 +530,36 @@ function connect(config) {
           agentVersion: AGENT_VERSION
         }));
       }
-      if (httpUp) {
-        console.log(`✅ Test: Tally HTTP port ${probe.port || 9000} OK.`);
-      } else if (probe.companyRequired) {
-        console.log('❌ Test: Port open but company not selected in Tally Gateway.');
-        console.log('   Gateway → company select → Tally restart → Test again.');
-      } else if (probe.odbcOnly) {
-        console.log('❌ Test: ODBC ON hai par HTTP Server OFF!');
-        console.log('   F1 → Connectivity → Enable HTTP Server = Yes (ODBC ke alag line par)');
-        printHttpServerSteps();
-      } else if (tallyRunning) {
-        console.log('❌ Test: Tally open but HTTP port closed — Advanced Configuration → HTTP Server = Yes.');
-        printHttpServerSteps();
-      } else {
-        console.log('❌ Test: Tally not running or HTTP off.');
+      if (!msg.silent) {
+        if (httpUp) {
+          console.log(`✅ Test: Tally HTTP port ${probe.port || 9000} OK.`);
+        } else if (probe.portOpen) {
+          console.log(`🟡 Test: Port ${probe.port || 9000} open — Sync Tally try karein (company Day Book khuli ho).`);
+        } else if (probe.companyRequired) {
+          console.log('❌ Test: Port open but company not loaded — Gateway → company → Day Book.');
+        } else if (tallyRunning) {
+          console.log('❌ Test: Tally open but port 9000 closed — F1 → Connectivity → Both + ODBC Yes.');
+        } else {
+          console.log('❌ Test: Tally not running.');
+        }
       }
       return;
     }
 
     if (msg.type === 'sync_request') {
-      if (syncInProgress) {
-        console.log('⏳ Sync already running — please wait...');
+      if (syncInProgress && Date.now() - syncStartedAt < SYNC_STALE_MS) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'sync_result',
+            requestId: msg.requestId,
+            ok: false,
+            error: 'Previous sync still running — wait 30 seconds and try again.'
+          }));
+        }
+        return;
       }
       syncInProgress = true;
+      syncStartedAt = Date.now();
       try {
         tallyHttpKnownDown = false;
         const probe = await probeTallyHttp();
