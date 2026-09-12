@@ -2497,11 +2497,26 @@ async function applyVoucherLedgerDeltas(userId, partyId, secondaryLedgerId, vouc
 
 async function applyVoucherStockDeltas(userId, voucherType, items, sign = 1) {
   if (!items || !items.length) return;
-  if (voucherType !== 'Sales' && voucherType !== 'Purchase') return;
+  const stockTypes = ['Sales', 'Purchase', 'Debit Note', 'Credit Note'];
+  if (!stockTypes.includes(voucherType)) return;
   for (const itm of items) {
     if (!itm.itemId) continue;
-    const qtyChange = voucherType === 'Sales' ? -Math.abs(itm.qty) : Math.abs(itm.qty);
-    await Item.updateOne({ _id: itm.itemId, userId }, { $inc: { stockQty: qtyChange * sign } });
+    let qtyChange;
+    switch (voucherType) {
+      case 'Sales':
+      case 'Debit Note':
+        qtyChange = -Math.abs(itm.qty);
+        break;
+      case 'Purchase':
+      case 'Credit Note':
+        qtyChange = Math.abs(itm.qty);
+        break;
+      default:
+        qtyChange = 0;
+    }
+    if (qtyChange) {
+      await Item.updateOne({ _id: itm.itemId, userId }, { $inc: { stockQty: qtyChange * sign } });
+    }
   }
 }
 
@@ -2529,7 +2544,7 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
     }
 
     // Stock update — Sales se stock kam, Purchase se stock zyada
-    if (items && items.length > 0 && (voucherType === 'Sales' || voucherType === 'Purchase')) {
+    if (items && items.length > 0) {
       await applyVoucherStockDeltas(req.dataUserId, voucherType, items, 1);
     }
 

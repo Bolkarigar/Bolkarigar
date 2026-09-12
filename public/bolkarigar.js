@@ -6068,7 +6068,7 @@ function getEWayBillDetails() {
   const panelLoaders = {
     khataLedgersPanel: () => loadKhataLedgers(),
     khataItemsPanel: () => loadKhataItems(),
-    khataVoucherPanel: () => { loadLedgerDropdowns(); loadItemDropdown(); updateVoucherFormUI(); },
+    khataVoucherPanel: () => { loadLedgerDropdowns(); loadItemDropdown(); loadVcnItemDropdown(); renderVcnItems(); updateVoucherFormUI(); },
     purchasePanel: () => { if (typeof window.refreshPurchasePanel === "function") window.refreshPurchasePanel(); },
     paymentVoucherPanel: () => { if (typeof window.refreshPaymentVoucherPanel === "function") window.refreshPaymentVoucherPanel(); },
     receiptVoucherPanel: () => { if (typeof window.refreshReceiptVoucherPanel === "function") window.refreshReceiptVoucherPanel(); },
@@ -6399,16 +6399,175 @@ function getEWayBillDetails() {
   });
 
   // ---------- VOUCHER ENTRY ----------
+  let vcnLineItems = [];
+  let vcnEditingIndex = -1;
+
+  function vcnLineTotal(line) {
+    const rate = parseFloat(line.rate) || 0;
+    const qty = parseFloat(line.qty) || 0;
+    const gstRate = parseFloat(line.gstRate) || 0;
+    const taxable = rate * qty;
+    return taxable + (taxable * gstRate / 100);
+  }
+
+  function renderVcnItems() {
+    const body = document.getElementById("vcnItemsBody");
+    const grandEl = document.getElementById("vcnGrandTotal");
+    const adjAmount = document.getElementById("voucherAdjAmountInput");
+    if (!body) return;
+
+    body.innerHTML = "";
+    let grand = 0;
+    if (vcnLineItems.length) {
+      vcnLineItems.forEach((line, index) => {
+        const lineTotal = vcnLineTotal(line);
+        grand += lineTotal;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="col-sn">${index + 1}</td>
+          <td class="col-item">${escapeHtml(line.itemName)}${line.gstRate > 0 ? `<br><small style="color:#666">GST ${line.gstRate}%</small>` : ""}</td>
+          <td class="col-qty">${line.qty}</td>
+          <td class="col-unit">${escapeHtml(line.unit || "Pcs")}</td>
+          <td class="col-price">₹${(parseFloat(line.rate) || 0).toFixed(2)}</td>
+          <td class="inv-amt-cell">₹${lineTotal.toFixed(2)}</td>
+          <td>
+            <div class="inv-row-actions">
+              <button type="button" class="inv-row-edit" onclick="editVcnItem(${index})">Edit</button>
+              <button type="button" class="inv-row-del" onclick="deleteVcnItem(${index})">Del</button>
+            </div>
+          </td>`;
+        body.appendChild(row);
+      });
+    } else {
+      body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Add items to show what is being adjusted.</td></tr>`;
+    }
+    if (grandEl) grandEl.textContent = grand.toFixed(2);
+    if (adjAmount && grand > 0) adjAmount.value = grand.toFixed(2);
+    updateVoucherEffectSummary();
+  }
+
+  function clearVcnEntryFields() {
+    const itemSel = document.getElementById("vcnItemInput");
+    if (itemSel) itemSel.value = "";
+    const qtyEl = document.getElementById("vcnQtyInput");
+    if (qtyEl) qtyEl.value = "1";
+    const rateEl = document.getElementById("vcnRateInput");
+    if (rateEl) rateEl.value = "";
+    const gstEl = document.getElementById("vcnGstInput");
+    if (gstEl) gstEl.value = "18";
+  }
+
+  function addVcnLineItem() {
+    const itemSel = document.getElementById("vcnItemInput");
+    const itemId = itemSel?.value || "";
+    const opt = itemSel?.selectedOptions[0];
+    const qty = parseFloat(document.getElementById("vcnQtyInput")?.value) || 0;
+    let rate = parseFloat(document.getElementById("vcnRateInput")?.value);
+    const gstRate = parseFloat(document.getElementById("vcnGstInput")?.value) || 0;
+    if (!itemId) { alert("Please select an item."); return false; }
+    if (!qty || qty <= 0) { alert("Please enter quantity."); return false; }
+    if (Number.isNaN(rate) || rate <= 0) rate = parseFloat(opt?.dataset.sale) || parseFloat(opt?.dataset.purchase) || 0;
+    if (!rate || rate <= 0) { alert("Please enter rate."); return false; }
+    const itemName = (opt?.textContent || "").split(" (Stock:")[0].trim();
+    const line = { itemId, itemName, unit: opt?.dataset.unit || "Pcs", qty, rate, gstRate };
+    if (vcnEditingIndex > -1) {
+      vcnLineItems[vcnEditingIndex] = line;
+      vcnEditingIndex = -1;
+      const addBtn = document.getElementById("addVcnItemBtn");
+      if (addBtn) addBtn.textContent = "Add Item";
+    } else {
+      vcnLineItems.push(line);
+    }
+    clearVcnEntryFields();
+    renderVcnItems();
+    return true;
+  }
+
+  window.editVcnItem = function (index) {
+    const line = vcnLineItems[index];
+    if (!line) return;
+    const itemSel = document.getElementById("vcnItemInput");
+    if (itemSel) itemSel.value = line.itemId;
+    document.getElementById("vcnQtyInput").value = line.qty;
+    document.getElementById("vcnRateInput").value = line.rate;
+    document.getElementById("vcnGstInput").value = line.gstRate;
+    vcnEditingIndex = index;
+    const addBtn = document.getElementById("addVcnItemBtn");
+    if (addBtn) addBtn.textContent = "Update Item";
+  };
+
+  window.deleteVcnItem = function (index) {
+    if (vcnLineItems[index] === undefined) return;
+    vcnLineItems.splice(index, 1);
+    if (vcnEditingIndex === index) {
+      vcnEditingIndex = -1;
+      const addBtn = document.getElementById("addVcnItemBtn");
+      if (addBtn) addBtn.textContent = "Add Item";
+      clearVcnEntryFields();
+    } else if (vcnEditingIndex > index) vcnEditingIndex -= 1;
+    renderVcnItems();
+  };
+
+  async function loadVcnItemDropdown() {
+    try {
+      const res = await fetch(`${API_URL}/api/items`, { headers: khataHeaders() });
+      const data = await res.json();
+      if (!data.success) return;
+      const sel = document.getElementById("vcnItemInput");
+      if (sel) {
+        sel.innerHTML = '<option value="">-- Select Item --</option>' +
+          (data.items || []).map(i =>
+            `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-sale="${i.sellingPrice || 0}" data-unit="${escapeHtml(i.unit || 'Pcs')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
+          ).join("");
+      }
+    } catch (err) { console.error("VCN item load:", err); }
+  }
+
+  function updateVoucherEffectSummary() {
+    const type = document.getElementById("voucherTypeInput")?.value || "";
+    const box = document.getElementById("voucherEffectSummary");
+    if (!box) return;
+    const isAdjust = ["Debit Note", "Credit Note", "Journal", "Contra"].includes(type);
+    if (!isAdjust) { box.classList.add("hidden"); return; }
+
+    const amount = parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0;
+    const partyName = document.getElementById("voucherPartySearch")?.value?.trim() || "—";
+    const secSel = document.getElementById("voucherSecondaryInput");
+    const secName = secSel?.selectedOptions[0]?.textContent?.split(" (")[0] || "—";
+    const itemCount = vcnLineItems.length;
+    if (!amount && !itemCount) { box.classList.add("hidden"); return; }
+
+    let html = "";
+    if (type === "Debit Note") {
+      html = `<strong>Debit Note effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>increase by ₹${amount.toFixed(2)}</strong> (additional charge).${itemCount ? ` Items: ${itemCount} line(s). Stock will decrease.` : ""}`;
+    } else if (type === "Credit Note") {
+      html = `<strong>Credit Note effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>decrease by ₹${amount.toFixed(2)}</strong> (return / discount).${itemCount ? ` Items: ${itemCount} line(s). Stock will increase.` : ""}`;
+    } else if (type === "Journal") {
+      html = `<strong>Journal entry:</strong> Dr <strong>${escapeHtml(partyName)}</strong> ₹${amount.toFixed(2)} | Cr <strong>${escapeHtml(secName)}</strong> ₹${amount.toFixed(2)}`;
+    } else if (type === "Contra") {
+      html = `<strong>Contra transfer:</strong> <strong>${escapeHtml(partyName)}</strong> → <strong>${escapeHtml(secName)}</strong> for ₹${amount.toFixed(2)} (Cash ↔ Bank).`;
+    }
+    box.innerHTML = html;
+    box.classList.remove("hidden");
+  }
+
   function updateVoucherFormUI() {
     const type = document.getElementById("voucherTypeInput")?.value || "Sales";
     const purchaseBox = document.getElementById("voucherPurchaseFields");
     const stockBox = document.getElementById("voucherStockFields");
     const payReceiptBox = document.getElementById("voucherPayReceiptFields");
+    const adjustBox = document.getElementById("voucherAdjustFields");
+    const dnCnSection = document.getElementById("voucherDnCnItemSection");
     const secondaryWrap = document.getElementById("voucherSecondaryWrap");
     const partyLabel = document.getElementById("voucherPartyLabel");
     const rateLabel = document.getElementById("voucherRateLabel");
     const gstField = document.getElementById("voucherGstField");
     const payReceiptTitle = document.getElementById("voucherPayReceiptTitle");
+    const adjustTitle = document.getElementById("voucherAdjustTitle");
+    const adjustHint = document.getElementById("voucherAdjustHint");
+    const reasonWrap = document.getElementById("voucherReasonWrap");
+    const refWrap = document.getElementById("voucherRefWrap");
+    const secLabel = document.querySelector("#voucherSecondaryWrap .voucher-label");
 
     const isPurchase = type === "Purchase";
     const isSales = type === "Sales";
@@ -6416,13 +6575,23 @@ function getEWayBillDetails() {
     const isReceipt = type === "Receipt";
     const isPayReceipt = isPayment || isReceipt;
     const isStock = isPurchase || isSales;
-    const isJournalContra = type === "Journal" || type === "Contra";
+    const isDebitNote = type === "Debit Note";
+    const isCreditNote = type === "Credit Note";
+    const isDebitCredit = isDebitNote || isCreditNote;
+    const isJournal = type === "Journal";
+    const isContra = type === "Contra";
+    const isJournalContra = isJournal || isContra;
+    const isAdjust = isDebitCredit || isJournalContra;
 
     purchaseBox?.classList.toggle("hidden", !isPurchase);
     stockBox?.classList.toggle("hidden", !isStock);
     payReceiptBox?.classList.toggle("hidden", !isPayReceipt);
+    adjustBox?.classList.toggle("hidden", !isAdjust);
+    dnCnSection?.classList.toggle("hidden", !isDebitCredit);
     secondaryWrap?.classList.toggle("hidden", !isJournalContra);
     gstField?.classList.toggle("hidden", !isStock);
+    reasonWrap?.classList.toggle("hidden", !isDebitCredit);
+    refWrap?.classList.toggle("hidden", !isDebitCredit);
 
     if (partyLabel) {
       partyLabel.textContent = isPurchase
@@ -6431,12 +6600,41 @@ function getEWayBillDetails() {
           ? "Paid To (Party / Ledger) *"
           : isReceipt
             ? "Received From (Party / Ledger) *"
-            : isJournalContra
-              ? "First Ledger *"
-              : "Party / Ledger *";
+            : isDebitNote
+              ? "Customer / Party (Sundry Debtor) *"
+              : isCreditNote
+                ? "Customer / Party (Sundry Debtor) *"
+                : isJournal
+                  ? "Debit Ledger (Dr) *"
+                  : isContra
+                    ? "From Ledger (Cash / Bank) *"
+                    : "Party / Ledger *";
+    }
+    if (secLabel) {
+      secLabel.textContent = isContra ? "To Ledger (Cash / Bank) *" : "Credit Ledger (Cr) *";
     }
     if (payReceiptTitle) {
       payReceiptTitle.textContent = isPayment ? "💸 Payment Details" : "💰 Receipt Details";
+    }
+    if (adjustTitle) {
+      adjustTitle.textContent = isDebitNote
+        ? "📋 Debit Note Details"
+        : isCreditNote
+          ? "📋 Credit Note Details"
+          : isJournal
+            ? "📒 Journal Entry"
+            : "🔄 Contra Entry";
+    }
+    if (adjustHint) {
+      adjustHint.textContent = isDebitNote
+        ? "Additional charge to customer — increases receivable balance."
+        : isCreditNote
+          ? "Sales return or discount — reduces what customer owes."
+          : isJournal
+            ? "Double-entry: same amount debited and credited across two ledgers."
+            : isContra
+              ? "Cash ↔ Bank transfer between two ledgers."
+              : "";
     }
     if (rateLabel) {
       rateLabel.textContent = isPurchase ? "Purchase Rate ₹" : "Sale Rate ₹";
@@ -6444,12 +6642,26 @@ function getEWayBillDetails() {
 
     const dateInput = document.getElementById("voucherDateInput");
     const prDateInput = document.getElementById("voucherPrDateInput");
+    const adjDateInput = document.getElementById("voucherAdjDateInput");
     const today = new Date().toISOString().slice(0, 10);
     if (dateInput && !dateInput.value) dateInput.value = today;
     if (prDateInput && !prDateInput.value) prDateInput.value = today;
+    if (adjDateInput && !adjDateInput.value) adjDateInput.value = today;
+    if (isDebitCredit) loadVcnItemDropdown();
+    updateVoucherEffectSummary();
   }
 
   document.getElementById("voucherTypeInput")?.addEventListener("change", updateVoucherFormUI);
+  document.getElementById("addVcnItemBtn")?.addEventListener("click", addVcnLineItem);
+  document.getElementById("voucherAdjAmountInput")?.addEventListener("input", updateVoucherEffectSummary);
+  document.getElementById("voucherPartySearch")?.addEventListener("input", updateVoucherEffectSummary);
+  document.getElementById("voucherSecondaryInput")?.addEventListener("change", updateVoucherEffectSummary);
+  document.getElementById("vcnItemInput")?.addEventListener("change", () => {
+    const opt = document.getElementById("vcnItemInput")?.selectedOptions[0];
+    const rate = parseFloat(opt?.dataset.sale) || parseFloat(opt?.dataset.purchase) || 0;
+    const rateEl = document.getElementById("vcnRateInput");
+    if (rateEl && rate > 0) rateEl.value = rate;
+  });
 
   function calcVoucherAmountFromItem() {
     const type = document.getElementById("voucherTypeInput")?.value;
@@ -6524,22 +6736,39 @@ function getEWayBillDetails() {
     let voucherDate = document.getElementById("voucherDateInput")?.value || "";
     const statusText = document.getElementById("voucherStatusText");
 
+    const isDebitCredit = voucherType === "Debit Note" || voucherType === "Credit Note";
+    const isJournalContra = voucherType === "Journal" || voucherType === "Contra";
+
     if (voucherType === "Payment" || voucherType === "Receipt") {
       amount = parseFloat(document.getElementById("voucherPrAmountInput")?.value) || 0;
       paymentMode = document.getElementById("voucherPrModeInput")?.value || "Cash";
       voucherDate = document.getElementById("voucherPrDateInput")?.value || voucherDate;
+    } else if (isDebitCredit || isJournalContra) {
+      amount = parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0;
+      voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
     }
 
     if (!partyId) { alert("Please select a party / ledger from the list."); return; }
     if (voucherType === "Purchase" && !supplierInvoiceNo) {
       alert("Please enter Supplier Invoice No. for the purchase bill."); return;
     }
-    if ((voucherType === "Journal" || voucherType === "Contra") && !secondaryLedgerId) {
-      alert("Please select a second ledger for Journal/Contra."); return;
+    if (isJournalContra && !secondaryLedgerId) {
+      alert("Please select the second ledger for Journal / Contra."); return;
+    }
+    if (isDebitCredit) {
+      const reason = document.getElementById("voucherReasonInput")?.value || "";
+      if (!reason) { alert("Please select a reason for this Debit / Credit Note."); return; }
     }
 
-    const items = [];
-    if ((voucherType === "Sales" || voucherType === "Purchase") && itemId) {
+    let items = [];
+    if (isDebitCredit && vcnLineItems.length) {
+      items = vcnLineItems.map((line) => ({
+        itemId: line.itemId, qty: line.qty, rate: line.rate, gstRate: line.gstRate
+      }));
+      if (!amount || amount <= 0) {
+        amount = vcnLineItems.reduce((sum, line) => sum + vcnLineTotal(line), 0);
+      }
+    } else if ((voucherType === "Sales" || voucherType === "Purchase") && itemId) {
       const itemSel = document.getElementById("voucherItemInput");
       const useRate = rate || parseFloat(
         voucherType === "Purchase"
@@ -6556,16 +6785,27 @@ function getEWayBillDetails() {
     if (!amount || amount <= 0) {
       alert(voucherType === "Payment" || voucherType === "Receipt"
         ? "Please enter payment / receipt amount."
-        : "Enter amount (or let Item + Qty + Rate calculate it automatically).");
+        : isJournalContra
+          ? "Please enter the journal / contra amount."
+          : isDebitCredit
+            ? "Please enter amount or add item lines."
+            : "Enter amount (or let Item + Qty + Rate calculate it automatically).");
       return;
     }
+
+    const refNo = document.getElementById("voucherRefNoInput")?.value.trim() || "";
+    const reason = document.getElementById("voucherReasonInput")?.value || "";
+    const noteParts = [note];
+    if (refNo) noteParts.unshift(`Ref: ${refNo}`);
+    if (reason) noteParts.unshift(`Reason: ${reason}`);
+    const fullNote = noteParts.filter(Boolean).join(" | ");
 
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
         method: "POST", headers: khataHeaders(),
         body: JSON.stringify({
-          voucherType, partyId, secondaryLedgerId, amount, items, note,
-          supplierInvoiceNo, supplierGstin, paymentMode, voucherDate
+          voucherType, partyId, secondaryLedgerId, amount, items, note: fullNote,
+          supplierInvoiceNo: refNo || supplierInvoiceNo, supplierGstin, paymentMode, voucherDate
         })
       });
       const data = await res.json();
@@ -6576,6 +6816,14 @@ function getEWayBillDetails() {
       document.getElementById("voucherQtyInput").value = "";
       document.getElementById("voucherRateInput").value = "";
       document.getElementById("voucherNoteInput").value = "";
+      document.getElementById("voucherAdjAmountInput").value = "";
+      document.getElementById("voucherRefNoInput").value = "";
+      document.getElementById("voucherReasonInput").value = "";
+      document.getElementById("voucherPrAmountInput").value = "";
+      vcnLineItems = [];
+      vcnEditingIndex = -1;
+      renderVcnItems();
+      clearVcnEntryFields();
       if (typeof clearLedgerPartyAutocomplete === "function") {
         clearLedgerPartyAutocomplete("voucherPartyInput", "voucherPartySearch", "voucherPartySuggest");
       }
@@ -6583,6 +6831,7 @@ function getEWayBillDetails() {
         document.getElementById("voucherBillNoInput").value = "";
         document.getElementById("voucherSupplierGstinInput").value = "";
       }
+      updateVoucherEffectSummary();
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
     }
@@ -6845,6 +7094,8 @@ function getEWayBillDetails() {
   window.refreshKhataVoucherPanel = () => {
     loadLedgerDropdowns();
     loadItemDropdown();
+    loadVcnItemDropdown();
+    renderVcnItems();
     updateVoucherFormUI();
   };
 

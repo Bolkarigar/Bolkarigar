@@ -1965,6 +1965,25 @@ body.staff-mode .hero h2::after {
   border: 1px solid rgba(59,130,246,.35);
   background: rgba(59,130,246,.08);
 }
+.voucher-adjust-section {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(245,158,11,.35);
+  background: rgba(245,158,11,.08);
+}
+.voucher-effect-summary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.voucher-effect-summary strong { color: var(--text); }
+#voucherDnCnItemSection { margin-top: 12px; }
 .voucher-field {
   display: flex;
   flex-direction: column;
