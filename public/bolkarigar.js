@@ -6548,7 +6548,7 @@ function getEWayBillDetails() {
     const body = document.getElementById("jnLinesBody");
     const drEl = document.getElementById("jnTotalDr");
     const crEl = document.getElementById("jnTotalCr");
-    const diffEl = document.getElementById("jnDiff");
+    const statusEl = document.getElementById("jnBalanceStatus");
     if (!body) return;
 
     body.innerHTML = "";
@@ -6564,57 +6564,84 @@ function getEWayBillDetails() {
           <td>
             <div class="inv-row-actions">
               <button type="button" class="inv-row-edit" onclick="editJournalLine(${index})">Edit</button>
-              <button type="button" class="inv-row-del" onclick="deleteJournalLine(${index})">Del</button>
+              <button type="button" class="inv-row-del" onclick="deleteJournalLine(${index})">Remove</button>
             </div>
           </td>`;
         body.appendChild(row);
       });
     } else {
-      body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:12px;">Add Dr and Cr lines — totals must match.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--muted);">No entries yet — use the blue Debit box or green Credit box above.</td></tr>`;
     }
 
     const totalDr = sumJournalSide(journalLineItems, "Dr");
     const totalCr = sumJournalSide(journalLineItems, "Cr");
-    const diff = totalDr - totalCr;
+    const diff = Math.abs(totalDr - totalCr);
+    const hasDr = journalLineItems.some((l) => l.drCr === "Dr");
+    const hasCr = journalLineItems.some((l) => l.drCr === "Cr");
+    const balanced = hasDr && hasCr && diff < 0.009 && totalDr > 0;
+
     if (drEl) drEl.textContent = totalDr.toFixed(2);
     if (crEl) crEl.textContent = totalCr.toFixed(2);
-    if (diffEl) {
-      diffEl.textContent = Math.abs(diff).toFixed(2);
-      diffEl.classList.toggle("balanced", journalLineItems.length > 0 && Math.abs(diff) < 0.009);
-      diffEl.classList.toggle("unbalanced", journalLineItems.length > 0 && Math.abs(diff) >= 0.009);
+    if (statusEl) {
+      statusEl.classList.remove("balanced", "unbalanced");
+      if (balanced) {
+        statusEl.textContent = "✅ Balanced — ready to save!";
+        statusEl.classList.add("balanced");
+      } else if (!journalLineItems.length) {
+        statusEl.textContent = "Add debit and credit entries below";
+      } else if (!hasDr || !hasCr) {
+        statusEl.textContent = "⚠️ Need at least 1 debit AND 1 credit";
+        statusEl.classList.add("unbalanced");
+      } else {
+        statusEl.textContent = `⚠️ Difference ₹${diff.toFixed(2)} — totals must match`;
+        statusEl.classList.add("unbalanced");
+      }
     }
     updateVoucherEffectSummary();
   }
 
-  function clearJournalEntryFields() {
-    const ledgerSel = document.getElementById("jnLedgerInput");
-    if (ledgerSel) ledgerSel.value = "";
-    const amtEl = document.getElementById("jnAmountInput");
-    if (amtEl) amtEl.value = "";
-    const drCrEl = document.getElementById("jnDrCrInput");
-    if (drCrEl) drCrEl.value = "Dr";
+  function clearJournalSideFields(side) {
+    if (side === "Dr" || !side) {
+      const drSel = document.getElementById("jnDrLedgerInput");
+      if (drSel) drSel.value = "";
+      const drAmt = document.getElementById("jnDrAmountInput");
+      if (drAmt) drAmt.value = "";
+    }
+    if (side === "Cr" || !side) {
+      const crSel = document.getElementById("jnCrLedgerInput");
+      if (crSel) crSel.value = "";
+      const crAmt = document.getElementById("jnCrAmountInput");
+      if (crAmt) crAmt.value = "";
+    }
   }
 
-  function addJournalLineItem() {
-    const ledgerSel = document.getElementById("jnLedgerInput");
+  function addJournalLineFromSide(drCr) {
+    const isDr = drCr === "Dr";
+    const ledgerSel = document.getElementById(isDr ? "jnDrLedgerInput" : "jnCrLedgerInput");
+    const amountEl = document.getElementById(isDr ? "jnDrAmountInput" : "jnCrAmountInput");
     const ledgerId = ledgerSel?.value || "";
     const opt = ledgerSel?.selectedOptions[0];
-    const drCr = document.getElementById("jnDrCrInput")?.value === "Cr" ? "Cr" : "Dr";
-    const amount = parseFloat(document.getElementById("jnAmountInput")?.value) || 0;
-    if (!ledgerId) { alert("Please select a ledger."); return false; }
-    if (!amount || amount <= 0) { alert("Please enter amount."); return false; }
+    const amount = parseFloat(amountEl?.value) || 0;
+    if (!ledgerId) {
+      alert(isDr ? "Please choose an account for Debit." : "Please choose an account for Credit.");
+      return false;
+    }
+    if (!amount || amount <= 0) {
+      alert("Please enter amount.");
+      return false;
+    }
     const ledgerName = (opt?.textContent || "").split(" (")[0].trim();
     const line = { ledgerId, ledgerName, drCr, amount };
 
     if (journalEditingIndex > -1) {
       journalLineItems[journalEditingIndex] = line;
       journalEditingIndex = -1;
-      const addBtn = document.getElementById("addJournalLineBtn");
-      if (addBtn) addBtn.textContent = "Add Line";
+      document.getElementById("addJnDebitBtn").textContent = "+ Add Debit";
+      document.getElementById("addJnCreditBtn").textContent = "+ Add Credit";
     } else {
       journalLineItems.push(line);
     }
-    clearJournalEntryFields();
+    clearJournalSideFields(isDr ? "Dr" : "Cr");
     renderJournalLines();
     return true;
   }
@@ -6622,13 +6649,20 @@ function getEWayBillDetails() {
   window.editJournalLine = function (index) {
     const line = journalLineItems[index];
     if (!line) return;
-    const ledgerSel = document.getElementById("jnLedgerInput");
-    if (ledgerSel) ledgerSel.value = line.ledgerId;
-    document.getElementById("jnDrCrInput").value = line.drCr;
-    document.getElementById("jnAmountInput").value = line.amount;
+    clearJournalSideFields();
+    if (line.drCr === "Dr") {
+      const drSel = document.getElementById("jnDrLedgerInput");
+      if (drSel) drSel.value = line.ledgerId;
+      document.getElementById("jnDrAmountInput").value = line.amount;
+      document.getElementById("addJnDebitBtn").textContent = "Update Debit";
+    } else {
+      const crSel = document.getElementById("jnCrLedgerInput");
+      if (crSel) crSel.value = line.ledgerId;
+      document.getElementById("jnCrAmountInput").value = line.amount;
+      document.getElementById("addJnCreditBtn").textContent = "Update Credit";
+    }
     journalEditingIndex = index;
-    const addBtn = document.getElementById("addJournalLineBtn");
-    if (addBtn) addBtn.textContent = "Update Line";
+    document.getElementById("voucherJournalSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   window.deleteJournalLine = function (index) {
@@ -6636,9 +6670,9 @@ function getEWayBillDetails() {
     journalLineItems.splice(index, 1);
     if (journalEditingIndex === index) {
       journalEditingIndex = -1;
-      const addBtn = document.getElementById("addJournalLineBtn");
-      if (addBtn) addBtn.textContent = "Add Line";
-      clearJournalEntryFields();
+      document.getElementById("addJnDebitBtn").textContent = "+ Add Debit";
+      document.getElementById("addJnCreditBtn").textContent = "+ Add Credit";
+      clearJournalSideFields();
     } else if (journalEditingIndex > index) journalEditingIndex -= 1;
     renderJournalLines();
   };
@@ -6649,13 +6683,14 @@ function getEWayBillDetails() {
       const data = await res.json();
       if (!data.success) return;
       invoiceLedgerCache = data.ledgers || [];
-      const sel = document.getElementById("jnLedgerInput");
-      if (sel) {
-        sel.innerHTML = '<option value="">-- Select Ledger --</option>' +
-          (data.ledgers || []).map(l =>
-            `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup || "")})</option>`
-          ).join("");
-      }
+      const options = '<option value="">Choose account...</option>' +
+        (data.ledgers || []).map(l =>
+          `<option value="${l._id}">${escapeHtml(l.partyName)} (${escapeHtml(l.ledgerGroup || "")})</option>`
+        ).join("");
+      ["jnDrLedgerInput", "jnCrLedgerInput"].forEach((id) => {
+        const sel = document.getElementById(id);
+        if (sel) sel.innerHTML = options;
+      });
     } catch (err) { console.error("Journal ledger load:", err); }
   }
 
@@ -6688,8 +6723,8 @@ function getEWayBillDetails() {
     } else if (type === "Credit Note") {
       html = `<strong>Credit Note effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>decrease by ₹${amount.toFixed(2)}</strong> (return / discount).${itemCount ? ` Items: ${itemCount} line(s). Stock will increase.` : ""}`;
     } else if (type === "Journal") {
-      const balanced = jnCount > 0 && Math.abs(totalDr - totalCr) < 0.009;
-      html = `<strong>Journal entry:</strong> ${jnCount} line(s) — Dr ₹${totalDr.toFixed(2)} | Cr ₹${totalCr.toFixed(2)}${balanced ? " ✅ Balanced" : " ⚠️ Not balanced yet"}`;
+      box.classList.add("hidden");
+      return;
     } else if (type === "Contra") {
       html = `<strong>Contra transfer:</strong> <strong>${escapeHtml(partyName)}</strong> → <strong>${escapeHtml(secName)}</strong> for ₹${amount.toFixed(2)} (Cash ↔ Bank).`;
     }
@@ -6735,7 +6770,7 @@ function getEWayBillDetails() {
     purchaseBox?.classList.toggle("hidden", !isPurchase);
     stockBox?.classList.toggle("hidden", !isStock);
     payReceiptBox?.classList.toggle("hidden", !isPayReceipt);
-    adjustBox?.classList.toggle("hidden", !isAdjust);
+    adjustBox?.classList.toggle("hidden", !isAdjust || isJournal);
     dnCnSection?.classList.toggle("hidden", !isDebitCredit);
     journalSection?.classList.toggle("hidden", !isJournal);
     partyField?.classList.toggle("hidden", isJournal);
@@ -6783,7 +6818,7 @@ function getEWayBillDetails() {
         : isCreditNote
           ? "Sales return or discount — reduces what customer owes."
           : isJournal
-            ? "Add Dr and Cr lines below — total debit must equal total credit."
+            ? ""
             : isContra
               ? "Cash ↔ Bank transfer between two ledgers."
               : "";
@@ -6795,10 +6830,12 @@ function getEWayBillDetails() {
     const dateInput = document.getElementById("voucherDateInput");
     const prDateInput = document.getElementById("voucherPrDateInput");
     const adjDateInput = document.getElementById("voucherAdjDateInput");
+    const jnDateInput = document.getElementById("voucherJnDateInput");
     const today = new Date().toISOString().slice(0, 10);
     if (dateInput && !dateInput.value) dateInput.value = today;
     if (prDateInput && !prDateInput.value) prDateInput.value = today;
     if (adjDateInput && !adjDateInput.value) adjDateInput.value = today;
+    if (jnDateInput && !jnDateInput.value) jnDateInput.value = today;
     if (isDebitCredit) loadVcnItemDropdown();
     if (isJournal) loadJournalLedgerDropdown();
     updateVoucherEffectSummary();
@@ -6806,7 +6843,8 @@ function getEWayBillDetails() {
 
   document.getElementById("voucherTypeInput")?.addEventListener("change", updateVoucherFormUI);
   document.getElementById("addVcnItemBtn")?.addEventListener("click", addVcnLineItem);
-  document.getElementById("addJournalLineBtn")?.addEventListener("click", addJournalLineItem);
+  document.getElementById("addJnDebitBtn")?.addEventListener("click", () => addJournalLineFromSide("Dr"));
+  document.getElementById("addJnCreditBtn")?.addEventListener("click", () => addJournalLineFromSide("Cr"));
   document.getElementById("voucherAdjAmountInput")?.addEventListener("input", updateVoucherEffectSummary);
   document.getElementById("voucherPartySearch")?.addEventListener("input", updateVoucherEffectSummary);
   document.getElementById("voucherSecondaryInput")?.addEventListener("change", updateVoucherEffectSummary);
@@ -6901,7 +6939,9 @@ function getEWayBillDetails() {
       amount = parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0;
       voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
     } else if (voucherType === "Journal") {
-      voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
+      voucherDate = document.getElementById("voucherJnDateInput")?.value
+        || document.getElementById("voucherAdjDateInput")?.value
+        || voucherDate;
     } else if (isDebitCredit) {
       voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
     }
@@ -7015,7 +7055,9 @@ function getEWayBillDetails() {
       journalLineItems = [];
       journalEditingIndex = -1;
       renderJournalLines();
-      clearJournalEntryFields();
+      clearJournalSideFields();
+      document.getElementById("addJnDebitBtn").textContent = "+ Add Debit";
+      document.getElementById("addJnCreditBtn").textContent = "+ Add Credit";
       if (typeof clearLedgerPartyAutocomplete === "function") {
         clearLedgerPartyAutocomplete("voucherPartyInput", "voucherPartySearch", "voucherPartySuggest");
       }

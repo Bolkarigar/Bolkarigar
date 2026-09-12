@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui27">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui28">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260909r1"></script>
   <script>
-    window.BK_APP_BUILD = '20260911ui27';
+    window.BK_APP_BUILD = '20260911ui28';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260911ui27">
+<body data-build="20260911ui28">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -987,38 +987,52 @@
             </div>
 
             <div id="voucherJournalSection" class="voucher-journal-section hidden">
-              <p class="voucher-section-title">Journal Lines (Dr / Cr)</p>
-              <p class="helper-text">Tally style — add multiple debit and credit lines. Total Dr must equal total Cr.</p>
-              <div class="inv-item-entry journal-entry-row">
-                <span class="inv-entry-label">New Line</span>
-                <select id="jnLedgerInput" class="pv-field-item"><option value="">-- Select Ledger --</option></select>
-                <select id="jnDrCrInput" class="inv-field-gst">
-                  <option value="Dr">Debit (Dr)</option>
-                  <option value="Cr">Credit (Cr)</option>
-                </select>
-                <input id="jnAmountInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Amount ₹" />
-                <button type="button" id="addJournalLineBtn" class="inv-add-btn">Add Line</button>
+              <p class="voucher-section-title">📒 Journal Entry — Simple Mode</p>
+              <div class="journal-balance-bar" id="jnBalanceBar">
+                <div class="jn-balance-pill jn-dr-pill">
+                  <span>Debit Total</span>
+                  <strong>₹<span id="jnTotalDr">0.00</span></strong>
+                </div>
+                <div class="jn-balance-status" id="jnBalanceStatus">Add debit and credit entries below</div>
+                <div class="jn-balance-pill jn-cr-pill">
+                  <span>Credit Total</span>
+                  <strong>₹<span id="jnTotalCr">0.00</span></strong>
+                </div>
               </div>
+              <p class="journal-simple-tip">💡 <strong>Easy rule:</strong> Debit total = Credit total. Example — paid ₹5000 rent from Cash: <em>Rent Expense → Debit ₹5000</em> and <em>Cash → Credit ₹5000</em>.</p>
+              <label class="voucher-field" style="max-width:220px;margin-bottom:12px;">
+                <span class="voucher-label">Date</span>
+                <input type="date" id="voucherJnDateInput" />
+              </label>
+              <div class="journal-dual-entry">
+                <div class="journal-side jn-debit-side">
+                  <h4 class="journal-side-title">➕ Debit side</h4>
+                  <p class="journal-side-hint">Money going <strong>into</strong> this account (expense, asset)</p>
+                  <select id="jnDrLedgerInput" class="journal-ledger-select"><option value="">Choose account...</option></select>
+                  <input id="jnDrAmountInput" type="number" class="journal-amt-input" min="0" step="0.01" placeholder="Amount ₹" />
+                  <button type="button" id="addJnDebitBtn" class="inv-add-btn journal-side-btn">+ Add Debit</button>
+                </div>
+                <div class="journal-side jn-credit-side">
+                  <h4 class="journal-side-title">➖ Credit side</h4>
+                  <p class="journal-side-hint">Money going <strong>out of</strong> this account (income, cash, bank)</p>
+                  <select id="jnCrLedgerInput" class="journal-ledger-select"><option value="">Choose account...</option></select>
+                  <input id="jnCrAmountInput" type="number" class="journal-amt-input" min="0" step="0.01" placeholder="Amount ₹" />
+                  <button type="button" id="addJnCreditBtn" class="inv-add-btn journal-side-btn">+ Add Credit</button>
+                </div>
+              </div>
+              <p class="voucher-label" style="margin:14px 0 8px;">Your entries</p>
               <div class="table-wrap inv-table-wrap">
-                <table class="inv-items-table">
+                <table class="inv-items-table journal-simple-table">
                   <thead>
                     <tr>
-                      <th>S.N.</th>
-                      <th>Ledger</th>
-                      <th>Dr (₹)</th>
-                      <th>Cr (₹)</th>
-                      <th>Action</th>
+                      <th>#</th>
+                      <th>Account</th>
+                      <th>Debit ₹</th>
+                      <th>Credit ₹</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody id="jnLinesBody"></tbody>
-                  <tfoot>
-                    <tr class="inv-total-row">
-                      <td colspan="2" style="text-align:right;font-weight:700">Totals</td>
-                      <td class="inv-amt-cell">₹<span id="jnTotalDr">0.00</span></td>
-                      <td class="inv-amt-cell">₹<span id="jnTotalCr">0.00</span></td>
-                      <td class="inv-amt-cell">Diff: ₹<span id="jnDiff">0.00</span></td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
             </div>
@@ -2046,7 +2060,7 @@
   <script src="plan-pricing.js?v=20260909r1"></script>
   <script src="messages-en.js?v=20260902r1"></script>
   <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260911ui27"></script>
+  <script src="bolkarigar.js?v=20260911ui28"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
