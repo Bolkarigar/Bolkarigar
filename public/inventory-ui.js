@@ -177,7 +177,7 @@
     document.getElementById("invSelling").value = item.sellingPrice ?? "";
     document.getElementById("invOpening").value = item.stockQty ?? "";
     document.getElementById("invOpening").disabled = true;
-    document.getElementById("invOpening").placeholder = "Stock adjust (📥) se badlo";
+    document.getElementById("invOpening").placeholder = "Use Stock Adjust to change quantity";
     document.getElementById("invReorder").value = item.reorderLevel ?? 5;
     document.getElementById("invGodown").value = item.godown || "Main Godown";
     document.getElementById("invBatch").value = item.batchNo || "";

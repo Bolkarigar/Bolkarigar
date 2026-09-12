@@ -563,6 +563,17 @@
     return text;
   }
 
+  /** Input placeholders always stay English regardless of UI language. */
+  function bkTEng(key, vars) {
+    let text = STR.en[key] || key;
+    if (vars && typeof vars === 'object') {
+      Object.keys(vars).forEach((k) => {
+        text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(vars[k]));
+      });
+    }
+    return text;
+  }
+
   function bkSetLang(lang) {
     if (!SUPPORTED.includes(lang)) return;
     localStorage.setItem(STORAGE_KEY, lang);
@@ -606,7 +617,7 @@
     });
     scope.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
       if (el.closest('#helpPanel')) return;
-      el.placeholder = bkT(el.getAttribute('data-i18n-placeholder'));
+      el.placeholder = bkTEng(el.getAttribute('data-i18n-placeholder'));
     });
     scope.querySelectorAll('[data-i18n-title]').forEach((el) => {
       if (el.closest('#helpPanel')) return;

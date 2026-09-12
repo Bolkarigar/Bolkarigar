@@ -389,7 +389,7 @@
             <label><span>GST %</span>
               <input type="number" id="mdfInvGst" min="0" step="0.01" value="${r.gstRate ?? 0}" /></label>
             <label><span>Total Amount ₹ (auto)</span>
-              <input type="number" id="mdfTotal" min="0" step="0.01" value="${r.totalAmount ?? 0}" readonly title="Qty × Price + GST se auto calculate" /></label>
+              <input type="number" id="mdfTotal" min="0" step="0.01" value="${r.totalAmount ?? 0}" readonly title="Auto from Qty × Price + GST" /></label>
             <label><span>Status</span>
               <select id="mdfStatus">
                 <option${r.status === "Paid" ? " selected" : ""}>Paid</option>
@@ -422,7 +422,7 @@
             <label><span>GST %</span>
               <input type="number" id="mdfPurGst" min="0" step="0.01" value="${purGst}" /></label>` : ""}
             <label><span>Amount ₹ *${isPurchase ? " (auto)" : ""}</span>
-              <input type="number" id="mdfVchAmount" min="0" step="0.01" value="${r.amount ?? 0}" ${isPurchase ? 'readonly title="Qty × Rate + GST se auto"' : ""} /></label>
+              <input type="number" id="mdfVchAmount" min="0" step="0.01" value="${r.amount ?? 0}" ${isPurchase ? 'readonly title="Auto from Qty × Rate + GST"' : ""} /></label>
             <label class="modify-span2"><span>Party / Ledger *</span>
               <div class="inv-party-autocomplete">
                 <input type="text" id="mdfVchPartySearch" value="${esc(partyName)}" placeholder="Party search..." autocomplete="off" />
@@ -444,7 +444,7 @@
               <textarea id="mdfVchNote" rows="2">${esc(r.note || "")}</textarea></label>
           </div>
           <p class="modify-hint">${isPurchase
-            ? "Purchase: Qty × Rate + GST se Amount auto calculate hoga."
+            ? "Purchase amount is auto-calculated from Qty × Rate + GST."
             : "Payment / Receipt: Enter amount directly (how much was paid to / received from party)."}</p>
         </div>`;
       setupModifyPartyAutocomplete();
