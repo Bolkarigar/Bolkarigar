@@ -6413,7 +6413,6 @@ function getEWayBillDetails() {
   function renderVcnItems() {
     const body = document.getElementById("vcnItemsBody");
     const grandEl = document.getElementById("vcnGrandTotal");
-    const adjAmount = document.getElementById("voucherAdjAmountInput");
     if (!body) return;
 
     body.innerHTML = "";
@@ -6442,7 +6441,6 @@ function getEWayBillDetails() {
       body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Add items to show what is being adjusted.</td></tr>`;
     }
     if (grandEl) grandEl.textContent = grand.toFixed(2);
-    if (adjAmount && grand > 0) adjAmount.value = grand.toFixed(2);
     updateVoucherEffectSummary();
   }
 
@@ -6523,6 +6521,10 @@ function getEWayBillDetails() {
     } catch (err) { console.error("VCN item load:", err); }
   }
 
+  function getVcnGrandTotal() {
+    return vcnLineItems.reduce((sum, line) => sum + vcnLineTotal(line), 0);
+  }
+
   function updateVoucherEffectSummary() {
     const type = document.getElementById("voucherTypeInput")?.value || "";
     const box = document.getElementById("voucherEffectSummary");
@@ -6530,7 +6532,10 @@ function getEWayBillDetails() {
     const isAdjust = ["Debit Note", "Credit Note", "Journal", "Contra"].includes(type);
     if (!isAdjust) { box.classList.add("hidden"); return; }
 
-    const amount = parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0;
+    const isDebitCredit = type === "Debit Note" || type === "Credit Note";
+    const amount = isDebitCredit
+      ? getVcnGrandTotal()
+      : (parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0);
     const partyName = document.getElementById("voucherPartySearch")?.value?.trim() || "—";
     const secSel = document.getElementById("voucherSecondaryInput");
     const secName = secSel?.selectedOptions[0]?.textContent?.split(" (")[0] || "—";
@@ -6567,6 +6572,7 @@ function getEWayBillDetails() {
     const adjustHint = document.getElementById("voucherAdjustHint");
     const reasonWrap = document.getElementById("voucherReasonWrap");
     const refWrap = document.getElementById("voucherRefWrap");
+    const adjAmountWrap = document.getElementById("voucherAdjAmountWrap");
     const secLabel = document.querySelector("#voucherSecondaryWrap .voucher-label");
 
     const isPurchase = type === "Purchase";
@@ -6592,6 +6598,7 @@ function getEWayBillDetails() {
     gstField?.classList.toggle("hidden", !isStock);
     reasonWrap?.classList.toggle("hidden", !isDebitCredit);
     refWrap?.classList.toggle("hidden", !isDebitCredit);
+    adjAmountWrap?.classList.toggle("hidden", isDebitCredit);
 
     if (partyLabel) {
       partyLabel.textContent = isPurchase
@@ -6743,8 +6750,10 @@ function getEWayBillDetails() {
       amount = parseFloat(document.getElementById("voucherPrAmountInput")?.value) || 0;
       paymentMode = document.getElementById("voucherPrModeInput")?.value || "Cash";
       voucherDate = document.getElementById("voucherPrDateInput")?.value || voucherDate;
-    } else if (isDebitCredit || isJournalContra) {
+    } else if (isJournalContra) {
       amount = parseFloat(document.getElementById("voucherAdjAmountInput")?.value) || 0;
+      voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
+    } else if (isDebitCredit) {
       voucherDate = document.getElementById("voucherAdjDateInput")?.value || voucherDate;
     }
 
@@ -6755,19 +6764,16 @@ function getEWayBillDetails() {
     if (isJournalContra && !secondaryLedgerId) {
       alert("Please select the second ledger for Journal / Contra."); return;
     }
-    if (isDebitCredit) {
-      const reason = document.getElementById("voucherReasonInput")?.value || "";
-      if (!reason) { alert("Please select a reason for this Debit / Credit Note."); return; }
-    }
-
     let items = [];
-    if (isDebitCredit && vcnLineItems.length) {
+    if (isDebitCredit) {
+      if (!vcnLineItems.length) {
+        alert("Please add at least one item line in the table.");
+        return;
+      }
       items = vcnLineItems.map((line) => ({
         itemId: line.itemId, qty: line.qty, rate: line.rate, gstRate: line.gstRate
       }));
-      if (!amount || amount <= 0) {
-        amount = vcnLineItems.reduce((sum, line) => sum + vcnLineTotal(line), 0);
-      }
+      amount = getVcnGrandTotal();
     } else if ((voucherType === "Sales" || voucherType === "Purchase") && itemId) {
       const itemSel = document.getElementById("voucherItemInput");
       const useRate = rate || parseFloat(
@@ -6788,7 +6794,7 @@ function getEWayBillDetails() {
         : isJournalContra
           ? "Please enter the journal / contra amount."
           : isDebitCredit
-            ? "Please enter amount or add item lines."
+            ? "Please add at least one item line in the table."
             : "Enter amount (or let Item + Qty + Rate calculate it automatically).");
       return;
     }
