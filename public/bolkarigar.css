@@ -205,10 +205,7 @@
     padding-right: max(16px, env(safe-area-inset-right));
   }
   .hero {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
+    display: none !important;
   }
   .hero-copy, .hero-stats, .sidebar, .panel-area, .mini-card {
     box-shadow: var(--shadow);
