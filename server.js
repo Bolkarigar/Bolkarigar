@@ -397,6 +397,12 @@ const voucherSchema = new mongoose.Schema({
     rate: Number,
     gstRate: Number
   }],
+  journalEntries: [{
+    ledgerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ledger' },
+    ledgerName: String,
+    drCr: { type: String, enum: ['Dr', 'Cr'] },
+    amount: Number
+  }],
   note: String,
   supplierInvoiceNo: String,
   supplierGstin: String,
@@ -2495,6 +2501,40 @@ async function applyVoucherLedgerDeltas(userId, partyId, secondaryLedgerId, vouc
   }
 }
 
+function sumJournalSide(entries, side) {
+  return (entries || [])
+    .filter((e) => e.drCr === side)
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+}
+
+async function applyJournalEntryDeltas(userId, entries, sign = 1) {
+  if (!entries || !entries.length) return;
+  for (const entry of entries) {
+    if (!entry.ledgerId || !entry.amount) continue;
+    const delta = entry.drCr === 'Dr' ? Number(entry.amount) : -Number(entry.amount);
+    await Ledger.updateOne({ _id: entry.ledgerId, userId }, { $inc: { currentBalance: delta * sign } });
+  }
+}
+
+async function normalizeJournalEntries(userId, rawEntries) {
+  const entries = [];
+  for (const row of rawEntries || []) {
+    const ledgerId = row.ledgerId;
+    const drCr = row.drCr === 'Cr' ? 'Cr' : 'Dr';
+    const amount = Number(row.amount) || 0;
+    if (!ledgerId || amount <= 0) continue;
+    const ledger = await Ledger.findOne({ _id: ledgerId, userId }).select('partyName');
+    if (!ledger) throw new Error(`Ledger not found for journal line: ${ledgerId}`);
+    entries.push({
+      ledgerId,
+      ledgerName: ledger.partyName,
+      drCr,
+      amount
+    });
+  }
+  return entries;
+}
+
 async function applyVoucherStockDeltas(userId, voucherType, items, sign = 1) {
   if (!items || !items.length) return;
   const stockTypes = ['Sales', 'Purchase', 'Debit Note', 'Credit Note'];
@@ -2522,25 +2562,58 @@ async function applyVoucherStockDeltas(userId, voucherType, items, sign = 1) {
 
 app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
-    const { voucherType, partyId, secondaryLedgerId, amount, items, note, supplierInvoiceNo, supplierGstin, paymentMode, voucherDate } = req.body;
+    const {
+      voucherType, partyId, secondaryLedgerId, amount, items, note,
+      supplierInvoiceNo, supplierGstin, paymentMode, voucherDate, journalEntries
+    } = req.body;
 
     if (!VOUCHER_TYPES.includes(voucherType)) return res.status(400).json({ error: 'Voucher type galat hai.' });
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Amount zaroori hai.' });
     if (voucherType === 'Purchase' && !supplierInvoiceNo) {
       return res.status(400).json({ error: 'Purchase bill ke liye Supplier Invoice No. zaroori hai.' });
     }
 
+    let finalAmount = Number(amount) || 0;
+    let finalPartyId = partyId;
+    let finalSecondaryId = secondaryLedgerId;
+    let finalJournalEntries = [];
+
+    if (voucherType === 'Journal' && Array.isArray(journalEntries) && journalEntries.length >= 2) {
+      finalJournalEntries = await normalizeJournalEntries(req.dataUserId, journalEntries);
+      if (finalJournalEntries.length < 2) {
+        return res.status(400).json({ error: 'Add at least two journal lines (Dr and Cr).' });
+      }
+      const totalDr = sumJournalSide(finalJournalEntries, 'Dr');
+      const totalCr = sumJournalSide(finalJournalEntries, 'Cr');
+      if (Math.abs(totalDr - totalCr) > 0.009) {
+        return res.status(400).json({ error: 'Journal Dr and Cr totals must match.' });
+      }
+      if (totalDr <= 0) return res.status(400).json({ error: 'Journal amount must be greater than zero.' });
+      finalAmount = totalDr;
+      finalPartyId = finalJournalEntries.find((e) => e.drCr === 'Dr')?.ledgerId;
+      finalSecondaryId = finalJournalEntries.find((e) => e.drCr === 'Cr')?.ledgerId;
+    } else if (!finalAmount || finalAmount <= 0) {
+      return res.status(400).json({ error: 'Amount zaroori hai.' });
+    }
+
     const newVoucher = new Voucher({
-      userId: req.dataUserId, voucherType, partyId, secondaryLedgerId, amount, items, note,
+      userId: req.dataUserId,
+      voucherType,
+      partyId: finalPartyId,
+      secondaryLedgerId: finalSecondaryId,
+      amount: finalAmount,
+      items,
+      journalEntries: finalJournalEntries.length ? finalJournalEntries : undefined,
+      note,
       supplierInvoiceNo: supplierInvoiceNo || undefined,
       supplierGstin: supplierGstin || undefined,
       paymentMode: paymentMode || undefined,
       date: voucherDate ? new Date(voucherDate) : new Date()
     });
 
-    // Har voucher type ka party ledger balance par sahi asar (Tally logic ki tarah):
-    if (partyId) {
-      await applyVoucherLedgerDeltas(req.dataUserId, partyId, secondaryLedgerId, voucherType, amount, 1);
+    if (voucherType === 'Journal' && finalJournalEntries.length) {
+      await applyJournalEntryDeltas(req.dataUserId, finalJournalEntries, 1);
+    } else if (finalPartyId) {
+      await applyVoucherLedgerDeltas(req.dataUserId, finalPartyId, finalSecondaryId, voucherType, finalAmount, 1);
     }
 
     // Stock update — Sales se stock kam, Purchase se stock zyada
@@ -2587,7 +2660,9 @@ app.get('/api/vouchers', authenticateToken, async (req, res) => {
         const party = v.partyId?.partyName || '';
         const note = v.note || '';
         const bill = v.supplierInvoiceNo || '';
-        return party.toLowerCase().includes(q) || note.toLowerCase().includes(q) || bill.toLowerCase().includes(q);
+        const journalText = (v.journalEntries || []).map((e) => e.ledgerName || '').join(' ');
+        return party.toLowerCase().includes(q) || note.toLowerCase().includes(q) || bill.toLowerCase().includes(q)
+          || journalText.toLowerCase().includes(q);
       });
     }
 
@@ -2627,8 +2702,13 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
     const oldAmount = voucher.amount;
     const oldType = voucher.voucherType;
     const oldItems = voucher.items || [];
+    const oldJournalEntries = voucher.journalEntries || [];
 
-    await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, -1);
+    if (oldType === 'Journal' && oldJournalEntries.length) {
+      await applyJournalEntryDeltas(req.dataUserId, oldJournalEntries, -1);
+    } else {
+      await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, -1);
+    }
     await applyVoucherStockDeltas(req.dataUserId, oldType, oldItems, -1);
 
     if (partyId) voucher.partyId = partyId;
@@ -2641,14 +2721,22 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
     if (voucherDate) voucher.date = new Date(voucherDate);
 
     if (voucher.voucherType === 'Purchase' && !voucher.supplierInvoiceNo) {
-      await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, 1);
+      if (oldType === 'Journal' && oldJournalEntries.length) {
+        await applyJournalEntryDeltas(req.dataUserId, oldJournalEntries, 1);
+      } else {
+        await applyVoucherLedgerDeltas(req.dataUserId, oldPartyId, oldSecondaryId, oldType, oldAmount, 1);
+      }
       await applyVoucherStockDeltas(req.dataUserId, oldType, oldItems, 1);
       return res.status(400).json({ error: 'Purchase bill ke liye Supplier Invoice No. zaroori hai.' });
     }
 
-    await applyVoucherLedgerDeltas(
-      req.dataUserId, voucher.partyId, voucher.secondaryLedgerId, voucher.voucherType, voucher.amount, 1
-    );
+    if (voucher.voucherType === 'Journal' && voucher.journalEntries?.length) {
+      await applyJournalEntryDeltas(req.dataUserId, voucher.journalEntries, 1);
+    } else {
+      await applyVoucherLedgerDeltas(
+        req.dataUserId, voucher.partyId, voucher.secondaryLedgerId, voucher.voucherType, voucher.amount, 1
+      );
+    }
     await applyVoucherStockDeltas(req.dataUserId, voucher.voucherType, voucher.items || [], 1);
 
     await voucher.save();

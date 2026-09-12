@@ -1984,6 +1984,16 @@ body.staff-mode .hero h2::after {
 }
 .voucher-effect-summary strong { color: var(--text); }
 #voucherDnCnItemSection { margin-top: 12px; }
+.voucher-journal-section {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(139,92,246,.35);
+  background: rgba(139,92,246,.08);
+}
+.journal-entry-row .pv-field-item { flex: 2 1 180px; min-width: 140px; }
+#jnDiff.balanced { color: #22c55e; }
+#jnDiff.unbalanced { color: #ef4444; }
 .voucher-field {
   display: flex;
   flex-direction: column;
