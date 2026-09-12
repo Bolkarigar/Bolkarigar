@@ -1727,6 +1727,9 @@ document.addEventListener("keydown", (e) => {
     if (activePanel === "invoicePanel") {
       e.preventDefault();
       executeInvoiceAdd();
+    } else if (activePanel === "purchasePanel" && typeof window.executePurchaseAdd === "function") {
+      e.preventDefault();
+      window.executePurchaseAdd();
     }
   }
 });
@@ -6587,7 +6590,142 @@ function getEWayBillDetails() {
 
   updateVoucherFormUI();
 
-  // ---------- PURCHASE PANEL (sidebar — Invoice jaisa full page) ----------
+  // ---------- PURCHASE PANEL (sidebar — Invoice jaisa multi-item table) ----------
+  let purchaseLineItems = [];
+  let purchaseEditingIndex = -1;
+
+  function purchaseLineTotal(line) {
+    const rate = parseFloat(line.rate) || 0;
+    const qty = parseFloat(line.qty) || 0;
+    const gstRate = parseFloat(line.gstRate) || 0;
+    const taxable = rate * qty;
+    return taxable + (taxable * gstRate / 100);
+  }
+
+  function renderPurchaseItems() {
+    const body = document.getElementById("pvItemsBody");
+    const grandEl = document.getElementById("pvGrandTotal");
+    if (!body) return;
+
+    body.innerHTML = "";
+    let grand = 0;
+
+    if (purchaseLineItems.length) {
+      purchaseLineItems.forEach((line, index) => {
+        const lineTotal = purchaseLineTotal(line);
+        grand += lineTotal;
+        const hsnLine = line.hsn ? `<br><small style="color:#666">HSN: ${escapeHtml(line.hsn)}</small>` : "";
+        const gstSmall = line.gstRate > 0 ? `<br><small style="color:#666">GST ${line.gstRate}%</small>` : "";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="col-sn">${index + 1}</td>
+          <td class="col-item">${escapeHtml(line.itemName) || "-"}${hsnLine}${gstSmall}</td>
+          <td class="col-qty">${line.qty}</td>
+          <td class="col-unit">${escapeHtml(line.unit || "Pcs")}</td>
+          <td class="col-price">₹${(parseFloat(line.rate) || 0).toFixed(2)}</td>
+          <td class="inv-amt-cell">₹${lineTotal.toFixed(2)}</td>
+          <td>
+            <div class="inv-row-actions">
+              <button type="button" class="inv-row-edit" onclick="editPurchaseItem(${index})">Edit</button>
+              <button type="button" class="inv-row-del" onclick="deletePurchaseItem(${index})">Del</button>
+            </div>
+          </td>`;
+        body.appendChild(row);
+      });
+    } else {
+      body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Select supplier, add items with Add Item (F2).</td></tr>`;
+    }
+
+    if (grandEl) grandEl.textContent = grand.toFixed(2);
+  }
+
+  function clearPurchaseEntryFields() {
+    const itemSel = document.getElementById("pvItemInput");
+    if (itemSel) itemSel.value = "";
+    const qtyEl = document.getElementById("pvQtyInput");
+    if (qtyEl) qtyEl.value = "1";
+    const rateEl = document.getElementById("pvRateInput");
+    if (rateEl) rateEl.value = "";
+    const gstEl = document.getElementById("pvGstInput");
+    if (gstEl) gstEl.value = "18";
+  }
+
+  function executePurchaseAdd() {
+    const itemSel = document.getElementById("pvItemInput");
+    const itemId = itemSel?.value || "";
+    const opt = itemSel?.selectedOptions[0];
+    const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
+    let rate = parseFloat(document.getElementById("pvRateInput")?.value);
+    const gstRate = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
+    const statusText = document.getElementById("pvStatusText");
+
+    if (!itemId) { alert("Please select an item from stock."); return false; }
+    if (!qty || qty <= 0) { alert("Please enter quantity."); return false; }
+    if (Number.isNaN(rate) || rate <= 0) {
+      rate = parseFloat(opt?.dataset.purchase) || 0;
+    }
+    if (!rate || rate <= 0) { alert("Please enter purchase rate."); return false; }
+
+    const itemName = (opt?.textContent || "").split(" (Stock:")[0].trim();
+    const line = {
+      itemId,
+      itemName,
+      unit: opt?.dataset.unit || "Pcs",
+      hsn: opt?.dataset.hsn || "",
+      qty,
+      rate,
+      gstRate
+    };
+
+    if (purchaseEditingIndex > -1) {
+      purchaseLineItems[purchaseEditingIndex] = line;
+      purchaseEditingIndex = -1;
+      const addBtn = document.getElementById("addPurchaseItemBtn");
+      if (addBtn) addBtn.textContent = "Add Item (F2)";
+    } else {
+      purchaseLineItems.push(line);
+    }
+
+    clearPurchaseEntryFields();
+    if (statusText) statusText.textContent = "";
+    renderPurchaseItems();
+    return true;
+  }
+
+  window.executePurchaseAdd = executePurchaseAdd;
+
+  window.editPurchaseItem = function (index) {
+    const line = purchaseLineItems[index];
+    if (!line) return;
+    const itemSel = document.getElementById("pvItemInput");
+    if (itemSel) itemSel.value = line.itemId;
+    const qtyEl = document.getElementById("pvQtyInput");
+    if (qtyEl) qtyEl.value = line.qty;
+    const rateEl = document.getElementById("pvRateInput");
+    if (rateEl) rateEl.value = line.rate;
+    const gstEl = document.getElementById("pvGstInput");
+    if (gstEl) gstEl.value = line.gstRate;
+    purchaseEditingIndex = index;
+    const addBtn = document.getElementById("addPurchaseItemBtn");
+    if (addBtn) addBtn.textContent = "Update Item (F2)";
+    const statusText = document.getElementById("pvStatusText");
+    if (statusText) statusText.textContent = "✏️ Editing row #" + (index + 1) + ". Change and click Update Item.";
+  };
+
+  window.deletePurchaseItem = function (index) {
+    if (purchaseLineItems[index] === undefined) return;
+    purchaseLineItems.splice(index, 1);
+    if (purchaseEditingIndex === index) {
+      purchaseEditingIndex = -1;
+      const addBtn = document.getElementById("addPurchaseItemBtn");
+      if (addBtn) addBtn.textContent = "Add Item (F2)";
+      clearPurchaseEntryFields();
+    } else if (purchaseEditingIndex > index) {
+      purchaseEditingIndex -= 1;
+    }
+    renderPurchaseItems();
+  };
+
   function updatePurchaseDateDisplay() {
     const display = document.getElementById("pvDateDisplay");
     if (!display) return;
@@ -6608,7 +6746,7 @@ function getEWayBillDetails() {
       if (itemSel && itemData.success) {
         itemSel.innerHTML = '<option value="">-- Select Item --</option>' +
           (itemData.items || []).map(i =>
-            `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-gst="${i.gstRate || 0}" data-hsn="${escapeHtml(i.hsnCode || '')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
+            `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-gst="${i.gstRate || 0}" data-hsn="${escapeHtml(i.hsnCode || '')}" data-unit="${escapeHtml(i.unit || 'Pcs')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
           ).join("");
       }
     } catch (err) {
@@ -6616,29 +6754,12 @@ function getEWayBillDetails() {
     }
   }
 
-  function calcPurchaseModalAmount() {
-    const itemSel = document.getElementById("pvItemInput");
-    const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
-    const rateManual = parseFloat(document.getElementById("pvRateInput")?.value);
-    const gst = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
-    const amountEl = document.getElementById("pvAmountInput");
-    if (!itemSel || !amountEl || !qty) return;
-    let rate = rateManual;
-    if (!rate && itemSel.value) {
-      rate = parseFloat(itemSel.selectedOptions[0]?.dataset.purchase) || 0;
-      const rateEl = document.getElementById("pvRateInput");
-      if (rate && rateEl) rateEl.value = rate;
-    }
-    if (!rate) return;
-    const taxable = rate * qty;
-    amountEl.value = (taxable + (taxable * gst / 100)).toFixed(2);
-  }
-
   function refreshPurchasePanel() {
     const dateEl = document.getElementById("pvDateInput");
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
     updatePurchaseDateDisplay();
     loadPurchasePanelDropdowns();
+    renderPurchaseItems();
   }
 
   window.refreshPurchasePanel = refreshPurchasePanel;
@@ -6649,9 +6770,6 @@ function getEWayBillDetails() {
   document.getElementById("pvDateInput")?.addEventListener("change", updatePurchaseDateDisplay);
   document.getElementById("pvDateInput")?.addEventListener("input", updatePurchaseDateDisplay);
 
-  ["pvQtyInput", "pvRateInput", "pvGstInput"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("input", calcPurchaseModalAmount);
-  });
   document.getElementById("pvItemInput")?.addEventListener("change", () => {
     const itemSel = document.getElementById("pvItemInput");
     const opt = itemSel?.selectedOptions[0];
@@ -6659,17 +6777,15 @@ function getEWayBillDetails() {
       const gstEl = document.getElementById("pvGstInput");
       if (gstEl) gstEl.value = opt.dataset.gst;
     }
-    document.getElementById("pvRateInput").value = "";
-    calcPurchaseModalAmount();
+    const rate = parseFloat(opt?.dataset.purchase) || 0;
+    const rateEl = document.getElementById("pvRateInput");
+    if (rateEl) rateEl.value = rate > 0 ? rate : "";
   });
+
+  document.getElementById("addPurchaseItemBtn")?.addEventListener("click", executePurchaseAdd);
 
   document.getElementById("savePurchaseVoucherBtn")?.addEventListener("click", async () => {
     const partyId = document.getElementById("pvPartyInput")?.value || "";
-    const itemId = document.getElementById("pvItemInput")?.value || "";
-    const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
-    const rate = parseFloat(document.getElementById("pvRateInput")?.value) || 0;
-    const gstRate = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
-    let amount = parseFloat(document.getElementById("pvAmountInput")?.value) || 0;
     const note = document.getElementById("pvNoteInput")?.value.trim() || "";
     const supplierInvoiceNo = document.getElementById("pvBillNoInput")?.value.trim() || "";
     const supplierGstin = document.getElementById("pvSupplierGstinInput")?.value.trim() || "";
@@ -6679,20 +6795,21 @@ function getEWayBillDetails() {
 
     if (!partyId) { alert("Please select a supplier / party from the list."); return; }
     if (!supplierInvoiceNo) { alert("Please enter Supplier Invoice No. for the purchase bill."); return; }
-
-    const items = [];
-    if (itemId) {
-      const itemSel = document.getElementById("pvItemInput");
-      const useRate = rate || parseFloat(itemSel?.selectedOptions[0]?.dataset.purchase) || 0;
-      if (!amount && useRate && qty) {
-        const taxable = useRate * qty;
-        amount = taxable + (taxable * gstRate / 100);
-      }
-      items.push({ itemId, qty, rate: useRate, gstRate });
+    if (!purchaseLineItems.length) {
+      alert("Please add at least one item with Add Item (F2).");
+      return;
     }
 
+    const items = purchaseLineItems.map((line) => ({
+      itemId: line.itemId,
+      qty: line.qty,
+      rate: line.rate,
+      gstRate: line.gstRate
+    }));
+    const amount = purchaseLineItems.reduce((sum, line) => sum + purchaseLineTotal(line), 0);
+
     if (!amount || amount <= 0) {
-      alert("Enter amount (or let Item + Qty + Rate calculate it automatically).");
+      alert("Total amount invalid — check item qty and rate.");
       return;
     }
 
@@ -6708,12 +6825,17 @@ function getEWayBillDetails() {
       if (!res.ok || !data.success) throw new Error(data.error || "Save fail hua");
       if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
       showToast("✅ Purchase bill saved!");
-      ["pvBillNoInput", "pvSupplierGstinInput", "pvQtyInput", "pvRateInput", "pvAmountInput", "pvNoteInput"]
+      purchaseLineItems = [];
+      purchaseEditingIndex = -1;
+      renderPurchaseItems();
+      ["pvBillNoInput", "pvSupplierGstinInput", "pvNoteInput"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+      clearPurchaseEntryFields();
+      const addBtn = document.getElementById("addPurchaseItemBtn");
+      if (addBtn) addBtn.textContent = "Add Item (F2)";
       if (typeof clearLedgerPartyAutocomplete === "function") {
         clearLedgerPartyAutocomplete("pvPartyInput", "pvPartySearch", "pvPartySuggest");
       }
-      document.getElementById("pvItemInput").value = "";
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
       showToast("❌ " + err.message, "error");
