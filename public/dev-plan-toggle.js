@@ -1,5 +1,5 @@
 /**
- * Dev UI — top bar se FREE Pro / ₹299 Business switch (testing only).
+ * Dev UI — Pro trial / Business plan switch (testing only).
  */
 (function () {
   const API = () => window.API_URL || window.location.origin;
@@ -24,14 +24,14 @@
     document.getElementById("devPlanBusinessBtn")?.classList.toggle("active", plan === "business");
     const label = document.getElementById("devPlanActiveLabel");
     if (label) {
-      label.textContent = plan === "business" ? "Active: Business ₹299" : "Active: Pro FREE";
+      label.textContent = plan === "business" ? "Active: Business ₹299/mo" : "Active: Pro trial";
     }
   }
 
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Please log in first — then you can test FREE Pro / ₹299 Business.");
+      alert("Please log in first — then you can test Pro trial / Business plan.");
       return;
     }
     const sub = window._bkAccountInfo?.subscription;
@@ -40,7 +40,7 @@
       return;
     }
     if (planId === "pro" && sub?.plan === "pro" && !sub?.fullAccess) {
-      if (typeof showToast === "function") showToast("Pro Shop already active — completely FREE", "info");
+      if (typeof showToast === "function") showToast("Pro Shop trial already active", "info");
       return;
     }
     try {

@@ -984,9 +984,9 @@
 
     if (wantsPremium && !hasPremiumAccess()) {
       if (typeof showToast === "function") {
-        showToast("This premium card is on the Business plan (₹299) — upgrade from My Plan.", "error");
+        showToast("This premium card is on the Business plan (₹299/mo or ₹2999/yr) — upgrade from My Plan.", "error");
       } else {
-        alert("Premium cards are available on the Business plan (₹299).");
+        alert("Premium cards are available on the Business plan (₹299/mo or ₹2999/yr).");
       }
       if (typeof openPanel === "function") openPanel("myPlanPanel");
       return;
@@ -1131,7 +1131,7 @@
         const tier = tab.dataset.tier || "free";
         if (tier === "premium" && !hasPremiumAccess()) {
           if (typeof showToast === "function") {
-            showToast("Premium cards unlock on the Business plan (₹299).", "error");
+            showToast("Premium cards unlock on the Business plan (₹299/mo or ₹2999/yr).", "error");
           }
           return;
         }

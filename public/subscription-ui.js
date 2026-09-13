@@ -4,6 +4,10 @@
 
   let razorpayScriptLoaded = false;
 
+  function pricing() {
+    return window.BK_PLAN_PRICING || {};
+  }
+
   function loadRazorpayScript() {
     if (razorpayScriptLoaded || window.Razorpay) {
       razorpayScriptLoaded = true;
@@ -19,26 +23,26 @@
   }
 
   function normalizeBusinessDays(sub) {
-    if (!sub || sub.plan === 'pro') return 0;
+    if (!sub) return 0;
     const n = Number(sub.daysLeft) || 0;
-    if (n > 120) return 30;
+    if (n > 400) return 30;
     return n;
   }
 
   function businessBannerText(sub) {
-    const rawDays = Number(sub.daysLeft) || 0;
-    const corrupt = rawDays > 120;
-    const days = corrupt ? 30 : rawDays;
-    let tillStr = "";
-    if (corrupt) {
-      const d = new Date();
-      d.setDate(d.getDate() + 30);
-      tillStr = ` (till ${d.toLocaleDateString("en-IN")})`;
-    } else if (sub.planExpiresAt) {
-      tillStr = ` (till ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")})`;
-    }
+    const days = normalizeBusinessDays(sub);
+    let tillStr = sub.planExpiresAt
+      ? ` (till ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")})`
+      : "";
     const daysPart = days > 0 ? ` — ${days} day${days === 1 ? "" : "s"} left` : "";
     return `✅ ${sub.planName || "Business"} plan active${daysPart}${tillStr}`;
+  }
+
+  function trialBannerText(sub) {
+    const p = pricing();
+    const planName = sub.plan === "business" ? (p.business?.name || "Business") : (p.pro?.name || "Pro Shop");
+    const till = sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-IN") : "";
+    return `🎉 ${planName} trial: ${sub.daysLeft} day${sub.daysLeft === 1 ? "" : "s"} left${till ? ` (until ${till})` : ""}`;
   }
 
   function renderSubscriptionUI(me) {
@@ -63,14 +67,14 @@
       if (banner) {
         banner.classList.remove("hidden", "expired", "staff");
         banner.classList.add("trial");
-        bannerText.textContent = `🎉 Pro Trial: ${sub.daysLeft} days left — full access until ${sub.trialEndsAt ? new Date(sub.trialEndsAt).toLocaleDateString("en-IN") : ""}`;
+        bannerText.textContent = trialBannerText(sub);
       }
       if (paywall) paywall.classList.add("hidden");
     } else if (sub.isActive) {
       if (banner) {
         banner.classList.remove("hidden", "trial", "expired", "staff");
-        bannerText.textContent = sub.plan === 'pro'
-          ? `✅ Pro Shop — completely FREE, full access`
+        bannerText.textContent = sub.plan === "pro"
+          ? businessBannerText(sub).replace("Business", "Pro Shop")
           : businessBannerText(sub);
       }
       if (paywall) paywall.classList.add("hidden");
@@ -78,21 +82,32 @@
       if (banner) {
         banner.classList.remove("hidden", "trial", "staff");
         banner.classList.add("expired");
-        bannerText.textContent = "⚠️ Trial ended — renew your plan to continue using the app";
+        bannerText.textContent = "⚠️ Trial or plan expired — renew to continue using the app";
       }
       if (paywall) paywall.classList.remove("hidden");
     }
 
     updateMyPlanPanel(me);
     updatePaywallTestHint(me);
+    wirePayButtons();
+  }
+
+  function wirePayButtons() {
+    document.querySelectorAll("[data-bk-plan][data-bk-billing]").forEach((btn) => {
+      if (btn.dataset.bkWired) return;
+      btn.dataset.bkWired = "1";
+      btn.addEventListener("click", () => {
+        buyBolKarigarPlan(btn.dataset.bkPlan, btn.dataset.bkBilling);
+      });
+    });
   }
 
   async function updatePaywallTestHint(me) {
     const hint = document.getElementById("paywallTestModeHint");
     const planMode = document.getElementById("myPlanPaymentMode");
     if ((!hint && !planMode) || me?.isStaff || !getToken()) {
-      if (hint) hint.classList.add("hidden");
-      if (planMode) planMode.classList.add("hidden");
+      hint?.classList.add("hidden");
+      planMode?.classList.add("hidden");
       return;
     }
     try {
@@ -112,10 +127,10 @@
           planMode.classList.add("hidden");
         } else if (isTest) {
           planMode.classList.remove("hidden");
-          planMode.innerHTML = '⚠️ <strong style="color:#f59e0b;">Payment TEST mode</strong> — real card OTP will not arrive. Set <code>RAZORPAY_KEY_ID</code> = <code>rzp_live_…</code> on Render and redeploy.';
+          planMode.innerHTML = '⚠️ <strong style="color:#f59e0b;">Payment TEST mode</strong> — use UPI <code>success@razorpay</code> in test.';
         } else if (cfg.mode === "live") {
           planMode.classList.remove("hidden");
-          planMode.innerHTML = '✅ <strong style="color:#22c55e;">Payment LIVE mode</strong> — real UPI/Card payments will work.';
+          planMode.innerHTML = '✅ <strong style="color:#22c55e;">Payment LIVE mode</strong> — real UPI/Card payments enabled.';
         } else {
           planMode.classList.add("hidden");
         }
@@ -131,45 +146,42 @@
     if (!panel || me?.isStaff) return;
 
     const sub = me.subscription || {};
+    const p = pricing();
     const statusEl = document.getElementById("myPlanStatus");
     const detailEl = document.getElementById("myPlanDetails");
     const staffNote = document.getElementById("myPlanStaffNote");
     const renewBox = document.getElementById("myPlanRenewBox");
 
     const planKey = sub.plan || "pro";
-    const isProFree = planKey === "pro";
+    const planCfg = p[planKey] || p.pro || {};
 
     if (statusEl) {
       statusEl.textContent = sub.isTrial
-        ? `Pro Trial — ${sub.daysLeft} days left`
+        ? `${planCfg.name || "Plan"} Trial — ${sub.daysLeft} days left`
         : sub.isActive
-          ? (isProFree ? "Pro Shop Active — Completely FREE" : `${sub.planName || "Business"} Active`)
+          ? `${sub.planName || planCfg.name} Active`
           : "Plan Expired — Please renew";
     }
 
     if (detailEl) {
-      const displayLabel = typeof window.bkFormatPlanLabel === "function"
-        ? window.bkFormatPlanLabel(planKey, sub.planLabel)
-        : (isProFree ? "Completely FREE" : (sub.planLabel || ""));
-      const planDisplayName = isProFree ? "Pro Shop" : (sub.planName || "—");
       detailEl.innerHTML = `
-        <li>Plan: <strong>${planDisplayName}</strong> (${displayLabel})</li>
+        <li>Plan: <strong>${sub.planName || planCfg.name || "—"}</strong></li>
         <li>Status: <strong>${sub.subscriptionStatus || "—"}</strong></li>
-        ${sub.trialEndsAt ? `<li>Trial end: ${new Date(sub.trialEndsAt).toLocaleDateString("en-IN")}</li>` : ""}
-        ${!isProFree && sub.planExpiresAt ? `<li>Plan valid till: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
-        ${isProFree ? `<li>Validity: <strong>Lifetime FREE</strong> (no expiry)</li>` : ""}
-        <li>Staff slots: <strong>${sub.staffSlots || 0}</strong> (free with invite code)</li>
+        ${sub.isTrial ? `<li>Free trial: <strong>${planCfg.trialDays || sub.trialDays} days</strong></li>` : ""}
+        ${sub.trialEndsAt ? `<li>Trial ends: ${new Date(sub.trialEndsAt).toLocaleDateString("en-IN")}</li>` : ""}
+        ${sub.planExpiresAt ? `<li>Paid until: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
+        <li>Pro after trial: <strong>₹${p.pro?.priceMonthly || 99}/mo</strong> or <strong>₹${p.pro?.priceYearly || 999}/yr</strong></li>
+        <li>Business after trial: <strong>₹${p.business?.priceMonthly || 299}/mo</strong> or <strong>₹${p.business?.priceYearly || 2999}/yr</strong></li>
+        <li>Staff slots (Business): <strong>${sub.staffSlots || 0}</strong></li>
       `;
     }
 
     if (staffNote) {
-      staffNote.textContent = "Staff/Cashier/Manager do not need to buy the app separately — generate an invite code and share it with them.";
+      staffNote.textContent = "Staff/Cashier/Manager do not buy separately — share an invite code from the Staff panel.";
     }
 
     if (renewBox) {
-      const showRenew = isProFree
-        ? false
-        : (!sub.isActive || sub.isTrial || (sub.daysLeft > 0 && sub.daysLeft <= 7));
+      const showRenew = !sub.isActive || sub.isTrial || (sub.daysLeft > 0 && sub.daysLeft <= 7);
       renewBox.style.display = showRenew ? "" : "none";
     }
   }
@@ -183,11 +195,6 @@
       });
       if (!meRes.ok) return false;
       const me = await meRes.json();
-      if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
-        ["businessCardPanel", "securityPanel", "purchasePanel"].forEach((tab) => {
-          if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
-        });
-      }
       window._bkAccountInfo = me;
       if (typeof applyRoleBasedUI === "function") applyRoleBasedUI(me);
       else if (typeof window.bkRenderSubscriptionUI === "function") window.bkRenderSubscriptionUI(me);
@@ -209,27 +216,21 @@
     return {};
   }
 
-  async function buyBolKarigarPlan(plan) {
+  async function buyBolKarigarPlan(plan, billing) {
     const planId = plan === "business" ? "business" : "pro";
-    const pricing = window.BK_PLAN_PRICING || {};
-    const planLabel = planId === "business"
-      ? `Business ₹${pricing.business?.price || 299}`
-      : "Pro FREE";
+    const bill = billing === "yearly" ? "yearly" : "monthly";
+    const p = pricing()[planId] || {};
+    const planLabel = bill === "yearly"
+      ? (p.labelYearly || `₹${p.priceYearly}/year`)
+      : (p.labelMonthly || `₹${p.priceMonthly}/month`);
 
     if (!getToken()) {
-      window.location.href = `signup.html?plan=${planId === "business" ? "business" : "pro"}`;
-      return;
-    }
-
-    if (planId === "pro") {
-      if (typeof showToast === "function") showToast("✅ Pro plan is completely FREE — full access!");
-      if (typeof openPanel === "function") openPanel("myPlanPanel");
-      else window.location.href = "bolkarigar.html";
+      window.location.href = `signup.html?plan=${planId}`;
       return;
     }
 
     try {
-      if (typeof showToast === "function") showToast("⌛ Checking payment...");
+      if (typeof showToast === "function") showToast("⌛ Opening payment...");
 
       const cfgRes = await fetch(`${API_URL}/api/payment/config`, {
         headers: { Authorization: `Bearer ${getToken()}` }
@@ -237,17 +238,11 @@
       const cfg = await cfgRes.json().catch(() => ({}));
 
       if (!cfgRes.ok) {
-        if (cfgRes.status === 403) {
-          throw new Error(cfg.error || "Only the shop owner can purchase a plan. Staff accounts cannot pay.");
-        }
-        if (cfgRes.status === 401) {
-          throw new Error("Login expired. Please sign in again.");
-        }
         throw new Error(cfg.error || "Could not load payment configuration.");
       }
 
       if (!cfg.configured) {
-        const msg = `Online payment (${planLabel}) is still being set up. Pro plan is FREE — try Business later.`;
+        const msg = `Online payment (${planLabel}) is not configured yet. Contact support.`;
         if (typeof showToast === "function") showToast(msg, "error");
         else alert(msg);
         if (typeof openPanel === "function") openPanel("myPlanPanel");
@@ -256,9 +251,7 @@
 
       if (cfg.testMode && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
         const proceed = confirm(
-          "⚠️ Razorpay is in TEST mode — real card OTP will not arrive.\n\n" +
-          "For live payments, set rzp_live_ keys on Render and redeploy.\n\n" +
-          "Try test payment anyway?"
+          "⚠️ Razorpay TEST mode — real card OTP will not arrive.\n\nTry test payment anyway?"
         );
         if (!proceed) return;
       }
@@ -271,18 +264,10 @@
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`
         },
-        body: JSON.stringify({ plan: planId })
+        body: JSON.stringify({ plan: planId, billing: bill })
       });
       const orderData = await orderRes.json();
-      if (!orderRes.ok) {
-        if (orderRes.status === 403) {
-          throw new Error(orderData.error || "Only the shop owner can purchase a plan.");
-        }
-        if (orderRes.status === 503) {
-          throw new Error(orderData.error || "Razorpay is not configured yet. Please contact support.");
-        }
-        throw new Error(orderData.error || "Order create fail");
-      }
+      if (!orderRes.ok) throw new Error(orderData.error || "Order create failed");
 
       const me = await getAccountPrefill();
       let contactPhone = "";
@@ -296,12 +281,13 @@
         }
       } catch (_) { /* ignore */ }
 
+      const periodLabel = bill === "yearly" ? "1 year" : "30 days";
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "BolKarigar",
-        description: `${orderData.planName} — 30 day subscription`,
+        description: `${orderData.planName} — ${planLabel} (${periodLabel})`,
         order_id: orderData.orderId,
         prefill: {
           email: me.email || "",
@@ -324,15 +310,12 @@
               })
             });
             const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) throw new Error(verifyData.error || "Verify fail");
+            if (!verifyRes.ok) throw new Error(verifyData.error || "Verify failed");
 
             if (typeof showToast === "function") showToast("✅ " + verifyData.message);
             document.getElementById("subscriptionPaywall")?.classList.add("hidden");
             if (typeof refreshPlanStatus === "function") await refreshPlanStatus();
-            else if (typeof loadServerData === "function") loadServerData({ silent: true });
-            else if (window.location.pathname.includes("pricing.html")) {
-              window.location.href = "bolkarigar.html?payment=success";
-            } else window.location.reload();
+            else window.location.reload();
           } catch (err) {
             if (typeof showToast === "function") showToast("❌ " + err.message, "error");
             else alert(err.message);
@@ -347,10 +330,9 @@
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", function (resp) {
-        const reason = resp.error?.reason || "";
         let msg = resp.error?.description || "Payment failed.";
-        if (reason === "international_transaction_not_allowed") {
-          msg = "This card is international — in test mode use UPI: success@razorpay";
+        if (resp.error?.reason === "international_transaction_not_allowed") {
+          msg = "International card blocked — in test mode use UPI: success@razorpay";
         }
         if (typeof showToast === "function") showToast("❌ " + msg, "error");
       });
@@ -372,16 +354,12 @@
     const ok = await refreshPlanStatus();
     if (btn) btn.disabled = false;
     if (typeof showToast === "function") {
-      showToast(ok ? "Plan status refreshed." : "Could not refresh plan status. Check connection and try again.", ok ? "success" : "error");
+      showToast(ok ? "Plan status refreshed." : "Could not refresh plan status.", ok ? "success" : "error");
     }
   });
-
-  document.getElementById("buyProPlanBtn")?.addEventListener("click", () => buyBolKarigarPlan("pro"));
-  document.getElementById("buyBusinessPlanBtn")?.addEventListener("click", () => buyBolKarigarPlan("business"));
-  document.getElementById("paywallBuyProBtn")?.addEventListener("click", () => buyBolKarigarPlan("pro"));
-  document.getElementById("paywallBuyBusinessBtn")?.addEventListener("click", () => buyBolKarigarPlan("business"));
 
   window.buyBolKarigarPlan = buyBolKarigarPlan;
   window.bkRenderSubscriptionUI = renderSubscriptionUI;
   window.refreshPlanStatus = refreshPlanStatus;
+  document.addEventListener("DOMContentLoaded", wirePayButtons);
 })();

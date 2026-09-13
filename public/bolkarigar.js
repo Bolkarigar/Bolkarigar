@@ -391,7 +391,10 @@ async function loadServerData(opts = {}) {
       console.log('[BolKarigar] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
       if (!silent) {
         if (me.isStaff) showToast(`${me.roleLabel || me.role} login — invited by owner, no separate plan needed`, "info");
-        else if (me.subscription?.isTrial) showToast(`🎉 Pro trial: ${me.subscription.daysLeft} days left`, "info");
+        else if (me.subscription?.isTrial) {
+          const tn = me.subscription.planName || (me.subscription.plan === "business" ? "Business" : "Pro Shop");
+          showToast(`🎉 ${tn} trial: ${me.subscription.daysLeft} days left`, "info");
+        }
       }
       window._bkAccountInfo = me;
       applyRoleBasedUI(me);
@@ -401,7 +404,7 @@ async function loadServerData(opts = {}) {
         if (paywallText) {
           paywallText.textContent = me.isStaff
             ? "This shop's plan has expired. You do not need to buy anything separately — ask the owner to renew the subscription."
-            : "Renew Business plan (₹299/month). Pro plan is completely FREE.";
+            : "Your free trial has ended. Renew — Pro ₹99/mo or ₹999/yr · Business ₹299/mo or ₹2999/yr.";
         }
       }
     }

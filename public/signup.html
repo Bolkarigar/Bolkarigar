@@ -188,7 +188,7 @@
   <div class="login-container">
     <div class="login-card">
       <h2>Create New Account</h2>
-      <p id="planBanner">🆓 <strong>Pro Shop is completely FREE</strong> — sign up, no payment required</p>
+      <p id="planBanner">🎁 <strong>30-day free trial</strong> on Pro — then ₹99/month or ₹999/year</p>
       
       <form id="signupForm">
         <div class="input-group">
@@ -223,12 +223,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const selectedPlan = urlParams.get("plan") || "pro";
     const planLabels = {
-      pro: "Pro Shop — Completely FREE",
-      business: "Business — ₹299/month"
+      pro: "Pro Shop — 30-day free trial, then ₹99/mo or ₹999/yr",
+      business: "Business — 15-day free trial, then ₹299/mo or ₹2999/yr"
     };
     const planBanner = document.getElementById("planBanner");
     if (planBanner && planLabels[selectedPlan]) {
-      planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan] || planLabels.pro}</strong><br>🆓 Pro signup is <strong>completely FREE</strong> — no payment required.`;
+      planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan] || planLabels.pro}</strong><br>No payment required during the free trial.`;
     }
 
     const BK_API = () => window.API_URL || window.location.origin;

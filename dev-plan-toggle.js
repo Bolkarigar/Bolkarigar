@@ -1,15 +1,16 @@
 /**
- * Dev/testing — FREE Pro ↔ ₹299 Business UI toggle (localhost / non-production).
+ * Dev/testing — Pro trial ↔ Business plan UI toggle (localhost / non-production).
  * Production me band: NODE_ENV=production aur DEV_PLAN_TOGGLE unset.
  */
 
 const {
   activateOwnerPlan,
-  activateFreePro,
+  startOwnerTrial,
   buildSubscriptionPayload,
   getSubscriptionForUser,
-  sanitizeBusinessExpiry,
-  PLANS
+  sanitizePlanExpiry,
+  PLANS,
+  MONTHLY_DAYS
 } = require('./subscription');
 
 function isDevPlanToggleEnabled() {
@@ -46,10 +47,10 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
             message: `Already on ${PLANS.pro.name} (${PLANS.pro.label})`
           });
         }
-        activateFreePro(user);
+        startOwnerTrial(user, 'pro');
       } else {
         if (user.plan === 'business' && user.subscriptionStatus === 'active') {
-          sanitizeBusinessExpiry(user);
+          sanitizePlanExpiry(user);
           await user.save();
           const subscription = await getSubscriptionForUser(User, user);
           return res.json({
@@ -59,7 +60,7 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
             message: `Already on ${PLANS.business.name} — ${subscription.daysLeft} days left`
           });
         }
-        activateOwnerPlan(user, plan, 30, { extend: false });
+        activateOwnerPlan(user, plan, MONTHLY_DAYS, { extend: false });
       }
       user.trialEndsAt = null;
       await user.save();

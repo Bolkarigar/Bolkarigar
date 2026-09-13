@@ -41,7 +41,7 @@
     "Naya token ban gaya! Apne Desktop Agent ke 'agent-config.json' mein isse update karein (ya file delete karke Agent dobara chalayein).": "New token created! Update it in your Desktop Agent 'agent-config.json' (or delete the file and restart the Agent).",
     "Token reset karne mein dikkat aayi.": "There was a problem resetting the token.",
     "Aapka browser Text-to-Speech support nahi karta.": "Your browser does not support text-to-speech.",
-    "✅ Pro Dukaan bilkul FREE hai — full access!": "✅ Pro plan is completely FREE — full access!",
+    "✅ Pro Dukaan bilkul FREE hai — full access!": "✅ Pro Shop trial active — full access during trial!",
     "⌛ Payment check ho rahi hai...": "⌛ Checking payment...",
     "Payment cancel ho gayi.": "Payment was cancelled.",
     "✅ File download ho gayi.": "✅ File downloaded.",
@@ -61,7 +61,7 @@
     "✅ Business card download ho gaya!": "✅ Business card downloaded!",
     "Card tayyar ho raha hai...": "Preparing card...",
     "Details save ho gayi!": "Details saved!",
-    "Pehle login karein — phir FREE Pro / ₹299 Business test kar sakte hain.": "Please log in first — then you can test FREE Pro / ₹299 Business.",
+    "Pehle login karein — phir FREE Pro / ₹299 Business test kar sakte hain.": "Please log in first — then you can test Pro trial / Business plan.",
     "Profile setup karein — phir bill banayein!": "Set up your profile first — then create bills!",
     "Dashboard refreshed.": "Dashboard refreshed.",
     "Bahut zyada requests is IP se. Thodi der baad try karein.": "Too many requests from this IP. Please try again later.",
@@ -104,7 +104,7 @@
     "Sirf shop owner payment kar sakta hai.": "Only the shop owner can make payments.",
     "Razorpay configure nahi hai. .env mein keys check karein.": "Razorpay is not configured. Check keys in environment settings.",
     "Sirf shop owner plan kharid sakta hai.": "Only the shop owner can purchase a plan.",
-    "Pro plan ab bilkul FREE hai. Sirf Business (₹299/month) ke liye payment karein.": "Pro plan is now completely FREE. Pay only for Business (₹299/month).",
+    "Pro plan ab bilkul FREE hai. Sirf Business (₹299/month) ke liye payment karein.": "Choose Pro (₹99/mo or ₹999/yr) or Business (₹299/mo or ₹2999/yr) after your free trial.",
     "Razorpay Key ID galat format me hai. Live key rzp_live_ se shuru honi chahiye.": "Razorpay Key ID format is invalid. Live key must start with rzp_live_.",
     "Order create fail hua.": "Failed to create order.",
     "Payment details incomplete hain.": "Payment details are incomplete.",
@@ -127,7 +127,7 @@
     "Yeh voucher pehle se Tally me sync hai.": "This voucher is already synced to Tally.",
     "Employee deactivate ho gaya.": "Employee deactivated.",
     "Aaj ki hajri save ho gayi.": "Today's attendance saved.",
-    "Account ban gaya! Pro Dukaan plan bilkul FREE hai — abhi se full access.": "Account created! Pro plan is completely FREE — full access from now."
+    "Account ban gaya! Pro Dukaan plan bilkul FREE hai — abhi se full access.": "Account created! Your free trial has started — full access during trial."
   };
 
   const PATTERNS = [

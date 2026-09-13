@@ -1,272 +1,132 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8" />
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
   <title>BolKarigar — Pricing</title>
   <script src="native-config.js?v=1"></script>
-
   <style>
-
     * { box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
-
     body { margin: 0; background: #0f172a; color: #e2e8f0; padding: 24px; }
-
     h1 { text-align: center; margin-bottom: 8px; }
-
     .sub { text-align: center; color: #94a3b8; margin-bottom: 12px; max-width: 640px; margin-left: auto; margin-right: auto; }
-
     .trial-badge { text-align: center; margin-bottom: 28px; }
-
     .trial-badge span { display: inline-block; background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; padding:8px 18px; border-radius:999px; font-weight:700; font-size:14px; }
-
     .staff-note { max-width: 720px; margin: 0 auto 28px; padding: 16px 18px; border-radius: 12px; border: 1px solid #a855f744; background: #a855f715; font-size: 14px; line-height: 1.6; }
-
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 820px; margin: 0 auto; }
-
     .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; }
-
     .card.featured { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e44; }
-
     .price { font-size: 2rem; font-weight: 800; color: #22c55e; margin: 12px 0; }
-
+    .price-sub { color: #94a3b8; font-size: 13px; margin: -8px 0 12px; }
     ul { padding-left: 18px; line-height: 1.8; color: #cbd5e1; font-size: 14px; }
-
-    .btn { display: block; text-align: center; margin-top: 16px; padding: 12px; border-radius: 10px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; border: none; cursor: pointer; width: 100%; font-size: 15px; }
-
+    .btn { display: block; text-align: center; margin-top: 10px; padding: 12px; border-radius: 10px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; border: none; cursor: pointer; width: 100%; font-size: 14px; }
     .btn.green { background: #22c55e; }
-
     .btn.gold { background: linear-gradient(135deg, #f59e0b, #d97706); }
-
+    .btn.secondary { background: #334155; }
     .back { display: block; text-align: center; margin-top: 32px; color: #94a3b8; }
-
     .conditions { max-width: 720px; margin: 32px auto 0; font-size: 13px; color: #94a3b8; line-height: 1.7; }
-
     .logged-in-note { max-width: 720px; margin: 0 auto 20px; padding: 12px 16px; border-radius: 10px; background: #22c55e22; border: 1px solid #22c55e55; text-align: center; display: none; }
-
     @media (max-width: 640px) {
-
-      body { padding: 16px 14px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-
+      body { padding: 16px 14px; }
       h1 { font-size: 1.5rem; }
-
-      .sub { font-size: 14px; }
-
       .card { padding: 18px; }
-
       .price { font-size: 1.65rem; }
-
-      .staff-note { padding: 14px; font-size: 13px; }
-
-      .conditions { font-size: 12px; }
-
     }
-
   </style>
-
 </head>
-
 <body>
-
   <h1>BolKarigar Pricing</h1>
-
-  <p class="sub">Professional shop software — <strong>Pro is completely FREE</strong>, Business plan includes all advanced features.</p>
-
-  <div class="trial-badge"><span>🎁 Pro Shop — Completely FREE, No Payment Required</span></div>
-
-
+  <p class="sub">Professional shop software with <strong>free trial</strong> on every plan — pay via Razorpay after trial.</p>
+  <div class="trial-badge"><span id="trialBadgeText">🎁 Free trial on signup</span></div>
 
   <div id="loggedInNote" class="logged-in-note">
-
-    ✅ You are logged in — click the Business plan button and <strong>Razorpay will open on this page</strong>.
-
+    ✅ You are logged in — payment opens on this page via Razorpay.
   </div>
-
-
 
   <div class="staff-note">
-
     <strong>👥 Staff / Cashier / Manager?</strong><br>
-
-    You <strong>do not need to buy the app separately</strong>. Get an <strong>invite code</strong> from the shop owner.
-
+    You <strong>do not need to buy separately</strong>. Get an <strong>invite code</strong> from the shop owner.
   </div>
-
-
 
   <div class="grid">
-
     <div class="card featured">
-
       <h3>⭐ Pro Shop</h3>
-
-      <div class="price">₹0 — FREE</div>
-
-      <p style="color:#94a3b8;font-size:13px;">/ forever — owner only</p>
-
+      <div class="price">₹99</div>
+      <p class="price-sub">/ month · or ₹999 / year</p>
+      <p class="price-sub"><strong>30-day free trial</strong></p>
       <ul>
-
-        <li>Overview + Invoice + Inventory</li>
-
-        <li>Credit Ledger + Ledgers</li>
-
-        <li>Stock Items + Voucher + Day Book</li>
-
+        <li>Invoice + Inventory + Credit Ledger</li>
+        <li>Ledgers + Voucher + Day Book</li>
         <li>Gallery + Todo + Help</li>
-
-        <li><strong>No payment required</strong></li>
-
       </ul>
-
-      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="signup">🆓 Sign Up Free — Pro Shop</button>
-
+      <button type="button" class="btn green js-plan-btn" data-plan="pro" data-action="signup">🆓 Start 30-Day Free Trial</button>
+      <button type="button" class="btn secondary" data-plan="pro" data-billing="monthly" data-action="pay">💳 Pro — ₹99 / month</button>
+      <button type="button" class="btn secondary" data-plan="pro" data-billing="yearly" data-action="pay">💳 Pro — ₹999 / year</button>
     </div>
-
     <div class="card">
-
       <h3>🏢 Business</h3>
-
       <div class="price">₹299</div>
-
-      <p style="color:#94a3b8;font-size:13px;">/ month — 5 staff FREE</p>
-
+      <p class="price-sub">/ month · or ₹2999 / year</p>
+      <p class="price-sub"><strong>15-day free trial</strong></p>
       <ul>
-
         <li><strong>Everything in the app</strong></li>
-
-        <li>Tally sync + Voice AI</li>
-
-        <li>Reports Pro + GSTR + Staff (5)</li>
-
-        <li>Staff Payroll & Attendance (salary auto-calc)</li>
-
+        <li>Tally sync + Voice AI + Reports Pro</li>
+        <li>Staff (5) + Payroll & Attendance</li>
         <li>Contractor + Bank Recon + Backup</li>
-
       </ul>
-
-      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="pay">💳 Business — ₹299 / month</button>
-
+      <button type="button" class="btn gold js-plan-btn" data-plan="business" data-action="signup">🎁 Start 15-Day Free Trial</button>
+      <button type="button" class="btn secondary" data-plan="business" data-billing="monthly" data-action="pay">💳 Business — ₹299 / month</button>
+      <button type="button" class="btn secondary" data-plan="business" data-billing="yearly" data-action="pay">💳 Business — ₹2999 / year</button>
     </div>
-
   </div>
-
-
 
   <div class="conditions">
-
     <strong>Plan details:</strong>
-
     <ul>
-
-      <li>Pro Shop = <strong>completely FREE</strong> — sign up and start using</li>
-
-      <li>Business = ₹299/month — via Razorpay UPI / Card / Netbanking</li>
-
-      <li>Staff accounts linked to owner's plan — no separate payment</li>
-
+      <li>Pro = 30-day free trial, then ₹99/month or ₹999/year</li>
+      <li>Business = 15-day free trial, then ₹299/month or ₹2999/year</li>
+      <li>All payments via Razorpay — UPI / Card / Netbanking</li>
+      <li>Staff accounts use the owner's plan — no separate payment</li>
     </ul>
-
   </div>
-
-
 
   <a class="back" href="loginpage.html">← Back to Login</a>
 
-
-
-  <script src="plan-pricing.js?v=20260909r1"></script>
-  <script src="subscription-ui.js?v=20260909r1"></script>
+  <script src="plan-pricing.js?v=20260913ui31"></script>
+  <script src="subscription-ui.js?v=20260913ui31"></script>
   <script>
-
     (function () {
-
       const token = localStorage.getItem("bk_token") || localStorage.getItem("token");
-
-      if (token) {
-
-        document.getElementById("loggedInNote").style.display = "block";
-
+      const p = window.BK_PLAN_PRICING || {};
+      const badge = document.getElementById("trialBadgeText");
+      if (badge && p.pro) {
+        badge.textContent = `🎁 Pro ${p.pro.trialDays}-day trial · Business ${p.business?.trialDays || 15}-day trial`;
       }
-
-
+      if (token) document.getElementById("loggedInNote").style.display = "block";
 
       function goSignup(plan) {
-
         window.location.href = "signup.html?plan=" + encodeURIComponent(plan);
-
       }
-
-
-
-      function openPaymentOnThisPage(plan) {
-        if (plan !== "business") {
-          if (token) window.location.href = "bolkarigar.html";
-          else goSignup("pro");
-          return;
-        }
-        if (typeof window.buyBolKarigarPlan === "function") {
-          window.buyBolKarigarPlan("business");
-          return;
-        }
-        window.location.href = "bolkarigar.html?openPanel=myPlanPanel&plan=business&bkTakeover=1";
-      }
-
-
 
       document.querySelectorAll(".js-plan-btn").forEach((btn) => {
-
         btn.addEventListener("click", () => {
-
           const plan = btn.dataset.plan || "pro";
-
+          const billing = btn.dataset.billing || "monthly";
           const action = btn.dataset.action || "signup";
 
-
-
-          if (token) {
-            if (plan === "pro") {
-              window.location.href = "bolkarigar.html";
-              return;
-            }
-            if (plan === "business") {
-              openPaymentOnThisPage("business");
-              return;
-            }
-            window.location.href = "bolkarigar.html";
+          if (action === "pay" && token && typeof window.buyBolKarigarPlan === "function") {
+            window.buyBolKarigarPlan(plan, billing);
             return;
           }
-
-
-
-          if (action === "signup" || plan === "pro") {
-
-            goSignup("pro");
-
+          if (token && action === "signup") {
+            window.location.href = "bolkarigar.html?openPanel=myPlanPanel";
             return;
-
           }
-
-
-
-          if (action === "pay") {
-
-            goSignup("business");
-
-          }
-
+          goSignup(plan);
         });
-
       });
-
     })();
-
   </script>
   <script src="capacitor-app.js?v=1"></script>
 </body>
-
 </html>

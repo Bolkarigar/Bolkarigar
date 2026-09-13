@@ -443,7 +443,7 @@ authenticateToken = (req, res, next) => {
           return res.status(402).json({
             error: subscription.isStaffAccount
               ? 'Shop ka plan expire ho gaya. Malik se subscription renew karwain.'
-              : 'Business plan (₹299) renew karein ya Pro FREE plan use karein.',
+              : 'Your free trial has ended. Renew from My Plan — Pro ₹99/mo or ₹999/yr, Business ₹299/mo or ₹2999/yr.',
             code: 'SUBSCRIPTION_EXPIRED',
             subscription
           });
@@ -534,24 +534,24 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const now = new Date();
+    const signupPlan = requestedPlan === 'business' ? 'business' : 'pro';
+    const { startOwnerTrial } = require('./subscription');
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
-      role: 'owner',
-      plan: 'pro',
-      subscriptionStatus: 'active',
-      trialStartedAt: now,
-      trialEndsAt: null,
-      planExpiresAt: null,
-      trialUsed: true
+      role: 'owner'
     });
+    startOwnerTrial(newUser, signupPlan);
+    await newUser.save();
     await UserData.create({ userId: newUser._id });
 
     const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
 
     res.status(201).json({
-      message: 'Account created! Pro Shop plan is completely FREE — full access from now.',
+      message: signupPlan === 'business'
+        ? 'Account created! Business plan — 15-day free trial started.'
+        : 'Account created! Pro Shop — 30-day free trial started.',
       token,
       username: newUser.username,
       plan: requestedPlan
@@ -642,7 +642,7 @@ app.post('/api/auth/login', async (req, res) => {
       message: user.ownerId
         ? `${rbac.ROLE_LABELS[role] || role} account — invited by owner, no separate plan needed.`
         : subscription.isTrial
-          ? `🎉 Pro trial active — ${subscription.daysLeft} days left!`
+          ? `🎉 ${subscription.planName || 'Pro Shop'} trial active — ${subscription.daysLeft} days left!`
           : null
     });
   } catch (err) {
@@ -3159,7 +3159,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Server Listen
 server.listen(PORT, () => {
   logger.info(`🚀 BolKarigar Core Engine Running on http://localhost:${PORT}`);
-  logger.info(`📌 SERVER CODE VERSION: pricing-pro-free-business-299`);
+  logger.info(`📌 SERVER CODE VERSION: pricing-pro-99-999-business-299-2999`);
   logger.info(`💰 Plans: Pro=${PLANS.pro.label}, Business=${PLANS.business.label} (${PLANS.business.price * 100} paise Razorpay)`);
   verifyEmailTransport().then((status) => {
     global.__bkEmailReady = !!status.ok;

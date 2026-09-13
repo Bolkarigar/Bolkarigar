@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260913ui30">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260913ui31">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260913ui30"></script>
+  <script src="i18n.js?v=20260913ui31"></script>
   <script>
-    window.BK_APP_BUILD = '20260913ui30';
+    window.BK_APP_BUILD = '20260913ui31';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260913ui30">
+<body data-build="20260913ui31">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -86,12 +86,12 @@
       </div>
     </header>
 
-    <!-- DEV: FREE Pro / ₹299 Business plan test bar -->
+    <!-- DEV: Pro trial / Business plan test bar -->
     <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
       <span class="dev-plan-toggle-label">🧪 TEST UI</span>
       <div class="dev-plan-toggle-actions">
-        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">FREE Pro</button>
-        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">₹299 Business</button>
+        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">Pro Trial</button>
+        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">Business ₹299</button>
       </div>
       <span id="devPlanActiveLabel" class="dev-plan-active-label">Switch after login</span>
     </div>
@@ -105,11 +105,13 @@
   <div id="subscriptionPaywall" class="subscription-paywall hidden">
     <div class="subscription-paywall-card">
       <h3 data-i18n="paywall.title">⏰ Free Trial Ended</h3>
-      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Renew Business plan (₹299/month). Pro Shop is completely FREE.</p>
+      <p id="subscriptionPaywallText" data-i18n="paywall.desc">Your free trial has ended. Renew — Pro ₹99/mo or ₹999/yr · Business ₹299/mo or ₹2999/yr.</p>
       <p class="helper-text" data-i18n="paywall.staffNote">Staff/Cashier do not need a separate purchase — only the owner buys the plan.</p>
       <div class="btn-row" style="justify-content:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
-        <button type="button" id="paywallBuyProBtn" class="pay-btn-pro">🆓 Pro — Completely FREE</button>
-        <button type="button" id="paywallBuyBusinessBtn" class="secondary">🏢 Business — ₹299 / month</button>
+        <button type="button" class="pay-btn-pro" data-bk-plan="pro" data-bk-billing="monthly">Pro — ₹99 / month</button>
+        <button type="button" class="secondary" data-bk-plan="pro" data-bk-billing="yearly">Pro — ₹999 / year</button>
+        <button type="button" class="secondary" data-bk-plan="business" data-bk-billing="monthly">Business — ₹299 / month</button>
+        <button type="button" class="secondary" data-bk-plan="business" data-bk-billing="yearly">Business — ₹2999 / year</button>
       </div>
       <p id="paywallTestModeHint" class="helper-text hidden" style="margin-top:12px;color:#f59e0b;">⚠️ <strong>Test Mode active</strong> — real OTP will not arrive. Set <code>rzp_live_</code> keys on Render, or use test UPI: <code>success@razorpay</code></p>
     </div>
@@ -1370,8 +1372,10 @@
             <p id="myPlanPaymentMode" class="helper-text hidden" style="margin-bottom:10px;"></p>
             <p class="helper-text" style="margin-bottom:12px;">Secure payment via Razorpay — UPI, Card, Netbanking</p>
             <div class="btn-row" style="flex-wrap:wrap;gap:10px;">
-              <button type="button" id="buyProPlanBtn" class="pay-btn-pro">🆓 Pro Shop — Completely FREE</button>
-              <button type="button" id="buyBusinessPlanBtn" class="secondary">🏢 Business — ₹299 / 30 days</button>
+              <button type="button" class="pay-btn-pro" data-bk-plan="pro" data-bk-billing="monthly">Pro — ₹99 / month</button>
+              <button type="button" class="secondary" data-bk-plan="pro" data-bk-billing="yearly">Pro — ₹999 / year</button>
+              <button type="button" class="secondary" data-bk-plan="business" data-bk-billing="monthly">Business — ₹299 / month</button>
+              <button type="button" class="secondary" data-bk-plan="business" data-bk-billing="yearly">Business — ₹2999 / year</button>
             </div>
           </div>
           <div class="btn-row" style="flex-wrap:wrap;">
@@ -1805,8 +1809,8 @@
             <button type="button" class="bc-tier-tab premium-tab" data-tier="premium" data-i18n="businessCard.premiumTab">👑 Business Plan — 25 Premium</button>
           </div>
           <div id="bcUpgradeBanner" class="bc-upgrade-banner hidden">
-            <p>🔒 <strong>25 Premium luxury cards</strong> are available on the <strong>Business plan (₹299)</strong> — upgrade from My Plan.</p>
-            <button type="button" id="bcUpgradeBtn" class="bc-upgrade-btn">🏢 Business Plan — ₹299</button>
+            <p>🔒 <strong>25 Premium luxury cards</strong> are on the <strong>Business plan (₹299/mo or ₹2999/yr)</strong> — upgrade from My Plan.</p>
+            <button type="button" id="bcUpgradeBtn" class="bc-upgrade-btn">🏢 Business — ₹299/mo or ₹2999/yr</button>
           </div>
           <div id="bcCardGrid" class="bc-card-grid"></div>
         </section>
@@ -2055,12 +2059,12 @@
   </div>
 
   <script src="responsive-ui.js?v=20260827r2"></script>
-  <script src="help-modules.js?v=20260913ui30"></script>
+  <script src="help-modules.js?v=20260913ui31"></script>
   <script src="voice-controller.js?v=20260909v1"></script>
-  <script src="plan-pricing.js?v=20260909r1"></script>
-  <script src="messages-en.js?v=20260913ui30"></script>
-  <script src="modify-ui.js?v=20260913ui30"></script>
-  <script src="bolkarigar.js?v=20260913ui30"></script>
+  <script src="plan-pricing.js?v=20260913ui31"></script>
+  <script src="messages-en.js?v=20260913ui31"></script>
+  <script src="modify-ui.js?v=20260913ui31"></script>
+  <script src="bolkarigar.js?v=20260913ui31"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2077,15 +2081,15 @@
     });
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
-  <script src="subscription-ui.js?v=20260909r4"></script>
+  <script src="subscription-ui.js?v=20260913ui31"></script>
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
-  <script src="inventory-ui.js?v=20260913ui30"></script>
+  <script src="inventory-ui.js?v=20260913ui31"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
-  <script src="payroll-ui.js?v=20260913ui30"></script>
+  <script src="payroll-ui.js?v=20260913ui31"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260902r6"></script>
   <script src="app-lock.js?v=20260902r1"></script>
-  <script src="form-enter-nav.js?v=20260913ui30"></script>
+  <script src="form-enter-nav.js?v=20260913ui31"></script>
 
   <!-- Business Card Editor Modal -->
   <div id="bcEditorModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Business card editor">

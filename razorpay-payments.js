@@ -1,18 +1,20 @@
 /**
  * BolKarigar — Razorpay subscription payments (owner only).
- * Staff never pays — linked to owner's plan via invite code.
+ * Pro: ₹99/month or ₹999/year | Business: ₹299/month or ₹2999/year
  */
-
 
 const Razorpay = require('razorpay');
 const { validatePaymentVerification } = require('razorpay/dist/utils/razorpay-utils');
-const { PLANS, buildSubscriptionPayload, activateOwnerPlan } = require('./subscription');
-
-const PLAN_AMOUNTS_PAISE = {
-  business: 29900
-};
-
-const PLAN_DURATION_DAYS = 30;
+const {
+  PLANS,
+  buildSubscriptionPayload,
+  activateOwnerPlan
+} = require('./subscription');
+const {
+  BK_PLAN_PRICING,
+  getPlanAmountPaise,
+  getPlanDurationDays
+} = require('./plan-pricing-config');
 
 function normalizeRazorpayEnv() {
   const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
@@ -55,8 +57,7 @@ function verifyPaymentSignature(orderId, paymentId, signature) {
 
 async function fetchPaymentStatus(razorpay, paymentId) {
   try {
-    const payment = await razorpay.payments.fetch(paymentId);
-    return payment;
+    return await razorpay.payments.fetch(paymentId);
   } catch {
     return null;
   }
@@ -66,7 +67,9 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
   const paymentOrderSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     plan: { type: String, enum: ['pro', 'business'], required: true },
+    billing: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
     amountPaise: { type: Number, required: true },
+    durationDays: { type: Number, default: 30 },
     currency: { type: String, default: 'INR' },
     razorpayOrderId: { type: String, required: true, unique: true },
     razorpayPaymentId: { type: String, default: null },
@@ -92,8 +95,22 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         mode: getRazorpayMode(),
         testMode: getRazorpayMode() === 'test',
         keyPrefix: normalizeRazorpayEnv().keyId ? normalizeRazorpayEnv().keyId.slice(0, 12) + '…' : null,
+        pricing: BK_PLAN_PRICING,
         plans: {
-          business: { name: PLANS.business.name, amount: PLANS.business.price, amountPaise: PLAN_AMOUNTS_PAISE.business }
+          pro: {
+            name: PLANS.pro.name,
+            priceMonthly: PLANS.pro.priceMonthly,
+            priceYearly: PLANS.pro.priceYearly,
+            amountPaiseMonthly: BK_PLAN_PRICING.pro.amountPaiseMonthly,
+            amountPaiseYearly: BK_PLAN_PRICING.pro.amountPaiseYearly
+          },
+          business: {
+            name: PLANS.business.name,
+            priceMonthly: PLANS.business.priceMonthly,
+            priceYearly: PLANS.business.priceYearly,
+            amountPaiseMonthly: BK_PLAN_PRICING.business.amountPaiseMonthly,
+            amountPaiseYearly: BK_PLAN_PRICING.business.amountPaiseYearly
+          }
         }
       });
     } catch (e) {
@@ -113,14 +130,20 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         return res.status(403).json({ error: 'Only the shop owner can purchase a plan.' });
       }
 
-      const plan = req.body?.plan === 'business' ? 'business' : null;
-      if (!plan || !PLAN_AMOUNTS_PAISE[plan]) {
-        return res.status(400).json({
-          error: 'Pro plan is now completely FREE. Pay only for Business (₹299/month).'
-        });
+      const plan = req.body?.plan === 'business' ? 'business' : (req.body?.plan === 'pro' ? 'pro' : null);
+      const billing = req.body?.billing === 'yearly' ? 'yearly' : 'monthly';
+      if (!plan) {
+        return res.status(400).json({ error: 'Invalid plan. Choose pro or business.' });
       }
-      const amountPaise = PLAN_AMOUNTS_PAISE[plan];
+
+      const amountPaise = getPlanAmountPaise(plan, billing);
+      if (!amountPaise) {
+        return res.status(400).json({ error: 'Invalid plan or billing period.' });
+      }
+
+      const durationDays = getPlanDurationDays(billing);
       const planInfo = PLANS[plan];
+      const billingLabel = billing === 'yearly' ? planInfo.labelYearly || `₹${planInfo.priceYearly}/year` : planInfo.label;
 
       const { keyId } = normalizeRazorpayEnv();
       if (getRazorpayMode() === 'invalid') {
@@ -138,6 +161,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
           userId: String(user._id),
           username: user.username,
           plan,
+          billing,
           product: 'BolKarigar Subscription'
         }
       });
@@ -145,7 +169,9 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       await PaymentOrder.create({
         userId: user._id,
         plan,
+        billing,
         amountPaise,
+        durationDays,
         razorpayOrderId: order.id,
         status: 'created'
       });
@@ -158,8 +184,10 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         amount: amountPaise,
         currency: 'INR',
         plan,
+        billing,
+        durationDays,
         planName: planInfo.name,
-        planLabel: planInfo.label
+        planLabel: billingLabel
       });
     } catch (e) {
       console.error('Razorpay create-order error:', e);
@@ -228,14 +256,16 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       paymentOrder.paidAt = new Date();
       await paymentOrder.save();
 
-      activateOwnerPlan(user, paymentOrder.plan, PLAN_DURATION_DAYS, { extend: true });
+      const durationDays = paymentOrder.durationDays || getPlanDurationDays(paymentOrder.billing);
+      activateOwnerPlan(user, paymentOrder.plan, durationDays, { extend: true });
       user.lastPaymentId = razorpay_payment_id;
       user.lastPaymentAt = new Date();
       await user.save();
 
+      const billingText = paymentOrder.billing === 'yearly' ? '1 year' : '30 days';
       res.json({
         success: true,
-        message: `${PLANS[paymentOrder.plan].name} plan activated for ${PLAN_DURATION_DAYS} days!`,
+        message: `${PLANS[paymentOrder.plan].name} plan activated for ${billingText}!`,
         subscription: buildSubscriptionPayload(user),
         paymentId: razorpay_payment_id
       });
@@ -252,5 +282,5 @@ module.exports = {
   setupRazorpayPayments,
   isRazorpayConfigured,
   getRazorpayMode,
-  PLAN_AMOUNTS_PAISE
+  BK_PLAN_PRICING
 };

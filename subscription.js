@@ -1,21 +1,45 @@
 /**
- * BolKarigar — Owner subscription & 3-day Pro trial.
- * Staff/Cashier/Manager accounts NEVER pay — they use owner's invite code.
+ * BolKarigar — Owner subscription trials & paid plans.
+ * Pro: 30-day free trial → ₹99/month or ₹999/year
+ * Business: 15-day free trial → ₹299/month or ₹2999/year
+ * Staff never pays — linked to owner's plan via invite code.
  */
 
-const TRIAL_DAYS = 3;
-const BUSINESS_PLAN_DAYS = 30;
-/** Sanity cap — stacked dev-toggle bug could inflate expiry to thousands of days */
-const MAX_BUSINESS_DAYS_AHEAD = 120;
+const {
+  PRO_TRIAL_DAYS,
+  BUSINESS_TRIAL_DAYS,
+  MONTHLY_DAYS,
+  YEARLY_DAYS,
+  BK_PLAN_PRICING,
+  getTrialDays
+} = require('./plan-pricing-config');
+
+const MAX_BUSINESS_DAYS_AHEAD = 400;
 
 const PLANS = {
-  trial: { name: 'Pro Shop', price: 0, staffSlots: 0, label: 'Completely FREE' },
-  starter: { name: 'Starter', price: 0, staffSlots: 0, label: 'Free — legacy' },
-  pro: { name: 'Pro Shop', price: 0, staffSlots: 0, label: 'Completely FREE' },
-  business: { name: 'Business', price: 299, staffSlots: 5, label: '₹299/month' }
+  trial: { name: 'Pro Shop', staffSlots: 0 },
+  starter: { name: 'Starter', staffSlots: 0 },
+  pro: {
+    name: BK_PLAN_PRICING.pro.name,
+    priceMonthly: BK_PLAN_PRICING.pro.priceMonthly,
+    priceYearly: BK_PLAN_PRICING.pro.priceYearly,
+    staffSlots: BK_PLAN_PRICING.pro.staffSlots,
+    label: BK_PLAN_PRICING.pro.labelMonthly,
+    labelYearly: BK_PLAN_PRICING.pro.labelYearly,
+    trialDays: PRO_TRIAL_DAYS
+  },
+  business: {
+    name: BK_PLAN_PRICING.business.name,
+    priceMonthly: BK_PLAN_PRICING.business.priceMonthly,
+    priceYearly: BK_PLAN_PRICING.business.priceYearly,
+    staffSlots: BK_PLAN_PRICING.business.staffSlots,
+    label: BK_PLAN_PRICING.business.labelMonthly,
+    labelYearly: BK_PLAN_PRICING.business.labelYearly,
+    trialDays: BUSINESS_TRIAL_DAYS
+  }
 };
 
-/** Pro (FREE) — sidebar tabs included in free plan */
+/** Pro plan — sidebar tabs included */
 const PRO_PLAN_TABS = [
   'overviewPanel', 'businessRecordsPanel', 'invoicePanel', 'purchasePanel', 'paymentVoucherPanel', 'receiptVoucherPanel',
   'voicePanel', 'inventoryPanel',
@@ -42,25 +66,23 @@ function getPlanFeatures(planKey, isActive) {
 function requireBusinessPlan(req, res, next) {
   if (req.subscription?.fullAccess) return next();
   return res.status(403).json({
-    error: 'This feature is available on the Business plan (₹299). Upgrade from My Plan.',
+    error: 'This feature is available on the Business plan (₹299/month). Upgrade from My Plan.',
     code: 'PLAN_UPGRADE_REQUIRED'
   });
 }
 
-/** Tally Agent + sync — Business plan OR explicit tallySync feature */
 function requireTallyAccess(req, res, next) {
   if (req.subscription?.fullAccess || req.subscription?.tallySync) return next();
   return res.status(403).json({
-    error: 'Tally sync requires Business plan (₹299). Open My Plan to upgrade.',
+    error: 'Tally sync requires Business plan (₹299/month). Open My Plan to upgrade.',
     code: 'PLAN_UPGRADE_REQUIRED'
   });
 }
 
-/** Active Pro (free) or Business — for AI chat, voice parse, basic features */
 function requireActivePlan(req, res, next) {
   if (req.subscription?.isActive) return next();
   return res.status(403).json({
-    error: 'Active plan required. Pro is free — open My Plan or sign in again.',
+    error: 'Active plan required. Renew from My Plan.',
     code: 'SUBSCRIPTION_INACTIVE'
   });
 }
@@ -91,67 +113,66 @@ function daysBetween(from, to) {
   return Math.max(0, Math.round((utcTo - utcFrom) / 86400000));
 }
 
-function sanitizeBusinessExpiry(user, now = new Date()) {
-  if (!user || user.plan !== 'business' || !user.planExpiresAt) return false;
+function sanitizePlanExpiry(user, now = new Date()) {
+  if (!user?.planExpiresAt) return false;
   const daysAhead = daysBetween(now, user.planExpiresAt);
   if (daysAhead <= MAX_BUSINESS_DAYS_AHEAD) return false;
-  user.planExpiresAt = addDays(now, BUSINESS_PLAN_DAYS);
-  user.plan = 'business';
-  user.subscriptionStatus = 'active';
-  if (typeof user.markModified === 'function') {
-    user.markModified('planExpiresAt');
-    user.markModified('plan');
-    user.markModified('subscriptionStatus');
-  }
+  user.planExpiresAt = addDays(now, YEARLY_DAYS);
+  if (typeof user.markModified === 'function') user.markModified('planExpiresAt');
   user._subscriptionMigrated = true;
   return true;
 }
 
-function activateFreePro(user) {
+function startOwnerTrial(user, planId = 'pro') {
+  if (!user || user.ownerId) return user;
+  const plan = planId === 'business' ? 'business' : 'pro';
   const now = new Date();
-  user.plan = 'pro';
-  user.subscriptionStatus = 'active';
-  user.trialStartedAt = user.trialStartedAt || now;
-  user.trialEndsAt = null;
+  const trialDays = getTrialDays(plan);
+  user.plan = plan;
+  user.subscriptionStatus = 'trial';
+  user.trialStartedAt = now;
+  user.trialEndsAt = addDays(now, trialDays);
   user.planExpiresAt = null;
   user.trialUsed = true;
   return user;
 }
 
-function startOwnerTrial(user) {
-  return activateFreePro(user);
-}
-
 function ensureOwnerSubscription(user) {
   if (!user || user.ownerId) return user;
 
-  if (!user.trialStartedAt && !user.planExpiresAt && user.subscriptionStatus !== 'active') {
-    activateFreePro(user);
-    user._subscriptionMigrated = true;
-  }
-
   const now = new Date();
-  if (user.subscriptionStatus === 'trial' && user.trialEndsAt && now > user.trialEndsAt) {
-    activateFreePro(user);
-  }
-  if (user.subscriptionStatus === 'expired' && user.plan === 'pro') {
-    activateFreePro(user);
-  }
 
-  // Pro is lifetime FREE — clear stale expiry left from old trials / dev toggles / business renewals
-  if (user.plan === 'pro' && user.subscriptionStatus === 'active' && user.planExpiresAt) {
-    user.planExpiresAt = null;
+  // Legacy lifetime-free Pro → start 30-day trial from now (one-time migration)
+  if (
+    user.plan === 'pro'
+    && user.subscriptionStatus === 'active'
+    && !user.planExpiresAt
+    && !user.trialEndsAt
+  ) {
+    startOwnerTrial(user, 'pro');
     user._subscriptionMigrated = true;
   }
 
-  sanitizeBusinessExpiry(user, now);
-
-  if (user.subscriptionStatus === 'active' && user.plan === 'business' && user.planExpiresAt && now > user.planExpiresAt) {
-    user.subscriptionStatus = 'expired';
+  if (!user.trialStartedAt && user.subscriptionStatus !== 'active' && !user.planExpiresAt) {
+    startOwnerTrial(user, user.plan === 'business' ? 'business' : 'pro');
+    user._subscriptionMigrated = true;
   }
 
-  if (user.plan === 'business' && user.subscriptionStatus === 'active' && !user.planExpiresAt) {
-    user.planExpiresAt = addDays(now, BUSINESS_PLAN_DAYS);
+  if (user.subscriptionStatus === 'trial' && user.trialEndsAt && now > user.trialEndsAt) {
+    const paidUntil = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
+    if (paidUntil && paidUntil > now) {
+      user.subscriptionStatus = 'active';
+      user.trialEndsAt = null;
+    } else {
+      user.subscriptionStatus = 'expired';
+    }
+    user._subscriptionMigrated = true;
+  }
+
+  sanitizePlanExpiry(user, now);
+
+  if (user.subscriptionStatus === 'active' && user.planExpiresAt && now > user.planExpiresAt) {
+    user.subscriptionStatus = 'expired';
     user._subscriptionMigrated = true;
   }
 
@@ -159,16 +180,13 @@ function ensureOwnerSubscription(user) {
 }
 
 /**
- * Activate Business (paid) or Pro (free).
- * @param {object} opts
- * @param {boolean} opts.extend — true = stack on current expiry (Razorpay renewal). false = fresh period from today (dev/test).
+ * Activate paid plan after Razorpay verify.
+ * @param {object} opts.extend — stack on current expiry when true
  */
-function activateOwnerPlan(user, planId, durationDays = BUSINESS_PLAN_DAYS, opts = {}) {
+function activateOwnerPlan(user, planId, durationDays = MONTHLY_DAYS, opts = {}) {
   if (!user || user.ownerId) return user;
   const allowed = ['pro', 'business'];
   const plan = allowed.includes(planId) ? planId : 'pro';
-  if (plan === 'pro') return activateFreePro(user);
-
   const now = new Date();
   const extend = opts.extend === true;
   const base = extend && user.planExpiresAt && new Date(user.planExpiresAt) > now
@@ -186,41 +204,49 @@ function buildSubscriptionPayload(ownerUser) {
   const user = ensureOwnerSubscription(ownerUser);
   const now = new Date();
   const isTrial = user.subscriptionStatus === 'trial';
-  const isActive = user.subscriptionStatus === 'trial' || user.subscriptionStatus === 'active';
-  const trialEndsAt = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
   const planExpiresAt = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
+  const trialEndsAt = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
 
-  const planKey = user.plan || 'starter';
+  let isActive = user.subscriptionStatus === 'trial' || user.subscriptionStatus === 'active';
+  if (isTrial && trialEndsAt && trialEndsAt <= now && !(planExpiresAt && planExpiresAt > now)) {
+    isActive = false;
+  }
+  if (user.subscriptionStatus === 'active' && planExpiresAt && planExpiresAt <= now) {
+    isActive = false;
+  }
+
+  const planKey = user.plan || 'pro';
+  const planInfo = PLANS[planKey] || PLANS.pro;
+  const features = getPlanFeatures(planKey, isActive);
+
   let daysLeft = 0;
   if (isTrial && trialEndsAt) {
     daysLeft = daysBetween(now, trialEndsAt);
     if (trialEndsAt <= now) daysLeft = 0;
-  } else if (planKey === 'business' && user.subscriptionStatus === 'active' && planExpiresAt) {
+  } else if (user.subscriptionStatus === 'active' && planExpiresAt) {
     daysLeft = daysBetween(now, planExpiresAt);
-    if (daysLeft > MAX_BUSINESS_DAYS_AHEAD) {
-      sanitizeBusinessExpiry(user, now);
-      const fixed = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
-      daysLeft = fixed ? daysBetween(now, fixed) : BUSINESS_PLAN_DAYS;
-    }
+    if (planExpiresAt <= now) daysLeft = 0;
   }
-  // Pro Shop = lifetime free — never show expiry days
 
-  const planInfo = PLANS[planKey] || PLANS.starter;
-  const features = getPlanFeatures(planKey, isActive);
+  const trialDaysForPlan = planKey === 'business' ? BUSINESS_TRIAL_DAYS : PRO_TRIAL_DAYS;
 
   return {
     plan: planKey,
     planName: planInfo.name,
     planLabel: planInfo.label,
+    priceMonthly: planInfo.priceMonthly,
+    priceYearly: planInfo.priceYearly,
     subscriptionStatus: user.subscriptionStatus || 'expired',
     isActive,
-    isTrial,
+    isTrial: isActive && isTrial,
     isExpired: !isActive,
     trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
-    planExpiresAt: planKey === 'pro' ? null : (planExpiresAt ? planExpiresAt.toISOString() : null),
-    daysLeft: planKey === 'pro' ? 0 : daysLeft,
+    planExpiresAt: planExpiresAt ? planExpiresAt.toISOString() : null,
+    daysLeft,
     staffSlots: planInfo.staffSlots,
-    trialDays: TRIAL_DAYS,
+    trialDays: trialDaysForPlan,
+    proTrialDays: PRO_TRIAL_DAYS,
+    businessTrialDays: BUSINESS_TRIAL_DAYS,
     canInviteStaff: isActive && planInfo.staffSlots > 0,
     ownerPays: true,
     staffPays: false,
@@ -228,21 +254,17 @@ function buildSubscriptionPayload(ownerUser) {
     tallySync: features.tallySync,
     fullAccess: features.fullAccess,
     showInstallApp: features.showInstallApp,
-    message: isTrial
-      ? `Pro plan — ${daysLeft} days left (legacy trial)`
+    message: isActive && isTrial
+      ? `${planInfo.name} trial — ${daysLeft} day${daysLeft === 1 ? '' : 's'} left`
       : isActive
-        ? planKey === 'pro'
-          ? `${planInfo.name} — completely FREE, full access`
-          : `${planInfo.name} plan active`
-        : 'Renew your plan from My Plan'
+        ? `${planInfo.name} plan active — ${daysLeft} day${daysLeft === 1 ? '' : 's'} left`
+        : `Trial ended — renew Pro (₹99/mo or ₹999/yr) or Business (₹299/mo or ₹2999/yr) from My Plan`
   };
 }
 
 async function resolveOwnerUser(User, dbUser) {
   if (!dbUser) return null;
-  if (dbUser.ownerId) {
-    return User.findById(dbUser.ownerId);
-  }
+  if (dbUser.ownerId) return User.findById(dbUser.ownerId);
   return dbUser;
 }
 
@@ -259,11 +281,10 @@ async function getSubscriptionForUser(User, dbUser) {
       canInviteStaff: false,
       ownerPays: true,
       staffPays: false,
-      message: 'Owner account nahi mila'
+      message: 'Owner account not found'
     };
   }
 
-  const beforeStatus = owner.subscriptionStatus;
   ensureOwnerSubscription(owner);
   const needsSave = (typeof owner.isModified === 'function' && owner.isModified()) || owner._subscriptionMigrated;
   if (needsSave) {
@@ -288,27 +309,42 @@ function setupSubscription({ app, User, authenticateToken }) {
   app.get('/api/subscription/plans', (_req, res) => {
     res.json({
       success: true,
-      trialDays: TRIAL_DAYS,
+      proTrialDays: PRO_TRIAL_DAYS,
+      businessTrialDays: BUSINESS_TRIAL_DAYS,
       ownerPays: true,
       staffPays: false,
       staffNote: 'Staff do not need a separate purchase — owner shares an invite code.',
+      pricing: BK_PLAN_PRICING,
       plans: [
         {
           id: 'pro',
-          name: 'Pro Shop',
-          price: 0,
-          period: 'lifetime',
+          name: BK_PLAN_PRICING.pro.name,
+          trialDays: PRO_TRIAL_DAYS,
+          priceMonthly: BK_PLAN_PRICING.pro.priceMonthly,
+          priceYearly: BK_PLAN_PRICING.pro.priceYearly,
           staffSlots: 0,
           featured: true,
-          features: ['Completely FREE — forever', 'Invoice, Credit Ledger, Voucher', 'Inventory + Day Book', 'Gallery + Todo + Help', 'No payment required']
+          features: [
+            `${PRO_TRIAL_DAYS}-day free trial`,
+            `Then ₹${BK_PLAN_PRICING.pro.priceMonthly}/month or ₹${BK_PLAN_PRICING.pro.priceYearly}/year`,
+            'Invoice, Credit Ledger, Voucher',
+            'Inventory + Day Book + Gallery + Todo'
+          ]
         },
         {
           id: 'business',
-          name: 'Business',
-          price: 299,
-          period: 'month',
+          name: BK_PLAN_PRICING.business.name,
+          trialDays: BUSINESS_TRIAL_DAYS,
+          priceMonthly: BK_PLAN_PRICING.business.priceMonthly,
+          priceYearly: BK_PLAN_PRICING.business.priceYearly,
           staffSlots: 5,
-          features: ['Everything in the app', 'Tally sync + Voice AI', 'Reports Pro + GSTR', 'Staff (5) + Contractor', 'Bank Recon + Payroll & Attendance']
+          features: [
+            `${BUSINESS_TRIAL_DAYS}-day free trial`,
+            `Then ₹${BK_PLAN_PRICING.business.priceMonthly}/month or ₹${BK_PLAN_PRICING.business.priceYearly}/year`,
+            'Everything in the app',
+            'Tally sync + Voice AI + Reports Pro',
+            'Staff (5) + Payroll & Attendance'
+          ]
         }
       ]
     });
@@ -321,6 +357,7 @@ function setupSubscription({ app, User, authenticateToken }) {
       res.json({
         success: true,
         subscription,
+        pricing: BK_PLAN_PRICING,
         razorpayConfigured: !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
       });
     } catch (e) {
@@ -342,8 +379,8 @@ function createSubscriptionGate(User) {
       if (!subscription.isActive) {
         return res.status(402).json({
           error: subscription.isStaffAccount
-            ? 'Shop ka plan expire ho gaya. Malik se subscription renew karwain.'
-            : 'Business plan (₹299) renew karein — Pro plan bilkul FREE hai.',
+            ? 'Shop plan expired. Ask the owner to renew from My Plan.'
+            : subscription.message || 'Plan expired. Renew from My Plan.',
           code: 'SUBSCRIPTION_EXPIRED',
           subscription
         });
@@ -356,8 +393,11 @@ function createSubscriptionGate(User) {
 }
 
 module.exports = {
-  TRIAL_DAYS,
-  BUSINESS_PLAN_DAYS,
+  PRO_TRIAL_DAYS,
+  BUSINESS_TRIAL_DAYS,
+  MONTHLY_DAYS,
+  YEARLY_DAYS,
+  BK_PLAN_PRICING,
   PLANS,
   PRO_PLAN_TABS,
   getPlanFeatures,
@@ -366,9 +406,8 @@ module.exports = {
   requireActivePlan,
   startOwnerTrial,
   ensureOwnerSubscription,
-  activateFreePro,
   activateOwnerPlan,
-  sanitizeBusinessExpiry,
+  sanitizePlanExpiry,
   buildSubscriptionPayload,
   getSubscriptionForUser,
   setupSubscription,
