@@ -37,7 +37,7 @@
 
   function resetForm() {
     document.getElementById("invEditId").value = "";
-    document.getElementById("invFormTitle").textContent = "➕ Naya Item Add Karein";
+    document.getElementById("invFormTitle").textContent = "➕ Add New Item";
     ["invItemName", "invHsn", "invBatch"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ""; });
     ["invPurchase", "invSelling", "invOpening"].forEach((id) => {
       const el = document.getElementById(id);
@@ -95,7 +95,7 @@
     if (!body) return;
     const items = filteredItems();
     if (!items.length) {
-      body.innerHTML = "<tr><td colspan='11'>Koi item nahi mila. Upar form se add karein.</td></tr>";
+      body.innerHTML = "<tr><td colspan='11'>No items found. Add from the form above.</td></tr>";
       const pag = window.bkInvPaginator || (window.bkInvPaginator = window.bkCreatePaginator("inventory", renderTable));
       pag.slice([]);
       return;

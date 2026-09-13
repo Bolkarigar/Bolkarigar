@@ -36,8 +36,8 @@
       return {
         success: false,
         error: r.status === 404
-          ? 'Payroll API nahi mili — server restart karein (npm start).'
-          : `Server ne sahi jawab nahi diya (${r.status}). Page refresh ya dubara login karein.`
+          ? 'Payroll API not found — restart the server (npm start).'
+          : `Server returned an invalid response (${r.status}). Refresh the page or log in again.`
       };
     }
   }
@@ -47,7 +47,7 @@
       const r = await fetch(`${API()}${path}`, { headers: headers() });
       return await parseApiResponse(r);
     } catch (e) {
-      return { success: false, error: e.message || 'Network error — server check karein.' };
+      return { success: false, error: e.message || 'Network error — check the server.' };
     }
   }
   async function apiPost(path, body) {
@@ -55,7 +55,7 @@
       const r = await fetch(`${API()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body || {}) });
       return await parseApiResponse(r);
     } catch (e) {
-      return { success: false, error: e.message || 'Network error — server check karein.' };
+      return { success: false, error: e.message || 'Network error — check the server.' };
     }
   }
   async function apiPut(path, body) {
@@ -63,7 +63,7 @@
       const r = await fetch(`${API()}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body || {}) });
       return await parseApiResponse(r);
     } catch (e) {
-      return { success: false, error: e.message || 'Network error — server check karein.' };
+      return { success: false, error: e.message || 'Network error — check the server.' };
     }
   }
   async function apiDelete(path) {
@@ -71,7 +71,7 @@
       const r = await fetch(`${API()}${path}`, { method: 'DELETE', headers: headers() });
       return await parseApiResponse(r);
     } catch (e) {
-      return { success: false, error: e.message || 'Network error — server check karein.' };
+      return { success: false, error: e.message || 'Network error — check the server.' };
     }
   }
 
@@ -93,10 +93,10 @@
     const tab = document.querySelector('.tab-btn[data-tab="payrollPanel"]');
     const header = document.querySelector('#payrollPanel .panel-header h3');
     if (tab) {
-      tab.textContent = isSelfView() ? '📅 Meri Hajri' : '💼 Staff Payroll';
+      tab.textContent = isSelfView() ? '📅 My Attendance' : '💼 Staff Payroll';
     }
     if (header) {
-      header.textContent = isSelfView() ? '📅 Meri Hajri' : '💼 Staff Payroll & Hajri';
+      header.textContent = isSelfView() ? '📅 My Attendance' : '💼 Staff Payroll & Attendance';
     }
   }
 
@@ -333,8 +333,8 @@
     const hint = document.getElementById('payrollViewerHint');
     if (hint) {
       hint.textContent = data.payrollViewerRole === 'cashier'
-        ? 'Ab Cashier ko salary module dikhega (Manager ko nahi).'
-        : 'Ab Manager ko salary module dikhega (Cashier ko nahi).';
+        ? 'Cashier can now see the salary module (Manager cannot).'
+        : 'Manager can now see the salary module (Cashier cannot).';
     }
   }
 
@@ -346,7 +346,7 @@
     const pag = window.bkPayrollEmpPaginator || (window.bkPayrollEmpPaginator = window.bkCreatePaginator('payrollEmp', paintPayrollEmployees));
     const pageRows = pag.slice(payrollEmployees);
     if (!payrollEmployees.length) {
-      body.innerHTML = '<tr><td colspan="6">Koi employee nahi. Neeche add karein.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6">No employees yet. Add one below.</td></tr>';
       return;
     }
     body.innerHTML = pageRows.map((e) => `
@@ -376,14 +376,14 @@
     try {
       const data = await apiGet('/api/payroll/employees');
       if (!data.success) {
-        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(data.error || 'Employee list load nahi hui')}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="6" style="color:#ef4444">${esc(data.error || 'Could not load employee list')}</td></tr>`;
         return;
       }
     payrollEmployees = data.employees || [];
     if (!payrollEmployees.length) {
       const pag = window.bkPayrollEmpPaginator || (window.bkPayrollEmpPaginator = window.bkCreatePaginator('payrollEmp', paintPayrollEmployees));
       pag.slice([]);
-      body.innerHTML = '<tr><td colspan="6">Koi employee nahi. Neeche add karein.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6">No employees yet. Add one below.</td></tr>';
       populateAdvanceSelect();
       return;
     }
@@ -406,7 +406,7 @@
     const data = await apiGet('/api/payroll/staff-users');
     if (!data.success) {
       sel.innerHTML = '<option value="">— App login link (optional) —</option>';
-      if (hint) hint.textContent = data.error || 'Staff list load nahi hui. Dubara try karein.';
+      if (hint) hint.textContent = data.error || 'Could not load staff list. Please try again.';
       return;
     }
     const users = data.users || [];
@@ -415,12 +415,12 @@
 
     let html = '<option value="">— App login link (optional) —</option>';
     if (available.length) {
-      html += '<optgroup label="Link kar sakte hain">';
+      html += '<optgroup label="Available to link">';
       html += available.map((u) => `<option value="${u.id}">${esc(u.username)} (${u.role})</option>`).join('');
       html += '</optgroup>';
     }
     if (linked.length) {
-      html += '<optgroup label="Pehle se linked (auto)">';
+      html += '<optgroup label="Already linked (auto)">';
       html += linked.map((u) => {
         const tag = u.linkedEmployeeName ? ` → ${esc(u.linkedEmployeeName)}` : '';
         return `<option value="" disabled>${esc(u.username)} (${u.role}) — linked ✓${tag}</option>`;
@@ -431,13 +431,13 @@
 
     if (hint) {
       if (!users.length) {
-        hint.textContent = 'Pehle Staff tab se invite code se staff account banao.';
+        hint.textContent = 'Create a staff account first from the Staff tab using an invite code.';
       } else if (!available.length) {
-        hint.textContent = `Saare staff linked hain: ${linked.map((u) => u.username).join(', ')}. Employee list me pehle se dikhenge — dubara link ki zaroorat nahi.`;
+        hint.textContent = `All staff are linked: ${linked.map((u) => u.username).join(', ')}. They already appear in the employee list — no need to link again.`;
       } else if (linked.length) {
-        hint.textContent = `Linked: ${linked.map((u) => u.username).join(', ')}. Neeche se naya staff link karein.`;
+        hint.textContent = `Linked: ${linked.map((u) => u.username).join(', ')}. Link new staff below.`;
       } else {
-        hint.textContent = 'Optional — staff app login ko employee se link karein.';
+        hint.textContent = 'Optional — link staff app login to an employee.';
       }
     }
     sel.dataset.loaded = '1';
@@ -455,7 +455,7 @@
       return;
     }
     if (!data.rows?.length) {
-      body.innerHTML = '<tr><td colspan="4">Pehle employee add karein.</td></tr>';
+      body.innerHTML = '<tr><td colspan="4">Add an employee first.</td></tr>';
       return;
     }
     body.innerHTML = data.rows.map((row) => {
@@ -541,7 +541,7 @@
     body.innerHTML = renderOfficialSlipHTML(s, m, y, data.company);
     if (s.earnedDays === 0 && s.workingDays > 0) {
       body.insertAdjacentHTML('beforeend',
-        '<p class="payroll-slip-warning payroll-slip-screen-only">⚠️ Earned Days 0 — pehle Daily Attendance me Present/Half-day mark karein, tab salary calculate hogi.</p>');
+        '<p class="payroll-slip-warning payroll-slip-screen-only">⚠️ Earned Days 0 — mark Present/Half-day in Daily Attendance first, then salary will calculate.</p>');
     }
     window._lastPayrollSlip = { slip: s, month: m, year: y, company: data.company };
     modal.classList.remove('hidden');
@@ -553,7 +553,7 @@
     box.innerHTML = '<p>Loading...</p>';
     const data = await apiGet('/api/payroll/me');
     if (!data.employee) {
-      box.innerHTML = '<p class="helper-text">Hajri profile load nahi hui. Dubara login karein ya owner se contact karein.</p>';
+      box.innerHTML = '<p class="helper-text">Could not load attendance profile. Log in again or contact the owner.</p>';
       return;
     }
     const att = await apiGet('/api/payroll/attendance');
@@ -563,9 +563,9 @@
     ).join(' ');
     box.innerHTML = `
       <p><strong>${esc(data.employee.name)}</strong> (${esc(data.employee.designation)}) — Aaj ki hajri</p>
-      <p class="helper-text">Date: ${att.date || 'today'} | Tap karke mark karein</p>
+      <p class="helper-text">Date: ${att.date || 'today'} | Tap to mark attendance</p>
       <div class="btn-row" style="flex-wrap:wrap;gap:8px;margin:12px 0;">${btns}</div>
-      <p class="helper-text">Aaj ki status: <strong>${cur ? cur.replace('_', ' ') : 'Abhi mark nahi hui'}</strong></p>
+      <p class="helper-text">Today's status: <strong>${cur ? cur.replace('_', ' ') : 'Not marked yet'}</strong></p>
       <div class="btn-row" style="gap:8px;flex-wrap:wrap;">
         <button type="button" id="payrollViewMySlipBtn" class="secondary">📄 Meri Salary Slip</button>
       </div>`;

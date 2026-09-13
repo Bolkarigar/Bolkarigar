@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260911ui29">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260913ui30">
   <link rel="stylesheet" href="modify.css?v=20260907m2">
   <link rel="stylesheet" href="business-card.css?v=20260902r3">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260909r1"></script>
+  <script src="i18n.js?v=20260913ui30"></script>
   <script>
-    window.BK_APP_BUILD = '20260911ui29';
+    window.BK_APP_BUILD = '20260913ui30';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -47,7 +47,7 @@
     })();
   </script>
 </head>
-<body data-build="20260911ui29">
+<body data-build="20260913ui30">
   <script>
     /* Service worker register — bolkarigar-pro.js handles install; do NOT unregister on every load */
   </script>
@@ -80,7 +80,7 @@
         <button id="voiceToggle" class="theme-btn voice-btn" type="button" data-i18n="top.voiceOff">Voice: OFF</button>
         <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
         <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
-        <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle" type="button" title="Language">🌐 EN</button>
+        <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
         <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
         <button id="logoutBtn" class="theme-btn" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
       </div>
@@ -142,13 +142,13 @@
             <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
           </div>
           <div class="nav-group nav-group-hajri staff-hajri-nav">
-            <p class="nav-group-label" data-i18n="nav.hajri">Hajri</p>
-            <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">📅 Meri Hajri</button>
+            <p class="nav-group-label" data-i18n="nav.hajri">Attendance</p>
+            <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">💼 Staff Payroll</button>
           </div>
           <div class="nav-group nav-group-accounting">
             <p class="nav-group-label" data-i18n="nav.accounting">Accounting</p>
             <button class="tab-btn" data-tab="modifyPanel" type="button">✏️ Modification</button>
-            <button class="tab-btn" data-tab="ledgerPanel" type="button" data-i18n="nav.udhar">📖 Udhar Khata</button>
+            <button class="tab-btn" data-tab="ledgerPanel" type="button" data-i18n="nav.udhar">📖 Credit Ledger</button>
             <button class="tab-btn" data-tab="khataLedgersPanel" type="button" data-i18n="nav.ledgers">📒 Ledgers</button>
             <button class="tab-btn" data-tab="khataItemsPanel" type="button" data-i18n="nav.stockItems">📦 Stock Items</button>
             <button class="tab-btn" data-tab="khataDaybookPanel" type="button" data-i18n="nav.daybook">📅 Day Book</button>
@@ -181,14 +181,14 @@
           <summary data-i18n="tally.summary">💻 Tally Desktop Agent</summary>
           <div class="sidebar-tally-body">
             <div id="tallySetupStatusPill" class="tally-setup-pill tally-setup-pill--checking">Checking agent…</div>
-            <p class="tally-setup-lead"><strong>Optional</strong> — roz ka kaam <strong>BolKarigar Khata</strong> se chalega. Tally sync tab jab HTTP test green ho.</p>
+            <p class="tally-setup-lead"><strong>Optional</strong> — daily work runs on <strong>BolKarigar Khata</strong>. Use Tally sync only when the HTTP test is green.</p>
             <ol class="tally-setup-steps">
               <li><strong>1.</strong> Download Agent vhttp5 + Connect Agent.bat (agent window open rakho)</li>
-              <li><strong>2.</strong> Tally: <strong>F1 → Settings → Connectivity → Client/Server</strong> (Timeout Configuration <em>nahi</em>)</li>
+              <li><strong>2.</strong> Tally: <strong>F1 → Settings → Connectivity → Client/Server</strong> (not Timeout Configuration)</li>
               <li><strong>3.</strong> Acts as = <strong>Server</strong> ya <strong>Both</strong>, <strong>HTTP Server = Yes</strong>, Port <strong>9000</strong> → Accept → Tally restart</li>
-              <li><strong>4.</strong> Company load karo → <strong>Day Book</strong> kholo → Test Tally HTTP green → Sync enable</li>
+              <li><strong>4.</strong> Load company → open <strong>Day Book</strong> → Test Tally HTTP green → enable Sync</li>
             </ol>
-            <p class="tally-http-hint tally-http-hint-warn">⚠️ <strong>EDU Tally:</strong> ODBC ON ≠ HTTP ON. HTTP log / Tally.NET Yes karna kaafi nahi. <strong>Client/Server</strong> screen par HTTP Server alag se Yes karo. Company <strong>andar</strong> loaded honi chahiye. Voucher Day Book mein <strong>1st / 2nd / last</strong> date par dikhega.</p>
+            <p class="tally-http-hint tally-http-hint-warn">⚠️ <strong>EDU Tally:</strong> ODBC ON ≠ HTTP ON. Tally.NET Yes alone is not enough. On the <strong>Client/Server</strong> screen, set HTTP Server to Yes separately. Company must be <strong>loaded inside</strong> Tally. Vouchers appear in Day Book on the <strong>1st / 2nd / last</strong> date of the month.</p>
             <div class="tally-actions-stack">
             <a href="/downloads/BolKarigarTallyAgent.exe?v=20260911http5" download="BolKarigarTallyAgent.exe" class="tally-dl-link tally-dl-primary">📥 Step 1 — Download Agent (.exe) — vhttp5</a>
             <a href="/downloads/BolKarigarTallyAgent.js?v=20260911http5" download="BolKarigarTallyAgent.js" class="tally-dl-link tally-dl-secondary">📄 Agent source (.js) — Node.js fallback</a>
@@ -245,7 +245,7 @@
               </div>
               <div class="overview-stat-card stat-udhar">
                 <span class="overview-stat-icon">⏳</span>
-                <span class="overview-stat-label" data-i18n="overview.totalUdhar">Total Udhar</span>
+                <span class="overview-stat-label" data-i18n="overview.totalUdhar">Total Credit Due</span>
                 <strong class="overview-stat-value" id="totalUdharVal">₹0.00</strong>
               </div>
             </div>
@@ -538,7 +538,7 @@
           </div>
 
           <div class="inv-form-card">
-            <h4 id="invFormTitle">➕ Naya Item Add Karein</h4>
+            <h4 id="invFormTitle">➕ Add New Item</h4>
             <input type="hidden" id="invEditId" value="" />
             <div class="grid-2 inv-form-grid">
               <label class="inv-field inv-field-span2">
@@ -1096,7 +1096,7 @@
           </div>
 
           <div class="modify-panel-card">
-            <p class="voucher-label" style="margin-bottom:10px;">Kya modify karna hai?</p>
+            <p class="voucher-label" style="margin-bottom:10px;">What do you want to modify?</p>
             <div id="modifyTypeGrid" class="modify-type-grid"></div>
           </div>
 
@@ -1208,13 +1208,13 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow" data-i18n="payroll.eyebrow">Business Plan — ₹299</p>
-              <h3 data-i18n="payroll.title">💼 Staff Payroll & Hajri</h3>
+              <h3 data-i18n="payroll.title">💼 Staff Payroll & Attendance</h3>
             </div>
           </div>
-          <p class="helper-text" data-i18n="payroll.hint">Dukaan/office staff ki monthly salary, daily hajri, half-day, leave aur advance — auto calculate.</p>
+          <p class="helper-text" data-i18n="payroll.hint">Monthly salary, daily attendance, half-day, leave and advance — auto calculated.</p>
 
           <div id="payrollNoAccess" class="hidden payroll-no-access">
-            <p>⚠️ Yeh module sirf <strong>Business plan (₹299)</strong> me hai. Owner se upgrade karwayein, ya owner se apna employee profile link karwayein.</p>
+            <p>⚠️ This module is available on the <strong>Business plan (₹299)</strong> only. Ask the owner to upgrade, or link your employee profile through the owner.</p>
           </div>
 
           <div class="payroll-self-only" id="payrollSelfSection" style="display:none;">
@@ -1224,7 +1224,7 @@
           <div class="payroll-manager-only">
             <div class="btn-row payroll-subtabs" style="margin-bottom:14px;flex-wrap:wrap;">
               <button class="payroll-subtab-btn active" data-sub="payrollEmpSub" type="button">👤 Employees</button>
-              <button class="payroll-subtab-btn" data-sub="payrollAttSub" type="button">📅 Daily Hajri</button>
+              <button class="payroll-subtab-btn" data-sub="payrollAttSub" type="button">📅 Daily Attendance</button>
               <button class="payroll-subtab-btn" data-sub="payrollSalSub" type="button">💰 Monthly Salary</button>
               <button class="payroll-subtab-btn owner-only-plan" data-sub="payrollSetSub" type="button">⚙️ Settings</button>
             </div>
@@ -1245,7 +1245,7 @@
                   <option value="6">Saturday</option>
                 </select>
                 <select id="payrollLinkUser"><option value="">— App login link (optional) —</option></select>
-                <p id="payrollLinkHint" class="helper-text payroll-link-hint">Staff app login link (optional) — invite wale staff auto-link ho jate hain.</p>
+                <p id="payrollLinkHint" class="helper-text payroll-link-hint">Staff app login link (optional) — invited staff are linked automatically.</p>
               </div>
               <button id="payrollAddEmpBtn" type="button" style="margin-top: 10px;">➕ Add Employee</button>
               <div class="table-wrap" style="margin-top:14px;">
@@ -1276,7 +1276,7 @@
               <div class="btn-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
                 <label>Date: <input id="payrollAttDate" type="date" /></label>
                 <button id="payrollLoadAttBtn" type="button" class="secondary">Reload</button>
-                <button id="payrollSaveAttBtn" type="button">💾 Save Hajri</button>
+                <button id="payrollSaveAttBtn" type="button">💾 Save Attendance</button>
               </div>
               <div class="table-wrap" style="margin-top:12px;">
                 <table>
@@ -1307,11 +1307,11 @@
             </div>
 
             <div class="payroll-subpanel" id="payrollSetSub">
-              <p class="helper-text">Salary module kisko dikhe — Manager ya Cashier (ek hi role dekhega, owner hamesha dekhega).</p>
+              <p class="helper-text">Who can see the salary module — Manager or Cashier (only one role; owner always sees it).</p>
               <div class="btn-row" style="align-items:center;gap:12px;flex-wrap:wrap;">
                 <select id="payrollViewerRole">
-                  <option value="manager">Manager — salary dekhega</option>
-                  <option value="cashier">Cashier — salary dekhega</option>
+                  <option value="manager">Manager — can view salary</option>
+                  <option value="cashier">Cashier — can view salary</option>
                 </select>
                 <button id="payrollSaveSettingsBtn" type="button">Save Setting</button>
               </div>
@@ -1323,12 +1323,12 @@
         <!-- 🟢 STAFF / MULTI-USER -->
         <section class="panel" id="staffPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="staff.eyebrow">Team Management</p><h3 data-i18n="staff.title">👥 Staff & Cashier Login</h3></div></div>
-          <p class="helper-text" data-i18n="staff.hint">Role ke hisaab se invite code generate karein — staff khud role choose nahi kar sakta (professional security).</p>
+          <p class="helper-text" data-i18n="staff.hint">Generate invite codes by role — staff cannot choose their own role (professional security).</p>
           <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
             <select id="inviteRoleSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
               <option value="cashier">Cashier — bill, udhar payment</option>
               <option value="manager">Manager — reports, khata, tally</option>
-              <option value="staff">Staff — sirf bill + dekhna</option>
+              <option value="staff">Staff — billing and view only</option>
             </select>
             <button id="generateInviteBtn" type="button">🔑 Generate Invite Code</button>
             <span>Code: <strong id="staffInviteCode">—</strong> <span id="staffInviteRoleLabel" class="beta-tag"></span></span>
@@ -1387,7 +1387,7 @@
           <div class="live-notice-banner">CSV import available — format: Date, Description, Debit, Credit. Auto-matching next update me.</div>
           <div class="btn-row" style="margin-bottom:12px;">
             <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
-            <span class="helper-text">Bank statement CSV upload karein</span>
+            <span class="helper-text">Upload bank statement CSV</span>
           </div>
           <div class="grid-2">
             <input id="bankDescInput" placeholder="Statement Description" />
@@ -1401,7 +1401,7 @@
         <!-- 🟢 MULTI-COMPANY -->
         <section class="panel" id="companiesPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="companies.eyebrow">Multi Business</p><h3 data-i18n="companies.title">🏢 Companies</h3></div></div>
-          <div class="live-notice-banner">Beta — multiple companies add/switch kar sakte hain. Active company profile me sync hoti hai.</div>
+          <div class="live-notice-banner">Beta — add and switch multiple companies. Active company profile syncs across the app.</div>
           <div class="grid-2">
             <input id="coNameInput" placeholder="Company Name" />
             <input id="coGstinInput" placeholder="GSTIN" />
@@ -1472,8 +1472,8 @@
         <label class="inv-acc-mode-khata"><input type="radio" name="accMode" value="inbuilt" checked onclick="toggleTallyBtn(false)"> BolKarigar Khata <span class="inv-acc-badge">Recommended</span></label>
         <label id="tallyAccModeOption"><input type="radio" name="accMode" value="tally" onclick="toggleTallyBtn(true)"> Tally Prime <span class="inv-acc-badge inv-acc-badge-optional">Optional</span></label>
       </div>
-      <p id="tallyKhataHint" class="helper-text inv-khata-hint">✅ Bills turant save — agent / Tally HTTP ki zaroorat nahi. Roz ke liye yahi best.</p>
-      <p id="tallyModeHint" class="helper-text inv-tally-hint hidden">Tally sync ke liye Desktop Agent + Tally HTTP port 9000 chahiye. <strong>HTTP test green hone par hi Sync button enable hoga.</strong></p>
+      <p id="tallyKhataHint" class="helper-text inv-khata-hint">✅ Bills save instantly — no agent or Tally HTTP needed. Best for daily use.</p>
+      <p id="tallyModeHint" class="helper-text inv-tally-hint hidden">Tally sync needs Desktop Agent + Tally HTTP on port 9000. <strong>Sync button enables only when the HTTP test is green.</strong></p>
       <div id="tallyHttpGateBanner" class="tally-http-gate hidden" role="status"></div>
     </div>
 
@@ -1532,7 +1532,7 @@
       </div>
       <div class="inv-info-card">
         <div class="inv-info-title">Voucher Info</div>
-        <p id="busyItemInfo" class="inv-info-text">Party aur items ki details yahan dikhengi.</p>
+        <p id="busyItemInfo" class="inv-info-text">Party and item details will appear here.</p>
       </div>
     </div>
 
@@ -1542,7 +1542,7 @@
       <button type="button" class="secondary" onclick="document.getElementById('businessProfileBtn')?.click()">Business Profile</button>
       <button type="button" class="secondary" id="downloadInvoiceBtn">Download</button>
       <button type="button" id="whatsappShareBtn" style="background:#25D366;color:#fff;">WhatsApp Share</button>
-      <button type="button" id="tallySyncBtn" style="display:none;background:#0078D7;color:#fff;font-weight:bold;" disabled title="HTTP ready hone par Sync enable hoga">📊 Sync Tally (setup pending)</button>
+      <button type="button" id="tallySyncBtn" style="display:none;background:#0078D7;color:#fff;font-weight:bold;" disabled title="Sync enables when HTTP is ready">📊 Sync Tally (setup pending)</button>
       <button type="button" onclick="printTallyBill()">Save &amp; Print</button>
       <button type="button" class="secondary" onclick="printThermalBill()">Thermal Print</button>
       <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
@@ -1765,7 +1765,7 @@
             <input type="file" id="galleryFileInput" accept="image/*" style="display:none" />
             <button id="galleryUploadBtn" type="button" data-i18n="gallery.upload">📷 Upload Photo</button>
           </div>
-          <p class="helper-text" id="galleryStatusText" data-i18n="gallery.status">Apni product photos yahan upload karein.</p>
+          <p class="helper-text" id="galleryStatusText" data-i18n="gallery.status">Upload your product photos here.</p>
           <div class="gallery-viewer"><img id="mainGalleryImage" src="" alt="Main product preview" style="display:none" /></div>
           <div class="gallery-thumbs" id="galleryThumbs"></div>
         </section>
@@ -1793,7 +1793,7 @@
               <h3 data-i18n="businessCard.title">💼 Business Card Maker</h3>
             </div>
           </div>
-          <p class="helper-text" data-i18n="businessCard.hint">Card select karein → details bharein → Download ya WhatsApp par share karein.</p>
+          <p class="helper-text" data-i18n="businessCard.hint">Select a card → fill details → Download or share on WhatsApp.</p>
           <h4 id="bcFreeOnlyTitle" class="bc-free-only-title">🆓 Free Cards — 12 Designs (Pro Plan)</h4>
           <h4 id="bcPremiumOnlyTitle" class="bc-premium-only-title hidden">👑 Premium Luxury Cards — 25 Designs (Business Plan)</h4>
           <p id="bcSwitchFreeLink" class="bc-switch-free-link">
@@ -1805,7 +1805,7 @@
             <button type="button" class="bc-tier-tab premium-tab" data-tier="premium" data-i18n="businessCard.premiumTab">👑 Business Plan — 25 Premium</button>
           </div>
           <div id="bcUpgradeBanner" class="bc-upgrade-banner hidden">
-            <p>🔒 <strong>25 Premium luxury cards</strong> sirf <strong>Business plan (₹299)</strong> me — My Plan se upgrade karein.</p>
+            <p>🔒 <strong>25 Premium luxury cards</strong> are available on the <strong>Business plan (₹299)</strong> — upgrade from My Plan.</p>
             <button type="button" id="bcUpgradeBtn" class="bc-upgrade-btn">🏢 Business Plan — ₹299</button>
           </div>
           <div id="bcCardGrid" class="bc-card-grid"></div>
@@ -1833,9 +1833,9 @@
 <section class="panel" id="securityPanel">
   <div class="panel-header">
     <div>
-      <p class="eyebrow">Settings / सेटिंग्स</p>
+      <p class="eyebrow">Settings</p>
       <h3 data-i18n="security.title">🔐 Security &amp; App Lock</h3>
-      <p class="helper-text" data-i18n="security.subtitle">Khatabook jaisa — app khulte hi PIN ya Face ID se lock khulega</p>
+      <p class="helper-text" data-i18n="security.subtitle">Khatabook style — app opens only after PIN or Face ID</p>
     </div>
   </div>
   <div class="mini-card security-lock-card">
@@ -1850,15 +1850,15 @@
       </label>
     </div>
     <div id="appLockSetupSection" class="hidden" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <p class="helper-text" data-i18n="security.pinHint">4-digit PIN set karein. App band karke dubara kholne par PIN maangega.</p>
+      <p class="helper-text" data-i18n="security.pinHint">Set a 4-digit PIN. App will ask PIN when reopened.</p>
       <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;gap:10px">
         <button type="button" id="appLockChangePinBtn" class="secondary" data-i18n="security.changePin">🔑 Change PIN</button>
-        <button type="button" id="appLockTestBtn" class="secondary" data-i18n="security.testLock">🔒 Lock Test Karein</button>
+        <button type="button" id="appLockTestBtn" class="secondary" data-i18n="security.testLock">🔒 Test Lock</button>
       </div>
       <div id="appLockBiometricRow" class="security-row" style="margin-top:14px">
         <div>
           <strong data-i18n="security.biometric">Face ID / Fingerprint</strong>
-          <p class="helper-text" style="margin:4px 0 0" data-i18n="security.biometricHint">PIN ke saath biometric unlock (supported phones par)</p>
+          <p class="helper-text" style="margin:4px 0 0" data-i18n="security.biometricHint">Unlock with biometric on supported devices</p>
         </div>
         <label class="security-toggle">
           <input type="checkbox" id="appLockBiometricToggle" />
@@ -1870,9 +1870,9 @@
   <div class="mini-card" style="margin-top:16px">
     <h4 style="margin:0 0 8px" data-i18n="security.tipsTitle">💡 Tips</h4>
     <ul class="helper-text" style="margin:0;padding-left:18px;line-height:1.7">
-      <li data-i18n="security.tip1">App background me jate hi dubara lock ho jayega</li>
-      <li data-i18n="security.tip2">PIN sirf is phone par save hai — server par nahi bhejta</li>
-      <li data-i18n="security.tip3">PIN bhool gaye? Logout karke dubara login karein aur naya PIN set karein</li>
+      <li data-i18n="security.tip1">App locks again when sent to background</li>
+      <li data-i18n="security.tip2">PIN stays on this device only — not sent to server</li>
+      <li data-i18n="security.tip3">Forgot PIN? Logout and set a new PIN after login</li>
     </ul>
   </div>
 </section>
@@ -1880,8 +1880,8 @@
 <section class="panel" id="helpPanel">
   <div class="panel-header">
     <div>
-      <p class="eyebrow">Tools &amp; Backup / टूल्स और बैकअप</p>
-      <h3>🔧 Data Backup &amp; CA Export / डेटा बैकअप</h3>
+      <p class="eyebrow">Tools &amp; Backup</p>
+      <h3>🔧 Data Backup &amp; CA Export</h3>
     </div>
   </div>
   <div class="btn-row" style="margin-bottom:20px;flex-wrap:wrap;">
@@ -1890,20 +1890,20 @@
   </div>
   <div class="panel-header">
     <div>
-      <p class="eyebrow">Master User Guide / संपूर्ण ऐप निर्देशिका</p>
-      <h3>❓ App Modules &amp; Buttons Manual / ऐप मॉड्यूल गाइड</h3>
-      <p id="helpPlanBadge" class="help-plan-badge pro">Modules load ho rahe hain...</p>
+      <p class="eyebrow">Master User Guide</p>
+      <h3>❓ App Modules &amp; Buttons Manual</h3>
+      <p id="helpPlanBadge" class="help-plan-badge pro">Loading modules...</p>
     </div>
   </div>
 
   <div id="helpModulesList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
-    <p class="helper-text">Aapka plan load hone ke baad yahan modules dikhenge. / प्लान लोड होने के बाद मॉड्यूल यहाँ दिखेंगे।</p>
+    <p class="helper-text">Modules will appear here after your plan loads.</p>
   </div>
 
   <!-- SUPPORT FOOTER -->
   <div class="mini-card" style="text-align: center; margin-top: 15px; padding: 18px;">
-    <h4 style="margin: 0 0 4px 0;">Need Support? / सहायता चाहिए?</h4>
-    <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">Direct Chat with Team / हमारी सपोर्ट टीम से सीधा संपर्क करें</p>
+    <h4 style="margin: 0 0 4px 0;">Need Support?</h4>
+    <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">Chat directly with our support team</p>
     <a href="https://wa.me/919999999999?text=Help%20needed%20in%20BolKarigar%20App" target="_blank" style="display: inline-block; background: #22c55e; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
       💬 Contact WhatsApp Support
     </a>
@@ -1935,19 +1935,19 @@
     </div>
     <div id="liveAiMessages" class="live-ai-messages">
       <div class="live-ai-msg live-ai-msg-bot">
-        Namaste! Main BolKarigar AI hoon 🙂 Hindi / English / Hinglish me bol sakte ho. Sawal poochho ya seedha command do — "invoice kholo", "todo cement lana add karo", "Ramesh ko laptop 25000 ka bill banao". Live mode ON karke baat bhi kar sakte ho.
+        Hi! I am BolKarigar AI 🙂 Ask questions or give commands — e.g. "open invoice", "add todo buy cement", "create bill for Ramesh laptop 25000". Turn Live mode ON to talk hands-free.
       </div>
     </div>
     <div id="liveAiSuggestions" class="live-ai-suggestions">
-      <button type="button" class="live-ai-chip" data-prompt="invoice kaise banate hain?">🧾 Invoice</button>
-      <button type="button" class="live-ai-chip" data-prompt="udhar khata kya hai?">📖 Udhar</button>
-      <button type="button" class="live-ai-chip" data-prompt="todo me kaam add kaise karein?">✅ Todo</button>
-      <button type="button" class="live-ai-chip" data-prompt="stock inventory kaise manage karein?">📦 Stock</button>
+      <button type="button" class="live-ai-chip" data-prompt="How do I create an invoice?">🧾 Invoice</button>
+      <button type="button" class="live-ai-chip" data-prompt="What is the credit ledger?">📖 Credit</button>
+      <button type="button" class="live-ai-chip" data-prompt="How do I add a todo task?">✅ Todo</button>
+      <button type="button" class="live-ai-chip" data-prompt="How do I manage stock inventory?">📦 Stock</button>
     </div>
-    <div id="liveAiTyping" class="live-ai-typing hidden"><span class="live-ai-typing-dots">BolKarigar AI soch raha hai</span></div>
+    <div id="liveAiTyping" class="live-ai-typing hidden"><span class="live-ai-typing-dots">BolKarigar AI is thinking</span></div>
     <div class="live-ai-input-row">
-      <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Bol kar poochho (Hindi/English)">🎤</button>
-      <input id="liveAiInput" type="text" placeholder="Hindi / English me likho ya bolo..." autocomplete="off" />
+      <button id="liveAiMicBtn" type="button" class="live-ai-mic-btn" title="Ask by voice">🎤</button>
+      <input id="liveAiInput" type="text" placeholder="Type or speak your question..." autocomplete="off" />
       <button id="liveAiSendBtn" type="button" class="live-ai-send-btn">Send</button>
     </div>
   </div>
@@ -2055,12 +2055,12 @@
   </div>
 
   <script src="responsive-ui.js?v=20260827r2"></script>
-  <script src="help-modules.js?v=20260827r2"></script>
+  <script src="help-modules.js?v=20260913ui30"></script>
   <script src="voice-controller.js?v=20260909v1"></script>
   <script src="plan-pricing.js?v=20260909r1"></script>
-  <script src="messages-en.js?v=20260902r1"></script>
-  <script src="modify-ui.js?v=20260907m4"></script>
-  <script src="bolkarigar.js?v=20260911ui29"></script>
+  <script src="messages-en.js?v=20260913ui30"></script>
+  <script src="modify-ui.js?v=20260913ui30"></script>
+  <script src="bolkarigar.js?v=20260913ui30"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2079,13 +2079,13 @@
   <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260909r4"></script>
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
-  <script src="inventory-ui.js?v=20260902r1"></script>
+  <script src="inventory-ui.js?v=20260913ui30"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
-  <script src="payroll-ui.js?v=20260902r1"></script>
+  <script src="payroll-ui.js?v=20260913ui30"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260902r6"></script>
   <script src="app-lock.js?v=20260902r1"></script>
-  <script src="form-enter-nav.js?v=20260911ui29"></script>
+  <script src="form-enter-nav.js?v=20260913ui30"></script>
 
   <!-- Business Card Editor Modal -->
   <div id="bcEditorModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Business card editor">
@@ -2105,7 +2105,7 @@
             </div>
             <button type="button" id="bcNextTpl" class="bc-nav-btn" aria-label="Next design">›</button>
           </div>
-          <p class="bc-share-hint" data-i18n="businessCard.previewHint">Preview live update hota hai jab aap details bharte hain</p>
+          <p class="bc-share-hint" data-i18n="businessCard.previewHint">Preview updates live as you fill details</p>
         </div>
         <div class="bc-form-section">
           <form id="bcForm" onsubmit="return false;">
@@ -2169,20 +2169,20 @@
     <div class="modal-box" style="max-width:480px;text-align:left;">
       <p id="onboardProgress" style="color:#94a3b8;font-size:12px;margin-bottom:8px;">Step 1 / 3</p>
       <div class="onboard-step" data-step="1">
-        <h3>👋 BolKarigar me swagat hai!</h3>
-        <p>Yeh app aapki dukaan ke liye bill, udhar khata, GST report aur Tally sync karti hai. Pehle business profile setup karein.</p>
+        <h3>👋 Welcome to BolKarigar!</h3>
+        <p>This app handles billing, credit ledger, GST reports and Tally sync for your shop. Set up your business profile first.</p>
       </div>
       <div class="onboard-step hidden" data-step="2">
-        <h3>🧾 Invoice kaise banayein?</h3>
-        <p>Invoice tab → Profile save → Customer + Product daalein → Add → Print ya WhatsApp share karein.</p>
+        <h3>🧾 How to create an invoice?</h3>
+        <p>Invoice tab → Save profile → Enter customer + product → Add → Print or share on WhatsApp.</p>
       </div>
       <div class="onboard-step hidden" data-step="3">
         <h3>👥 Staff / Cashier</h3>
-        <p>Staff panel se invite code banao. Cashier sirf bill aur udhar payment kar sakta hai — poora access nahi milega.</p>
+        <p>Create an invite code from the Staff panel. Cashiers can only bill and record credit payments — not full access.</p>
       </div>
       <div class="modal-actions" style="margin-top:16px;">
-        <button type="button" id="onboardSkipBtn" class="modal-btn btn-cancel">Baad me</button>
-        <button type="button" id="onboardNextBtn" class="modal-btn btn-submit">Aage →</button>
+        <button type="button" id="onboardSkipBtn" class="modal-btn btn-cancel">Later</button>
+        <button type="button" id="onboardNextBtn" class="modal-btn btn-submit">Next →</button>
       </div>
     </div>
   </div>

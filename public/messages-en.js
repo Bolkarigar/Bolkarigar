@@ -130,10 +130,69 @@
     "Account ban gaya! Pro Dukaan plan bilkul FREE hai — abhi se full access.": "Account created! Pro plan is completely FREE — full access from now."
   };
 
+  const PATTERNS = [
+    [/Todo List open ki ja rahi hai\.?/gi, "Opening Todo List."],
+    [/Gallery open ki ja rahi hai\.?/gi, "Opening Gallery."],
+    [/Invoice Panel open kiya ja raha hai\.?/gi, "Opening Invoice panel."],
+    [/Overview — Total Sales open ho gayi\.?/gi, "Opening Total Sales."],
+    [/Projects Panel open kiya ja raha hai\.?/gi, "Opening Projects panel."],
+    [/QR Tool open kiya ja raha hai\.?/gi, "Opening QR Tool."],
+    [/Overview Panel open kiya ja raha hai\.?/gi, "Opening Overview."],
+    [/Notes Panel open ki ja rahi hai\.?/gi, "Opening Notes panel."],
+    [/Calculator Panel open kiya ja raha hai\.?/gi, "Opening Calculator."],
+    [/Converter Panel open kiya ja raha hai\.?/gi, "Opening Converter."],
+    [/Media Panel open kiya ja raha hai\.?/gi, "Opening Media panel."],
+    [/Light mode on kiya ja raha hai\.?/gi, "Turning on light mode."],
+    [/Dark mode on kiya ja raha hai\.?/gi, "Turning on dark mode."],
+    [/Voice AI Panel open kiya ja raha hai\.?/gi, "Opening Voice AI panel."],
+    [/Ledgers open ho gaye\.?/gi, "Ledgers opened."],
+    [/Udhar Khata open ho gaya\.?/gi, "Credit Ledger opened."],
+    [/Inventory panel open ho gaya\.?/gi, "Inventory panel opened."],
+    [/Help & Guide open ho gaya\.?/gi, "Help & Guide opened."],
+    [/Day Book open ho gaya\.?/gi, "Day Book opened."],
+    [/Modification Center open ho gaya\.?/gi, "Modification Center opened."],
+    [/New Voucher open ho gaya\.?/gi, "New Voucher opened."],
+    [/Stock Items open ho gaye\.?/gi, "Stock Items opened."],
+    [/E-Way Bill details update ho gayi\.?/gi, "E-Way Bill details updated."],
+    [/Tally Prime mode ON\. Ab Sync to Tally button dikhega\.?/gi, "Tally Prime mode ON. Sync to Tally button is now visible."],
+    [/open ki ja rahi hai\.?/gi, "opening."],
+    [/open kiya ja raha hai\.?/gi, "opened."],
+    [/open ho gay[aei]\.?/gi, "opened."],
+    [/open ho gaye\.?/gi, "opened."],
+    [/on kiya ja raha hai\.?/gi, "turned on."],
+    [/update ho gayi\.?/gi, "updated."],
+    [/save ho gaya\.?/gi, "saved."],
+    [/save nahi hua\.?/gi, "could not save."],
+    [/Pehle (.+)/gi, "First, $1"],
+    [/Internet check karein ya dubara try karein\.?/gi, "Check internet or try again."],
+    [/Dubara try karein\.?/gi, "Please try again."],
+    [/Bolo 'add karo'/gi, "Say 'add'"],
+    [/bol kar save karein\.?/gi, "say save to confirm."],
+    [/bolo ya form me naam likho\.?/gi, "say it or type the name in the form."],
+    [/form bhara: /gi, "form filled: "],
+    [/AI Soch raha hai\.?/gi, "AI is thinking..."],
+    [/Kuch dikkat aayi, dobara try karo\.?/gi, "Something went wrong, please try again."],
+    [/Scan ho gaya! Mila hua amount: /gi, "Scan complete! Amount found: "],
+    [/check karke confirm karein\.?/gi, "please review and confirm."],
+    [/Scan hua, par amount clearly nahi mila — manually bhar lein\.?/gi, "Scan completed but amount was unclear — enter manually."],
+    [/Scan fail hua\. Manually details bhar lein\.?/gi, "Scan failed. Please enter details manually."],
+    [/HTTP ready hone par Sync enable hoga\.?/gi, "Sync enables when HTTP is ready."],
+    [/Pehle Connect Agent\.bat chalao — phir HTTP test green hone par Sync enable hoga\.?/gi, "Run Connect Agent.bat first — Sync enables when HTTP test is green."],
+    [/Roz ka kaam <strong>BolKarigar Khata<\/strong> se chala sakte ho\.?/gi, "Daily work can run on <strong>BolKarigar Khata</strong>."],
+    [/Invoice Tally Prime mein bhejo/gi, "Send invoice to Tally Prime"],
+    [/Port 9000 open — company Day Book mein khuli ho to try karein/gi, "Port 9000 open — try if company is open in Day Book"],
+    [/Sync try kar sakte ho\. Best: Test Tally HTTP green karein\.?/gi, "You can try Sync. Best: make Test Tally HTTP green first."],
+    [/Company Day Book kholo → sidebar se Test Tally HTTP\.?/gi, "Open company Day Book → Test Tally HTTP from sidebar."],
+    [/Koi item nahi mila\. Upar form se add karein\.?/gi, "No items found. Add from the form above."],
+    [/➕ Naya Item Add Karein/gi, "➕ Add New Item"]
+  ];
+
   function translate(msg) {
     if (msg == null) return msg;
-    const s = String(msg);
-    return EXACT[s] || s;
+    let s = String(msg);
+    if (EXACT[s]) return EXACT[s];
+    for (const [re, rep] of PATTERNS) s = s.replace(re, rep);
+    return s;
   }
 
   window.bkEnMsg = translate;

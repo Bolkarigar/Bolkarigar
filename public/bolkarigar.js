@@ -309,7 +309,7 @@ function applyRoleBasedUI(me) {
     if (el.id === "importTallyBtn") return;
     if (!khataWrite && el.closest("#khataLedgersPanel, #khataItemsPanel, #khataVoucherPanel, #khataDaybookPanel, #purchasePanel, #paymentVoucherPanel, #receiptVoucherPanel, #modifyPanel")) {
       el.disabled = true;
-      el.title = "Aapke role me Khata edit allowed nahi";
+      el.title = "Khata edit is not allowed for your role";
     }
   });
 
@@ -1051,7 +1051,7 @@ function renderBusyTaxSummary(invoices) {
   const tbody = document.getElementById("busyTaxSummaryBody");
   if (!tbody) return;
   if (!isInvoiceGstEnabled()) {
-    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center'>GST OFF — koi tax nahi</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='3' style='text-align:center'>GST OFF — no tax</td></tr>";
     return;
   }
   if (!invoices || !invoices.length) {
@@ -1365,7 +1365,7 @@ function setupImageScanner() {
     const previewImg = document.getElementById("previewImage");
 
     if (placeholder) {
-      placeholder.textContent = "🔍 Parchi scan ho rahi hai (OCR)... thoda time lagega.";
+      placeholder.textContent = "🔍 Scanning receipt (OCR)... this may take a moment.";
       placeholder.style.color = "#3b82f6";
       placeholder.style.display = "block";
     }
@@ -1379,7 +1379,7 @@ function setupImageScanner() {
 
       if (typeof Tesseract === "undefined") {
         if (placeholder) {
-          placeholder.textContent = "⚠️ OCR library load nahi hui (internet check karein). Manually details bhar lein.";
+          placeholder.textContent = "⚠️ OCR library failed to load (check internet). Please enter details manually.";
           placeholder.style.color = "#f59e0b";
         }
         return;
@@ -1393,8 +1393,8 @@ function setupImageScanner() {
 
         if (placeholder) {
           placeholder.textContent = amount
-            ? `✅ Scan ho gaya! Mila hua amount: ₹${amount}${vendor ? " (" + vendor + ")" : ""} — check karke confirm karein.`
-            : "⚠️ Scan hua, par amount clearly nahi mila — manually bhar lein.";
+            ? `✅ Scan complete! Amount found: ₹${amount}${vendor ? " (" + vendor + ")" : ""} — please review and confirm.`
+            : "⚠️ Scan completed but amount was unclear — enter manually.";
           placeholder.style.color = amount ? "#4CAF50" : "#f59e0b";
         }
 
@@ -1408,7 +1408,7 @@ function setupImageScanner() {
       } catch (ocrErr) {
         console.error("OCR error:", ocrErr);
         if (placeholder) {
-          placeholder.textContent = "⚠️ Scan fail hua. Manually details bhar lein.";
+          placeholder.textContent = "⚠️ Scan failed. Please enter details manually.";
           placeholder.style.color = "#ef4444";
         }
       }
@@ -1756,6 +1756,7 @@ function normalize(text) {
 }
 
 function showCommand(msg, opts) {
+  if (typeof window.bkEnMsg === "function") msg = window.bkEnMsg(msg);
   if (voiceResult) voiceResult.textContent = msg;
   if (voiceStatus) voiceStatus.textContent = msg;
   if (opts?.speak === true && typeof window.bkVoiceSpeak === "function") {
@@ -3771,7 +3772,7 @@ function renderGalleryThumbs(photos) {
   galleryThumbsBox.innerHTML = "";
 
   if (!photos.length) {
-    if (galleryStatusText) galleryStatusText.textContent = "Abhi koi photo upload nahi hui — 'Upload Photo' dabao.";
+    if (galleryStatusText) galleryStatusText.textContent = "No photos uploaded yet — click Upload Photo.";
     if (galleryMain) galleryMain.style.display = "none";
     return;
   }
@@ -3819,7 +3820,7 @@ function renderGalleryThumbs(photos) {
   });
 
   if (galleryMain) { galleryMain.src = galleryImageUrl(photos[0].fileId); galleryMain.style.display = "block"; }
-  if (galleryStatusText) galleryStatusText.textContent = `${photos.length} photo(s) uploaded hain.`;
+  if (galleryStatusText) galleryStatusText.textContent = `${photos.length} photo(s) uploaded.`;
 }
 
 async function loadGalleryPhotos() {
@@ -3830,7 +3831,7 @@ async function loadGalleryPhotos() {
     if (data.success) renderGalleryThumbs(data.photos);
   } catch (err) {
     console.error("Gallery load error:", err);
-    if (galleryStatusText) galleryStatusText.textContent = "Photos load nahi ho payi.";
+    if (galleryStatusText) galleryStatusText.textContent = "Could not load photos.";
   }
 }
 
@@ -3855,7 +3856,7 @@ galleryFileInput?.addEventListener("change", async (e) => {
   const reader = new FileReader();
   reader.onload = async () => {
     try {
-      if (galleryStatusText) galleryStatusText.textContent = "Upload ho raha hai...";
+      if (galleryStatusText) galleryStatusText.textContent = "Uploading...";
       const token = getToken();
       const res = await fetch(`${API_URL}/api/gallery/upload`, {
         method: "POST",
@@ -4528,10 +4529,10 @@ async function handleTallyVoiceCommand() {
       return;
     }
     if (gstinPattern.test(val)) {
-      hintEl.textContent = "✅ GSTIN format sahi hai";
+      hintEl.textContent = "✅ GSTIN format looks valid";
       hintEl.style.color = "#22c55e";
     } else {
-      hintEl.textContent = "⚠️ Format sahi nahi (khali chhod sakte hain agar Unregistered customer hai)";
+      hintEl.textContent = "⚠️ Invalid format (leave blank for unregistered customer)";
       hintEl.style.color = "#f59e0b";
     }
   }
@@ -8351,10 +8352,10 @@ function updateTallySyncButtonState() {
   if (!st.agentConnected && !window._bkTallyAgentConnected) {
     tallyBtn.disabled = true;
     tallyBtn.textContent = "📊 Sync Tally (agent offline)";
-    tallyBtn.title = "Pehle Connect Agent.bat chalao — phir HTTP test green hone par Sync enable hoga.";
+    tallyBtn.title = "Run Connect Agent.bat first — Sync enables when HTTP test is green.";
     if (gate) {
       gate.className = "tally-http-gate";
-      gate.innerHTML = "🔴 <strong>Agent offline.</strong> Sidebar → Connect Agent. Roz ka kaam <strong>BolKarigar Khata</strong> se chala sakte ho.";
+      gate.innerHTML = "🔴 <strong>Agent offline.</strong> Sidebar → Connect Agent. Daily work can run on <strong>BolKarigar Khata</strong>.";
     }
     return;
   }
@@ -8362,7 +8363,7 @@ function updateTallySyncButtonState() {
   if (st.httpReady) {
     tallyBtn.disabled = false;
     tallyBtn.textContent = "📊 Sync Tally";
-    tallyBtn.title = "Invoice Tally Prime mein bhejo";
+    tallyBtn.title = "Send invoice to Tally Prime";
     if (gate) {
       gate.className = "tally-http-gate tally-http-gate--ready";
       gate.textContent = "✅ Tally HTTP ready — Sync button enabled.";
@@ -8373,23 +8374,23 @@ function updateTallySyncButtonState() {
   if (st.canTrySync) {
     tallyBtn.disabled = false;
     tallyBtn.textContent = "📊 Sync Tally (try)";
-    tallyBtn.title = "Port 9000 open — company Day Book mein khuli ho to try karein";
+    tallyBtn.title = "Port 9000 open — try if company is open in Day Book";
     if (gate) {
       gate.className = "tally-http-gate tally-http-gate--try";
-      gate.innerHTML = "🟡 Port open — Day Book mein company khuli ho to Sync try kar sakte ho. Best: Test Tally HTTP green karein.";
+      gate.innerHTML = "🟡 Port open — try Sync if company is open in Day Book. Best: make Test Tally HTTP green first.";
     }
     return;
   }
 
   tallyBtn.disabled = true;
   tallyBtn.textContent = "📊 Sync Tally (HTTP setup pending)";
-  tallyBtn.title = "HTTP ready hone par Sync enable hoga";
+  tallyBtn.title = "Sync enables when HTTP is ready";
   if (gate) {
     gate.className = "tally-http-gate";
     gate.innerHTML =
-      "⚠️ <strong>Sync abhi band hai</strong> — Tally mein: F1 → Settings → <strong>Connectivity → Client/Server</strong> " +
-      "(Timeout Configuration nahi). Acts as = Server/Both, <strong>HTTP Server = Yes</strong>, Port 9000 → Accept → restart. " +
-      "Company Day Book kholo → sidebar se Test Tally HTTP. <em>EDU: voucher 1st/2nd/last date par.</em>";
+      "⚠️ <strong>Sync is disabled</strong> — In Tally: F1 → Settings → <strong>Connectivity → Client/Server</strong> " +
+      "(not Timeout Configuration). Acts as = Server/Both, <strong>HTTP Server = Yes</strong>, Port 9000 → Accept → restart. " +
+      "Open company Day Book → Test Tally HTTP from sidebar. <em>EDU: voucher on 1st/2nd/last date of month.</em>";
   }
 }
 

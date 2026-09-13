@@ -251,7 +251,7 @@
       errorEl.style.display = "none";
       successEl.style.display = "none";
       submitBtn.disabled = true;
-      submitBtn.textContent = "Account bana rahe hain...";
+      submitBtn.textContent = "Creating account...";
 
       try {
         const response = await fetch(`${BK_API()}/api/auth/signup`, {
@@ -263,7 +263,7 @@
 
         if (!response.ok) throw new Error(result.error || "Signup fail ho gaya");
 
-        successEl.textContent = result.message + " App khul rahi hai...";
+        successEl.textContent = result.message + " Opening app...";
         successEl.style.display = "block";
 
         if (result.token) {
@@ -283,7 +283,7 @@
         errorEl.textContent = err.message;
         errorEl.style.display = "block";
         submitBtn.disabled = false;
-        submitBtn.textContent = "Register Karein";
+        submitBtn.textContent = "Register";
       }
     });
 

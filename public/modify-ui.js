@@ -528,7 +528,7 @@
         };
       } else if (currentType === "item") {
         const itemName = document.getElementById("mdfItemName")?.value.trim();
-        if (!itemName) { setStatus("Item name zaroori hai.", false); return; }
+        if (!itemName) { setStatus("Item name is required.", false); return; }
         url = `${API()}/api/items/${selectedRecord.id}`;
         method = "PUT";
         body = {
@@ -577,7 +577,7 @@
         if (currentType === "purchase") {
           body.supplierInvoiceNo = document.getElementById("mdfSupplierBill")?.value.trim();
           body.supplierGstin = document.getElementById("mdfSupplierGst")?.value.trim();
-          if (!body.supplierInvoiceNo) { setStatus("Supplier Invoice No. zaroori hai.", false); return; }
+          if (!body.supplierInvoiceNo) { setStatus("Supplier Invoice No. is required.", false); return; }
         }
       }
 
@@ -622,7 +622,7 @@
     const map = { Purchase: "purchase", Payment: "payment", Receipt: "receipt" };
     const type = map[voucherType];
     if (!type) {
-      if (typeof showToast === "function") showToast("Is voucher type ke liye Modification abhi Purchase/Payment/Receipt par hai.", "info");
+      if (typeof showToast === "function") showToast("Modification for this voucher type is currently available for Purchase/Payment/Receipt.", "info");
       return;
     }
     window.openModifyPanel(type, id);

@@ -1,6 +1,6 @@
 /**
- * BolKarigar — English + Hindi (navbar 🌐 toggle)
- * Default: English. localStorage key: bk_ui_lang (en | hi)
+ * BolKarigar — English UI only (labels, menus, hints).
+ * Voice commands may still accept Hindi speech input.
  */
 (function (global) {
   const STORAGE_KEY = 'bk_ui_lang';
@@ -8,7 +8,7 @@
   const VOICE_LANG = { en: 'en-IN', hi: 'hi-IN' };
 
   const EN = {
-    'app.eyebrow': 'Hindi Voice-First Contractor Tool',
+    'app.eyebrow': 'Voice-First Contractor Tool',
     'app.subtitle': 'AI Dashboard',
     'top.liveTime': 'Live time',
     'top.voiceOff': 'Voice: OFF',
@@ -245,7 +245,7 @@
     'contractor.eyebrow': 'Construction / Contractor',
     'contractor.title': '👷 Contractor Tools',
     'payroll.eyebrow': 'Business Plan — ₹299',
-    'payroll.title': '💼 Staff Payroll & Hajri',
+    'payroll.title': '💼 Staff Payroll & Attendance',
     'payroll.hint': 'Monthly salary, daily attendance, half-day, leave and advance — auto calculated.',
     'staff.eyebrow': 'Team Management',
     'staff.title': '👥 Staff & Cashier Login',
@@ -538,17 +538,12 @@
   const STR = { en: EN, hi: HI };
 
   function bkGetLang() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'hi') return 'hi';
     return 'en';
   }
 
   function bkNormalizeLang() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== 'en' && saved !== 'hi') {
-      localStorage.setItem(STORAGE_KEY, 'en');
-    }
-    return bkGetLang();
+    localStorage.setItem(STORAGE_KEY, 'en');
+    return 'en';
   }
 
   function bkT(key, vars) {
@@ -575,33 +570,25 @@
   }
 
   function bkSetLang(lang) {
-    if (!SUPPORTED.includes(lang)) return;
-    localStorage.setItem(STORAGE_KEY, lang);
-    localStorage.setItem('bk_voice_lang', VOICE_LANG[lang] || 'hi-IN');
-    document.documentElement.lang = lang;
+    localStorage.setItem(STORAGE_KEY, 'en');
+    document.documentElement.lang = 'en';
     bkApplyI18n();
     bkUpdateLangButton();
-    document.dispatchEvent(new CustomEvent('bk:langchange', { detail: { lang } }));
+    document.dispatchEvent(new CustomEvent('bk:langchange', { detail: { lang: 'en' } }));
   }
 
   function bkToggleLang() {
-    bkSetLang(bkGetLang() === 'hi' ? 'en' : 'hi');
+    bkSetLang('en');
   }
 
   function bkUpdateLangButton() {
     const btn = document.getElementById('bkLangToggleBtn');
     if (!btn) return;
-    const L = bkGetLang();
-    btn.textContent = L === 'hi' ? '🌐 EN' : '🌐 हिं';
-    btn.title = bkT(L === 'hi' ? 'top.langToEn' : 'top.langToHi');
-    btn.setAttribute('aria-label', btn.title);
+    btn.style.display = 'none';
+    btn.setAttribute('aria-hidden', 'true');
   }
 
   function bkMountLangToggle() {
-    const btn = document.getElementById('bkLangToggleBtn');
-    if (!btn || btn.dataset.mounted) return;
-    btn.dataset.mounted = '1';
-    btn.addEventListener('click', () => bkToggleLang());
     bkUpdateLangButton();
   }
 
