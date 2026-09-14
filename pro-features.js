@@ -265,12 +265,16 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const byCustomer = {};
 
       debtors.forEach((d) => {
+        const net = Number(d.currentBalance) || 0;
         byCustomer[d.partyName.toLowerCase()] = {
           partyName: d.partyName,
-          ledgerBalance: Math.max(0, Number(d.currentBalance) || 0),
+          ledgerBalance: net,
+          netBalance: net,
           billed: 0,
           paid: 0,
-          pending: Math.max(0, Number(d.currentBalance) || 0)
+          pending: net,
+          refundDue: net < -0.01 ? Math.abs(net) : 0,
+          udharDue: net > 0.01 ? net : 0
         };
       });
 
@@ -307,11 +311,18 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       });
 
       const rows = Object.values(byCustomer).map((r) => {
-        const pending = r.ledgerBalance > 0
-          ? r.ledgerBalance
-          : Math.max(0, r.billed - r.paid);
-        return { ...r, pending };
-      }).filter((r) => r.pending > 0.01);
+        const pending = Math.abs(Number(r.ledgerBalance) || 0) > 0.01
+          ? Number(r.ledgerBalance) || 0
+          : (Number(r.billed) || 0) - (Number(r.paid) || 0);
+        const net = Math.round(pending * 100) / 100;
+        return {
+          ...r,
+          pending: net,
+          netBalance: net,
+          refundDue: net < -0.01 ? Math.abs(net) : 0,
+          udharDue: net > 0.01 ? net : 0
+        };
+      }).filter((r) => Math.abs(Number(r.pending) || 0) > 0.01);
 
       res.json({ success: true, rows });
     } catch (e) { res.status(500).json({ error: e.message }); }

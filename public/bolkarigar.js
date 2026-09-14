@@ -32,6 +32,28 @@ function bkVoucherTypeLabel(type) {
 }
 window.bkVoucherTypeLabel = bkVoucherTypeLabel;
 
+/** + = udhar, − = refund due to customer, ~0 = clear */
+function bkFormatDebtorNet(netRaw) {
+  const net = Math.round((Number(netRaw) || 0) * 100) / 100;
+  if (Math.abs(net) <= 0.01) {
+    return { net: 0, refundDue: 0, udharDue: 0, clear: true, status: "clear", label: "Paid / Clear", badgeClass: "khata-badge-clear" };
+  }
+  if (net > 0) {
+    return { net, refundDue: 0, udharDue: net, clear: false, status: "udhar", label: `₹${net.toFixed(2)} Udhar`, badgeClass: "khata-badge-udhar" };
+  }
+  const refund = Math.abs(net);
+  return {
+    net,
+    refundDue: refund,
+    udharDue: 0,
+    clear: false,
+    status: "refund",
+    label: `−₹${refund.toFixed(2)} Refund Due`,
+    badgeClass: "khata-badge-refund"
+  };
+}
+window.bkFormatDebtorNet = bkFormatDebtorNet;
+
 function isCreditSale(item) {
   const pt = String(item?.paymentType || "Cash").trim().toLowerCase();
   if (pt === "credit" || pt === "udhar") return true;
@@ -4717,8 +4739,11 @@ async function refreshUdharKhata(localFallback = {}) {
     const rows = pag.slice(udharAllRows);
     ledgerBody.innerHTML = "";
     let totalUdhar = 0;
+    let totalRefundDue = 0;
     udharAllRows.forEach((row) => {
-      totalUdhar += row.pending ?? row.ledgerBalance ?? 0;
+      const p = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
+      if (p > 0.01) totalUdhar += p;
+      else if (p < -0.01) totalRefundDue += Math.abs(p);
     });
     if (!rows.length) {
       ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No Udhar Records Found.</td></tr>`;
@@ -4728,19 +4753,24 @@ async function refreshUdharKhata(localFallback = {}) {
     }
     let pageBilled = 0, pagePaid = 0, pagePending = 0;
     rows.forEach(row => {
-      const pending = row.pending ?? row.ledgerBalance ?? 0;
+      const pending = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
       const cust = row.partyName || row.customer;
-      const billed = row.billed ?? pending;
+      const billed = row.billed ?? (pending > 0 ? pending : 0);
       const paid = row.paid ?? 0;
       pageBilled += Number(billed) || 0;
       pagePaid += Number(paid) || 0;
-      pagePending += Number(pending) || 0;
+      pagePending += pending;
+      const fmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(pending) : null;
+      const pendingColor = pending < -0.01 ? "#0ea5e9" : (pending > 0.01 ? "#f59e0b" : "#22c55e");
+      const pendingText = pending < -0.01
+        ? `−₹${Math.abs(pending).toFixed(2)}`
+        : `₹${pending.toFixed(2)}`;
       const tr = document.createElement("tr");
       tr.innerHTML = `
           <td>${escapeHtml(cust)}</td>
           <td>₹${Number(billed).toFixed(2)}</td>
           <td>₹${Number(paid).toFixed(2)}</td>
-          <td style="color: #f59e0b; font-weight: bold;">₹${Number(pending).toFixed(2)}</td>
+          <td style="color: ${pendingColor}; font-weight: bold;" title="${escapeHtml(fmt?.label || "")}">${pendingText}${pending < -0.01 ? " <small>(Refund)</small>" : ""}</td>
           <td class="udhar-actions"></td>`;
       const actions = tr.querySelector(".udhar-actions");
       const viewBtn = document.createElement("button");
@@ -4752,15 +4782,25 @@ async function refreshUdharKhata(localFallback = {}) {
       const payBtn = document.createElement("button");
       payBtn.type = "button";
       payBtn.className = "udhar-pay-btn";
-      payBtn.textContent = "Pay";
-      payBtn.dataset.customer = cust;
-      payBtn.style.cssText = "padding:4px 8px;font-size:12px;border-radius:4px;background:#22c55e;color:#fff;border:none;cursor:pointer;";
+      if (pending < -0.01) {
+        payBtn.textContent = "Refund Due";
+        payBtn.disabled = true;
+        payBtn.title = `Customer ko ₹${Math.abs(pending).toFixed(2)} wapas dena hai — Payment voucher se refund karein`;
+        payBtn.style.cssText = "padding:4px 8px;font-size:12px;border-radius:4px;background:#0ea5e9;color:#fff;border:none;cursor:not-allowed;opacity:.85;";
+      } else {
+        payBtn.textContent = "Pay";
+        payBtn.dataset.customer = cust;
+        payBtn.style.cssText = "padding:4px 8px;font-size:12px;border-radius:4px;background:#22c55e;color:#fff;border:none;cursor:pointer;";
+      }
       actions.appendChild(viewBtn);
       actions.appendChild(payBtn);
       ledgerBody.appendChild(tr);
     });
     if (document.getElementById("totalUdharVal")) {
-      document.getElementById("totalUdharVal").innerText = `₹${totalUdhar.toFixed(2)}`;
+      const totalText = totalRefundDue > 0.01
+        ? `Udhar ₹${totalUdhar.toFixed(2)} | Refund −₹${totalRefundDue.toFixed(2)}`
+        : `₹${totalUdhar.toFixed(2)}`;
+      document.getElementById("totalUdharVal").innerText = totalText;
     }
     let allBilled = 0, allPaid = 0, allPending = 0;
     udharAllRows.forEach((row) => {
@@ -4781,8 +4821,8 @@ async function refreshUdharKhata(localFallback = {}) {
 
   function renderUdharRows(rows) {
     udharAllRows = rows.filter((row) => {
-      const pending = row.pending ?? row.ledgerBalance ?? 0;
-      return pending > 0.01;
+      const pending = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
+      return Math.abs(pending) > 0.01;
     });
     if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
     paintUdharPage();
@@ -4795,7 +4835,7 @@ async function refreshUdharKhata(localFallback = {}) {
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.rows?.length) {
-        const rows = data.rows.filter(r => (r.pending > 0.01));
+        const rows = data.rows.filter((r) => Math.abs(Number(r.pending ?? r.netBalance ?? 0) || 0) > 0.01);
         if (rows.length) return renderUdharRows(rows);
       }
     }
@@ -4806,7 +4846,7 @@ async function refreshUdharKhata(localFallback = {}) {
     billed: localFallback[cust].billed,
     paid: localFallback[cust].paid,
     pending: localFallback[cust].pending
-  })).filter(r => r.pending > 0);
+  })).filter((r) => Math.abs(Number(r.pending) || 0) > 0.01);
   renderUdharRows(localRows);
 }
 window.refreshUdharKhata = refreshUdharKhata;
@@ -4844,7 +4884,7 @@ async function showUdharDetail(customerName) {
       const stRes = await fetch(`${API_URL}/api/ledger-statement/${ledger._id}`, { headers: hdrs });
       const stData = await stRes.json();
       if (stData.success) {
-        pending = Number(stData.pendingUdhar ?? Math.max(0, stData.currentBalance ?? 0)) || 0;
+        pending = Number(stData.netBalance ?? stData.pendingUdhar ?? stData.currentBalance ?? 0) || 0;
         (stData.history || []).forEach((h) => {
           const amt = Number(h.amount) || 0;
           const effect = Number(h.udharEffect) || 0;
@@ -4912,7 +4952,7 @@ async function showUdharDetail(customerName) {
           });
         });
       }
-      pending = Math.max(0, totalBilled - totalReturns - totalPaid);
+      pending = Math.round((totalBilled - totalReturns - totalPaid) * 100) / 100;
     }
   } catch (e) {
     console.warn("Udhar detail API:", e);
@@ -4926,9 +4966,14 @@ async function showUdharDetail(customerName) {
       const rowStyle = r.isPayment
         ? "background:rgba(34,197,94,.08)"
         : (r.isReturn ? "background:rgba(251,191,36,.08)" : "");
+      const fmtSigned = (n) => {
+        const v = Number(n) || 0;
+        if (Math.abs(v) <= 0.01) return "₹0.00";
+        return v < 0 ? `−₹${Math.abs(v).toFixed(2)}` : `₹${v.toFixed(2)}`;
+      };
       const pendingCell = r.runningBalance != null
-        ? `₹${Number(r.runningBalance).toFixed(2)}`
-        : (r.pending > 0 ? `₹${r.pending.toFixed(2)}` : (r.pending < 0 ? `−₹${Math.abs(r.pending).toFixed(2)}` : "—"));
+        ? fmtSigned(r.runningBalance)
+        : (r.pending !== 0 ? fmtSigned(r.pending) : "—");
       return `
       <tr style="${rowStyle}">
         <td>${escapeHtml(r.label)}</td>
@@ -4947,20 +4992,36 @@ async function showUdharDetail(customerName) {
     if (totalReturns > 0) {
       summaryLines.push({ label: "Sales Return", amount: totalReturns, color: "#fbbf24" });
     }
+    const pendingLabel = pending < -0.01 ? "Refund Due (Net)" : "Net Udhar";
+    const pendingColor = pending < -0.01 ? "#0ea5e9" : (pending > 0.01 ? "#f59e0b" : "#22c55e");
     summaryLines.push(
       { label: "Total Paid", amount: totalPaid, color: "#22c55e" },
-      { label: "Pending Udhar", amount: pending, color: "#f59e0b" }
+      { label: pendingLabel, amount: Math.abs(pending), color: pendingColor, signed: pending }
     );
     window.bkSetTableAmountTotal(body, { lines: summaryLines, rows: rows.length });
   }
-  if (title) title.textContent = `📖 ${customerName} — Pending: ₹${pending.toFixed(2)}`;
+  const titleFmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(pending) : null;
+  if (title) {
+    title.textContent = titleFmt && !titleFmt.clear
+      ? `📖 ${customerName} — ${titleFmt.label}`
+      : `📖 ${customerName} — Paid / Clear`;
+  }
 
   const payBtn = document.getElementById("udharDetailPayBtn");
   if (payBtn) {
-    payBtn.onclick = () => {
-      modal.classList.add("hidden");
-      if (typeof window.openUdharPayment === "function") window.openUdharPayment(customerName);
-    };
+    if (pending < -0.01) {
+      payBtn.textContent = `Refund ₹${Math.abs(pending).toFixed(2)} Due`;
+      payBtn.disabled = true;
+      payBtn.title = "Customer ko paisa wapas dena hai — New Voucher → Payment se refund karein";
+    } else {
+      payBtn.disabled = false;
+      payBtn.textContent = "Record Payment";
+      payBtn.title = "";
+      payBtn.onclick = () => {
+        modal.classList.add("hidden");
+        if (typeof window.openUdharPayment === "function") window.openUdharPayment(customerName);
+      };
+    }
   }
   modal.dataset.customer = customerName;
 }
@@ -6300,11 +6361,13 @@ function getEWayBillDetails() {
   function formatKhataLedgerBalance(l) {
     const isDebtor = l.ledgerGroup === "Sundry Debtor" || l.partyType === "Debtor";
     if (isDebtor) {
-      const pending = Number(l.pendingUdhar ?? Math.max(0, l.currentBalance ?? 0)) || 0;
-      if (l.udharClear || pending <= 0.01) {
+      const fmt = typeof bkFormatDebtorNet === "function"
+        ? bkFormatDebtorNet(l.netBalance ?? l.pendingUdhar ?? l.currentBalance ?? 0)
+        : { clear: true, label: "Paid / Clear", badgeClass: "khata-badge-clear" };
+      if (fmt.clear || l.udharClear) {
         return `<span class="khata-badge-clear">Paid / Clear</span>`;
       }
-      return `<span class="khata-badge-udhar">₹${pending.toFixed(2)} Udhar</span>`;
+      return `<span class="${fmt.badgeClass}">${escapeHtml(fmt.label)}</span>`;
     }
     const bal = Number(l.currentBalance) || 0;
     return `<span class="${bal >= 0 ? "khata-badge-debit" : "khata-badge-credit"}">₹${Math.abs(bal).toFixed(2)} ${bal >= 0 ? "Dr" : "Cr"}</span>`;
@@ -6442,9 +6505,12 @@ function getEWayBillDetails() {
       if (title) title.textContent = `📄 ${data.partyName} — Ledger Statement`;
       if (meta) {
         if (data.isDebtorStatement) {
-          const pending = Number(data.pendingUdhar ?? Math.max(0, data.currentBalance ?? 0)) || 0;
-          const status = data.udharClear || pending <= 0.01 ? "Paid / Clear" : `Udhar Pending ₹${pending.toFixed(2)}`;
-          meta.textContent = `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Udhar Pending: ₹${pending.toFixed(2)} | ${status}`;
+          const net = Number(data.netBalance ?? data.pendingUdhar ?? data.currentBalance ?? 0) || 0;
+          const fmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(net) : { label: "Paid / Clear", clear: true };
+          const netText = net < -0.01 ? `−₹${Math.abs(net).toFixed(2)}` : `₹${net.toFixed(2)}`;
+          meta.textContent = fmt.clear
+            ? `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ₹0.00 | Paid / Clear`
+            : `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ${netText} | ${fmt.label}`;
         } else {
           meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
         }
@@ -6457,7 +6523,8 @@ function getEWayBillDetails() {
         body.innerHTML = data.history.map(v => {
           const statusClass = v.status === "Udhar" ? "khata-badge-udhar"
             : (v.status === "Paid" ? "khata-badge-clear"
-              : (v.status === "Returned" ? "khata-badge-return" : "khata-badge-neutral"));
+              : (v.status === "Returned" ? "khata-badge-return"
+                : (Number(v.runningBalance) < -0.01 ? "khata-badge-refund" : "khata-badge-neutral")));
           return `
         <tr>
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
@@ -6465,7 +6532,9 @@ function getEWayBillDetails() {
           <td>₹${Number(v.amount || 0).toFixed(2)}</td>
           <td>${escapeHtml(v.paymentMode || "—")}</td>
           <td><span class="${statusClass}">${escapeHtml(v.status || "-")}</span></td>
-          <td>₹${Number(v.runningBalance ?? 0).toFixed(2)}</td>
+          <td>${Number(v.runningBalance ?? 0) < -0.01
+            ? `−₹${Math.abs(Number(v.runningBalance)).toFixed(2)}`
+            : `₹${Number(v.runningBalance ?? 0).toFixed(2)}`}</td>
           <td>${escapeHtml(v.note) || "-"}</td>
         </tr>`;
         }).join("");
@@ -8273,8 +8342,9 @@ function getEWayBillDetails() {
       if (ledger?.ledgerGroup === "Sundry Debtor") {
         billed = Number(ledger.billedAmount ?? ledger.grossBilled ?? 0) || 0;
         paid = Number(ledger.paidAmount ?? 0) || 0;
-        pending = Number(ledger.pendingUdhar ?? Math.max(0, ledger.currentBalance ?? 0)) || 0;
+        pending = Number(ledger.netBalance ?? ledger.pendingUdhar ?? ledger.currentBalance ?? 0) || 0;
         if (ledger.returns > 0) returnsNote = ` &nbsp;|&nbsp; Returns: ${fmtMoney(ledger.returns)}`;
+        if (pending < -0.01) returnsNote += ` &nbsp;|&nbsp; <span style="color:#0ea5e9">Refund Due: ${fmtMoney(Math.abs(pending))}</span>`;
       } else {
         const salesParams = new URLSearchParams({ search: name, limit: "100" });
         if (st.from) salesParams.set("fromDate", st.from);
@@ -8299,9 +8369,12 @@ function getEWayBillDetails() {
       const dateNote = st.from || st.to
         ? `<br><span style="color:#94a3b8;font-size:12px;">Filtered: ${fmtDisplayInputDate(st.from)} to ${fmtDisplayInputDate(st.to)}</span>`
         : "";
+      const pendingLabel = pending < -0.01
+        ? `<span style="color:#0ea5e9">Refund Due: ${fmtMoney(Math.abs(pending))} (−${fmtMoney(Math.abs(pending))})</span>`
+        : `<span style="color:${pending > 0.01 ? "#f59e0b" : "#22c55e"}">Net Udhar: ${fmtMoney(pending)}</span>`;
       box.innerHTML = `<strong>${escapeHtml(name)}</strong><br>
         Total Billed: ${fmtMoney(billed)}${returnsNote} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
-        <span style="color:${pending > 0 ? "#f59e0b" : "#22c55e"}">Pending: ${fmtMoney(pending)}</span>
+        ${pendingLabel}
         ${dateNote}
         <br><span style="color:#94a3b8;font-size:12px;">Click "View Customer Detail" for full transaction list.</span>`;
     } catch (err) {

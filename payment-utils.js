@@ -32,6 +32,43 @@ function partyRegex(partyName) {
   return new RegExp(`^${escaped}$`, 'i');
 }
 
+/** Signed net udhar: + = customer owes you, − = you owe customer (refund due). */
+function summarizeDebtorBalance(netRaw) {
+  const net = Math.round((Number(netRaw) || 0) * 100) / 100;
+  if (Math.abs(net) <= 0.01) {
+    return {
+      netBalance: 0,
+      pendingUdhar: 0,
+      refundDue: 0,
+      udharDue: 0,
+      udharClear: true,
+      status: 'clear',
+      displayLabel: 'Paid / Clear'
+    };
+  }
+  if (net > 0) {
+    return {
+      netBalance: net,
+      pendingUdhar: net,
+      refundDue: 0,
+      udharDue: net,
+      udharClear: false,
+      status: 'udhar',
+      displayLabel: `₹${net.toFixed(2)} Udhar`
+    };
+  }
+  const refund = Math.abs(net);
+  return {
+    netBalance: net,
+    pendingUdhar: net,
+    refundDue: refund,
+    udharDue: 0,
+    udharClear: false,
+    status: 'refund',
+    displayLabel: `−₹${refund.toFixed(2)} Refund Due`
+  };
+}
+
 /**
  * Recompute Sundry Debtor balance from credit sales, receipts & payments (not cash sales).
  */
@@ -128,15 +165,20 @@ async function getDebtorUdharSummary(userId, ledger, models) {
     }
   }
 
-  const pendingUdhar = Math.max(0, pendingRaw);
+  const balance = summarizeDebtorBalance(pendingRaw);
   return {
-    pendingUdhar,
-    pending: pendingUdhar,
+    netBalance: balance.netBalance,
+    pendingUdhar: balance.pendingUdhar,
+    pending: balance.pendingUdhar,
+    refundDue: balance.refundDue,
+    udharDue: balance.udharDue,
     billed: Math.max(0, billed - returns),
     grossBilled: billed,
     returns,
     paid,
-    udharClear: pendingUdhar <= 0.01
+    udharClear: balance.udharClear,
+    balanceStatus: balance.status,
+    balanceLabel: balance.displayLabel
   };
 }
 
@@ -436,14 +478,19 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     };
   });
 
-  const pendingUdhar = Math.max(0, currentUdhar);
+  const balance = summarizeDebtorBalance(currentUdhar);
   return {
     partyName: ledger.partyName,
     ledgerGroup: ledger.ledgerGroup,
     openingBalance,
-    currentBalance: Math.round(currentUdhar * 100) / 100,
-    pendingUdhar,
-    udharClear: pendingUdhar <= 0.01,
+    currentBalance: balance.netBalance,
+    netBalance: balance.netBalance,
+    pendingUdhar: balance.pendingUdhar,
+    refundDue: balance.refundDue,
+    udharDue: balance.udharDue,
+    udharClear: balance.udharClear,
+    balanceStatus: balance.status,
+    balanceLabel: balance.displayLabel,
     history
   };
 }
@@ -451,6 +498,7 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
 module.exports = {
   isCreditPayment,
   saleRecordAmount,
+  summarizeDebtorBalance,
   reconcileDebtorLedger,
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,

@@ -2409,12 +2409,17 @@ app.get('/api/ledgers', authenticateToken, async (req, res) => {
       const row = ledger.toObject();
       if (ledger.ledgerGroup === 'Sundry Debtor' && Payment) {
         const summary = await getDebtorUdharSummary(req.dataUserId, ledger, models);
+        row.netBalance = summary.netBalance;
         row.pendingUdhar = summary.pendingUdhar;
+        row.refundDue = summary.refundDue;
+        row.udharDue = summary.udharDue;
         row.paidAmount = summary.paid;
         row.billedAmount = summary.billed;
         row.grossBilled = summary.grossBilled;
         row.returns = summary.returns;
         row.udharClear = summary.udharClear;
+        row.balanceStatus = summary.balanceStatus;
+        row.balanceLabel = summary.balanceLabel;
       }
       return row;
     }));
