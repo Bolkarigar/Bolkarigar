@@ -1,260 +1,11 @@
 /**
- * BolKarigar — Help panel modules
- * Sirf wahi modules dikhte hain jo sidebar mein visible hain (bkCanAccessTab).
+ * BolKarigar — Help panel with animated demos (Hindi + English)
  */
 (function () {
-  const HELP_MODULE_CATALOG = [
-    {
-      id: "overviewPanel",
-      panelId: "overviewPanel",
-      plans: ["pro"],
-      color: "#3b82f6",
-      title: "📊 Overview (Dashboard)",
-      english: "Dashboard with sales, expenses, credit due, profit — plus Business Records tabs for Sales, Purchase, Payment, Receipt and Customer Detail."
-    },
-    {
-      id: "invoicePanel",
-      panelId: "invoicePanel",
-      plans: ["pro"],
-      color: "#06b6d4",
-      title: "📑 Invoice Generator (GST Bill)",
-      hindi: "GST bill banayein, PDF download karein, WhatsApp share karein. Customer, product, HSN, qty aur GST slab (0%-28%) daal kar Add Item dabayein.",
-      english: "Create GST invoices, download PDF, share via WhatsApp. Add items with HSN, quantity and tax slabs."
-    },
-    {
-      id: "inventoryPanel",
-      panelId: "inventoryPanel",
-      plans: ["pro"],
-      color: "#10b981",
-      title: "📦 Inventory (Stock)",
-      hindi: "Dukaan ya godam mein kitna saman bacha hai, unit price aur total stock value track karein. Low stock alert bhi milta hai.",
-      english: "Track product stock quantities, unit prices, and total inventory value with low-stock alerts."
-    },
-    {
-      id: "ledgerPanel",
-      panelId: "ledgerPanel",
-      plans: ["pro"],
-      color: "#ef4444",
-      title: "📖 Credit Ledger (Udhar Khata)",
-      hindi: "Kis customer ke paas kitna paisa pending hai, payment record karein aur poori udhar history dekhein.",
-      english: "Customer credit ledger — pending amounts, payment recording, and full transaction history."
-    },
-    {
-      id: "khataLedgersPanel",
-      panelId: "khataLedgersPanel",
-      plans: ["pro"],
-      color: "#f59e0b",
-      title: "📒 Ledgers (Party Ledger)",
-      hindi: "Har party/customer/supplier ka alag ledger account — opening balance, debit-credit entries aur closing balance.",
-      english: "Party-wise ledger accounts with opening balance, entries, and closing balance."
-    },
-    {
-      id: "khataItemsPanel",
-      panelId: "khataItemsPanel",
-      plans: ["pro"],
-      color: "#84cc16",
-      title: "📦 Stock Items",
-      hindi: "Khata ke liye stock items add karein — item name, rate, GST, unit aur opening qty set karein.",
-      english: "Manage stock items for Khata — name, rate, GST, unit, and opening quantity."
-    },
-    {
-      id: "khataVoucherPanel",
-      panelId: "khataVoucherPanel",
-      plans: ["pro"],
-      color: "#a855f7",
-      title: "🧾 New Voucher (Purchase / Sales Entry)",
-      hindi: "Sales, Purchase, Receipt, Payment aur Journal voucher banayein. Purchase mein supplier invoice, GSTIN aur payment mode bhi hai.",
-      english: "Create Sales, Purchase, Receipt, Payment and Journal vouchers with GST purchase fields."
-    },
-    {
-      id: "khataDaybookPanel",
-      panelId: "khataDaybookPanel",
-      plans: ["pro"],
-      color: "#6366f1",
-      title: "📅 Day Book (Daily Transactions)",
-      hindi: "Aaj ke saare vouchers aur transactions ek jagah — date filter se kisi bhi din ka hisaab dekhein.",
-      english: "Daily transaction register — all vouchers for a selected date in one view."
-    },
-    {
-      id: "galleryPanel",
-      panelId: "galleryPanel",
-      plans: ["pro"],
-      color: "#ec4899",
-      title: "🖼️ Gallery (Portfolio / Catalog)",
-      hindi: "Apne kaam ki photos, furniture design ya product catalog customers ko dikhane ke liye upload karein.",
-      english: "Digital portfolio to showcase work photos and product catalogs to clients."
-    },
-    {
-      id: "todoPanel",
-      panelId: "todoPanel",
-      plans: ["pro"],
-      color: "#8b5cf6",
-      title: "✅ Todo (Task Manager)",
-      hindi: "Aaj ke zaroori kaam, site reminders ya workers ko diye tasks ki list banao aur complete mark karein.",
-      english: "Daily task checklists, site reminders, and work-assignment lists."
-    },
-    {
-      id: "businessCardPanel",
-      panelId: "businessCardPanel",
-      plans: ["pro"],
-      color: "#3b82f6",
-      title: "💼 Business Card (Visiting Card)",
-      hindi: "12 free + 25 premium digital visiting cards — naam, dukaan, mobile, GST bharein, download karein ya WhatsApp par turant share karein.",
-      english: "12 free and 25 premium digital business cards — fill details, download PNG, or share instantly on WhatsApp."
-    },
-    {
-      id: "myPlanPanel",
-      panelId: "myPlanPanel",
-      plans: ["pro"],
-      ownerOnly: true,
-      color: "#22c55e",
-      title: "💳 My Plan (Subscription)",
-      hindi: "Apna Pro ya Business plan dekhein, trial days bache hain ya nahi, aur Razorpay se upgrade/renew karein.",
-      english: "View subscription status, trial days left, and upgrade or renew via Razorpay."
-    },
+  const ALL_MODULES = () => [
+    ...(window.HELP_MODULE_CATALOG || []),
+    ...(window.HELP_BUSINESS_MODULES || [])
   ];
-
-  const BUSINESS_ONLY_MODULES = [
-    {
-      id: "voicePanel",
-      panelId: "voicePanel",
-      plans: ["business"],
-      color: "#a855f7",
-      title: "🎤 Voice AI",
-      hindi: "Top bar se Voice ON karke bina type kiye app control karein — jaise 'Invoice kholo', 'Udhar Khata kholo', 'Dark mode on'.",
-      english: "Control the app with speech commands like Open Invoice, Open Udhar Khata, or Dark Mode On."
-    },
-    {
-      id: "projectPanel",
-      panelId: "projectPanel",
-      plans: ["business"],
-      color: "#eab308",
-      title: "📁 Projects (Sites / Contract Work)",
-      hindi: "Alag-alag client sites, location, budget aur daily material/labor kharcha alag track karein.",
-      english: "Manage client site projects, budgets, and daily vendor or material expenses."
-    },
-    {
-      id: "contractorPanel",
-      panelId: "contractorPanel",
-      plans: ["business"],
-      color: "#d97706",
-      title: "👷 Contractor (Labor & Contractors)",
-      hindi: "Contractors aur mazdooron ka record, payment, kaam ki details aur site-wise assignment manage karein.",
-      english: "Manage contractors, labor payments, work details, and site-wise assignments."
-    },
-    {
-      id: "payrollPanel",
-      panelId: "payrollPanel",
-      plans: ["business"],
-      hideForStaff: true,
-      color: "#7c3aed",
-      title: "💼 Staff Payroll & Attendance",
-      hindi: "Dukaan staff ki daily hajri mark karein — Present, Half-day, Paid/Unpaid leave. Month-end par salary auto calculate, advance minus, salary slip print/WhatsApp.",
-      english: "Mark daily staff attendance, auto-calculate monthly salary with leaves and advances, print payslips."
-    },
-    {
-      id: "payrollSelfPanel",
-      panelId: "payrollPanel",
-      plans: ["business"],
-      staffOnly: true,
-      color: "#7c3aed",
-      title: "📅 My Attendance",
-      hindi: "Apni daily attendance yahan mark karein — Present, Half-day, Paid Leave, Unpaid Leave ya Absent. Month-end par owner salary calculate karega.",
-      english: "Mark your own daily attendance — present, half-day, leave, or absent. Owner calculates salary at month-end."
-    },
-    {
-      id: "reportsProPanel",
-      panelId: "reportsProPanel",
-      plans: ["business"],
-      color: "#0284c7",
-      title: "📈 Reports Pro (GSTR / CA Reports)",
-      hindi: "Advanced GST reports, GSTR summary, sales-purchase analysis aur CA ke liye export-ready reports.",
-      english: "Advanced GST reports, GSTR summaries, and CA-ready export reports."
-    },
-    {
-      id: "bankReconPanel",
-      panelId: "bankReconPanel",
-      plans: ["business"],
-      color: "#0891b2",
-      title: "🏦 Bank Reconciliation",
-      hindi: "Bank statement aur app entries match karein — pending cheques aur difference track karein.",
-      english: "Reconcile bank statements with app entries and track pending cheques."
-    },
-    {
-      id: "qrPanel",
-      panelId: "qrPanel",
-      plans: ["business"],
-      color: "#f97316",
-      title: "📱 QR Tool (UPI / Payment QR)",
-      hindi: "Apni UPI ID ka instant QR code banayein aur customer ko dikha kar turant payment lein.",
-      english: "Generate UPI payment QR codes or custom link QR codes for instant collections."
-    },
-    {
-      id: "calcPanel",
-      panelId: "calcPanel",
-      plans: ["business"],
-      color: "#14b8a6",
-      title: "🔢 Calculator",
-      hindi: "Site par turant ganitiya hisaab ke liye built-in calculator — bina phone calculator ke.",
-      english: "On-site financial calculator for quick estimations."
-    },
-    {
-      id: "converterPanel",
-      panelId: "converterPanel",
-      plans: ["business"],
-      color: "#2dd4bf",
-      title: "🔄 Unit Converter",
-      hindi: "Feet-inch, kg, temperature aur doosre units convert karein — lakdi/steel measurement ke liye.",
-      english: "Convert length, weight, temperature and other units for quick estimations."
-    },
-    {
-      id: "notesPanel",
-      panelId: "notesPanel",
-      plans: ["business"],
-      color: "#64748b",
-      title: "📝 Notes Saver",
-      hindi: "Site ki baatein, rate list ya quick reminders likh kar save/download karein.",
-      english: "Save quick text notes, site reminders, and rate lists."
-    },
-    {
-      id: "mediaPanel",
-      panelId: "mediaPanel",
-      plans: ["business"],
-      color: "#475569",
-      title: "📷 Media (Receipt Scanner)",
-      hindi: "Kharide saman ki receipt ya parchi ki photo scan/upload karke safe rakhein.",
-      english: "Scan and store material purchase receipt images securely."
-    },
-    {
-      id: "staffPanel",
-      panelId: "staffPanel",
-      plans: ["business"],
-      color: "#7c3aed",
-      title: "👥 Staff (Cashier / Team)",
-      hindi: "Staff, Manager ya Cashier invite code banao — unhe limited access do, alag plan ki zaroorat nahi.",
-      english: "Invite staff, managers, or cashiers with role-based limited access."
-    },
-    {
-      id: "companiesPanel",
-      panelId: "companiesPanel",
-      plans: ["business"],
-      color: "#1d4ed8",
-      title: "🏢 Companies (Multi-Company)",
-      hindi: "Ek se zyada companies/firms manage karein — alag GSTIN aur profile har company ke liye.",
-      english: "Manage multiple companies with separate GSTIN and business profiles."
-    },
-    {
-      id: "tallySync",
-      panelId: null,
-      plans: ["business"],
-      color: "#16a34a",
-      title: "🔗 Tally Sync (Optional)",
-      hindi: "Roz ke liye BolKarigar Khata best hai. Tally chahiye ho to: Agent vhttp5 → F1 → Connectivity → Client/Server → HTTP Server Yes, Port 9000 → company Day Book → Test green → Sync enable.",
-      english: "Use BolKarigar Khata daily. Optional Tally sync needs Desktop Agent + Tally HTTP on port 9000 (Client/Server screen, not Timeout Configuration)."
-    }
-  ];
-
-  const ALL_MODULES = [...HELP_MODULE_CATALOG, ...BUSINESS_ONLY_MODULES];
 
   function moduleVisibleForUser(mod, me) {
     if (!me) return false;
@@ -282,38 +33,70 @@
     return true;
   }
 
+  function escapeHtml(value) {
+    if (value == null) return "";
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function buildStepsList(mod) {
+    if (!mod.steps?.length) return "";
+    const items = mod.steps.map((s, i) => `
+      <li>
+        <span class="step-en"><strong>${i + 1}.</strong> ${escapeHtml(s.en)}</span>
+        <span class="step-hi">${escapeHtml(s.hi)}</span>
+      </li>`).join("");
+    return `
+      <p class="help-steps-title">Step-by-step guide</p>
+      <ol class="help-steps-list">${items}</ol>`;
+  }
+
   function renderHelpModules(me) {
     const container = document.getElementById("helpModulesList");
     const badge = document.getElementById("helpPlanBadge");
     if (!container) return;
 
     const sub = me?.subscription || {};
-    const isBusiness = !!sub.fullAccess;
-    const modules = ALL_MODULES.filter((m) => moduleVisibleForUser(m, me));
+    const modules = ALL_MODULES().filter((m) => moduleVisibleForUser(m, me));
 
     if (badge) {
-      const isBusiness = !!sub.fullAccess;
       const isStaffRole = me?.isStaff && me?.role === "staff";
-      let planLabel = isBusiness ? "Business Plan (₹299/mo)" : "Pro Plan (₹99/mo after trial)";
+      let planLabel = sub.fullAccess ? "Business Plan (₹299/mo)" : "Pro Plan (₹99/mo after trial)";
       if (isStaffRole) planLabel = "Staff Mode";
-      badge.textContent = `${isBusiness ? "🏢" : isStaffRole ? "👤" : "⭐"} ${planLabel} — ${modules.length} modules (same as sidebar)`;
-      badge.className = isBusiness ? "help-plan-badge business" : "help-plan-badge pro";
+      badge.textContent = `${sub.fullAccess ? "🏢" : isStaffRole ? "👤" : "⭐"} ${planLabel} — ${modules.length} modules with animated demos`;
+      badge.className = sub.fullAccess ? "help-plan-badge business" : "help-plan-badge pro";
     }
+
+    if (!modules.length) {
+      container.innerHTML = '<p class="helper-text">Modules will appear here after your plan loads.</p>';
+      return;
+    }
+
+    const buildDemo = typeof window.buildHelpDemoHtml === "function"
+      ? window.buildHelpDemoHtml
+      : () => "";
 
     container.innerHTML = modules.map((mod, idx) => {
       const cardId = `help-card-${mod.id}`;
       const num = idx + 1;
+      const demoHtml = buildDemo(mod);
       return `
         <div class="manual-card mini-card help-module-card" id="${cardId}" data-panel="${mod.panelId || ""}" style="border-left: 4px solid ${mod.color};">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
             <h4 style="color: ${mod.color}; margin: 0;">${num}. ${escapeHtml(mod.title)}</h4>
-            <div style="display:flex;gap:8px;align-items:center;">
-              ${mod.panelId ? `<button type="button" class="secondary help-open-tab-btn" data-open-tab="${mod.panelId}" style="padding:4px 10px;font-size:12px;">↗ Open</button>` : ""}
-              <button type="button" class="speak-card-btn" onclick="speakCardText('${cardId}', this)">🔊 Listen</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              ${mod.panelId ? `<button type="button" class="secondary help-open-tab-btn" data-open-tab="${mod.panelId}" style="padding:4px 10px;font-size:12px;">↗ Open Module</button>` : ""}
+              <button type="button" class="speak-card-btn" onclick="speakCardText('${cardId}', this)" style="padding:4px 10px;font-size:12px;">🔊 Listen</button>
             </div>
           </div>
+          ${demoHtml}
           <div class="card-text">
-            <p>${escapeHtml(mod.english || mod.hindi || "")}</p>
+            <div class="help-text-block help-text-en"><strong>English:</strong> ${escapeHtml(mod.english || "")}</div>
+            <div class="help-text-block help-text-hi"><strong>हिंदी:</strong> ${escapeHtml(mod.hindi || mod.english || "")}</div>
+            ${buildStepsList(mod)}
           </div>
         </div>`;
     }).join("");
@@ -324,21 +107,20 @@
         if (tab && typeof window.openPanel === "function") window.openPanel(tab);
       });
     });
+
+    if (typeof window.initHelpDemos === "function") {
+      window.initHelpDemos(container);
+    }
+    if (typeof window.applyHelpLang === "function") {
+      window.applyHelpLang(localStorage.getItem("bk_help_lang") || "both");
+    }
   }
 
-  function escapeHtml(value) {
-    if (value == null) return "";
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  window.HELP_MODULE_CATALOG = ALL_MODULES;
+  window.HELP_MODULE_CATALOG_FULL = ALL_MODULES;
   window.renderHelpModules = renderHelpModules;
+  window.moduleVisibleForUser = moduleVisibleForUser;
 
-  document.addEventListener('bk:langchange', () => {
+  document.addEventListener("bk:langchange", () => {
     if (window._bkAccountInfo) renderHelpModules(window._bkAccountInfo);
   });
 })();

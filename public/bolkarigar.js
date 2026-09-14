@@ -8758,15 +8758,25 @@ function speakCardText(cardId, buttonElem) {
   const cardElement = document.getElementById(cardId);
   if (!cardElement) return;
 
-  let cleanText = cardElement.querySelector('.card-text').innerText;
+  const cardText = cardElement.querySelector('.card-text');
+  const helpLang = localStorage.getItem('bk_help_lang') || 'both';
+  let cleanText = '';
+  if (cardText?.querySelector('.help-text-en') && helpLang === 'en') {
+    cleanText = cardText.querySelector('.help-text-en')?.innerText || '';
+  } else if (cardText?.querySelector('.help-text-hi') && helpLang === 'hi') {
+    cleanText = cardText.querySelector('.help-text-hi')?.innerText || '';
+  } else {
+    cleanText = cardText?.innerText || '';
+  }
   cleanText = cleanText
     .replace(/हिंदी:/g, "हिंदी में:")
     .replace(/English:/gi, "")
+    .replace(/Step-by-step guide/gi, "")
     .replace(/•/g, "")
     .trim();
 
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = 'hi-IN';
+  utterance.lang = helpLang === 'en' ? 'en-IN' : 'hi-IN';
   utterance.rate = 0.9;
 
   utterance.onstart = () => {
