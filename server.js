@@ -2965,7 +2965,7 @@ try {
 
 // 🟢 PRO FEATURES hookup
 setupProFeatures({
-  app, mongoose, authenticateToken, JWT_SECRET, rbac, requireBusinessPlan,
+  app, mongoose, authenticateToken, JWT_SECRET, rbac, requireBusinessPlan, requireActivePlan,
   models: { User, SalesHistory, Ledger, Voucher, Item, BusinessProfile },
   helpers: { relayXmlToTally, resolveTallyCompanyName, tallyXmlEscape, findOrCreateCustomerLedger }
 });

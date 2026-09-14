@@ -32,11 +32,12 @@ function recordStaffSignupAttempt(ip) {
   staffSignupAttempts.set(ip, entry);
 }
 
-function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, JWT_SECRET, rbac, requireBusinessPlan }) {
+function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, JWT_SECRET, rbac, requireBusinessPlan, requireActivePlan }) {
   const { User, SalesHistory, Ledger, Voucher, Item, BusinessProfile } = models;
   const { relayXmlToTally, resolveTallyCompanyName, tallyXmlEscape, findOrCreateCustomerLedger } = helpers;
   const { PERMISSIONS, requirePermission, requireOwner } = rbac;
   const biz = requireBusinessPlan || ((req, res, next) => next());
+  const active = requireActivePlan || ((req, res, next) => next());
 
   // --- Schemas ---
   const paymentSchema = new mongoose.Schema({
@@ -244,7 +245,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/api/reports/outstanding', authenticateToken, ownerMiddleware, biz, async (req, res) => {
+  app.get('/api/reports/outstanding', authenticateToken, ownerMiddleware, active, async (req, res) => {
     try {
       const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: { $in: ['Sundry Debtor', 'Sundry Creditor'] } });
       const creditSales = await SalesHistory.find({ userId: req.ownerId, status: { $in: ['Pending', 'Credit'] } });

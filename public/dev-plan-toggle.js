@@ -24,7 +24,14 @@
     document.getElementById("devPlanBusinessBtn")?.classList.toggle("active", plan === "business");
     const label = document.getElementById("devPlanActiveLabel");
     if (label) {
-      label.textContent = plan === "business" ? "Active: Business ₹299/mo" : "Active: Pro trial";
+      const days = sub?.daysLeft;
+      if (plan === "business") {
+        label.textContent = `Active: Business — ${days || 30} days left`;
+      } else if (sub?.isExpired) {
+        label.textContent = "Active: Pro trial expired — click Pro Trial to reset";
+      } else {
+        label.textContent = `Active: Pro trial — ${days ?? 30} days left`;
+      }
     }
   }
 

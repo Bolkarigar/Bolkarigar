@@ -38,13 +38,13 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
       const plan = req.body?.plan === 'business' ? 'business' : 'pro';
 
       if (plan === 'pro') {
-        if (user.plan === 'pro' && user.subscriptionStatus === 'active' && !user.planExpiresAt) {
-          const subscription = await getSubscriptionForUser(User, user);
+        const current = buildSubscriptionPayload(user);
+        if (user.plan === 'pro' && current.isActive && current.isTrial && current.daysLeft > 0) {
           return res.json({
             success: true,
             plan,
-            subscription,
-            message: `Already on ${PLANS.pro.name} (${PLANS.pro.label})`
+            subscription: current,
+            message: `Already on ${PLANS.pro.name} trial — ${current.daysLeft} days left`
           });
         }
         startOwnerTrial(user, 'pro');
@@ -62,7 +62,6 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
         }
         activateOwnerPlan(user, plan, MONTHLY_DAYS, { extend: false });
       }
-      user.trialEndsAt = null;
       await user.save();
 
       const subscription = await getSubscriptionForUser(User, user);

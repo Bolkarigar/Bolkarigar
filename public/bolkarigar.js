@@ -424,6 +424,11 @@ async function loadServerData(opts = {}) {
         window._bkAccountInfo.subscription = errData.subscription;
         applyRoleBasedUI(window._bkAccountInfo);
       }
+      const savedLocal402 = JSON.parse(localStorage.getItem("bolkarigar_invoices") || "[]");
+      if (savedLocal402.length) {
+        state.invoices = savedLocal402;
+        calculateFinancials(state.invoices, state.expenses || []);
+      }
       return;
     }
     
@@ -4720,12 +4725,28 @@ async function refreshUdharKhata(localFallback = {}) {
     const res = await fetch(`${API_URL}/api/reports/outstanding`, {
       headers: { Authorization: `Bearer ${getToken()}` }
     });
-    const data = await res.json();
-    if (data.success && data.rows?.length) {
-      const rows = data.rows.filter(r => (r.pending > 0) || (r.ledgerBalance > 0));
-      if (rows.length) return renderUdharRows(rows);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.rows?.length) {
+        const rows = data.rows.filter(r => (r.pending > 0) || (r.ledgerBalance > 0));
+        if (rows.length) return renderUdharRows(rows);
+      }
     }
   } catch (e) { /* server se nahi mila to local fallback */ }
+
+  if (!Object.keys(localFallback).length && Array.isArray(state.invoices) && state.invoices.length) {
+    const ledger = {};
+    state.invoices.forEach((item) => {
+      const amount = typeof getInvoiceLineGrandTotal === "function" ? getInvoiceLineGrandTotal(item) : (parseFloat(item.totalAmount) || 0);
+      const cust = item.customer || "General Customer";
+      if (!ledger[cust]) ledger[cust] = { billed: 0, paid: 0, pending: 0 };
+      ledger[cust].billed += amount;
+      const isCredit = item.paymentType === "Credit" || item.status === "Pending";
+      ledger[cust].paid += isCredit ? 0 : (parseFloat(item.paidAmount) || amount);
+      ledger[cust].pending = ledger[cust].billed - ledger[cust].paid;
+    });
+    localFallback = ledger;
+  }
 
   const localRows = Object.keys(localFallback).map(cust => ({
     partyName: cust,

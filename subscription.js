@@ -105,12 +105,27 @@ function addDays(date, days) {
   return d;
 }
 
+function endOfDay(date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
 function daysBetween(from, to) {
   const a = new Date(from);
   const b = new Date(to);
   const utcFrom = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
   const utcTo = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
   return Math.max(0, Math.round((utcTo - utcFrom) / 86400000));
+}
+
+/** Days left until endDate — last calendar day counts as 1 day left */
+function daysLeftUntil(now, endDate) {
+  if (!endDate) return 0;
+  const end = new Date(endDate);
+  if (end <= now) return 0;
+  const days = daysBetween(now, end);
+  return days === 0 ? 1 : days;
 }
 
 function sanitizePlanExpiry(user, now = new Date()) {
@@ -131,7 +146,7 @@ function startOwnerTrial(user, planId = 'pro') {
   user.plan = plan;
   user.subscriptionStatus = 'trial';
   user.trialStartedAt = now;
-  user.trialEndsAt = addDays(now, trialDays);
+  user.trialEndsAt = endOfDay(addDays(now, trialDays));
   user.planExpiresAt = null;
   user.trialUsed = true;
   return user;
@@ -154,6 +169,11 @@ function ensureOwnerSubscription(user) {
   }
 
   if (!user.trialStartedAt && user.subscriptionStatus !== 'active' && !user.planExpiresAt) {
+    startOwnerTrial(user, user.plan === 'business' ? 'business' : 'pro');
+    user._subscriptionMigrated = true;
+  }
+
+  if (user.subscriptionStatus === 'trial' && !user.trialEndsAt) {
     startOwnerTrial(user, user.plan === 'business' ? 'business' : 'pro');
     user._subscriptionMigrated = true;
   }
@@ -221,11 +241,9 @@ function buildSubscriptionPayload(ownerUser) {
 
   let daysLeft = 0;
   if (isTrial && trialEndsAt) {
-    daysLeft = daysBetween(now, trialEndsAt);
-    if (trialEndsAt <= now) daysLeft = 0;
+    daysLeft = daysLeftUntil(now, trialEndsAt);
   } else if (user.subscriptionStatus === 'active' && planExpiresAt) {
-    daysLeft = daysBetween(now, planExpiresAt);
-    if (planExpiresAt <= now) daysLeft = 0;
+    daysLeft = daysLeftUntil(now, planExpiresAt);
   }
 
   const trialDaysForPlan = planKey === 'business' ? BUSINESS_TRIAL_DAYS : PRO_TRIAL_DAYS;
