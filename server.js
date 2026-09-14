@@ -2412,6 +2412,8 @@ app.get('/api/ledgers', authenticateToken, async (req, res) => {
         row.pendingUdhar = summary.pendingUdhar;
         row.paidAmount = summary.paid;
         row.billedAmount = summary.billed;
+        row.grossBilled = summary.grossBilled;
+        row.returns = summary.returns;
         row.udharClear = summary.udharClear;
       }
       return row;
@@ -2708,6 +2710,19 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
     }
 
     await newVoucher.save();
+
+    const PaymentModel = mongoose.models.Payment;
+    if (PaymentModel && finalPartyId) {
+      const partyLedger = await Ledger.findOne({ _id: finalPartyId, userId: req.dataUserId });
+      if (partyLedger?.ledgerGroup === 'Sundry Debtor') {
+        await reconcileAllDebtorLedgers(
+          req.dataUserId,
+          { Ledger, SalesHistory, Payment: PaymentModel, Voucher },
+          { force: true }
+        );
+      }
+    }
+
     res.json({ success: true, message: `${voucherType} voucher save ho gaya!`, voucherId: newVoucher._id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -2826,6 +2841,19 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
     await applyVoucherStockDeltas(req.dataUserId, voucher.voucherType, voucher.items || [], 1);
 
     await voucher.save();
+
+    const PaymentModel = mongoose.models.Payment;
+    if (PaymentModel && voucher.partyId) {
+      const partyLedger = await Ledger.findOne({ _id: voucher.partyId, userId: req.dataUserId });
+      if (partyLedger?.ledgerGroup === 'Sundry Debtor') {
+        await reconcileAllDebtorLedgers(
+          req.dataUserId,
+          { Ledger, SalesHistory, Payment: PaymentModel, Voucher },
+          { force: true }
+        );
+      }
+    }
+
     res.json({ success: true, message: `${voucher.voucherType} voucher update ho gaya.`, voucher });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

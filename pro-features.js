@@ -294,6 +294,18 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         byCustomer[key].paid += Number(p.amount) || 0;
       });
 
+      const creditNotes = await Voucher.find({ userId: req.ownerId, voucherType: 'Credit Note' })
+        .populate('partyId', 'partyName');
+      creditNotes.forEach((cn) => {
+        const name = cn.partyId?.partyName || '';
+        const key = name.toLowerCase();
+        if (!key) return;
+        if (!byCustomer[key]) {
+          byCustomer[key] = { partyName: name, ledgerBalance: 0, billed: 0, paid: 0, pending: 0 };
+        }
+        byCustomer[key].billed = Math.max(0, byCustomer[key].billed - (Number(cn.amount) || 0));
+      });
+
       const rows = Object.values(byCustomer).map((r) => {
         const pending = r.ledgerBalance > 0
           ? r.ledgerBalance

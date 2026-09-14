@@ -4826,43 +4826,93 @@ async function showUdharDetail(customerName) {
   body.innerHTML = `<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>`;
 
   let rows = [];
-  let totalBilled = 0, totalPaid = 0;
+  let totalBilled = 0;
+  let totalPaid = 0;
+  let totalReturns = 0;
+  let pending = 0;
 
   try {
     const token = getToken();
     const hdrs = { Authorization: `Bearer ${token}` };
-    const [salesRes, payRes] = await Promise.all([
-      fetch(`${API_URL}/api/sales?search=${encodeURIComponent(customerName)}&limit=100`, { headers: hdrs }),
-      fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(customerName)}`, { headers: hdrs })
-    ]);
-    const salesData = await salesRes.json();
-    const payData = await payRes.json();
+    const ledRes = await fetch(`${API_URL}/api/ledgers`, { headers: hdrs });
+    const ledData = await ledRes.json();
+    const ledger = (ledData.ledgers || []).find(
+      (l) => String(l.partyName || "").trim().toLowerCase() === String(customerName || "").trim().toLowerCase()
+    );
 
-    if (salesData.records?.length) {
-      salesData.records.forEach(r => {
-        const amt = r.totalAmount || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
-        const isCredit = isCreditSale(r);
-        const paid = isCredit ? 0 : amt;
-        totalBilled += amt;
-        totalPaid += paid;
-        rows.push({
-          label: `${new Date(r.date).toLocaleDateString()} — ${r.product || "Sale"}`,
-          qty: r.qty || 1,
-          amt, paid, pending: isCredit ? amt : 0
+    if (ledger?._id && ledger.ledgerGroup === "Sundry Debtor") {
+      const stRes = await fetch(`${API_URL}/api/ledger-statement/${ledger._id}`, { headers: hdrs });
+      const stData = await stRes.json();
+      if (stData.success) {
+        pending = Number(stData.pendingUdhar ?? Math.max(0, stData.currentBalance ?? 0)) || 0;
+        (stData.history || []).forEach((h) => {
+          const amt = Number(h.amount) || 0;
+          const effect = Number(h.udharEffect) || 0;
+          const typeLabel = typeof bkVoucherTypeLabel === "function"
+            ? bkVoucherTypeLabel(h.voucherType)
+            : h.voucherType;
+          const isReturn = h.voucherType === "Credit Note" || h.status === "Returned";
+          const isPayment = h.status === "Received" || h.voucherType === "Payment";
+          const isCashSale = h.voucherType === "Sale" && h.status === "Paid";
+
+          if (h.voucherType === "Sale" || h.voucherType === "Sales") {
+            totalBilled += amt;
+            if (isCashSale) totalPaid += amt;
+          } else if (isReturn) {
+            totalReturns += amt;
+          } else if (isPayment) {
+            totalPaid += amt;
+          }
+
+          rows.push({
+            label: `${new Date(h.date).toLocaleDateString("en-IN")} — ${typeLabel}${h.note && h.note !== "-" ? ` (${h.note})` : ""}`,
+            qty: "—",
+            amt: isReturn ? 0 : amt,
+            paid: isPayment || isCashSale ? amt : (isReturn ? amt : 0),
+            pending: effect,
+            isPayment,
+            isReturn,
+            runningBalance: h.runningBalance
+          });
         });
-      });
+      }
     }
 
-    if (payData.payments?.length) {
-      payData.payments.forEach(p => {
-        totalPaid += p.amount;
-        rows.push({
-          label: `${new Date(p.date).toLocaleDateString()} — Payment (${p.paymentMode || "Cash"})`,
-          qty: "—",
-          amt: 0, paid: p.amount, pending: -p.amount,
-          isPayment: true
+    if (!rows.length) {
+      const [salesRes, payRes] = await Promise.all([
+        fetch(`${API_URL}/api/sales?search=${encodeURIComponent(customerName)}&limit=100`, { headers: hdrs }),
+        fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(customerName)}`, { headers: hdrs })
+      ]);
+      const salesData = await salesRes.json();
+      const payData = await payRes.json();
+
+      if (salesData.records?.length) {
+        salesData.records.forEach((r) => {
+          const amt = r.totalAmount || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
+          const isCredit = isCreditSale(r);
+          const paid = isCredit ? 0 : amt;
+          totalBilled += amt;
+          totalPaid += paid;
+          rows.push({
+            label: `${new Date(r.date).toLocaleDateString()} — ${r.product || "Sale"}`,
+            qty: r.qty || 1,
+            amt, paid, pending: isCredit ? amt : 0
+          });
         });
-      });
+      }
+
+      if (payData.payments?.length) {
+        payData.payments.forEach((p) => {
+          totalPaid += p.amount;
+          rows.push({
+            label: `${new Date(p.date).toLocaleDateString()} — Payment (${p.paymentMode || "Cash"})`,
+            qty: "—",
+            amt: 0, paid: p.amount, pending: -p.amount,
+            isPayment: true
+          });
+        });
+      }
+      pending = Math.max(0, totalBilled - totalReturns - totalPaid);
     }
   } catch (e) {
     console.warn("Udhar detail API:", e);
@@ -4872,26 +4922,36 @@ async function showUdharDetail(customerName) {
     body.innerHTML = `<tr><td colspan="5" style="text-align:center;">Koi transaction nahi mila.</td></tr>`;
     window.bkSetTableAmountTotal(body, { hide: true });
   } else {
-    body.innerHTML = rows.map(r => `
-      <tr style="${r.isPayment ? 'background:rgba(34,197,94,.08)' : ''}">
+    body.innerHTML = rows.map((r) => {
+      const rowStyle = r.isPayment
+        ? "background:rgba(34,197,94,.08)"
+        : (r.isReturn ? "background:rgba(251,191,36,.08)" : "");
+      const pendingCell = r.runningBalance != null
+        ? `₹${Number(r.runningBalance).toFixed(2)}`
+        : (r.pending > 0 ? `₹${r.pending.toFixed(2)}` : (r.pending < 0 ? `−₹${Math.abs(r.pending).toFixed(2)}` : "—"));
+      return `
+      <tr style="${rowStyle}">
         <td>${escapeHtml(r.label)}</td>
         <td>${r.qty}</td>
-        <td>${r.amt ? '₹' + r.amt.toFixed(2) : '—'}</td>
-        <td>${r.paid ? '₹' + r.paid.toFixed(2) : '—'}</td>
-        <td>${r.pending > 0 ? '₹' + r.pending.toFixed(2) : (r.pending < 0 ? '' : '—')}</td>
-      </tr>`).join("");
+        <td>${r.amt ? "₹" + r.amt.toFixed(2) : "—"}</td>
+        <td>${r.paid ? (r.isReturn ? "−₹" + r.paid.toFixed(2) : "₹" + r.paid.toFixed(2)) : "—"}</td>
+        <td>${pendingCell}</td>
+      </tr>`;
+    }).join("");
   }
 
-  const pending = Math.max(0, totalBilled - totalPaid);
   if (rows.length) {
-    window.bkSetTableAmountTotal(body, {
-      lines: [
-        { label: "Total Billed", amount: totalBilled, color: "#38bdf8" },
-        { label: "Total Paid", amount: totalPaid, color: "#22c55e" },
-        { label: "Pending Udhar", amount: pending, color: "#f59e0b" }
-      ],
-      rows: rows.length
-    });
+    const summaryLines = [
+      { label: "Total Billed", amount: totalBilled, color: "#38bdf8" }
+    ];
+    if (totalReturns > 0) {
+      summaryLines.push({ label: "Sales Return", amount: totalReturns, color: "#fbbf24" });
+    }
+    summaryLines.push(
+      { label: "Total Paid", amount: totalPaid, color: "#22c55e" },
+      { label: "Pending Udhar", amount: pending, color: "#f59e0b" }
+    );
+    window.bkSetTableAmountTotal(body, { lines: summaryLines, rows: rows.length });
   }
   if (title) title.textContent = `📖 ${customerName} — Pending: ₹${pending.toFixed(2)}`;
 
@@ -6396,7 +6456,8 @@ function getEWayBillDetails() {
       if (data.isDebtorStatement) {
         body.innerHTML = data.history.map(v => {
           const statusClass = v.status === "Udhar" ? "khata-badge-udhar"
-            : (v.status === "Paid" ? "khata-badge-clear" : "khata-badge-neutral");
+            : (v.status === "Paid" ? "khata-badge-clear"
+              : (v.status === "Returned" ? "khata-badge-return" : "khata-badge-neutral"));
           return `
         <tr>
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
@@ -7171,6 +7232,8 @@ function getEWayBillDetails() {
         document.getElementById("voucherSupplierGstinInput").value = "";
       }
       updateVoucherEffectSummary();
+      if (typeof loadKhataLedgers === "function") loadKhataLedgers();
+      if (typeof refreshUdharKhata === "function") refreshUdharKhata();
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
     }
@@ -8197,31 +8260,47 @@ function getEWayBillDetails() {
     try {
       const hdrs = { Authorization: `Bearer ${getToken()}` };
       const st = voucherDates.Customer || { from: "", to: "" };
-      const salesParams = new URLSearchParams({ search: name, limit: "100" });
-      if (st.from) salesParams.set("fromDate", st.from);
-      if (st.to) salesParams.set("toDate", st.to);
-      const [salesRes, payRes] = await Promise.all([
-        fetch(`${API_URL}/api/sales?${salesParams.toString()}`, { headers: hdrs }),
-        fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, { headers: hdrs })
-      ]);
-      const salesData = await salesRes.json();
-      const payData = await payRes.json();
-      let billed = 0, paid = 0;
-      (salesData.records || []).forEach((r) => {
-        const amt = parseFloat(r.totalAmount) || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
-        billed += amt;
-        const isCredit = isCreditSale(r);
-        if (!isCredit) paid += amt;
-      });
-      (payData.payments || [])
-        .filter((p) => isInDateRange(p.date, st.from, st.to))
-        .forEach((p) => { paid += parseFloat(p.amount) || 0; });
-      const pending = billed - paid;
+      let billed = 0;
+      let paid = 0;
+      let pending = 0;
+      let returnsNote = "";
+
+      const ledRes = await fetch(`${API_URL}/api/ledgers`, { headers: hdrs });
+      const ledData = await ledRes.json();
+      const ledger = (ledData.ledgers || []).find(
+        (l) => String(l.partyName || "").trim().toLowerCase() === String(name || "").trim().toLowerCase()
+      );
+      if (ledger?.ledgerGroup === "Sundry Debtor") {
+        billed = Number(ledger.billedAmount ?? ledger.grossBilled ?? 0) || 0;
+        paid = Number(ledger.paidAmount ?? 0) || 0;
+        pending = Number(ledger.pendingUdhar ?? Math.max(0, ledger.currentBalance ?? 0)) || 0;
+        if (ledger.returns > 0) returnsNote = ` &nbsp;|&nbsp; Returns: ${fmtMoney(ledger.returns)}`;
+      } else {
+        const salesParams = new URLSearchParams({ search: name, limit: "100" });
+        if (st.from) salesParams.set("fromDate", st.from);
+        if (st.to) salesParams.set("toDate", st.to);
+        const [salesRes, payRes] = await Promise.all([
+          fetch(`${API_URL}/api/sales?${salesParams.toString()}`, { headers: hdrs }),
+          fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, { headers: hdrs })
+        ]);
+        const salesData = await salesRes.json();
+        const payData = await payRes.json();
+        (salesData.records || []).forEach((r) => {
+          const amt = parseFloat(r.totalAmount) || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
+          billed += amt;
+          const isCredit = isCreditSale(r);
+          if (!isCredit) paid += amt;
+        });
+        (payData.payments || [])
+          .filter((p) => isInDateRange(p.date, st.from, st.to))
+          .forEach((p) => { paid += parseFloat(p.amount) || 0; });
+        pending = Math.max(0, billed - paid);
+      }
       const dateNote = st.from || st.to
         ? `<br><span style="color:#94a3b8;font-size:12px;">Filtered: ${fmtDisplayInputDate(st.from)} to ${fmtDisplayInputDate(st.to)}</span>`
         : "";
       box.innerHTML = `<strong>${escapeHtml(name)}</strong><br>
-        Total Billed: ${fmtMoney(billed)} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
+        Total Billed: ${fmtMoney(billed)}${returnsNote} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
         <span style="color:${pending > 0 ? "#f59e0b" : "#22c55e"}">Pending: ${fmtMoney(pending)}</span>
         ${dateNote}
         <br><span style="color:#94a3b8;font-size:12px;">Click "View Customer Detail" for full transaction list.</span>`;

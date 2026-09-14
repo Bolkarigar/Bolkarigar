@@ -1428,6 +1428,7 @@ textarea.form-input {
 .khata-badge-udhar { color: #f59e0b; font-weight: 700; }
 .khata-badge-clear { color: #22c55e; font-weight: 700; }
 .khata-badge-neutral { color: var(--muted, #94a3b8); font-weight: 600; }
+.khata-badge-return { color: #fbbf24; font-weight: 700; }
 
 .khata-pagination {
   display: flex;

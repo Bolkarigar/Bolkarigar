@@ -56,6 +56,8 @@ async function reconcileDebtorLedger(userId, ledger, models) {
 
   const receipts = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Receipt' });
   for (const r of receipts) {
+    // Receipt auto-created from /api/payments already counted via Payment row
+    if (r.linkedPaymentId) continue;
     balance -= Number(r.amount) || 0;
   }
 
@@ -67,6 +69,16 @@ async function reconcileDebtorLedger(userId, ledger, models) {
       && sameCalendarDay(s.date, v.date)
     );
     if (!dup) balance += Number(v.amount) || 0;
+  }
+
+  const creditNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Credit Note' });
+  for (const cn of creditNotes) {
+    balance -= Number(cn.amount) || 0;
+  }
+
+  const debitNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Debit Note' });
+  for (const dn of debitNotes) {
+    balance += Number(dn.amount) || 0;
   }
 
   return Math.round(balance * 100) / 100;
@@ -90,11 +102,12 @@ async function reconcileAllDebtorLedgers(userId, models, options = {}) {
 
 /** Billed / paid / pending udhar — same logic as Credit Ledger outstanding row. */
 async function getDebtorUdharSummary(userId, ledger, models) {
-  const { SalesHistory, Payment } = models;
+  const { SalesHistory, Payment, Voucher } = models;
   const pendingRaw = await reconcileDebtorLedger(userId, ledger, models);
   const rx = partyRegex(ledger.partyName);
   let billed = 0;
   let paid = 0;
+  let returns = 0;
 
   const sales = await SalesHistory.find({ userId, customer: rx });
   for (const s of sales) {
@@ -108,11 +121,20 @@ async function getDebtorUdharSummary(userId, ledger, models) {
     paid += Number(p.amount) || 0;
   }
 
+  if (Voucher) {
+    const creditNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Credit Note' });
+    for (const cn of creditNotes) {
+      returns += Number(cn.amount) || 0;
+    }
+  }
+
   const pendingUdhar = Math.max(0, pendingRaw);
   return {
     pendingUdhar,
     pending: pendingUdhar,
-    billed,
+    billed: Math.max(0, billed - returns),
+    grossBilled: billed,
+    returns,
     paid,
     udharClear: pendingUdhar <= 0.01
   };
@@ -366,6 +388,7 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     if (amt <= 0) continue;
 
     if (v.voucherType === 'Sales' && salesVoucherDuplicate(sales, v)) continue;
+    if (v.voucherType === 'Receipt' && v.linkedPaymentId) continue;
 
     let udharEffect = 0;
     let status = 'Accounting';
@@ -376,6 +399,12 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     } else if (v.voucherType === 'Receipt') {
       udharEffect = -amt;
       status = 'Received';
+    } else if (v.voucherType === 'Credit Note') {
+      udharEffect = -amt;
+      status = 'Returned';
+    } else if (v.voucherType === 'Debit Note') {
+      udharEffect = amt;
+      status = 'Debit Note';
     }
 
     events.push({
