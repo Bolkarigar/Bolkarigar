@@ -8,6 +8,78 @@
     return window.BK_PLAN_PRICING || {};
   }
 
+  let selectedBilling = "monthly";
+
+  function getSelectedBilling() {
+    return selectedBilling === "yearly" ? "yearly" : "monthly";
+  }
+
+  function planPriceLabel(planId, billing) {
+    const p = pricing()[planId] || {};
+    if (billing === "yearly") {
+      return { amount: `₹${p.priceYearly || 0}`, period: "/ year", btn: `Pay — ${p.name || planId} ₹${p.priceYearly || 0}/yr` };
+    }
+    return { amount: `₹${p.priceMonthly || 0}`, period: "/ month", btn: `Pay — ${p.name || planId} ₹${p.priceMonthly || 0}/mo` };
+  }
+
+  function syncBillingToggleInputs(checked) {
+    document.querySelectorAll(".bk-billing-toggle-input").forEach((input) => {
+      input.checked = checked;
+    });
+    document.querySelectorAll("[data-billing-opt]").forEach((el) => {
+      const active = el.dataset.billingOpt === (checked ? "yearly" : "monthly");
+      el.classList.toggle("active", active);
+    });
+  }
+
+  function refreshBillingUI() {
+    const billing = getSelectedBilling();
+    ["pro", "business"].forEach((planId) => {
+      const info = planPriceLabel(planId, billing);
+      document.querySelectorAll(`[data-bk-price-plan="${planId}"]`).forEach((el) => {
+        el.textContent = info.amount;
+      });
+      document.querySelectorAll(`[data-bk-price-label="${planId}"]`).forEach((el) => {
+        const trialDays = pricing()[planId]?.trialDays;
+        const trialPart = trialDays ? ` · ${trialDays}-day free trial` : "";
+        el.textContent = `${info.period}${trialPart}`;
+      });
+      document.querySelectorAll(`.bk-plan-pay-btn[data-bk-plan="${planId}"]`).forEach((btn) => {
+        btn.textContent = `💳 ${info.btn}`;
+      });
+    });
+  }
+
+  function setBillingPeriod(period) {
+    selectedBilling = period === "yearly" ? "yearly" : "monthly";
+    syncBillingToggleInputs(selectedBilling === "yearly");
+    refreshBillingUI();
+  }
+
+  function wireBillingToggles() {
+    document.querySelectorAll(".bk-billing-toggle-input").forEach((input) => {
+      if (input.dataset.bkBillingWired) return;
+      input.dataset.bkBillingWired = "1";
+      input.addEventListener("change", () => {
+        setBillingPeriod(input.checked ? "yearly" : "monthly");
+      });
+    });
+    document.querySelectorAll("[data-billing-opt]").forEach((el) => {
+      if (el.dataset.bkBillingWired) return;
+      el.dataset.bkBillingWired = "1";
+      el.style.cursor = "pointer";
+      el.addEventListener("click", () => {
+        setBillingPeriod(el.dataset.billingOpt === "yearly" ? "yearly" : "monthly");
+      });
+    });
+    syncBillingToggleInputs(selectedBilling === "yearly");
+    refreshBillingUI();
+  }
+
+  function initBillingToggle() {
+    wireBillingToggles();
+  }
+
   function loadRazorpayScript() {
     if (razorpayScriptLoaded || window.Razorpay) {
       razorpayScriptLoaded = true;
@@ -93,13 +165,15 @@
   }
 
   function wirePayButtons() {
-    document.querySelectorAll("[data-bk-plan][data-bk-billing]").forEach((btn) => {
+    document.querySelectorAll("[data-bk-plan]").forEach((btn) => {
       if (btn.dataset.bkWired) return;
       btn.dataset.bkWired = "1";
       btn.addEventListener("click", () => {
-        buyBolKarigarPlan(btn.dataset.bkPlan, btn.dataset.bkBilling);
+        const billing = btn.dataset.bkBilling || getSelectedBilling();
+        buyBolKarigarPlan(btn.dataset.bkPlan, billing);
       });
     });
+    wireBillingToggles();
   }
 
   async function updatePaywallTestHint(me) {
@@ -361,5 +435,7 @@
   window.buyBolKarigarPlan = buyBolKarigarPlan;
   window.bkRenderSubscriptionUI = renderSubscriptionUI;
   window.refreshPlanStatus = refreshPlanStatus;
+  window.bkGetSelectedBilling = getSelectedBilling;
+  window.bkInitBillingToggle = initBillingToggle;
   document.addEventListener("DOMContentLoaded", wirePayButtons);
 })();

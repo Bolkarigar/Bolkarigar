@@ -3385,6 +3385,65 @@ body.app-lock-active { overflow: hidden; }
 }
 .gst-toggle-wrap input:checked + .gst-toggle-slider { background: var(--accent); }
 .gst-toggle-wrap input:checked + .gst-toggle-slider::before { transform: translateX(18px); }
+
+/* Plan billing — Monthly / Yearly slide toggle */
+.bk-billing-toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.bk-billing-opt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color 0.2s;
+  user-select: none;
+}
+.bk-billing-opt.active { color: var(--accent); }
+.bk-billing-toggle {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.bk-billing-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.bk-billing-slider {
+  position: absolute;
+  inset: 0;
+  background: #475569;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.bk-billing-slider::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+.bk-billing-toggle input:checked + .bk-billing-slider { background: var(--accent); }
+.bk-billing-toggle input:checked + .bk-billing-slider::before { transform: translateX(24px); }
+.bk-billing-save {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
 .inv-advanced-box {
   margin-bottom: 12px;
   padding: 10px 12px;
