@@ -6206,6 +6206,19 @@ function getEWayBillDetails() {
     updateKhataPaginationUI(key);
   }
 
+  function formatKhataLedgerBalance(l) {
+    const isDebtor = l.ledgerGroup === "Sundry Debtor" || l.partyType === "Debtor";
+    if (isDebtor) {
+      const pending = Number(l.pendingUdhar ?? Math.max(0, l.currentBalance ?? 0)) || 0;
+      if (l.udharClear || pending <= 0.01) {
+        return `<span class="khata-badge-clear">Paid / Clear</span>`;
+      }
+      return `<span class="khata-badge-udhar">₹${pending.toFixed(2)} Udhar</span>`;
+    }
+    const bal = Number(l.currentBalance) || 0;
+    return `<span class="${bal >= 0 ? "khata-badge-debit" : "khata-badge-credit"}">₹${Math.abs(bal).toFixed(2)} ${bal >= 0 ? "Dr" : "Cr"}</span>`;
+  }
+
   function renderKhataLedgersTable(body) {
     const rows = getKhataPageSlice("ledgers");
     if (!khataPag.ledgers.data.length) {
@@ -6217,7 +6230,7 @@ function getEWayBillDetails() {
         <td>${escapeHtml(l.partyName)}</td>
         <td>${escapeHtml(l.ledgerGroup) || escapeHtml(l.partyType)}</td>
         <td>${escapeHtml(l.mobile) || "-"}</td>
-        <td class="${l.currentBalance >= 0 ? 'khata-badge-debit' : 'khata-badge-credit'}">₹${Math.abs(l.currentBalance).toFixed(2)} ${l.currentBalance >= 0 ? "Dr" : "Cr"}</td>
+        <td>${formatKhataLedgerBalance(l)}</td>
         <td class="khata-act-group">
           <button type="button" class="khata-act-btn" title="Account edit karo" aria-label="Edit account" onclick="typeof openModifyPanel==='function'&&openModifyPanel('account','${l._id}')">✏️ Edit</button>
           <button type="button" class="khata-act-btn" title="Ledger Statement dekho — saari transactions / खाता विवरण" aria-label="View ledger statement" onclick="viewKhataLedgerStatement('${l._id}')">📄 Statement</button>
@@ -6328,7 +6341,7 @@ function getEWayBillDetails() {
       showToast("Ledger statement window failed to load. Please refresh the page.", "error");
       return;
     }
-    body.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>";
+    body.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
     if (meta) meta.textContent = "";
     modal.classList.remove("hidden");
     try {
@@ -6337,10 +6350,33 @@ function getEWayBillDetails() {
       if (!data.success) throw new Error(data.error);
       if (title) title.textContent = `📄 ${data.partyName} — Ledger Statement`;
       if (meta) {
-        meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
+        if (data.isDebtorStatement) {
+          const pending = Number(data.pendingUdhar ?? Math.max(0, data.currentBalance ?? 0)) || 0;
+          const status = data.udharClear || pending <= 0.01 ? "Paid / Clear" : `Udhar Pending ₹${pending.toFixed(2)}`;
+          meta.textContent = `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Udhar Pending: ₹${pending.toFixed(2)} | ${status}`;
+        } else {
+          meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
+        }
       }
       if (!data.history?.length) {
-        body.innerHTML = `<tr><td colspan='4' style="text-align:center;">Abhi koi transaction nahi. Sirf opening balance hai.</td></tr>`;
+        body.innerHTML = `<tr><td colspan='7' style="text-align:center;">Abhi koi transaction nahi. Sirf opening balance hai.</td></tr>`;
+        return;
+      }
+      if (data.isDebtorStatement) {
+        body.innerHTML = data.history.map(v => {
+          const statusClass = v.status === "Udhar" ? "khata-badge-udhar"
+            : (v.status === "Paid" ? "khata-badge-clear" : "khata-badge-neutral");
+          return `
+        <tr>
+          <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
+          <td>${escapeHtml(v.voucherType)}</td>
+          <td>₹${Number(v.amount || 0).toFixed(2)}</td>
+          <td>${escapeHtml(v.paymentMode || "—")}</td>
+          <td><span class="${statusClass}">${escapeHtml(v.status || "-")}</span></td>
+          <td>₹${Number(v.runningBalance ?? 0).toFixed(2)}</td>
+          <td>${escapeHtml(v.note) || "-"}</td>
+        </tr>`;
+        }).join("");
         return;
       }
       body.innerHTML = data.history.map(v => `
@@ -6348,10 +6384,13 @@ function getEWayBillDetails() {
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
           <td>${escapeHtml(v.voucherType)}</td>
           <td>₹${Number(v.amount || 0).toFixed(2)}</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
           <td>${escapeHtml(v.note) || "-"}</td>
         </tr>`).join("");
     } catch (err) {
-      body.innerHTML = `<tr><td colspan='4'>Error: ${escapeHtml(err.message)}</td></tr>`;
+      body.innerHTML = `<tr><td colspan='7'>Error: ${escapeHtml(err.message)}</td></tr>`;
       showToast("❌ " + err.message, "error");
     }
   };

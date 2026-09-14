@@ -42,7 +42,12 @@ const {
 } = require('./subscription');
 const { setupRazorpayPayments, getRazorpayMode } = require('./razorpay-payments');
 const { setupDevPlanToggle } = require('./dev-plan-toggle');
-const { isCreditPayment, reconcileAllDebtorLedgers } = require('./payment-utils');
+const {
+  isCreditPayment,
+  reconcileAllDebtorLedgers,
+  getDebtorUdharSummary,
+  buildDebtorLedgerStatement
+} = require('./payment-utils');
 const logger = require('./logger');
 
 let payrollHelpers = null;
@@ -2342,11 +2347,23 @@ app.post('/api/ledgers', authenticateToken, requirePermission(PERMISSIONS.KHATA_
 app.get('/api/ledgers', authenticateToken, async (req, res) => {
   try {
     const Payment = mongoose.models.Payment;
+    const models = { Ledger, SalesHistory, Payment, Voucher };
     if (Payment) {
-      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
+      await reconcileAllDebtorLedgers(req.dataUserId, models);
     }
     const ledgers = await Ledger.find({ userId: req.dataUserId }).sort({ partyName: 1 });
-    res.json({ success: true, ledgers });
+    const enriched = await Promise.all(ledgers.map(async (ledger) => {
+      const row = ledger.toObject();
+      if (ledger.ledgerGroup === 'Sundry Debtor' && Payment) {
+        const summary = await getDebtorUdharSummary(req.dataUserId, ledger, models);
+        row.pendingUdhar = summary.pendingUdhar;
+        row.paidAmount = summary.paid;
+        row.billedAmount = summary.billed;
+        row.udharClear = summary.udharClear;
+      }
+      return row;
+    }));
+    res.json({ success: true, ledgers: enriched });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2764,11 +2781,28 @@ app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) =>
   try {
     const party = await Ledger.findOne({ _id: req.params.partyId, userId: req.dataUserId });
     if (!party) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
+
+    const Payment = mongoose.models.Payment;
+    const models = { Ledger, SalesHistory, Payment, Voucher };
+
+    if (party.ledgerGroup === 'Sundry Debtor' && Payment) {
+      const statement = await buildDebtorLedgerStatement(req.dataUserId, party, models);
+      return res.json({ success: true, ...statement, isDebtorStatement: true });
+    }
+
     const transactions = await Voucher.find({
       userId: req.dataUserId,
       $or: [{ partyId: req.params.partyId }, { secondaryLedgerId: req.params.partyId }]
     }).sort({ date: 1 });
-    res.json({ success: true, partyName: party.partyName, openingBalance: party.openingBalance, currentBalance: party.currentBalance, history: transactions });
+    res.json({
+      success: true,
+      partyName: party.partyName,
+      ledgerGroup: party.ledgerGroup,
+      openingBalance: party.openingBalance,
+      currentBalance: party.currentBalance,
+      history: transactions,
+      isDebtorStatement: false
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

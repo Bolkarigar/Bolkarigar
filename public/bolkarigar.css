@@ -1425,6 +1425,9 @@ textarea.form-input {
 }
 .khata-badge-debit { color: #22c55e; font-weight: 700; }
 .khata-badge-credit { color: #ef4444; font-weight: 700; }
+.khata-badge-udhar { color: #f59e0b; font-weight: 700; }
+.khata-badge-clear { color: #22c55e; font-weight: 700; }
+.khata-badge-neutral { color: var(--muted, #94a3b8); font-weight: 600; }
 
 .khata-pagination {
   display: flex;

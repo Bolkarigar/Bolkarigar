@@ -87,10 +87,159 @@ async function reconcileAllDebtorLedgers(userId, models) {
   return updates;
 }
 
+/** Billed / paid / pending udhar — same logic as Credit Ledger outstanding row. */
+async function getDebtorUdharSummary(userId, ledger, models) {
+  const { SalesHistory, Payment } = models;
+  const pendingRaw = await reconcileDebtorLedger(userId, ledger, models);
+  const rx = partyRegex(ledger.partyName);
+  let billed = 0;
+  let paid = 0;
+
+  const sales = await SalesHistory.find({ userId, customer: rx });
+  for (const s of sales) {
+    const amt = saleRecordAmount(s);
+    billed += amt;
+    if (!isCreditPayment(s.paymentType, s.status)) paid += amt;
+  }
+
+  const payments = await Payment.find({ userId, customerName: rx });
+  for (const p of payments) {
+    paid += Number(p.amount) || 0;
+  }
+
+  const pendingUdhar = Math.max(0, pendingRaw);
+  return {
+    pendingUdhar,
+    pending: pendingUdhar,
+    billed,
+    paid,
+    udharClear: pendingUdhar <= 0.01
+  };
+}
+
+function salesVoucherDuplicate(sales, voucher) {
+  const amt = Number(voucher.amount) || 0;
+  return sales.some((s) =>
+    Math.abs(saleRecordAmount(s) - amt) < 0.02 && sameCalendarDay(s.date, voucher.date)
+  );
+}
+
+/**
+ * Ledger statement for Sundry Debtor — shows Paid vs Udhar and running udhar balance.
+ */
+async function buildDebtorLedgerStatement(userId, ledger, models) {
+  const { SalesHistory, Payment, Voucher } = models;
+  const openingBalance = Number(ledger.openingBalance) || 0;
+  const currentUdhar = await reconcileDebtorLedger(userId, ledger, models);
+
+  if (Math.abs(currentUdhar - (Number(ledger.currentBalance) || 0)) > 0.009) {
+    ledger.currentBalance = currentUdhar;
+    await ledger.save();
+  }
+
+  const rx = partyRegex(ledger.partyName);
+  const events = [];
+
+  const sales = await SalesHistory.find({ userId, customer: rx });
+  for (const s of sales) {
+    const amt = saleRecordAmount(s);
+    const credit = isCreditPayment(s.paymentType, s.status);
+    events.push({
+      date: s.date,
+      sortKey: new Date(s.date).getTime(),
+      voucherType: 'Sale',
+      amount: amt,
+      paymentMode: s.paymentType || 'Cash',
+      status: credit ? 'Udhar' : 'Paid',
+      udharEffect: credit ? amt : 0,
+      note: [s.product, s.invoiceNo ? `#${s.invoiceNo}` : ''].filter(Boolean).join(' — ') || '-'
+    });
+  }
+
+  const payments = await Payment.find({ userId, customerName: rx });
+  for (const p of payments) {
+    const amt = Number(p.amount) || 0;
+    if (amt <= 0) continue;
+    events.push({
+      date: p.date,
+      sortKey: new Date(p.date).getTime(),
+      voucherType: 'Payment',
+      amount: amt,
+      paymentMode: p.paymentMode || 'Cash',
+      status: 'Received',
+      udharEffect: -amt,
+      note: p.note || 'Payment received'
+    });
+  }
+
+  const vouchers = await Voucher.find({
+    userId,
+    $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
+  });
+  for (const v of vouchers) {
+    const amt = Number(v.amount) || 0;
+    if (amt <= 0) continue;
+
+    if (v.voucherType === 'Sales' && salesVoucherDuplicate(sales, v)) continue;
+
+    let udharEffect = 0;
+    let status = 'Accounting';
+    if (v.voucherType === 'Sales') {
+      const credit = isCreditPayment(v.paymentMode, null);
+      udharEffect = credit ? amt : 0;
+      status = credit ? 'Udhar' : 'Paid';
+    } else if (v.voucherType === 'Receipt') {
+      udharEffect = -amt;
+      status = 'Received';
+    }
+
+    events.push({
+      date: v.date,
+      sortKey: new Date(v.date).getTime(),
+      voucherType: v.voucherType,
+      amount: amt,
+      paymentMode: v.paymentMode || '—',
+      status,
+      udharEffect,
+      note: v.note || '-'
+    });
+  }
+
+  events.sort((a, b) => a.sortKey - b.sortKey);
+
+  let running = openingBalance;
+  const history = events.map((e) => {
+    running += e.udharEffect;
+    return {
+      date: e.date,
+      voucherType: e.voucherType,
+      amount: e.amount,
+      paymentMode: e.paymentMode,
+      status: e.status,
+      udharEffect: e.udharEffect,
+      runningBalance: Math.round(running * 100) / 100,
+      note: e.note
+    };
+  });
+
+  const pendingUdhar = Math.max(0, currentUdhar);
+  return {
+    partyName: ledger.partyName,
+    ledgerGroup: ledger.ledgerGroup,
+    openingBalance,
+    currentBalance: Math.round(currentUdhar * 100) / 100,
+    pendingUdhar,
+    udharClear: pendingUdhar <= 0.01,
+    history
+  };
+}
+
 module.exports = {
   isCreditPayment,
   saleRecordAmount,
   reconcileDebtorLedger,
   reconcileAllDebtorLedgers,
+  getDebtorUdharSummary,
+  buildDebtorLedgerStatement,
   partyRegex
 };
