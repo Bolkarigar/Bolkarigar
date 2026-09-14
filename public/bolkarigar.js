@@ -25,6 +25,13 @@ function showToast(msg, type = "success") {
   showToast._timer = setTimeout(() => el.classList.add("hidden"), 3500);
 }
 
+function bkVoucherTypeLabel(type) {
+  if (type === "Debit Note") return "Purchase Return";
+  if (type === "Credit Note") return "Sales Return";
+  return type || "";
+}
+window.bkVoucherTypeLabel = bkVoucherTypeLabel;
+
 function isCreditSale(item) {
   const pt = String(item?.paymentType || "Cash").trim().toLowerCase();
   if (pt === "credit" || pt === "udhar") return true;
@@ -6299,7 +6306,7 @@ function getEWayBillDetails() {
       return `
       <tr>
         <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
-        <td>${v.voucherType}</td>
+        <td>${escapeHtml(typeof bkVoucherTypeLabel === "function" ? bkVoucherTypeLabel(v.voucherType) : v.voucherType)}</td>
         <td>${partyCol}</td>
         <td>₹${v.amount.toFixed(2)}</td>
         <td>${escapeHtml(v.note) || "-"}</td>
@@ -6393,7 +6400,7 @@ function getEWayBillDetails() {
           return `
         <tr>
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
-          <td>${escapeHtml(v.voucherType)}</td>
+          <td>${escapeHtml(typeof bkVoucherTypeLabel === "function" ? bkVoucherTypeLabel(v.voucherType) : v.voucherType)}</td>
           <td>₹${Number(v.amount || 0).toFixed(2)}</td>
           <td>${escapeHtml(v.paymentMode || "—")}</td>
           <td><span class="${statusClass}">${escapeHtml(v.status || "-")}</span></td>
@@ -6406,7 +6413,7 @@ function getEWayBillDetails() {
       body.innerHTML = data.history.map(v => `
         <tr>
           <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
-          <td>${escapeHtml(v.voucherType)}</td>
+          <td>${escapeHtml(typeof bkVoucherTypeLabel === "function" ? bkVoucherTypeLabel(v.voucherType) : v.voucherType)}</td>
           <td>₹${Number(v.amount || 0).toFixed(2)}</td>
           <td>—</td>
           <td>—</td>
@@ -6817,9 +6824,9 @@ function getEWayBillDetails() {
 
     let html = "";
     if (type === "Debit Note") {
-      html = `<strong>Debit Note effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>increase by ₹${amount.toFixed(2)}</strong> (additional charge).${itemCount ? ` Items: ${itemCount} line(s). Stock will decrease.` : ""}`;
+      html = `<strong>Purchase Return effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>increase by ₹${amount.toFixed(2)}</strong> (additional charge).${itemCount ? ` Items: ${itemCount} line(s). Stock will decrease.` : ""}`;
     } else if (type === "Credit Note") {
-      html = `<strong>Credit Note effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>decrease by ₹${amount.toFixed(2)}</strong> (return / discount).${itemCount ? ` Items: ${itemCount} line(s). Stock will increase.` : ""}`;
+      html = `<strong>Sales Return effect:</strong> Customer <strong>${escapeHtml(partyName)}</strong> balance will <strong>decrease by ₹${amount.toFixed(2)}</strong> (return / discount).${itemCount ? ` Items: ${itemCount} line(s). Stock will increase.` : ""}`;
     } else if (type === "Journal") {
       box.classList.add("hidden");
       return;
@@ -6903,16 +6910,16 @@ function getEWayBillDetails() {
     }
     if (adjustTitle) {
       adjustTitle.textContent = isDebitNote
-        ? "📋 Debit Note Details"
+        ? "📋 Purchase Return Details"
         : isCreditNote
-          ? "📋 Credit Note Details"
+          ? "📋 Sales Return Details"
           : isJournal
             ? "📒 Journal Entry"
             : "🔄 Contra Entry";
     }
     if (adjustHint) {
       adjustHint.textContent = isDebitNote
-        ? "Additional charge to customer — increases receivable balance."
+        ? "Purchase return — additional charge to customer, increases receivable balance."
         : isCreditNote
           ? "Sales return or discount — reduces what customer owes."
           : isJournal

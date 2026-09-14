@@ -37,14 +37,44 @@
     { id: "invoice", icon: "🧾", label: "Invoice (Sales)", desc: "Saved sales history record" },
     { id: "purchase", icon: "📥", label: "Purchase Bill", desc: "Supplier bill, amount, note" },
     { id: "payment", icon: "💸", label: "Payment", desc: "Paid to party, amount, mode" },
-    { id: "receipt", icon: "💰", label: "Receipt", desc: "Received from party, amount" }
+    { id: "receipt", icon: "💰", label: "Receipt", desc: "Received from party, amount" },
+    { id: "purchase_return", icon: "↩️", label: "Purchase Return", desc: "Return to supplier (Debit Note)" },
+    { id: "sales_return", icon: "↪️", label: "Sales Return", desc: "Customer return (Credit Note)" },
+    { id: "journal", icon: "📓", label: "Journal", desc: "Journal entry — Dr / Cr lines" }
   ];
+
+  const VOUCHER_MODIFY_TYPES = {
+    purchase: "Purchase",
+    payment: "Payment",
+    receipt: "Receipt",
+    purchase_return: "Debit Note",
+    sales_return: "Credit Note",
+    journal: "Journal"
+  };
 
   const LEDGER_GROUP_OPTS = [
     "Sundry Debtor", "Sundry Creditor", "Cash", "Bank", "Expense", "Income", "Capital", "Fixed Asset"
   ];
 
-  const DATE_SEARCH_TYPES = new Set(["invoice", "purchase", "payment", "receipt"]);
+  const DATE_SEARCH_TYPES = new Set([
+    "invoice", "purchase", "payment", "receipt", "purchase_return", "sales_return", "journal"
+  ]);
+
+  function isVoucherModifyType(typeId) {
+    return Object.prototype.hasOwnProperty.call(VOUCHER_MODIFY_TYPES, typeId);
+  }
+
+  function modifyTypeTitle(typeId) {
+    const map = {
+      purchase: "Purchase Bill",
+      payment: "Payment",
+      receipt: "Receipt",
+      purchase_return: "Purchase Return",
+      sales_return: "Sales Return",
+      journal: "Journal"
+    };
+    return map[typeId] || "Voucher";
+  }
 
   let currentType = null;
   let selectedRecord = null;
@@ -152,7 +182,10 @@
       invoice: "Customer name, invoice no, product search...",
       purchase: "Supplier name, bill no, note search...",
       payment: "Party name, note search...",
-      receipt: "Party name, note search..."
+      receipt: "Party name, note search...",
+      purchase_return: "Party name, reference, note search...",
+      sales_return: "Customer name, reference, note search...",
+      journal: "Ledger name, note search..."
     };
     return map[typeId] || "Search...";
   }
@@ -257,25 +290,34 @@
           title: `${r.customer || "—"} — ${r.product || "—"}`,
           meta: [r.invoiceNo, new Date(r.date).toLocaleDateString("en-IN"), `₹${Number(r.totalAmount || 0).toFixed(2)}`].filter(Boolean).join(" · ")
         }));
-      } else {
-        const vType = currentType === "purchase" ? "Purchase" : currentType === "payment" ? "Payment" : "Receipt";
+      } else if (isVoucherModifyType(currentType)) {
+        const vType = VOUCHER_MODIFY_TYPES[currentType];
         const params = new URLSearchParams({ type: vType, limit: "30" });
         if (q) params.set("search", q);
         if (fromDate) params.set("fromDate", fromDate);
         if (toDate) params.set("toDate", toDate);
         const res = await fetch(`${API()}/api/vouchers?${params}`, { headers: headers() });
         const data = await res.json();
-        rows = (data.vouchers || []).map((v) => ({
-          id: v._id,
-          raw: v,
-          title: `${v.partyId?.partyName || "—"} — ₹${Number(v.amount || 0).toFixed(2)}`,
-          meta: [
-            new Date(v.date).toLocaleDateString("en-IN"),
-            v.supplierInvoiceNo,
-            v.paymentMode,
-            v.note
-          ].filter(Boolean).join(" · ")
-        }));
+        rows = (data.vouchers || []).map((v) => {
+          const partyLabel = v.partyId?.partyName
+            || (v.journalEntries?.length
+              ? v.journalEntries.map((e) => `${e.ledgerName || ""} ${e.drCr}`).join(", ")
+              : "—");
+          return {
+            id: v._id,
+            raw: v,
+            title: currentType === "journal"
+              ? `Journal — ₹${Number(v.amount || 0).toFixed(2)}`
+              : `${partyLabel} — ₹${Number(v.amount || 0).toFixed(2)}`,
+            meta: [
+              modifyTypeTitle(currentType),
+              new Date(v.date).toLocaleDateString("en-IN"),
+              v.supplierInvoiceNo,
+              v.paymentMode,
+              v.note
+            ].filter(Boolean).join(" · ")
+          };
+        });
       }
       searchResults = rows;
       showSearchResults(rows, pickSearchResult);
@@ -418,7 +460,27 @@
           <p class="modify-hint">Change Qty, Price or GST — Total Amount will update automatically.</p>
         </div>`;
       wireModifyAutoTotal("mdfQty", "mdfPrice", "mdfInvGst", "mdfTotal");
-    } else {
+    } else if (currentType === "journal") {
+      const dateStr = r.date ? new Date(r.date).toISOString().slice(0, 10) : "";
+      const lines = (r.journalEntries || []).map((e) =>
+        `${esc(e.ledgerName || "Ledger")} — ${e.drCr} ₹${Number(e.amount || 0).toFixed(2)}`
+      ).join("<br>") || "No journal lines.";
+      area.innerHTML = `
+        <div class="modify-edit-card">
+          <h4 class="modify-edit-title">✏️ Journal Edit</h4>
+          <div class="modify-form-grid">
+            <label><span>Date</span>
+              <input type="date" id="mdfVchDate" value="${dateStr}" /></label>
+            <label><span>Total Amount (read-only)</span>
+              <input type="text" readonly value="₹${Number(r.amount || 0).toFixed(2)}" /></label>
+            <label class="modify-span2"><span>Journal Lines (read-only)</span>
+              <div class="modify-readonly-lines">${lines}</div></label>
+            <label class="modify-span2"><span>Narration / Note</span>
+              <textarea id="mdfVchNote" rows="2">${esc(r.note || "")}</textarea></label>
+          </div>
+          <p class="modify-hint">Edit date or note here. To change Dr/Cr lines, delete and create a new Journal voucher.</p>
+        </div>`;
+    } else if (isVoucherModifyType(currentType)) {
       const isPurchase = currentType === "purchase";
       const partyName = r.partyId?.partyName || "";
       const partyId = r.partyId?._id || r.partyId || "";
@@ -429,7 +491,7 @@
       const purGst = firstItem.gstRate ?? 0;
       area.innerHTML = `
         <div class="modify-edit-card">
-          <h4 class="modify-edit-title">✏️ ${isPurchase ? "Purchase Bill" : currentType === "payment" ? "Payment" : "Receipt"} Edit</h4>
+          <h4 class="modify-edit-title">✏️ ${modifyTypeTitle(currentType)} Edit</h4>
           <div class="modify-form-grid">
             <label><span>Date</span>
               <input type="date" id="mdfVchDate" value="${dateStr}" /></label>
@@ -464,7 +526,9 @@
           </div>
           <p class="modify-hint">${isPurchase
             ? "Purchase amount is auto-calculated from Qty × Rate + GST."
-            : "Payment / Receipt: Enter amount directly (how much was paid to / received from party)."}</p>
+            : currentType === "purchase_return" || currentType === "sales_return"
+              ? "Update party, amount, date or note for this return voucher."
+              : "Payment / Receipt: Enter amount directly (how much was paid to / received from party)."}</p>
         </div>`;
       setupModifyPartyAutocomplete();
       if (isPurchase) wireModifyAutoTotal("mdfPurQty", "mdfPurRate", "mdfPurGst", "mdfVchAmount");
@@ -579,7 +643,14 @@
           status: document.getElementById("mdfStatus")?.value,
           voucherDate: document.getElementById("mdfInvDate")?.value || undefined
         };
-      } else {
+      } else if (currentType === "journal") {
+        url = `${API()}/api/vouchers/${selectedRecord.id}`;
+        method = "PUT";
+        body = {
+          note: document.getElementById("mdfVchNote")?.value.trim(),
+          voucherDate: document.getElementById("mdfVchDate")?.value || undefined
+        };
+      } else if (isVoucherModifyType(currentType)) {
         const partyId = document.getElementById("mdfVchPartyId")?.value;
         const amount = parseFloat(document.getElementById("mdfVchAmount")?.value) || 0;
         if (!partyId) { setStatus("Please select a party from the list.", false); return; }
@@ -630,7 +701,10 @@
       invoice: "invoice (sales) record",
       purchase: "purchase bill",
       payment: "payment voucher",
-      receipt: "receipt voucher"
+      receipt: "receipt voucher",
+      purchase_return: "purchase return voucher",
+      sales_return: "sales return voucher",
+      journal: "journal voucher"
     };
     const label = labels[currentType] || "record";
     if (!confirm(`Delete this ${label}? This cannot be undone.`)) return;
@@ -643,7 +717,7 @@
         url = `${API()}/api/items/${selectedRecord.id}`;
       } else if (currentType === "invoice") {
         url = `${API()}/api/sales/${selectedRecord.id}`;
-      } else {
+      } else if (isVoucherModifyType(currentType) || currentType === "journal") {
         url = `${API()}/api/vouchers/${selectedRecord.id}`;
       }
 
@@ -699,10 +773,19 @@
   window.refreshModifyPanel = resetModifyPanel;
 
   window.openModifyVoucherFromDaybook = function (id, voucherType) {
-    const map = { Purchase: "purchase", Payment: "payment", Receipt: "receipt" };
+    const map = {
+      Purchase: "purchase",
+      Payment: "payment",
+      Receipt: "receipt",
+      "Debit Note": "purchase_return",
+      "Credit Note": "sales_return",
+      Journal: "journal"
+    };
     const type = map[voucherType];
     if (!type) {
-      if (typeof showToast === "function") showToast("Modification for this voucher type is currently available for Purchase/Payment/Receipt.", "info");
+      if (typeof showToast === "function") {
+        showToast("Modification is available for Purchase, Payment, Receipt, Purchase Return, Sales Return and Journal.", "info");
+      }
       return;
     }
     window.openModifyPanel(type, id);
