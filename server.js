@@ -2657,7 +2657,9 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
 
     let finalAmount = Number(amount) || 0;
     let finalPartyId = partyId;
-    let finalSecondaryId = secondaryLedgerId;
+    let finalSecondaryId = secondaryLedgerId && String(secondaryLedgerId).trim()
+      ? secondaryLedgerId
+      : undefined;
     let finalJournalEntries = [];
 
     if (voucherType === 'Journal' && Array.isArray(journalEntries) && journalEntries.length >= 2) {

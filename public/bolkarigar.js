@@ -7130,7 +7130,7 @@ function getEWayBillDetails() {
         body: JSON.stringify({
           voucherType,
           partyId: voucherType === "Journal" ? undefined : partyId,
-          secondaryLedgerId: voucherType === "Journal" ? undefined : secondaryLedgerId,
+          secondaryLedgerId: voucherType === "Contra" ? (secondaryLedgerId || undefined) : undefined,
           amount,
           items,
           journalEntries: journalEntries.length ? journalEntries : undefined,
