@@ -2777,6 +2777,39 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
   }
 });
 
+app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
+  try {
+    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
+
+    const {
+      voucherType, partyId, secondaryLedgerId, amount, items, journalEntries, paymentMode
+    } = voucher;
+
+    if (voucherType === 'Journal' && journalEntries?.length) {
+      await applyJournalEntryDeltas(req.dataUserId, journalEntries, -1);
+    } else {
+      const skipPartyLedger = voucherType === 'Sales' && !isCreditPayment(paymentMode, null);
+      if (!skipPartyLedger) {
+        await applyVoucherLedgerDeltas(
+          req.dataUserId, partyId, secondaryLedgerId, voucherType, amount, -1
+        );
+      }
+    }
+    await applyVoucherStockDeltas(req.dataUserId, voucherType, items || [], -1);
+    await Voucher.deleteOne({ _id: voucher._id });
+
+    const Payment = mongoose.models.Payment;
+    if (Payment && partyId) {
+      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
+    }
+
+    res.json({ success: true, message: `${voucherType} voucher delete ho gaya.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) => {
   try {
     const party = await Ledger.findOne({ _id: req.params.partyId, userId: req.dataUserId });

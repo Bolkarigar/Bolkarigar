@@ -71,6 +71,10 @@
     el.style.color = ok === true ? "#22c55e" : ok === false ? "#ef4444" : "var(--muted)";
   }
 
+  function toggleDeleteBtn(show) {
+    document.getElementById("modifyDeleteBtn")?.classList.toggle("hidden", !show);
+  }
+
   function renderTypeCards() {
     const grid = document.getElementById("modifyTypeGrid");
     if (!grid) return;
@@ -123,6 +127,7 @@
     document.getElementById("modifySearchSection")?.classList.remove("hidden");
     updateDateFiltersVisibility(typeId);
     if (searchEl) searchEl.placeholder = getSearchPlaceholder(typeId);
+    toggleDeleteBtn(false);
     setStep(2);
     setStatus("");
   }
@@ -272,6 +277,7 @@
     const searchEl = document.getElementById("modifySearchInput");
     if (searchEl) searchEl.value = row.title;
     renderEditForm();
+    toggleDeleteBtn(true);
     setStep(3);
   }
 
@@ -600,6 +606,65 @@
     }
   }
 
+  async function deleteModification() {
+    if (!selectedRecord || !currentType) {
+      setStatus("Please search and select a record to delete.", false);
+      return;
+    }
+
+    const labels = {
+      account: "account / party ledger",
+      item: "stock item",
+      invoice: "invoice (sales) record",
+      purchase: "purchase bill",
+      payment: "payment voucher",
+      receipt: "receipt voucher"
+    };
+    const label = labels[currentType] || "record";
+    if (!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+
+    try {
+      let url;
+      if (currentType === "account") {
+        url = `${API()}/api/ledgers/${selectedRecord.id}`;
+      } else if (currentType === "item") {
+        url = `${API()}/api/items/${selectedRecord.id}`;
+      } else if (currentType === "invoice") {
+        url = `${API()}/api/sales/${selectedRecord.id}`;
+      } else {
+        url = `${API()}/api/vouchers/${selectedRecord.id}`;
+      }
+
+      const res = await fetch(url, { method: "DELETE", headers: headers() });
+      const data = await parseApiResponse(res);
+      if (!res.ok || data.success === false) throw new Error(data.error || "Delete failed");
+
+      const msg = data.message || "Record deleted successfully.";
+      setStatus("✅ " + msg, true);
+      if (typeof showToast === "function") showToast("✅ " + msg);
+
+      if (currentType === "account") ledgerCache = [];
+      if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
+      if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+      if (typeof window.refreshUdharKhata === "function") window.refreshUdharKhata();
+      if (currentType === "invoice" && typeof window.bkRefreshSalesPanel === "function") {
+        window.bkRefreshSalesPanel({ resetPage: false });
+      }
+      if (typeof window.loadInventory === "function") window.loadInventory();
+
+      selectedRecord = null;
+      document.getElementById("modifyEditArea").innerHTML = "";
+      toggleDeleteBtn(false);
+      setStep(2);
+      setStatus("Record deleted. Search again or pick another type.", true);
+      const searchEl = document.getElementById("modifySearchInput");
+      if (searchEl?.value.trim() || getSearchDateRange().fromDate) runSearch();
+    } catch (err) {
+      setStatus("❌ " + err.message, false);
+      if (typeof showToast === "function") showToast("❌ " + err.message, "error");
+    }
+  }
+
   function resetModifyPanel() {
     currentType = null;
     selectedRecord = null;
@@ -611,6 +676,7 @@
     hideSearchResults();
     document.getElementById("modifyEditArea").innerHTML = "";
     document.getElementById("modifySearchSection")?.classList.add("hidden");
+    toggleDeleteBtn(false);
     renderTypeCards();
     setStep(1);
     setStatus("");
@@ -682,6 +748,7 @@
   document.getElementById("modifySearchFrom")?.addEventListener("change", triggerSearch);
   document.getElementById("modifySearchTo")?.addEventListener("change", triggerSearch);
   document.getElementById("modifySaveBtn")?.addEventListener("click", saveModification);
+  document.getElementById("modifyDeleteBtn")?.addEventListener("click", deleteModification);
   document.getElementById("modifyResetBtn")?.addEventListener("click", resetModifyPanel);
 
   renderTypeCards();
