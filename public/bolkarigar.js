@@ -25,17 +25,27 @@ function showToast(msg, type = "success") {
   showToast._timer = setTimeout(() => el.classList.add("hidden"), 3500);
 }
 
-async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate }) {
+function isCreditSale(item) {
+  const pt = String(item?.paymentType || "Cash").trim().toLowerCase();
+  if (pt === "credit" || pt === "udhar") return true;
+  if (["cash", "upi", "bank", "paid"].includes(pt)) return false;
+  return String(item?.status || "").toLowerCase() === "pending";
+}
+
+async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType }) {
   if (!customer || !product) return;
+  const payType = paymentType || document.getElementById("invoicePaymentType")?.value || "Cash";
   try {
     const res = await fetch(`${API_URL}/api/khata/record-sale`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ customer, product, hsn, price, qty, gstRate })
+      body: JSON.stringify({ customer, product, hsn, price, qty, gstRate, paymentType: payType })
     });
     const data = await res.json();
     if (data.success) {
-      showToast("✅ Ledger and sales entry saved.");
+      showToast(isCreditSale({ paymentType: payType })
+        ? "✅ Credit sale saved to ledger (udhar)."
+        : "✅ Paid sale saved — not added to udhar.");
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
     } else if (data.error) {
       console.warn("Khata record-sale:", data.error);
@@ -1214,7 +1224,7 @@ async function executeInvoiceAdd() {
     if (isNewItem) {
       recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType });
       // Har nayi sale par Khata Pro me auto ledger + voucher (Tally sync alag se)
-      await recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate });
+      await recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType });
     }
 
     document.getElementById("productName").value = "";
@@ -4419,7 +4429,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
         customerGstin: customerGstin || "",
         customerState: taxMode.buyerState || customerState || "",
         invoiceDate: document.getElementById("invoiceDateInput")?.value || new Date().toISOString().slice(0, 10),
-        paymentType: document.getElementById("invoicePaymentType")?.value || "Credit",
+        paymentType: document.getElementById("invoicePaymentType")?.value || "Cash",
         tallyEdu: true,
         ewayBillNo: ewayDetails.ewayBillNo,
         vehicleNo: ewayDetails.vehicleNo,
@@ -4614,7 +4624,7 @@ function calculateFinancials(salesList = [], expenseList = []) {
       customerLedger[cust] = { billed: 0, paid: 0, pending: 0 };
     }
     customerLedger[cust].billed += amount;
-    const isCredit = item.paymentType === "Credit" || item.status === "Pending";
+    const isCredit = isCreditSale(item);
     const paidAmount = isCredit ? 0 : (parseFloat(item.paidAmount) || amount);
     customerLedger[cust].paid += paidAmount;
     customerLedger[cust].pending = customerLedger[cust].billed - customerLedger[cust].paid;
@@ -4715,7 +4725,7 @@ async function refreshUdharKhata(localFallback = {}) {
   function renderUdharRows(rows) {
     udharAllRows = rows.filter((row) => {
       const pending = row.pending ?? row.ledgerBalance ?? 0;
-      return pending > 0 || (row.billed > 0);
+      return pending > 0.01;
     });
     if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
     paintUdharPage();
@@ -4728,7 +4738,7 @@ async function refreshUdharKhata(localFallback = {}) {
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.rows?.length) {
-        const rows = data.rows.filter(r => (r.pending > 0) || (r.ledgerBalance > 0));
+        const rows = data.rows.filter(r => (r.pending > 0.01));
         if (rows.length) return renderUdharRows(rows);
       }
     }
@@ -4741,7 +4751,7 @@ async function refreshUdharKhata(localFallback = {}) {
       const cust = item.customer || "General Customer";
       if (!ledger[cust]) ledger[cust] = { billed: 0, paid: 0, pending: 0 };
       ledger[cust].billed += amount;
-      const isCredit = item.paymentType === "Credit" || item.status === "Pending";
+      const isCredit = isCreditSale(item);
       ledger[cust].paid += isCredit ? 0 : (parseFloat(item.paidAmount) || amount);
       ledger[cust].pending = ledger[cust].billed - ledger[cust].paid;
     });
@@ -4788,7 +4798,7 @@ async function showUdharDetail(customerName) {
     if (salesData.records?.length) {
       salesData.records.forEach(r => {
         const amt = r.totalAmount || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
-        const isCredit = r.status === "Pending" || r.paymentType === "Credit";
+        const isCredit = isCreditSale(r);
         const paid = isCredit ? 0 : amt;
         totalBilled += amt;
         totalPaid += paid;
@@ -8130,7 +8140,7 @@ function getEWayBillDetails() {
       (salesData.records || []).forEach((r) => {
         const amt = parseFloat(r.totalAmount) || (parseFloat(r.price) || 0) * (parseFloat(r.qty) || 1);
         billed += amt;
-        const isCredit = r.status === "Pending" || r.paymentType === "Credit";
+        const isCredit = isCreditSale(r);
         if (!isCredit) paid += amt;
       });
       (payData.payments || [])

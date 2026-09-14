@@ -42,6 +42,7 @@ const {
 } = require('./subscription');
 const { setupRazorpayPayments, getRazorpayMode } = require('./razorpay-payments');
 const { setupDevPlanToggle } = require('./dev-plan-toggle');
+const { isCreditPayment, reconcileAllDebtorLedgers } = require('./payment-utils');
 const logger = require('./logger');
 
 let payrollHelpers = null;
@@ -1046,13 +1047,15 @@ app.post('/api/sales/record', authenticateToken, async (req, res) => {
     if (!customer || !product) return res.status(400).json({ error: 'Customer aur product zaroori hain.' });
 
     const dateVal = voucherDate || date;
+    const payType = paymentType || 'Cash';
+    const credit = isCreditPayment(payType, status);
     const record = await SalesHistory.create({
       userId: req.dataUserId,
       invoiceNo, customer, product, hsn,
       qty: qty || 1, price: price || 0, gstRate: gstRate || 0,
       totalAmount: totalAmount || 0,
-      paymentType: paymentType || 'Cash',
-      status: status || 'Paid',
+      paymentType: payType,
+      status: credit ? 'Pending' : 'Paid',
       date: dateVal ? new Date(dateVal) : undefined
     });
     res.json({ success: true, record });
@@ -1132,8 +1135,12 @@ app.put('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA
     if (price != null) record.price = Number(price) || 0;
     if (gstRate != null) record.gstRate = Number(gstRate) || 0;
     if (totalAmount != null) record.totalAmount = Number(totalAmount) || 0;
-    if (paymentType !== undefined) record.paymentType = paymentType || 'Cash';
-    if (status !== undefined) record.status = status || 'Paid';
+    if (paymentType !== undefined) {
+      record.paymentType = paymentType || 'Cash';
+      record.status = isCreditPayment(record.paymentType, status) ? 'Pending' : 'Paid';
+    } else if (status !== undefined) {
+      record.status = isCreditPayment(record.paymentType, status) ? 'Pending' : 'Paid';
+    }
     const dateVal = voucherDate || date;
     if (dateVal) record.date = new Date(dateVal);
     await record.save();
@@ -1928,7 +1935,7 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requi
     const voucherParams = {
       customer, product, price, qty, gstRate, gstAmount, totalAmount, cgst, sgst,
       ewayBillNo, vehicleNo, customerGstin, customerState: resolvedCustomerState, companyState,
-      invoiceDate, paymentType: String(paymentType || 'Credit').trim(),
+      invoiceDate, paymentType: String(paymentType || 'Cash').trim(),
       tallyEdu: tallyEdu !== false
     };
 
@@ -1959,7 +1966,9 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requi
           tallyXml: '',
           syncedToTally: false
         });
-        await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: saleAmount } });
+        if (isCreditPayment(voucherParams.paymentType, null)) {
+          await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: saleAmount } });
+        }
       }
       savedVoucher.syncedToTally = false;
       savedVoucher.note = `${customer} | ${product} x${qty}`;
@@ -2332,6 +2341,10 @@ app.post('/api/ledgers', authenticateToken, requirePermission(PERMISSIONS.KHATA_
 
 app.get('/api/ledgers', authenticateToken, async (req, res) => {
   try {
+    const Payment = mongoose.models.Payment;
+    if (Payment) {
+      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
+    }
     const ledgers = await Ledger.find({ userId: req.dataUserId }).sort({ partyName: 1 });
     res.json({ success: true, ledgers });
   } catch (err) {
@@ -2610,9 +2623,10 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
       date: voucherDate ? new Date(voucherDate) : new Date()
     });
 
+    const skipPartyLedger = voucherType === 'Sales' && !isCreditPayment(paymentMode, null);
     if (voucherType === 'Journal' && finalJournalEntries.length) {
       await applyJournalEntryDeltas(req.dataUserId, finalJournalEntries, 1);
-    } else if (finalPartyId) {
+    } else if (finalPartyId && !skipPartyLedger) {
       await applyVoucherLedgerDeltas(req.dataUserId, finalPartyId, finalSecondaryId, voucherType, finalAmount, 1);
     }
 
@@ -2814,7 +2828,7 @@ app.get('/api/reports/stock-summary', authenticateToken, async (req, res) => {
 // Invoice add hone par auto Khata Pro entry — ledger + sales voucher + stock update
 app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSIONS.INVOICE_CREATE), async (req, res) => {
   try {
-    const { customer, product, price, qty, gstRate, gstin, mobile, hsn } = req.body;
+    const { customer, product, price, qty, gstRate, gstin, mobile, hsn, paymentType } = req.body;
     if (!customer || !product || !price || !qty) {
       return res.status(400).json({ success: false, error: 'Customer, product, price aur qty zaroori hain.' });
     }
@@ -2847,21 +2861,29 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
       await Item.updateOne({ _id: stockItem._id, userId: req.dataUserId }, { $inc: { stockQty: -Math.abs(qty) } });
     }
 
+    const payType = paymentType || 'Cash';
+    const credit = isCreditPayment(payType, null);
+
     const voucher = await Voucher.create({
       userId: req.dataUserId,
       voucherType: 'Sales',
       partyId: ledger._id,
       amount: totalAmount,
       items,
-      note: `${customer} | ${product} x${qty} @ ₹${price}`,
+      paymentMode: payType,
+      note: `${customer} | ${product} x${qty} @ ₹${price}${credit ? '' : ' (Paid)'}`,
       syncedToTally: false
     });
 
-    await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: totalAmount } });
+    if (credit) {
+      await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: totalAmount } });
+    }
 
     res.json({
       success: true,
-      message: `Ledger "${customer}" banaya/update kiya aur Sales voucher save ho gaya.`,
+      message: credit
+        ? `Ledger "${customer}" updated — credit sale ₹${totalAmount.toFixed(2)} added to udhar.`
+        : `Paid sale recorded for "${customer}" — ₹${totalAmount.toFixed(2)} (Cash/UPI/Bank, not udhar).`,
       ledger,
       voucherId: voucher._id
     });

@@ -5,6 +5,11 @@
  */
 const crypto = require('crypto');
 const { getSubscriptionForUser } = require('./subscription');
+const {
+  isCreditPayment,
+  saleRecordAmount,
+  reconcileAllDebtorLedgers
+} = require('./payment-utils');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -247,34 +252,49 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.get('/api/reports/outstanding', authenticateToken, ownerMiddleware, active, async (req, res) => {
     try {
-      const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: { $in: ['Sundry Debtor', 'Sundry Creditor'] } });
-      const creditSales = await SalesHistory.find({ userId: req.ownerId, status: { $in: ['Pending', 'Credit'] } });
+      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher });
+
+      const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Sundry Debtor' });
+      const allSales = await SalesHistory.find({ userId: req.ownerId });
       const payments = await Payment.find({ userId: req.ownerId });
       const byCustomer = {};
 
-      debtors.forEach(d => {
+      debtors.forEach((d) => {
         byCustomer[d.partyName.toLowerCase()] = {
-          partyName: d.partyName, ledgerBalance: d.currentBalance, billed: 0, paid: 0, pending: Math.max(0, d.currentBalance)
+          partyName: d.partyName,
+          ledgerBalance: Math.max(0, Number(d.currentBalance) || 0),
+          billed: 0,
+          paid: 0,
+          pending: Math.max(0, Number(d.currentBalance) || 0)
         };
       });
 
-      creditSales.forEach(s => {
+      allSales.forEach((s) => {
         const key = (s.customer || 'General').toLowerCase();
-        if (!byCustomer[key]) byCustomer[key] = { partyName: s.customer, ledgerBalance: 0, billed: 0, paid: 0, pending: 0 };
-        const amt = s.totalAmount || (s.price || 0) * (s.qty || 1);
+        const amt = saleRecordAmount(s);
+        if (!byCustomer[key]) {
+          byCustomer[key] = { partyName: s.customer, ledgerBalance: 0, billed: 0, paid: 0, pending: 0 };
+        }
         byCustomer[key].billed += amt;
+        if (!isCreditPayment(s.paymentType, s.status)) {
+          byCustomer[key].paid += amt;
+        }
       });
 
-      payments.forEach(p => {
+      payments.forEach((p) => {
         const key = (p.customerName || '').toLowerCase();
-        if (!byCustomer[key]) byCustomer[key] = { partyName: p.customerName, ledgerBalance: 0, billed: 0, paid: 0, pending: 0 };
-        byCustomer[key].paid += p.amount;
+        if (!byCustomer[key]) {
+          byCustomer[key] = { partyName: p.customerName, ledgerBalance: 0, billed: 0, paid: 0, pending: 0 };
+        }
+        byCustomer[key].paid += Number(p.amount) || 0;
       });
 
-      const rows = Object.values(byCustomer).map(r => {
-        const pending = r.ledgerBalance > 0 ? r.ledgerBalance : Math.max(0, r.billed - r.paid);
+      const rows = Object.values(byCustomer).map((r) => {
+        const pending = r.ledgerBalance > 0
+          ? r.ledgerBalance
+          : Math.max(0, r.billed - r.paid);
         return { ...r, pending };
-      }).filter(r => r.pending > 0.01 || r.billed > 0);
+      }).filter((r) => r.pending > 0.01);
 
       res.json({ success: true, rows });
     } catch (e) { res.status(500).json({ error: e.message }); }
