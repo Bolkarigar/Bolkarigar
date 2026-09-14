@@ -32,14 +32,17 @@ function isCreditSale(item) {
   return String(item?.status || "").toLowerCase() === "pending";
 }
 
-async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType }) {
+async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType, salesHistoryId, invoiceNo }) {
   if (!customer || !product) return;
   const payType = paymentType || document.getElementById("invoicePaymentType")?.value || "Cash";
   try {
     const res = await fetch(`${API_URL}/api/khata/record-sale`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ customer, product, hsn, price, qty, gstRate, paymentType: payType })
+      body: JSON.stringify({
+        customer, product, hsn, price, qty, gstRate, paymentType: payType,
+        salesHistoryId, invoiceNo
+      })
     });
     const data = await res.json();
     if (data.success) {
@@ -47,6 +50,7 @@ async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, 
         ? "✅ Credit sale saved to ledger (udhar)."
         : "✅ Paid sale saved — not added to udhar.");
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
+      if (typeof window.refreshUdharKhata === "function") window.refreshUdharKhata();
     } else if (data.error) {
       console.warn("Khata record-sale:", data.error);
     }
@@ -1222,9 +1226,13 @@ async function executeInvoiceAdd() {
     // karte waqt dobara record nahi hota, taaki duplicate na bane). Yeh
     // draft invoice table se bilkul alag store hai, kabhi delete nahi hota.
     if (isNewItem) {
-      recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType });
+      const saleMeta = await recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType });
       // Har nayi sale par Khata Pro me auto ledger + voucher (Tally sync alag se)
-      await recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType });
+      await recordKhataSaleFromInvoice({
+        customer, product, hsn, price, qty, gstRate, paymentType,
+        salesHistoryId: saleMeta?.id,
+        invoiceNo: saleMeta?.invoiceNo
+      });
     }
 
     document.getElementById("productName").value = "";
@@ -1250,7 +1258,7 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
       ? await getNextInvoiceNumber((JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}").name) || "INV")
       : ("INV-" + Date.now());
 
-    await fetch(`${API_URL}/api/sales/record`, {
+    const res = await fetch(`${API_URL}/api/sales/record`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({
@@ -1260,11 +1268,16 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
         voucherDate: document.getElementById("invoiceDateInput")?.value || undefined
       })
     });
+    const data = await res.json();
     refreshUdharKhata();
     refreshOverviewSalesFromHistory();
+    if (data.success && data.record?._id) {
+      return { id: data.record._id, invoiceNo: data.record.invoiceNo || invoiceNo };
+    }
   } catch (err) {
     console.error("Sales history record error:", err);
   }
+  return null;
 }
 
 document.getElementById("addInvoiceBtn")?.addEventListener("click", executeInvoiceAdd);

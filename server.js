@@ -46,7 +46,10 @@ const {
   isCreditPayment,
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,
-  buildDebtorLedgerStatement
+  buildDebtorLedgerStatement,
+  findLinkedSalesVouchers,
+  findLinkedSalesRecord,
+  findLinkedPaymentForReceipt
 } = require('./payment-utils');
 const logger = require('./logger');
 
@@ -313,6 +316,7 @@ const salesHistorySchema = new mongoose.Schema({
   totalAmount: Number,
   paymentType: { type: String, default: 'Cash' },
   status: { type: String, default: 'Paid' },
+  linkedVoucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
   date: { type: Date, default: Date.now }
 });
 
@@ -413,6 +417,8 @@ const voucherSchema = new mongoose.Schema({
   supplierInvoiceNo: String,
   supplierGstin: String,
   paymentMode: String,
+  linkedSalesId: { type: mongoose.Schema.Types.ObjectId, ref: 'SalesHistory' },
+  linkedPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
   syncedToTally: { type: Boolean, default: false },
   tallyXml: String,
   date: { type: Date, default: Date.now }
@@ -1120,10 +1126,27 @@ app.get('/api/sales/:id', authenticateToken, async (req, res) => {
 
 app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SALES_DELETE), async (req, res) => {
   try {
-    await SalesHistory.deleteOne({ _id: req.params.id, userId: req.dataUserId });
-    res.json({ success: true });
+    const sale = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!sale) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
+
+    const Payment = mongoose.models.Payment;
+    const models = { Ledger, SalesHistory, Payment, Voucher, Item };
+    const linkedVouchers = await findLinkedSalesVouchers(req.dataUserId, sale, models);
+    for (const voucher of linkedVouchers) {
+      await removeVoucherWithReversal(req.dataUserId, voucher);
+    }
+
+    await SalesHistory.deleteOne({ _id: sale._id });
+    if (Payment) {
+      await reconcileAllDebtorLedgers(req.dataUserId, models);
+    }
+
+    const parts = ['Invoice deleted'];
+    if (linkedVouchers.length) parts.push(`${linkedVouchers.length} linked voucher(s) removed`);
+    parts.push('ledgers & Credit Ledger updated');
+    res.json({ success: true, message: parts.join(' — ') + '.' });
   } catch (err) {
-    res.status(500).json({ error: 'Record delete karne mein dikkat aayi.' });
+    res.status(500).json({ success: false, error: err.message || 'Record delete karne mein dikkat aayi.' });
   }
 });
 
@@ -2777,34 +2800,60 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
   }
 });
 
+async function removeVoucherWithReversal(userId, voucher) {
+  const {
+    voucherType, partyId, secondaryLedgerId, amount, items, journalEntries, paymentMode
+  } = voucher;
+
+  if (voucherType === 'Journal' && journalEntries?.length) {
+    await applyJournalEntryDeltas(userId, journalEntries, -1);
+  } else {
+    const skipPartyLedger = voucherType === 'Sales' && !isCreditPayment(paymentMode, null);
+    if (!skipPartyLedger) {
+      await applyVoucherLedgerDeltas(
+        userId, partyId, secondaryLedgerId, voucherType, amount, -1
+      );
+    }
+  }
+  await applyVoucherStockDeltas(userId, voucherType, items || [], -1);
+  await Voucher.deleteOne({ _id: voucher._id });
+}
+
 app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
     const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId });
     if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
 
-    const {
-      voucherType, partyId, secondaryLedgerId, amount, items, journalEntries, paymentMode
-    } = voucher;
+    const Payment = mongoose.models.Payment;
+    const models = { Ledger, SalesHistory, Payment, Voucher, Item };
+    let removedSales = 0;
+    let removedPayment = 0;
 
-    if (voucherType === 'Journal' && journalEntries?.length) {
-      await applyJournalEntryDeltas(req.dataUserId, journalEntries, -1);
-    } else {
-      const skipPartyLedger = voucherType === 'Sales' && !isCreditPayment(paymentMode, null);
-      if (!skipPartyLedger) {
-        await applyVoucherLedgerDeltas(
-          req.dataUserId, partyId, secondaryLedgerId, voucherType, amount, -1
-        );
+    if (voucher.voucherType === 'Sales') {
+      const linkedSale = await findLinkedSalesRecord(req.dataUserId, voucher, models);
+      if (linkedSale) {
+        await SalesHistory.deleteOne({ _id: linkedSale._id });
+        removedSales = 1;
+      }
+    } else if (voucher.voucherType === 'Receipt' && Payment) {
+      const linkedPay = await findLinkedPaymentForReceipt(req.dataUserId, voucher, models);
+      if (linkedPay) {
+        await Payment.deleteOne({ _id: linkedPay._id });
+        removedPayment = 1;
       }
     }
-    await applyVoucherStockDeltas(req.dataUserId, voucherType, items || [], -1);
-    await Voucher.deleteOne({ _id: voucher._id });
 
-    const Payment = mongoose.models.Payment;
-    if (Payment && partyId) {
-      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
+    await removeVoucherWithReversal(req.dataUserId, voucher);
+
+    if (Payment) {
+      await reconcileAllDebtorLedgers(req.dataUserId, models);
     }
 
-    res.json({ success: true, message: `${voucherType} voucher delete ho gaya.` });
+    const parts = [`${voucher.voucherType} voucher deleted`];
+    if (removedSales) parts.push('linked invoice removed');
+    if (removedPayment) parts.push('linked payment removed');
+    parts.push('ledgers updated');
+    res.json({ success: true, message: parts.join(' — ') + '.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2895,7 +2944,10 @@ app.get('/api/reports/stock-summary', authenticateToken, async (req, res) => {
 // Invoice add hone par auto Khata Pro entry — ledger + sales voucher + stock update
 app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSIONS.INVOICE_CREATE), async (req, res) => {
   try {
-    const { customer, product, price, qty, gstRate, gstin, mobile, hsn, paymentType } = req.body;
+    const {
+      customer, product, price, qty, gstRate, gstin, mobile, hsn, paymentType,
+      salesHistoryId, invoiceNo
+    } = req.body;
     if (!customer || !product || !price || !qty) {
       return res.status(400).json({ success: false, error: 'Customer, product, price aur qty zaroori hain.' });
     }
@@ -2931,6 +2983,10 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
     const payType = paymentType || 'Cash';
     const credit = isCreditPayment(payType, null);
 
+    const noteParts = [`${customer} | ${product} x${qty} @ ₹${price}`];
+    if (invoiceNo) noteParts.push(String(invoiceNo));
+    if (!credit) noteParts.push('(Paid)');
+
     const voucher = await Voucher.create({
       userId: req.dataUserId,
       voucherType: 'Sales',
@@ -2938,12 +2994,25 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
       amount: totalAmount,
       items,
       paymentMode: payType,
-      note: `${customer} | ${product} x${qty} @ ₹${price}${credit ? '' : ' (Paid)'}`,
+      linkedSalesId: salesHistoryId || undefined,
+      note: noteParts.join(' | '),
       syncedToTally: false
     });
 
+    if (salesHistoryId) {
+      await SalesHistory.updateOne(
+        { _id: salesHistoryId, userId: req.dataUserId },
+        { linkedVoucherId: voucher._id }
+      );
+    }
+
     if (credit) {
       await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: totalAmount } });
+    }
+
+    const Payment = mongoose.models.Payment;
+    if (Payment) {
+      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
     }
 
     res.json({

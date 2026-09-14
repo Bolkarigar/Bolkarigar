@@ -124,6 +124,108 @@ function salesVoucherDuplicate(sales, voucher) {
   );
 }
 
+function voucherMatchesSale(voucher, sale) {
+  if (voucher.linkedSalesId && String(voucher.linkedSalesId) === String(sale._id)) return true;
+  const amt = saleRecordAmount(sale);
+  if (Math.abs(Number(voucher.amount) - amt) >= 0.02) return false;
+  if (!sameCalendarDay(voucher.date, sale.date)) return false;
+  const note = String(voucher.note || '').toLowerCase();
+  const invKey = String(sale.invoiceNo || '').toLowerCase();
+  const productKey = String(sale.product || '').toLowerCase();
+  if (invKey && note.includes(invKey)) return true;
+  if (productKey && note.includes(productKey)) return true;
+  return false;
+}
+
+/** Find Sales voucher(s) linked to a SalesHistory invoice record. */
+async function findLinkedSalesVouchers(userId, sale, models) {
+  const { Voucher, Ledger, SalesHistory } = models;
+  if (sale.linkedVoucherId) {
+    const direct = await Voucher.findOne({ _id: sale.linkedVoucherId, userId, voucherType: 'Sales' });
+    if (direct) return [direct];
+  }
+
+  const rx = partyRegex(sale.customer);
+  const ledger = await Ledger.findOne({ userId, partyName: rx });
+  if (!ledger) return [];
+
+  const candidates = await Voucher.find({
+    userId,
+    partyId: ledger._id,
+    voucherType: 'Sales'
+  }).sort({ date: 1 });
+
+  const matched = candidates.filter((v) => voucherMatchesSale(v, sale));
+  if (!matched.length) return [];
+
+  const claimedRows = await SalesHistory.find(
+    { userId, linkedVoucherId: { $in: matched.map((v) => v._id) } },
+    'linkedVoucherId'
+  );
+  const claimed = new Set(claimedRows.map((s) => String(s.linkedVoucherId)));
+
+  const pick = matched.find((v) => String(v._id) === String(sale.linkedVoucherId))
+    || matched.find((v) => !claimed.has(String(v._id)))
+    || matched[0];
+  return pick ? [pick] : [];
+}
+
+/** Find SalesHistory record linked to a Sales voucher. */
+async function findLinkedSalesRecord(userId, voucher, models) {
+  const { SalesHistory, Ledger } = models;
+  if (voucher.linkedSalesId) {
+    const direct = await SalesHistory.findOne({ _id: voucher.linkedSalesId, userId });
+    if (direct) return direct;
+  }
+
+  const party = voucher.partyId
+    ? await Ledger.findOne({ _id: voucher.partyId, userId })
+    : null;
+  if (!party) return null;
+
+  const rx = partyRegex(party.partyName);
+  const sales = await SalesHistory.find({ userId, customer: rx }).sort({ date: 1 });
+  const amt = Number(voucher.amount) || 0;
+  const note = String(voucher.note || '').toLowerCase();
+
+  const matched = sales.filter((s) => {
+    if (s.linkedVoucherId && String(s.linkedVoucherId) === String(voucher._id)) return true;
+    if (Math.abs(saleRecordAmount(s) - amt) >= 0.02) return false;
+    if (!sameCalendarDay(s.date, voucher.date)) return false;
+    const invKey = String(s.invoiceNo || '').toLowerCase();
+    const productKey = String(s.product || '').toLowerCase();
+    if (invKey && note.includes(invKey)) return true;
+    if (productKey && note.includes(productKey)) return true;
+    return false;
+  });
+
+  return matched.find((s) => String(s.linkedVoucherId) === String(voucher._id))
+    || matched.find((s) => !s.linkedVoucherId)
+    || matched[0]
+    || null;
+}
+
+/** Find Credit Ledger Payment record linked to a Receipt voucher. */
+async function findLinkedPaymentForReceipt(userId, voucher, models) {
+  const { Payment, Ledger } = models;
+  if (voucher.linkedPaymentId) {
+    const direct = await Payment.findOne({ _id: voucher.linkedPaymentId, userId });
+    if (direct) return direct;
+  }
+
+  const party = voucher.partyId
+    ? await Ledger.findOne({ _id: voucher.partyId, userId })
+    : null;
+  if (!party) return null;
+
+  const rx = partyRegex(party.partyName);
+  const amt = Number(voucher.amount) || 0;
+  const payments = await Payment.find({ userId, customerName: rx }).sort({ date: 1 });
+  return payments.find((p) =>
+    Math.abs(Number(p.amount) - amt) < 0.02 && sameCalendarDay(p.date, voucher.date)
+  ) || null;
+}
+
 /**
  * Ledger statement for Sundry Debtor — shows Paid vs Udhar and running udhar balance.
  */
@@ -241,5 +343,8 @@ module.exports = {
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,
   buildDebtorLedgerStatement,
+  findLinkedSalesVouchers,
+  findLinkedSalesRecord,
+  findLinkedPaymentForReceipt,
   partyRegex
 };

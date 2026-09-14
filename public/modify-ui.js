@@ -75,6 +75,19 @@
     document.getElementById("modifyDeleteBtn")?.classList.toggle("hidden", !show);
   }
 
+  async function refreshAllAfterModifyChange() {
+    if (typeof window.refreshKhataPro === "function") await window.refreshKhataPro();
+    if (typeof window.refreshUdharKhata === "function") await window.refreshUdharKhata();
+    if (typeof loadInvoiceLedgers === "function") await loadInvoiceLedgers();
+    if (typeof window.refreshOverviewSalesFromHistory === "function") {
+      window.refreshOverviewSalesFromHistory();
+    }
+    if (typeof calculateFinancials === "function" && window.state) {
+      calculateFinancials(window.state.invoices || [], window.state.expenses || []);
+    }
+    if (typeof window.loadInventory === "function") window.loadInventory();
+  }
+
   function renderTypeCards() {
     const grid = document.getElementById("modifyTypeGrid");
     if (!grid) return;
@@ -595,8 +608,7 @@
       if (typeof showToast === "function") showToast("✅ " + (data.message || "Updated!"));
 
       if (currentType === "account") ledgerCache = [];
-      if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
-      if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+      await refreshAllAfterModifyChange();
       if (currentType === "invoice" && typeof window.bkRefreshSalesPanel === "function") {
         window.bkRefreshSalesPanel({ resetPage: false });
       }
@@ -644,13 +656,10 @@
       if (typeof showToast === "function") showToast("✅ " + msg);
 
       if (currentType === "account") ledgerCache = [];
-      if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
-      if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
-      if (typeof window.refreshUdharKhata === "function") window.refreshUdharKhata();
+      await refreshAllAfterModifyChange();
       if (currentType === "invoice" && typeof window.bkRefreshSalesPanel === "function") {
         window.bkRefreshSalesPanel({ resetPage: false });
       }
-      if (typeof window.loadInventory === "function") window.loadInventory();
 
       selectedRecord = null;
       document.getElementById("modifyEditArea").innerHTML = "";

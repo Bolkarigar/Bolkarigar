@@ -232,10 +232,16 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       if (ledger) {
         await Ledger.updateOne({ _id: ledger._id }, { $inc: { currentBalance: -parseFloat(amount) } });
         await Voucher.create({
-          userId: req.ownerId, voucherType: 'Receipt', partyId: ledger._id,
-          amount: parseFloat(amount), note: note || `Payment received — ${paymentMode || 'Cash'}`
+          userId: req.ownerId,
+          voucherType: 'Receipt',
+          partyId: ledger._id,
+          amount: parseFloat(amount),
+          linkedPaymentId: payment._id,
+          note: note || `Payment received — ${paymentMode || 'Cash'}`
         });
       }
+      const { reconcileAllDebtorLedgers } = require('./payment-utils');
+      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher });
       res.json({ success: true, payment });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
