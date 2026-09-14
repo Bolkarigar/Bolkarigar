@@ -655,6 +655,11 @@
       setStatus("✅ " + msg, true);
       if (typeof showToast === "function") showToast("✅ " + msg);
 
+      if (currentType === "invoice" && selectedRecord?.raw
+        && typeof window.removeDraftInvoiceForSale === "function") {
+        await window.removeDraftInvoiceForSale(selectedRecord.raw);
+      }
+
       if (currentType === "account") ledgerCache = [];
       await refreshAllAfterModifyChange();
       if (currentType === "invoice" && typeof window.bkRefreshSalesPanel === "function") {

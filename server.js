@@ -49,7 +49,8 @@ const {
   buildDebtorLedgerStatement,
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
-  findLinkedPaymentForReceipt
+  findLinkedPaymentForReceipt,
+  removeOneMatchingDraftInvoice
 } = require('./payment-utils');
 const logger = require('./logger');
 
@@ -1137,14 +1138,16 @@ app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SA
     }
 
     await SalesHistory.deleteOne({ _id: sale._id });
+    const removedDrafts = await removeOneMatchingDraftInvoice(req.dataUserId, sale, UserData);
     if (Payment) {
       await reconcileAllDebtorLedgers(req.dataUserId, models);
     }
 
     const parts = ['Invoice deleted'];
     if (linkedVouchers.length) parts.push(`${linkedVouchers.length} linked voucher(s) removed`);
+    if (removedDrafts) parts.push('invoice draft cleared');
     parts.push('ledgers & Credit Ledger updated');
-    res.json({ success: true, message: parts.join(' — ') + '.' });
+    res.json({ success: true, message: parts.join(' — ') + '.', removedDrafts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message || 'Record delete karne mein dikkat aayi.' });
   }
@@ -2833,6 +2836,7 @@ app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS
       const linkedSale = await findLinkedSalesRecord(req.dataUserId, voucher, models);
       if (linkedSale) {
         await SalesHistory.deleteOne({ _id: linkedSale._id });
+        await removeOneMatchingDraftInvoice(req.dataUserId, linkedSale, UserData);
         removedSales = 1;
       }
     } else if (voucher.voucherType === 'Receipt' && Payment) {

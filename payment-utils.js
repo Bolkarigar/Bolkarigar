@@ -117,6 +117,43 @@ async function getDebtorUdharSummary(userId, ledger, models) {
   };
 }
 
+function draftLineAmount(item) {
+  if (!item) return 0;
+  const direct = Number(item.totalAmount);
+  if (direct > 0) return direct;
+  const base = (Number(item.price) || 0) * (Number(item.qty) || 1);
+  const gst = base * ((Number(item.gstRate) || 0) / 100);
+  return base + gst;
+}
+
+/** Remove one matching row from UserData invoice draft when permanent sale is deleted. */
+async function removeOneMatchingDraftInvoice(userId, sale, UserData) {
+  if (!UserData || !sale) return 0;
+  const data = await UserData.findOne({ userId });
+  if (!data?.invoices?.length) return 0;
+
+  const customer = String(sale.customer || '').trim().toLowerCase();
+  const product = String(sale.product || '').trim().toLowerCase();
+  const amt = saleRecordAmount(sale);
+  let removeIdx = -1;
+
+  for (let i = 0; i < data.invoices.length; i++) {
+    const item = data.invoices[i];
+    const itemCust = String(item.customer || '').trim().toLowerCase();
+    const itemProd = String(item.product || '').trim().toLowerCase();
+    if (itemCust !== customer || itemProd !== product) continue;
+    if (Math.abs(draftLineAmount(item) - amt) < 0.02) {
+      removeIdx = i;
+      break;
+    }
+  }
+
+  if (removeIdx < 0) return 0;
+  data.invoices.splice(removeIdx, 1);
+  await data.save();
+  return 1;
+}
+
 function salesVoucherDuplicate(sales, voucher) {
   const amt = Number(voucher.amount) || 0;
   return sales.some((s) =>
@@ -346,5 +383,7 @@ module.exports = {
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
   findLinkedPaymentForReceipt,
+  removeOneMatchingDraftInvoice,
+  draftLineAmount,
   partyRegex
 };

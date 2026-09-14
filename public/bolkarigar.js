@@ -1187,6 +1187,43 @@ async function deleteInvoiceItem(index) {
   }
 }
 
+function draftLineTotal(item) {
+  if (!item) return 0;
+  const direct = parseFloat(item.totalAmount);
+  if (direct > 0) return direct;
+  return typeof getInvoiceLineGrandTotal === "function"
+    ? getInvoiceLineGrandTotal(item)
+    : (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
+}
+
+window.removeDraftInvoiceForSale = async function (sale) {
+  if (!sale || !Array.isArray(state.invoices) || !state.invoices.length) return false;
+  const customer = String(sale.customer || "").trim().toLowerCase();
+  const product = String(sale.product || "").trim().toLowerCase();
+  const amt = parseFloat(sale.totalAmount) || draftLineTotal(sale);
+  let removeIdx = -1;
+
+  for (let i = 0; i < state.invoices.length; i++) {
+    const item = state.invoices[i];
+    const itemCust = String(item.customer || "").trim().toLowerCase();
+    const itemProd = String(item.product || "").trim().toLowerCase();
+    if (itemCust !== customer || itemProd !== product) continue;
+    if (Math.abs(draftLineTotal(item) - amt) < 0.02) {
+      removeIdx = i;
+      break;
+    }
+  }
+
+  if (removeIdx < 0) return false;
+  const updatedInvoices = [...state.invoices];
+  updatedInvoices.splice(removeIdx, 1);
+  if (await syncWithBackend("invoices", updatedInvoices)) {
+    renderInvoice();
+    return true;
+  }
+  return false;
+};
+
 async function executeInvoiceAdd() {
   const customer = document.getElementById("customerName").value.trim();
   const product = document.getElementById("productName").value.trim();
@@ -4757,20 +4794,6 @@ async function refreshUdharKhata(localFallback = {}) {
     }
   } catch (e) { /* server se nahi mila to local fallback */ }
 
-  if (!Object.keys(localFallback).length && Array.isArray(state.invoices) && state.invoices.length) {
-    const ledger = {};
-    state.invoices.forEach((item) => {
-      const amount = typeof getInvoiceLineGrandTotal === "function" ? getInvoiceLineGrandTotal(item) : (parseFloat(item.totalAmount) || 0);
-      const cust = item.customer || "General Customer";
-      if (!ledger[cust]) ledger[cust] = { billed: 0, paid: 0, pending: 0 };
-      ledger[cust].billed += amount;
-      const isCredit = isCreditSale(item);
-      ledger[cust].paid += isCredit ? 0 : (parseFloat(item.paidAmount) || amount);
-      ledger[cust].pending = ledger[cust].billed - ledger[cust].paid;
-    });
-    localFallback = ledger;
-  }
-
   const localRows = Object.keys(localFallback).map(cust => ({
     partyName: cust,
     billed: localFallback[cust].billed,
@@ -4837,18 +4860,6 @@ async function showUdharDetail(customerName) {
   } catch (e) {
     console.warn("Udhar detail API:", e);
   }
-
-  // Local invoice draft fallback
-  (state.invoices || []).filter(i => (i.customer || "General Customer") === customerName).forEach(r => {
-    const amt = getInvoiceLineGrandTotal(r);
-    const p = parseFloat(r.paidAmount) || 0;
-    const already = rows.some(x => x.label.includes(r.product));
-    if (!already) {
-      totalBilled += amt;
-      totalPaid += p;
-      rows.push({ label: `Draft — ${r.product}`, qty: r.qty, amt, paid: p, pending: amt - p });
-    }
-  });
 
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="5" style="text-align:center;">Koi transaction nahi mila.</td></tr>`;
