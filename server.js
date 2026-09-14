@@ -50,6 +50,8 @@ const {
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
   findLinkedPaymentForReceipt,
+  findLinkedPaymentsForSale,
+  findReceiptVouchersForPayment,
   removeOneMatchingDraftInvoice
 } = require('./payment-utils');
 const logger = require('./logger');
@@ -1132,22 +1134,47 @@ app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SA
 
     const Payment = mongoose.models.Payment;
     const models = { Ledger, SalesHistory, Payment, Voucher, Item };
+
     const linkedVouchers = await findLinkedSalesVouchers(req.dataUserId, sale, models);
     for (const voucher of linkedVouchers) {
       await removeVoucherWithReversal(req.dataUserId, voucher);
     }
 
+    let removedReceipts = 0;
+    let removedPayments = 0;
+    if (Payment) {
+      const linkedPayments = await findLinkedPaymentsForSale(req.dataUserId, sale, models);
+      for (const payment of linkedPayments) {
+        const receipts = await findReceiptVouchersForPayment(req.dataUserId, payment, models);
+        for (const receipt of receipts) {
+          await removeVoucherWithReversal(req.dataUserId, receipt);
+          removedReceipts += 1;
+        }
+        await Payment.deleteOne({ _id: payment._id });
+        removedPayments += 1;
+      }
+    }
+
     await SalesHistory.deleteOne({ _id: sale._id });
     const removedDrafts = await removeOneMatchingDraftInvoice(req.dataUserId, sale, UserData);
     if (Payment) {
-      await reconcileAllDebtorLedgers(req.dataUserId, models);
+      await reconcileAllDebtorLedgers(req.dataUserId, models, { force: true });
     }
 
     const parts = ['Invoice deleted'];
-    if (linkedVouchers.length) parts.push(`${linkedVouchers.length} linked voucher(s) removed`);
+    if (linkedVouchers.length) parts.push(`${linkedVouchers.length} ledger voucher(s) removed`);
+    if (removedPayments) parts.push(`${removedPayments} payment(s) removed`);
+    if (removedReceipts) parts.push(`${removedReceipts} receipt(s) removed`);
     if (removedDrafts) parts.push('invoice draft cleared');
-    parts.push('ledgers & Credit Ledger updated');
-    res.json({ success: true, message: parts.join(' — ') + '.', removedDrafts });
+    parts.push('Ledgers & Credit Ledger fully updated');
+    res.json({
+      success: true,
+      message: parts.join(' — ') + '.',
+      removedDrafts,
+      removedVouchers: linkedVouchers.length,
+      removedPayments,
+      removedReceipts
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message || 'Record delete karne mein dikkat aayi.' });
   }
@@ -2375,7 +2402,7 @@ app.get('/api/ledgers', authenticateToken, async (req, res) => {
     const Payment = mongoose.models.Payment;
     const models = { Ledger, SalesHistory, Payment, Voucher };
     if (Payment) {
-      await reconcileAllDebtorLedgers(req.dataUserId, models);
+      await reconcileAllDebtorLedgers(req.dataUserId, models, { force: true });
     }
     const ledgers = await Ledger.find({ userId: req.dataUserId }).sort({ partyName: 1 });
     const enriched = await Promise.all(ledgers.map(async (ledger) => {
@@ -2850,7 +2877,7 @@ app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS
     await removeVoucherWithReversal(req.dataUserId, voucher);
 
     if (Payment) {
-      await reconcileAllDebtorLedgers(req.dataUserId, models);
+      await reconcileAllDebtorLedgers(req.dataUserId, models, { force: true });
     }
 
     const parts = [`${voucher.voucherType} voucher deleted`];
@@ -3010,13 +3037,9 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
       );
     }
 
-    if (credit) {
-      await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: totalAmount } });
-    }
-
     const Payment = mongoose.models.Payment;
     if (Payment) {
-      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher });
+      await reconcileAllDebtorLedgers(req.dataUserId, { Ledger, SalesHistory, Payment, Voucher }, { force: true });
     }
 
     res.json({

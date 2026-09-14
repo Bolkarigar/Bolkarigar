@@ -240,8 +240,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           note: note || `Payment received — ${paymentMode || 'Cash'}`
         });
       }
-      const { reconcileAllDebtorLedgers } = require('./payment-utils');
-      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher });
+      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher }, { force: true });
       res.json({ success: true, payment });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -258,7 +257,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.get('/api/reports/outstanding', authenticateToken, ownerMiddleware, active, async (req, res) => {
     try {
-      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher });
+      await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher }, { force: true });
 
       const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Sundry Debtor' });
       const allSales = await SalesHistory.find({ userId: req.ownerId });

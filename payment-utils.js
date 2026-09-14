@@ -72,13 +72,14 @@ async function reconcileDebtorLedger(userId, ledger, models) {
   return Math.round(balance * 100) / 100;
 }
 
-async function reconcileAllDebtorLedgers(userId, models) {
+async function reconcileAllDebtorLedgers(userId, models, options = {}) {
+  const { force = false } = options;
   const { Ledger } = models;
   const debtors = await Ledger.find({ userId, ledgerGroup: 'Sundry Debtor' });
   const updates = [];
   for (const ledger of debtors) {
     const computed = await reconcileDebtorLedger(userId, ledger, models);
-    if (Math.abs(computed - (Number(ledger.currentBalance) || 0)) > 0.009) {
+    if (force || Math.abs(computed - (Number(ledger.currentBalance) || 0)) > 0.009) {
       ledger.currentBalance = computed;
       await ledger.save();
       updates.push({ partyName: ledger.partyName, balance: computed });
@@ -163,6 +164,7 @@ function salesVoucherDuplicate(sales, voucher) {
 
 function voucherMatchesSale(voucher, sale) {
   if (voucher.linkedSalesId && String(voucher.linkedSalesId) === String(sale._id)) return true;
+  if (sale.linkedVoucherId && String(voucher._id) === String(sale.linkedVoucherId)) return true;
   const amt = saleRecordAmount(sale);
   if (Math.abs(Number(voucher.amount) - amt) >= 0.02) return false;
   if (!sameCalendarDay(voucher.date, sale.date)) return false;
@@ -174,37 +176,81 @@ function voucherMatchesSale(voucher, sale) {
   return false;
 }
 
-/** Find Sales voucher(s) linked to a SalesHistory invoice record. */
+/** Find ALL Sales vouchers linked to a SalesHistory invoice record. */
 async function findLinkedSalesVouchers(userId, sale, models) {
-  const { Voucher, Ledger, SalesHistory } = models;
+  const { Voucher, Ledger } = models;
+  const found = new Map();
+
   if (sale.linkedVoucherId) {
     const direct = await Voucher.findOne({ _id: sale.linkedVoucherId, userId, voucherType: 'Sales' });
-    if (direct) return [direct];
+    if (direct) found.set(String(direct._id), direct);
   }
+
+  const byLink = await Voucher.find({
+    userId,
+    voucherType: 'Sales',
+    linkedSalesId: sale._id
+  });
+  byLink.forEach((v) => found.set(String(v._id), v));
 
   const rx = partyRegex(sale.customer);
   const ledger = await Ledger.findOne({ userId, partyName: rx });
-  if (!ledger) return [];
+  if (ledger) {
+    const candidates = await Voucher.find({
+      userId,
+      partyId: ledger._id,
+      voucherType: 'Sales'
+    });
+    candidates.filter((v) => voucherMatchesSale(v, sale))
+      .forEach((v) => found.set(String(v._id), v));
+  }
 
-  const candidates = await Voucher.find({
+  return Array.from(found.values());
+}
+
+/** Payments in Credit Ledger tied to this invoice. */
+async function findLinkedPaymentsForSale(userId, sale, models) {
+  const { Payment } = models;
+  if (!Payment || !sale?.customer) return [];
+  const rx = partyRegex(sale.customer);
+  const payments = await Payment.find({ userId, customerName: rx });
+  const inv = String(sale.invoiceNo || '').trim();
+  const amt = saleRecordAmount(sale);
+  return payments.filter((p) => {
+    if (inv && p.invoiceNo && String(p.invoiceNo).trim() === inv) return true;
+    return Math.abs(Number(p.amount) - amt) < 0.02 && sameCalendarDay(p.date, sale.date);
+  });
+}
+
+/** Receipt vouchers tied to a Payment record. */
+async function findReceiptVouchersForPayment(userId, payment, models) {
+  const { Voucher, Ledger } = models;
+  const found = new Map();
+
+  if (payment?._id) {
+    const direct = await Voucher.find({
+      userId,
+      voucherType: 'Receipt',
+      linkedPaymentId: payment._id
+    });
+    direct.forEach((v) => found.set(String(v._id), v));
+  }
+
+  const rx = partyRegex(payment.customerName);
+  const ledger = await Ledger.findOne({ userId, partyName: rx });
+  if (!ledger) return Array.from(found.values());
+
+  const receipts = await Voucher.find({
     userId,
     partyId: ledger._id,
-    voucherType: 'Sales'
-  }).sort({ date: 1 });
+    voucherType: 'Receipt'
+  });
+  receipts.filter((r) =>
+    Math.abs(Number(r.amount) - Number(payment.amount)) < 0.02
+    && sameCalendarDay(r.date, payment.date)
+  ).forEach((v) => found.set(String(v._id), v));
 
-  const matched = candidates.filter((v) => voucherMatchesSale(v, sale));
-  if (!matched.length) return [];
-
-  const claimedRows = await SalesHistory.find(
-    { userId, linkedVoucherId: { $in: matched.map((v) => v._id) } },
-    'linkedVoucherId'
-  );
-  const claimed = new Set(claimedRows.map((s) => String(s.linkedVoucherId)));
-
-  const pick = matched.find((v) => String(v._id) === String(sale.linkedVoucherId))
-    || matched.find((v) => !claimed.has(String(v._id)))
-    || matched[0];
-  return pick ? [pick] : [];
+  return Array.from(found.values());
 }
 
 /** Find SalesHistory record linked to a Sales voucher. */
@@ -383,6 +429,8 @@ module.exports = {
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
   findLinkedPaymentForReceipt,
+  findLinkedPaymentsForSale,
+  findReceiptVouchersForPayment,
   removeOneMatchingDraftInvoice,
   draftLineAmount,
   partyRegex
