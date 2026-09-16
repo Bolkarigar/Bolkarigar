@@ -182,7 +182,30 @@
     color: var(--muted);
     font-weight: 500;
   }
-  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+  .topbar-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .topbar-more-btn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand-text { min-width: 0; }
   .clock-box { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); }
   .clock-box strong { font-size: 16px; color: var(--text); }
   .theme-btn, button {
@@ -2527,19 +2550,17 @@ body.sidebar-open .sidebar-tally-card {
 
   .page { padding: 10px; }
 
-  /* Topbar — 2 rows: brand upar, buttons neeche (overlap fix) */
+  /* Topbar — compact single row + overflow menu */
   .topbar {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    display: flex;
     align-items: center;
-    gap: 8px 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 8px 10px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    flex-wrap: nowrap;
   }
-  .mobile-menu-btn { grid-column: 1; grid-row: 1; }
+  .mobile-menu-btn { flex-shrink: 0; }
   .brand-wrap {
-    grid-column: 2;
-    grid-row: 1;
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -2550,31 +2571,59 @@ body.sidebar-open .sidebar-tally-card {
     text-overflow: ellipsis;
     max-width: 100%;
   }
-  .brand-mark { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
-
-  .top-actions {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; }
+  .topbar-head-actions {
+    display: flex;
+    align-items: center;
     gap: 6px;
-    padding-bottom: 2px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .top-actions::-webkit-scrollbar { display: none; }
-
-  .top-actions .theme-btn {
     flex-shrink: 0;
-    padding: 7px 10px;
-    font-size: 11px;
-    white-space: nowrap;
-    min-width: 0;
+    margin-left: auto;
   }
-  .theme-btn.voice-btn {
+  .topbar-more-btn { display: inline-flex; }
+  .topbar-head-actions .voice-btn {
     min-width: 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    max-width: 88px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .top-actions {
+    display: none;
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 10px 12px 12px;
+    background: rgba(15, 23, 42, 0.98);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    z-index: 1099;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    max-height: min(70vh, 420px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  html[data-theme="light"] .top-actions {
+    background: rgba(255, 255, 255, 0.98);
+  }
+  body.topbar-more-open .top-actions {
+    display: flex;
+  }
+  .top-actions .theme-btn,
+  .top-actions .staff-mode-banner {
+    width: 100%;
+    text-align: center;
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+  .top-actions .staff-mode-banner {
+    justify-content: center;
   }
 
   .dev-plan-toggle {
@@ -2814,40 +2863,10 @@ body.sidebar-open .sidebar-tally-card {
 
   .brand-mark { width: 32px; height: 32px; border-radius: 8px; }
 
-  /* Topbar icon-only buttons */
-  .top-actions #businessProfileBtn,
-  .top-actions #liveAiToggle {
-    position: relative;
-    overflow: hidden;
-    text-indent: -9999px;
-    padding: 8px 10px;
-    min-width: 38px;
-    width: 38px;
-  }
-  .top-actions #businessProfileBtn::after,
-  .top-actions #liveAiToggle::after {
-    content: "🏢";
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-indent: 0;
-    font-size: 16px;
-  }
-  .top-actions #liveAiToggle::after { content: "🤖"; }
-
-  .top-actions #themeToggle {
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-  .top-actions #logoutBtn {
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-  .top-actions .voice-btn {
+  .topbar-head-actions .voice-btn {
     font-size: 10px;
-    padding: 8px 8px;
+    padding: 8px;
+    max-width: 72px;
   }
 
   .hero-stats { grid-template-columns: 1fr; }
@@ -4130,4 +4149,217 @@ body.app-lock-active { overflow: hidden; }
 .table-total-grand strong {
   color: #38bdf8;
   font-size: 1rem;
+}
+
+/* ——— Desktop topbar: voice + actions in one row ——— */
+@media (min-width: 769px) {
+  .topbar { justify-content: flex-start; }
+  .brand-wrap { flex: 1; min-width: 0; }
+  .topbar-more-btn { display: none !important; }
+  .topbar-head-actions { margin-left: auto; }
+  .top-actions {
+    display: flex !important;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-left: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+    gap: 10px;
+  }
+  .top-actions .theme-btn,
+  .top-actions .staff-mode-banner {
+    width: auto;
+    min-height: 0;
+    padding: 10px 14px;
+    font-size: inherit;
+    text-align: center;
+  }
+}
+
+/* ——— Phone UI polish (header, filters, tables, forms) ——— */
+@media (max-width: 768px) {
+  .subscription-banner {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  #subscriptionBannerText {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .sales-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+  .sales-date-field {
+    min-width: 0;
+    width: 100%;
+  }
+  .sales-filter-row > button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .sales-filter-row > button.secondary {
+    width: 100%;
+  }
+  .sales-quick-filters {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .sales-quick-filters button {
+    min-height: 40px;
+    font-size: 11px;
+    padding: 8px 6px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .overview-rec-pane-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .overview-rec-pane-toolbar .panel-search-input,
+  .panel-search-input {
+    max-width: 100%;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .business-records-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .business-records-header-actions {
+    width: 100%;
+  }
+  .business-records-header-actions button {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+  }
+
+  .table-wrap.mobile-ready {
+    display: block;
+    width: 100%;
+    margin-bottom: 4px;
+    clear: both;
+  }
+  .table-wrap.mobile-ready table,
+  .table-wrap.mobile-ready tbody {
+    display: block;
+    width: 100%;
+  }
+  .panel-pagination-bar,
+  .khata-pagination {
+    position: relative;
+    z-index: 3;
+    clear: both;
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card2);
+    box-sizing: border-box;
+  }
+  .panel-pagination-bar .khata-pagination-left,
+  .khata-pagination .khata-pagination-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .panel-pagination-bar .btn-row,
+  .khata-pagination .btn-row {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  .panel-pagination-bar .btn-row button,
+  .khata-pagination .btn-row button {
+    flex: 1 1 0;
+    min-width: 0 !important;
+    min-height: 44px;
+  }
+
+  .inv-toolbar {
+    gap: 10px;
+  }
+  .inv-filter-chips {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+  .inv-chip {
+    min-height: 38px;
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .panel-area {
+    padding: 10px 8px;
+  }
+  .panel,
+  .mini-card,
+  .modify-panel-card {
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+
+  .inv-form-grid,
+  .grid-2,
+  .inv-field-span2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modify-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .modify-type-card {
+    padding: 12px 10px;
+  }
+  .modify-type-desc {
+    font-size: 10px;
+  }
+
+  .panel-header .btn-row button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-head-actions .voice-btn {
+    max-width: 64px;
+    font-size: 9px;
+    padding: 7px 6px;
+  }
+  .modify-type-grid {
+    grid-template-columns: 1fr;
+  }
+  .sales-quick-filters {
+    grid-template-columns: 1fr;
+  }
+  .inv-filter-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modify-actions {
+    flex-direction: column;
+  }
+  .modify-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
 }

@@ -1888,12 +1888,47 @@ mobileMenuBtn?.addEventListener("click", toggleMobileSidebar);
 document.getElementById("sidebarCloseBtn")?.addEventListener("click", closeMobileSidebar);
 sidebarOverlay?.addEventListener("click", closeMobileSidebar);
 
+/* Mobile topbar — overflow menu for profile / AI / theme / logout */
+const topbarMoreBtn = document.getElementById("topbarMoreBtn");
+const topActionsMenu = document.getElementById("topActionsMenu");
+
+function closeTopbarMoreMenu() {
+  document.body.classList.remove("topbar-more-open");
+  topbarMoreBtn?.setAttribute("aria-expanded", "false");
+}
+
+function toggleTopbarMoreMenu() {
+  if (!window.matchMedia("(max-width: 768px)").matches) return;
+  const open = !document.body.classList.contains("topbar-more-open");
+  document.body.classList.toggle("topbar-more-open", open);
+  topbarMoreBtn?.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+topbarMoreBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleTopbarMoreMenu();
+});
+
+document.addEventListener("click", (e) => {
+  if (!document.body.classList.contains("topbar-more-open")) return;
+  if (e.target.closest("#topActionsMenu, #topbarMoreBtn")) return;
+  closeTopbarMoreMenu();
+});
+
+window.addEventListener("resize", () => {
+  if (!window.matchMedia("(max-width: 768px)").matches) closeTopbarMoreMenu();
+});
+
 window.addEventListener("resize", () => {
   if (!isMobileNav()) closeMobileSidebar();
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    if (document.body.classList.contains("topbar-more-open")) {
+      closeTopbarMoreMenu();
+      return;
+    }
     const activePanel = document.querySelector(".panel.active")?.id;
     if (activePanel === "invoicePanel" && typeof openPanel === "function") {
       openPanel("overviewPanel");
