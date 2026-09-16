@@ -61,6 +61,11 @@ let payrollHelpers = null;
 
 const app = express();
 const PORT = process.env.PORT || 5002;
+// Render/nginx ke peeche sahi client IP ke liye — bina iske sab users ek hi IP dikhte
+// hain aur general rate-limit jaldi lag jata hai (login bhi fail dikhta hai).
+if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+  app.set('trust proxy', 1);
+}
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET || JWT_SECRET.length < 16) {
@@ -84,8 +89,18 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // IP se pura backend spam/DoS na kar sake. Yeh login/ask ke apne khaas,
 // zyada strict limiters ke ADDITION mein hai, unki jagah nahi.
 const generalApiHits = new Map();
+const GENERAL_API_SKIP = new Set([
+  '/api/health',
+  '/api/auth/login',
+  '/api/auth/signup',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password'
+]);
 app.use('/api', (req, res, next) => {
-  const key = req.ip;
+  const apiPath = (req.originalUrl || req.url || '').split('?')[0];
+  if (GENERAL_API_SKIP.has(apiPath)) return next();
+
+  const key = req.ip || req.socket?.remoteAddress || 'unknown';
   const entry = generalApiHits.get(key) || { count: 0, windowStart: Date.now() };
   if (Date.now() - entry.windowStart > 15 * 60 * 1000) {
     entry.count = 0;
@@ -94,7 +109,7 @@ app.use('/api', (req, res, next) => {
   entry.count++;
   generalApiHits.set(key, entry);
   if (entry.count > 300) {
-    return res.status(429).json({ error: 'Bahut zyada requests is IP se. Thodi der baad try karein.' });
+    return res.status(429).json({ error: 'Too many requests from this IP. Please wait a few minutes and try again.' });
   }
   next();
 });

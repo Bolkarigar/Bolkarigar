@@ -269,7 +269,7 @@
         </div>
 
         <button type="submit" class="login-btn">Sign In</button>
-        <p class="error-msg" id="errorMsg">Wrong username or password!</p>
+        <p class="error-msg" id="errorMsg"></p>
       </form>
       <!-- loginpage.html में </form> के ठीक नीचे इसे पेस्ट करें -->
 <div style="margin-top: 25px; font-size: 14px; color: #9ca3af;">
@@ -369,6 +369,7 @@
       otpOnlyRegistered: 'OTP is sent only to your registered signup email.',
       passwordResetOk: 'Password reset successfully! You can now sign in with your new password.',
       wrongLogin: 'Wrong username or password!',
+      rateLimited: 'Too many requests. Please wait 2–15 minutes and try again.',
       otpSentTo: (masked) => `Enter the 6-digit OTP sent to ${masked || 'your registered email'}.`
     };
 
@@ -376,13 +377,16 @@
       if (!text || typeof text !== 'string') return fallback;
       const t = text.trim();
       const rules = [
+        [/too many requests|bahut zyada requests/i, LOGIN_MSG.rateLimited],
+        [/too many failed attempts|bahut zyada galat attempts/i, 'Too many failed login attempts. Please wait 2 minutes and try again.'],
+        [/incorrect password/i, 'Incorrect password!'],
+        [/user not found/i, 'User not found!'],
         [/agar yeh email registered/i, LOGIN_MSG.otpNotSent],
         [/sirf registered email/i, LOGIN_MSG.otpOnlyRegistered],
         [/password successfully reset ho gaya|password reset ho gaya/i, LOGIN_MSG.passwordResetOk],
         [/user nahi mila/i, 'User not found!'],
         [/galat password/i, 'Incorrect password!'],
-        [/bahut zyada galat attempts/i, 'Too many failed attempts. Please try again later.'],
-        [/database connect nahi/i, 'Database connection failed. Please try again later.'],
+        [/database connect nahi|database connection failed/i, 'Database connection failed. Please wait 30 seconds and try again.'],
         [/galat invite code/i, 'Invalid invite code.'],
         [/account ban gaya|login karein/i, 'Account created. You can now sign in with limited access.'],
         [/username ya email pehle se/i, 'Username or email already exists.'],
@@ -478,7 +482,7 @@
     // 2. Dynamic form submission to Node.js backend
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
       e.preventDefault();
-      const username = document.getElementById("username").value;
+      const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
       const errorEl = document.getElementById("errorMsg");
       const loginBtn = this.querySelector('.login-btn');
@@ -493,7 +497,11 @@
           body: JSON.stringify({ username, password })
         });
 
-        if (!response.ok) throw new Error(result.error || "Server validation failed");
+        if (!response.ok) {
+          const msg = result.error || result.message || (response.status === 429 ? LOGIN_MSG.rateLimited : 'Login failed. Please try again.');
+          throw new Error(msg);
+        }
+        if (!result.token) throw new Error('Login succeeded but no session token received. Please try again.');
 
         localStorage.setItem("bk_token", result.token);
         localStorage.setItem("bk_user", result.username);
