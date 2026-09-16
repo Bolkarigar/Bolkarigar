@@ -113,7 +113,7 @@
       window.refreshOverviewSalesFromHistory();
     }
     if (typeof calculateFinancials === "function" && window.state) {
-      calculateFinancials(window.state.invoices || [], window.state.expenses || []);
+      calculateFinancials([], window.state.expenses || []);
     }
     if (typeof window.loadInventory === "function") window.loadInventory();
   }

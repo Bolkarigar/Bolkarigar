@@ -151,6 +151,7 @@ window.bkSetTableAmountTotal = function (target, options) {
 };
 
 let editingIndex = -1; // -1 means abhi koi item edit nahi ho raha hai
+let invoiceLineItems = []; // Purchase jaisa — memory-only draft, reload par khali
 
 // Session Check
 if (!getToken()) {
@@ -161,22 +162,15 @@ if (!getToken()) {
 let state = {
   todos: [],
   projects: [],
-  expenses: [],
-  // Invoice table = current session only (not restored from storage on reload)
-  invoices: []
+  expenses: []
 };
 window.state = state;
 
-// LocalStorage Helper
-function saveInvoicesToStorage() {
-  localStorage.setItem("bolkarigar_invoices", JSON.stringify(state.invoices));
-}
-
-/** Fresh invoice session — table empty; stale browser/server drafts cleared */
+/** Purge legacy invoice draft from browser + server (table ab memory-only hai) */
 async function clearInvoiceDraftSession({ syncServer = true, silent = false } = {}) {
-  state.invoices = [];
-  localStorage.setItem("bolkarigar_invoices", "[]");
+  invoiceLineItems = [];
   editingIndex = -1;
+  localStorage.removeItem("bolkarigar_invoices");
   const addBtn = document.getElementById("addInvoiceBtn");
   if (addBtn) addBtn.textContent = "Add Item (F2)";
   const statusEl = document.getElementById("invoiceStatus");
@@ -213,7 +207,6 @@ async function syncWithBackend(type, newPayload) {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error);
     state[type] = newPayload;
-    if (type === 'invoices') saveInvoicesToStorage();
     return true;
   } catch (err) {
     console.error(`Sync failed for ${type}:`, err);
@@ -623,7 +616,7 @@ function renderExpenses() {
     body.appendChild(row);
   });
 
-  calculateFinancials(state.invoices, state.expenses);
+  calculateFinancials([], state.expenses);
 }
 
 async function executeExpenseAdd() {
@@ -1110,7 +1103,7 @@ function updateBusyVoucherMeta() {
 
   if (itemInfo) {
     const party = document.getElementById("customerName")?.value?.trim() || "—";
-    const itemCount = (state.invoices || []).length;
+    const itemCount = invoiceLineItems.length;
     const gstLabel = isInvoiceGstEnabled() ? "ON" : "OFF";
     itemInfo.textContent = `Party: ${party} | Items: ${itemCount} | GST: ${gstLabel}`;
   }
@@ -1144,7 +1137,25 @@ function renderBusyTaxSummary(invoices) {
   }).join("");
 }
 
-// ================= INVOICE SECTION =================
+// ================= INVOICE SECTION (Purchase panel jaisa — memory-only draft) =================
+function invoiceLineTotal(item) {
+  const price = parseFloat(item.price) || 0;
+  const qty = parseFloat(item.qty) || 1;
+  const gstRate = getInvoiceLineGstRate(item.gstRate);
+  const baseTotal = price * qty;
+  return baseTotal + (baseTotal * gstRate) / 100;
+}
+
+function clearInvoiceEntryFields() {
+  const ids = ["productName", "productHsn", "productPrice"];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const qtyEl = document.getElementById("productQty");
+  if (qtyEl) qtyEl.value = "1";
+}
+
 function renderInvoice() {
   const body = document.getElementById("invoiceBody");
   const grandTotalEl = document.getElementById("grandTotal");
@@ -1153,15 +1164,12 @@ function renderInvoice() {
   body.innerHTML = "";
   let grand = 0;
 
-  if (state.invoices && state.invoices.length > 0) {
-    state.invoices.forEach((item, index) => {
+  if (invoiceLineItems.length > 0) {
+    invoiceLineItems.forEach((item, index) => {
       const price = parseFloat(item.price) || 0;
       const qty = parseFloat(item.qty) || 1;
       const gstRate = getInvoiceLineGstRate(item.gstRate);
-
-      const baseTotal = price * qty;
-      const gstAmount = (baseTotal * gstRate) / 100;
-      const lineTotal = baseTotal + gstAmount;
+      const lineTotal = invoiceLineTotal(item);
       grand += lineTotal;
 
       const hsnLine = item.hsn ? `<br><small style="color:#666">HSN: ${escapeHtml(item.hsn)}</small>` : "";
@@ -1172,7 +1180,7 @@ function renderInvoice() {
         <td class="col-sn">${index + 1}</td>
         <td class="col-item">${escapeHtml(item.product) || "-"}${hsnLine}${gstSmall}</td>
         <td class="col-qty">${qty}</td>
-        <td class="col-unit">Pcs</td>
+        <td class="col-unit">${escapeHtml(item.unit || "Pcs")}</td>
         <td class="col-price">₹${price.toFixed(2)}</td>
         <td class="inv-amt-cell">₹${lineTotal.toFixed(2)}</td>
         <td>
@@ -1185,19 +1193,25 @@ function renderInvoice() {
       body.appendChild(row);
     });
   } else {
-    body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Fill party details and add items.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:12px;">Select party, add items with Add Item (F2).</td></tr>`;
   }
 
   if (grandTotalEl) grandTotalEl.textContent = grand.toFixed(2);
-  renderBusyTaxSummary(state.invoices);
+  renderBusyTaxSummary(invoiceLineItems);
   updateBusyVoucherMeta();
-  calculateFinancials(state.invoices, state.expenses);
 }
 
-window.editInvoiceItem = function(index) {
-  if (!state.invoices || !state.invoices[index]) return;
+function refreshInvoicePanel() {
+  if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
+  if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
+  if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  renderInvoice();
+}
+window.refreshInvoicePanel = refreshInvoicePanel;
 
-  const item = state.invoices[index];
+window.editInvoiceItem = function(index) {
+  const item = invoiceLineItems[index];
+  if (!item) return;
 
   document.getElementById("customerName").value = item.customer || "";
   document.getElementById("productName").value = item.product || "";
@@ -1224,10 +1238,17 @@ window.editInvoiceItem = function(index) {
 };
 
 async function deleteInvoiceItem(index) {
-  if (state.invoices && state.invoices[index] !== undefined) {
-    state.invoices.splice(index, 1);
-    renderInvoice();
+  if (invoiceLineItems[index] === undefined) return;
+  invoiceLineItems.splice(index, 1);
+  if (editingIndex === index) {
+    editingIndex = -1;
+    const addBtn = document.getElementById("addInvoiceBtn");
+    if (addBtn) addBtn.textContent = "Add Item (F2)";
+    clearInvoiceEntryFields();
+  } else if (editingIndex > index) {
+    editingIndex -= 1;
   }
+  renderInvoice();
 }
 
 function draftLineTotal(item) {
@@ -1240,14 +1261,14 @@ function draftLineTotal(item) {
 }
 
 window.removeDraftInvoiceForSale = async function (sale) {
-  if (!sale || !Array.isArray(state.invoices) || !state.invoices.length) return false;
+  if (!sale || !invoiceLineItems.length) return false;
   const customer = String(sale.customer || "").trim().toLowerCase();
   const product = String(sale.product || "").trim().toLowerCase();
   const amt = parseFloat(sale.totalAmount) || draftLineTotal(sale);
   let removeIdx = -1;
 
-  for (let i = 0; i < state.invoices.length; i++) {
-    const item = state.invoices[i];
+  for (let i = 0; i < invoiceLineItems.length; i++) {
+    const item = invoiceLineItems[i];
     const itemCust = String(item.customer || "").trim().toLowerCase();
     const itemProd = String(item.product || "").trim().toLowerCase();
     if (itemCust !== customer || itemProd !== product) continue;
@@ -1258,7 +1279,7 @@ window.removeDraftInvoiceForSale = async function (sale) {
   }
 
   if (removeIdx < 0) return false;
-  state.invoices.splice(removeIdx, 1);
+  invoiceLineItems.splice(removeIdx, 1);
   renderInvoice();
   return true;
 };
@@ -1290,21 +1311,17 @@ async function executeInvoiceAdd() {
   };
 
   if (editingIndex > -1) {
-    state.invoices[editingIndex] = newItem;
+    invoiceLineItems[editingIndex] = newItem;
     editingIndex = -1;
     const addBtn = document.getElementById("addInvoiceBtn");
     if (addBtn) addBtn.textContent = "Add Item (F2)";
   } else {
-    if (!state.invoices) state.invoices = [];
-    state.invoices.push(newItem);
+    invoiceLineItems.push(newItem);
   }
 
-  document.getElementById("productName").value = "";
-  document.getElementById("productHsn").value = "";
-  document.getElementById("productPrice").value = "";
-  document.getElementById("productQty").value = "1";
+  clearInvoiceEntryFields();
   const statusEl = document.getElementById("invoiceStatus");
-  if (statusEl) statusEl.textContent = `${state.invoices.length} item(s) in draft — click Save Invoice when done.`;
+  if (statusEl) statusEl.textContent = "";
   renderInvoice();
   return true;
 }
@@ -1316,12 +1333,13 @@ async function saveInvoiceVoucher() {
     document.getElementById("customerName")?.focus();
     return false;
   }
-  if (!state.invoices?.length) {
-    if (typeof showToast === "function") showToast("Add at least one item before saving.", "error");
+  if (!invoiceLineItems.length) {
+    if (typeof showToast === "function") showToast("Add at least one item with Add Item (F2).", "error");
     return false;
   }
 
   const saveBtn = document.getElementById("saveInvoiceBtn");
+  const statusEl = document.getElementById("invoiceStatus");
   if (saveBtn) saveBtn.disabled = true;
 
   try {
@@ -1331,7 +1349,7 @@ async function saveInvoiceVoucher() {
     const invoiceNo = await getNextInvoiceNumber(prof.name || "INV");
     let saved = 0;
 
-    for (const item of state.invoices) {
+    for (const item of invoiceLineItems) {
       const cust = String(item.customer || customer).trim() || customer;
       const payType = item.paymentType || paymentType;
       const saleMeta = await recordPermanentSale({
@@ -1350,20 +1368,27 @@ async function saveInvoiceVoucher() {
       saved++;
     }
 
-    await clearInvoiceDraftSession({ syncServer: false, silent: true });
+    invoiceLineItems = [];
+    editingIndex = -1;
+    renderInvoice();
+    clearInvoiceEntryFields();
     ["customerName", "customerGstin", "customerAddress", "invoiceNarration"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
-    const statusEl = document.getElementById("invoiceStatus");
-    if (statusEl) statusEl.textContent = "Fill party details and add items.";
-    if (typeof showToast === "function") {
-      showToast(`✅ Invoice saved — ${invoiceNo} (${saved} item${saved === 1 ? "" : "s"})`, "success");
+    const addBtn = document.getElementById("addInvoiceBtn");
+    if (addBtn) addBtn.textContent = "Add Item (F2)";
+    if (statusEl) {
+      statusEl.textContent = `✅ Invoice saved — ${invoiceNo}`;
+      statusEl.style.color = "#22c55e";
     }
+    if (typeof showToast === "function") showToast(`✅ Invoice saved — ${invoiceNo}`, "success");
     refreshOverviewSalesFromHistory();
+    if (typeof refreshUdharKhata === "function") refreshUdharKhata();
     return true;
   } catch (err) {
     console.error("Save invoice error:", err);
+    if (statusEl) { statusEl.textContent = "❌ " + err.message; statusEl.style.color = "#ef4444"; }
     if (typeof showToast === "function") showToast("Could not save invoice. Check connection and try again.", "error");
     return false;
   } finally {
@@ -1805,11 +1830,8 @@ function openPanel(id) {
     document.querySelector(".panel-area")?.scrollTo({ top: 0, behavior: "auto" });
     window.scrollTo({ top: 0, behavior: "auto" });
   }
-  if (id === "invoicePanel") {
-    if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
-    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
-    if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
-    if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  if (id === "invoicePanel" && typeof window.refreshInvoicePanel === "function") {
+    window.refreshInvoicePanel();
   }
   if (id === "purchasePanel" && typeof window.refreshPurchasePanel === "function") {
     window.refreshPurchasePanel();
@@ -4288,7 +4310,7 @@ function triggerWhatsAppShare() {
     return;
   }
 
-  const customerItems = state.invoices.filter(item =>
+  const customerItems = invoiceLineItems.filter(item =>
     item.customer && item.customer.toLowerCase().includes(currentCust.toLowerCase())
   );
 
@@ -4603,7 +4625,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
 
 function getInvoiceItemsForTallySync() {
   const cust = (document.getElementById("customerName")?.value || "").trim();
-  const all = state.invoices || [];
+  const all = invoiceLineItems || [];
   if (!all.length) return [];
   if (!cust) return all;
   const matched = all.filter((i) =>
@@ -5250,8 +5272,8 @@ async function printTallyBill() {
   let totalQty = 0; // Quantity ka sum, Total row me dikhane ke liye
   const hsnSummary = {}; // HSN-wise tax summary ke liye
 
-  if (typeof state !== 'undefined' && state.invoices && state.invoices.length > 0) {
-    state.invoices.forEach((item, index) => {
+  if (invoiceLineItems.length > 0) {
+    invoiceLineItems.forEach((item, index) => {
       const price = parseFloat(item.price) || 0;
       const qty = parseFloat(item.qty) || 1;
       const gstRate = getInvoiceLineGstRate(item.gstRate);
@@ -5556,7 +5578,7 @@ async function printTallyBill() {
 window.printTallyBill = printTallyBill;
 
 async function downloadInvoiceBill() {
-  if (!state.invoices || state.invoices.length === 0) {
+  if (!invoiceLineItems.length) {
     if (typeof showToast === "function") showToast("Please add at least one item first.", "error");
     else alert("At least one item is required in the invoice to download.");
     return;
@@ -5578,7 +5600,7 @@ async function printThermalBill() {
   const invoiceNo = await getNextInvoiceNumber(companyName);
   const date = getInvoiceSelectedDate().toLocaleDateString("en-IN");
   let lines = "";
-  (state.invoices || []).forEach((item) => {
+  invoiceLineItems.forEach((item) => {
     const sub = (item.price || 0) * (item.qty || 1);
     lines += `<tr><td>${item.product}</td><td style="text-align:right">${item.qty}</td><td style="text-align:right">₹${sub.toFixed(2)}</td></tr>`;
   });

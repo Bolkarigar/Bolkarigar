@@ -114,7 +114,7 @@
       jobs.push(window.refreshOverviewSalesFromHistory());
     }
     if (typeof calculateFinancials === 'function' && typeof state !== 'undefined') {
-      try { calculateFinancials(state.invoices, state.expenses); } catch (_) { /* ignore */ }
+      try { calculateFinancials([], state.expenses); } catch (_) { /* ignore */ }
     }
     if (typeof window.refreshUdharKhata === 'function') {
       jobs.push(window.refreshUdharKhata());
