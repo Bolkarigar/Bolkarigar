@@ -155,12 +155,13 @@ if (!getToken()) {
   window.location.href = "loginpage.html";
 }
 
-// Global state cache to minimize server roundtrips (Loaded from LocalStorage if available)
+// Global state cache to minimize server roundtrips
 let state = {
   todos: [],
   projects: [],
   expenses: [],
-  invoices: JSON.parse(localStorage.getItem("bolkarigar_invoices")) || []
+  // Invoice table = current session only (not restored from storage on reload)
+  invoices: []
 };
 window.state = state;
 
@@ -168,6 +169,33 @@ window.state = state;
 function saveInvoicesToStorage() {
   localStorage.setItem("bolkarigar_invoices", JSON.stringify(state.invoices));
 }
+
+/** Fresh invoice session — table empty; stale browser/server drafts cleared */
+async function clearInvoiceDraftSession({ syncServer = true, silent = false } = {}) {
+  state.invoices = [];
+  localStorage.setItem("bolkarigar_invoices", "[]");
+  editingIndex = -1;
+  const addBtn = document.getElementById("addInvoiceBtn");
+  if (addBtn) addBtn.textContent = "Add Item (F2)";
+  const statusEl = document.getElementById("invoiceStatus");
+  if (statusEl) statusEl.textContent = "";
+  if (typeof renderInvoice === "function") renderInvoice();
+  if (syncServer && getToken()) {
+    try {
+      await fetch(`${API_URL}/api/dashboard/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ type: "invoices", payload: [] })
+      });
+    } catch (err) {
+      if (!silent) console.warn("Invoice draft server purge:", err);
+    }
+  }
+}
+window.clearInvoiceDraftSession = clearInvoiceDraftSession;
 
 // Unified Sync Engine
 async function syncWithBackend(type, newPayload) {
@@ -200,9 +228,7 @@ function showDataStatusBanner(me, serverInvoices, localInvoices) {
     const roleLabel = me.roleLabel || me.role || "Staff";
     msgs.push(`<strong>${escapeHtml(roleLabel)} Mode</strong> — ${escapeHtml(me.username || "")} | Owner ka data (limited access). Settings, Staff, Reports owner ke paas hain.`);
   }
-  if (serverInvoices === 0 && localInvoices > 0) {
-    msgs.push(`Server has 0 invoices, but <b>${localInvoices}</b> found in browser backup — showing those. Log in with the owner account to sync.`);
-  } else if ((me?.salesCount || 0) === 0 && (me?.invoicesCount || 0) === 0 && localInvoices === 0) {
+  if ((me?.salesCount || 0) === 0 && (me?.invoicesCount || 0) === 0) {
     msgs.push("No saved data found. Wrong account? Log in again with the owner email — data is not deleted, you may be on a different account.");
   } else if (me?.username) {
     msgs.push(`Account: <b>${escapeHtml(me.username)}</b> | Sales: ${me.salesCount || 0} | Invoices: ${me.invoicesCount || 0}`);
@@ -467,11 +493,7 @@ async function loadServerData(opts = {}) {
         window._bkAccountInfo.subscription = errData.subscription;
         applyRoleBasedUI(window._bkAccountInfo);
       }
-      const savedLocal402 = JSON.parse(localStorage.getItem("bolkarigar_invoices") || "[]");
-      if (savedLocal402.length) {
-        state.invoices = savedLocal402;
-        calculateFinancials(state.invoices, state.expenses || []);
-      }
+      await clearInvoiceDraftSession({ syncServer: false, silent: true });
       return;
     }
     
@@ -480,19 +502,15 @@ async function loadServerData(opts = {}) {
     state.todos = data.todos || [];
     state.projects = data.projects || [];
     state.expenses = data.expenses || [];
-    const savedLocal = JSON.parse(localStorage.getItem("bolkarigar_invoices") || "[]");
-    state.invoices = (data.invoices && data.invoices.length) ? data.invoices : savedLocal;
+    await clearInvoiceDraftSession({ syncServer: true, silent: true });
 
-    showDataStatusBanner(window._bkAccountInfo, (data.invoices || []).length, savedLocal.length);
-
-    saveInvoicesToStorage();
+    showDataStatusBanner(window._bkAccountInfo, 0, 0);
 
     renderTodos();
     renderProjects();
     renderExpenses();
-    renderInvoice();
 
-    calculateFinancials(state.invoices, state.expenses);
+    calculateFinancials([], state.expenses);
     await refreshOverviewSalesFromHistory();
     await loadCompanyProfile();
     if (typeof window.enhanceMobileTables === "function") {
@@ -500,14 +518,10 @@ async function loadServerData(opts = {}) {
     }
   } catch (err) {
     console.error("Initial load failed:", err);
-    const savedLocal = JSON.parse(localStorage.getItem("bolkarigar_invoices") || "[]");
-    if (savedLocal.length) {
-      state.invoices = savedLocal;
-      renderInvoice();
-      calculateFinancials(state.invoices, state.expenses);
-      await refreshOverviewSalesFromHistory();
-      showToast("Could not load from server — showing local backup data.", "error");
-    }
+    await clearInvoiceDraftSession({ syncServer: false, silent: true });
+    calculateFinancials([], state.expenses || []);
+    await refreshOverviewSalesFromHistory();
+    showToast("Could not load from server — invoice draft cleared. Sales history is on the server when connection returns.", "error");
   }
 }
 // ================= TODOS SECTION =================
