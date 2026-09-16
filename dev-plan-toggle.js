@@ -15,8 +15,7 @@ const {
 
 function isDevPlanToggleEnabled() {
   if (process.env.DEV_PLAN_TOGGLE === 'true') return true;
-  if (process.env.DEV_PLAN_TOGGLE === 'false') return false;
-  return process.env.NODE_ENV !== 'production';
+  return false;
 }
 
 function setupDevPlanToggle({ app, User, authenticateToken }) {

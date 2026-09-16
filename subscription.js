@@ -48,11 +48,12 @@ const PRO_PLAN_TABS = [
   'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'
 ];
 
-function getPlanFeatures(planKey, isActive) {
+function getPlanFeatures(planKey, isActive, subscriptionStatus = 'trial') {
   if (!isActive) {
     return { allowedTabs: [], tallySync: false, fullAccess: false, showInstallApp: false };
   }
-  if (planKey === 'business') {
+  // Business UI only after paid subscription — trial users stay on Pro/free features
+  if (planKey === 'business' && subscriptionStatus === 'active') {
     return { allowedTabs: null, tallySync: true, fullAccess: true, showInstallApp: true };
   }
   return {
@@ -237,7 +238,7 @@ function buildSubscriptionPayload(ownerUser) {
 
   const planKey = user.plan || 'pro';
   const planInfo = PLANS[planKey] || PLANS.pro;
-  const features = getPlanFeatures(planKey, isActive);
+  const features = getPlanFeatures(planKey, isActive, user.subscriptionStatus);
 
   let daysLeft = 0;
   if (isTrial && trialEndsAt) {

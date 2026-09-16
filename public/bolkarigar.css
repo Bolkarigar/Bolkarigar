@@ -3754,6 +3754,17 @@ body.app-lock-active { overflow: hidden; }
   margin-left: auto;
   white-space: nowrap;
 }
+.inv-save-btn {
+  background: #22c55e;
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.inv-save-btn:hover { background: #16a34a; }
+.inv-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .inv-voucher-card.gst-off .inv-field-gst { display: none; }
 .inv-table-wrap { margin-bottom: 12px; }
 .inv-items-table { width: 100%; }

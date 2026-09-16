@@ -61,7 +61,7 @@ function isCreditSale(item) {
   return String(item?.status || "").toLowerCase() === "pending";
 }
 
-async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType, salesHistoryId, invoiceNo }) {
+async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, gstRate, paymentType, salesHistoryId, invoiceNo, silent = false }) {
   if (!customer || !product) return;
   const payType = paymentType || document.getElementById("invoicePaymentType")?.value || "Cash";
   try {
@@ -75,9 +75,11 @@ async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, 
     });
     const data = await res.json();
     if (data.success) {
-      showToast(isCreditSale({ paymentType: payType })
-        ? "✅ Credit sale saved to ledger (udhar)."
-        : "✅ Paid sale saved — not added to udhar.");
+      if (!silent) {
+        showToast(isCreditSale({ paymentType: payType })
+          ? "✅ Credit sale saved to ledger (udhar)."
+          : "✅ Paid sale saved — not added to udhar.");
+      }
       if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
       if (typeof window.refreshUdharKhata === "function") window.refreshUdharKhata();
     } else if (data.error) {
@@ -1223,12 +1225,8 @@ window.editInvoiceItem = function(index) {
 
 async function deleteInvoiceItem(index) {
   if (state.invoices && state.invoices[index] !== undefined) {
-    const updatedInvoices = [...state.invoices];
-    updatedInvoices.splice(index, 1);
-
-    if (await syncWithBackend('invoices', updatedInvoices)) {
-      renderInvoice();
-    }
+    state.invoices.splice(index, 1);
+    renderInvoice();
   }
 }
 
@@ -1260,13 +1258,9 @@ window.removeDraftInvoiceForSale = async function (sale) {
   }
 
   if (removeIdx < 0) return false;
-  const updatedInvoices = [...state.invoices];
-  updatedInvoices.splice(removeIdx, 1);
-  if (await syncWithBackend("invoices", updatedInvoices)) {
-    renderInvoice();
-    return true;
-  }
-  return false;
+  state.invoices.splice(removeIdx, 1);
+  renderInvoice();
+  return true;
 };
 
 async function executeInvoiceAdd() {
@@ -1281,64 +1275,115 @@ async function executeInvoiceAdd() {
   const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
   const isCredit = paymentType === "Credit";
 
-  if (!product || Number.isNaN(price) || price <= 0) return false;
+  if (!product || Number.isNaN(price) || price <= 0) {
+    if (typeof showToast === "function") showToast("Enter item name and price to add.", "error");
+    return false;
+  }
 
   const baseTotal = price * qty;
   const gstAmount = (baseTotal * gstRate) / 100;
   const grandTotal = baseTotal + gstAmount;
 
-  let updated = [...state.invoices];
   const newItem = {
     customer, product, hsn, price, qty, gstRate, paymentType,
     paidAmount: isCredit ? 0 : grandTotal
   };
-  const isNewItem = editingIndex === -1;
 
   if (editingIndex > -1) {
-    updated[editingIndex] = newItem;
+    state.invoices[editingIndex] = newItem;
     editingIndex = -1;
     const addBtn = document.getElementById("addInvoiceBtn");
     if (addBtn) addBtn.textContent = "Add Item (F2)";
   } else {
-    updated.push(newItem);
+    if (!state.invoices) state.invoices = [];
+    state.invoices.push(newItem);
   }
 
-  if (await syncWithBackend('invoices', updated)) {
-    // 🟢 Permanent Sales History record — sirf NAYE item ke liye (edit
-    // karte waqt dobara record nahi hota, taaki duplicate na bane). Yeh
-    // draft invoice table se bilkul alag store hai, kabhi delete nahi hota.
-    if (isNewItem) {
-      const saleMeta = await recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType });
-      // Har nayi sale par Khata Pro me auto ledger + voucher (Tally sync alag se)
-      await recordKhataSaleFromInvoice({
-        customer, product, hsn, price, qty, gstRate, paymentType,
-        salesHistoryId: saleMeta?.id,
-        invoiceNo: saleMeta?.invoiceNo
+  document.getElementById("productName").value = "";
+  document.getElementById("productHsn").value = "";
+  document.getElementById("productPrice").value = "";
+  document.getElementById("productQty").value = "1";
+  const statusEl = document.getElementById("invoiceStatus");
+  if (statusEl) statusEl.textContent = `${state.invoices.length} item(s) in draft — click Save Invoice when done.`;
+  renderInvoice();
+  return true;
+}
+
+async function saveInvoiceVoucher() {
+  const customer = document.getElementById("customerName")?.value.trim();
+  if (!customer) {
+    if (typeof showToast === "function") showToast("Party / customer name is required before saving.", "error");
+    document.getElementById("customerName")?.focus();
+    return false;
+  }
+  if (!state.invoices?.length) {
+    if (typeof showToast === "function") showToast("Add at least one item before saving.", "error");
+    return false;
+  }
+
+  const saveBtn = document.getElementById("saveInvoiceBtn");
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
+    let prof = {};
+    try { prof = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}"); } catch { /* */ }
+    const invoiceNo = await getNextInvoiceNumber(prof.name || "INV");
+    let saved = 0;
+
+    for (const item of state.invoices) {
+      const cust = String(item.customer || customer).trim() || customer;
+      const payType = item.paymentType || paymentType;
+      const saleMeta = await recordPermanentSale({
+        customer: cust, product: item.product, hsn: item.hsn,
+        price: item.price, qty: item.qty, gstRate: item.gstRate,
+        paymentType: payType, invoiceNo
       });
+      await recordKhataSaleFromInvoice({
+        customer: cust, product: item.product, hsn: item.hsn,
+        price: item.price, qty: item.qty, gstRate: item.gstRate,
+        paymentType: payType,
+        salesHistoryId: saleMeta?.id,
+        invoiceNo: saleMeta?.invoiceNo || invoiceNo,
+        silent: true
+      });
+      saved++;
     }
 
-    document.getElementById("productName").value = "";
-    document.getElementById("productHsn").value = "";
-    document.getElementById("productPrice").value = "";
-    document.getElementById("productQty").value = "1";
-    renderInvoice();
+    await clearInvoiceDraftSession({ syncServer: false, silent: true });
+    ["customerName", "customerGstin", "customerAddress", "invoiceNarration"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    const statusEl = document.getElementById("invoiceStatus");
+    if (statusEl) statusEl.textContent = "Fill party details and add items.";
+    if (typeof showToast === "function") {
+      showToast(`✅ Invoice saved — ${invoiceNo} (${saved} item${saved === 1 ? "" : "s"})`, "success");
+    }
+    refreshOverviewSalesFromHistory();
     return true;
+  } catch (err) {
+    console.error("Save invoice error:", err);
+    if (typeof showToast === "function") showToast("Could not save invoice. Check connection and try again.", "error");
+    return false;
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
-  return false;
 }
+window.saveInvoiceVoucher = saveInvoiceVoucher;
 
 // 🟢 Permanent Sales History me record save karta hai (Total Sales panel
 // isi se data leta hai — draft invoice table delete hone se yeh kabhi
 // affect nahi hota)
-async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType }) {
+async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate, paymentType, invoiceNo: fixedInvoiceNo }) {
   try {
     const baseTotal = price * qty;
     const gstAmount = (baseTotal * gstRate) / 100;
     const totalAmount = baseTotal + gstAmount;
     const isCredit = paymentType === "Credit";
-    const invoiceNo = (typeof getNextInvoiceNumber === 'function')
+    const invoiceNo = fixedInvoiceNo || ((typeof getNextInvoiceNumber === 'function')
       ? await getNextInvoiceNumber((JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}").name) || "INV")
-      : ("INV-" + Date.now());
+      : ("INV-" + Date.now()));
 
     const res = await fetch(`${API_URL}/api/sales/record`, {
       method: "POST",
@@ -1363,6 +1408,7 @@ async function recordPermanentSale({ customer, product, hsn, price, qty, gstRate
 }
 
 document.getElementById("addInvoiceBtn")?.addEventListener("click", executeInvoiceAdd);
+document.getElementById("saveInvoiceBtn")?.addEventListener("click", saveInvoiceVoucher);
 
 document.getElementById("invoiceGstToggle")?.addEventListener("change", applyInvoiceGstToggleUI);
 
