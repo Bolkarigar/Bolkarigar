@@ -783,12 +783,13 @@ async function loadInvoiceLedgers() {
   }
 }
 
-function filterInvoiceLedgers(query) {
+function filterInvoiceLedgers(query, ledgerFilter) {
   const q = String(query || "").trim().toLowerCase();
   if (!q || !invoiceLedgerCache.length) return [];
   const starts = [];
   const contains = [];
   invoiceLedgerCache.forEach(ledger => {
+    if (ledgerFilter && !ledgerFilter(ledger)) return;
     const name = String(ledger.partyName || "").trim();
     if (!name) return;
     const lower = name.toLowerCase();
@@ -842,7 +843,7 @@ function clearLedgerPartyAutocomplete(hiddenId, searchId, suggestId) {
 
 const ledgerPartyAutocompleteInited = new Set();
 
-function setupLedgerPartyAutocomplete({ searchId, suggestId, hiddenId, onSelect }) {
+function setupLedgerPartyAutocomplete({ searchId, suggestId, hiddenId, onSelect, ledgerFilter }) {
   if (ledgerPartyAutocompleteInited.has(searchId)) return;
   ledgerPartyAutocompleteInited.add(searchId);
 
@@ -873,7 +874,7 @@ function setupLedgerPartyAutocomplete({ searchId, suggestId, hiddenId, onSelect 
     syncHiddenFromTypedName();
     const ensureCache = invoiceLedgerCache.length ? Promise.resolve() : loadInvoiceLedgers();
     ensureCache.then(() => {
-      renderLedgerPartySuggest(list, filterInvoiceLedgers(input.value), pick);
+      renderLedgerPartySuggest(list, filterInvoiceLedgers(input.value, ledgerFilter), pick);
     });
   }
 
@@ -920,6 +921,7 @@ function setupVoucherPartyAutocompletes() {
     searchId: "pvPartySearch",
     suggestId: "pvPartySuggest",
     hiddenId: "pvPartyInput",
+    ledgerFilter: (l) => l.ledgerGroup !== "Sundry Debtor",
     onSelect: (ledger) => {
       const gst = document.getElementById("pvSupplierGstinInput");
       if (gst && !gst.value.trim() && ledger.gstin) gst.value = ledger.gstin;
@@ -7546,6 +7548,8 @@ function getEWayBillDetails() {
       if (!res.ok || !data.success) throw new Error(data.error || "Save fail hua");
       if (statusText) { statusText.textContent = "✅ " + data.message; statusText.style.color = "#22c55e"; }
       showToast("✅ Purchase bill saved!");
+      if (typeof loadKhataLedgers === "function") loadKhataLedgers();
+      if (typeof refreshUdharKhata === "function") refreshUdharKhata();
       purchaseLineItems = [];
       purchaseEditingIndex = -1;
       renderPurchaseItems();

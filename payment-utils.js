@@ -113,6 +113,12 @@ async function reconcileDebtorLedger(userId, ledger, models) {
     balance -= Number(cn.amount) || 0;
   }
 
+  // Purchase bill on Sundry Debtor = shopkeeper often records customer return here by mistake
+  const customerReturns = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Purchase' });
+  for (const pr of customerReturns) {
+    balance -= Number(pr.amount) || 0;
+  }
+
   const debitNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Debit Note' });
   for (const dn of debitNotes) {
     balance += Number(dn.amount) || 0;
@@ -162,6 +168,10 @@ async function getDebtorUdharSummary(userId, ledger, models) {
     const creditNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Credit Note' });
     for (const cn of creditNotes) {
       returns += Number(cn.amount) || 0;
+    }
+    const purchaseReturns = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Purchase' });
+    for (const pr of purchaseReturns) {
+      returns += Number(pr.amount) || 0;
     }
   }
 
@@ -444,20 +454,28 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     } else if (v.voucherType === 'Credit Note') {
       udharEffect = -amt;
       status = 'Returned';
+    } else if (v.voucherType === 'Purchase') {
+      udharEffect = -amt;
+      status = 'Returned';
     } else if (v.voucherType === 'Debit Note') {
       udharEffect = amt;
       status = 'Debit Note';
     }
 
+    const displayType = v.voucherType === 'Purchase' ? 'Credit Note' : v.voucherType;
+    const displayNote = v.voucherType === 'Purchase'
+      ? [v.note, v.supplierInvoiceNo ? `#${v.supplierInvoiceNo}` : '', '(Customer return via Purchase bill)'].filter(Boolean).join(' | ') || 'Customer return'
+      : (v.note || '-');
+
     events.push({
       date: v.date,
       sortKey: new Date(v.date).getTime(),
-      voucherType: v.voucherType,
+      voucherType: displayType,
       amount: amt,
       paymentMode: v.paymentMode || '—',
       status,
       udharEffect,
-      note: v.note || '-'
+      note: displayNote
     });
   }
 
