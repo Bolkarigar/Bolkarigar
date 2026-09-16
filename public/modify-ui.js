@@ -707,7 +707,10 @@
       journal: "journal voucher"
     };
     const label = labels[currentType] || "record";
-    if (!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+    const confirmText = currentType === "account"
+      ? `Delete account "${selectedRecord.title || selectedRecord.raw?.partyName || ""}" and ALL linked transactions (sales, vouchers, payments)? This cannot be undone.`
+      : `Delete this ${label}? This cannot be undone.`;
+    if (!confirm(confirmText)) return;
 
     try {
       let url;

@@ -52,7 +52,8 @@ const {
   findLinkedPaymentForReceipt,
   findLinkedPaymentsForSale,
   findReceiptVouchersForPayment,
-  removeOneMatchingDraftInvoice
+  removeOneMatchingDraftInvoice,
+  partyRegex
 } = require('./payment-utils');
 const logger = require('./logger');
 
@@ -2429,12 +2430,128 @@ app.get('/api/ledgers', authenticateToken, async (req, res) => {
   }
 });
 
+async function removeLedgerWithCascade(userId, ledger) {
+  const Payment = mongoose.models.Payment;
+  const models = { Ledger, SalesHistory, Payment, Voucher, Item };
+  const ledgerId = ledger._id;
+  const rx = partyRegex(ledger.partyName);
+  const deletedVoucherIds = new Set();
+
+  let removedVouchers = 0;
+  let removedSales = 0;
+  let removedPayments = 0;
+  let removedDrafts = 0;
+
+  async function purgeVoucher(voucher) {
+    const id = String(voucher._id);
+    if (deletedVoucherIds.has(id)) return;
+    if (voucher.voucherType === 'Receipt' && Payment) {
+      const linkedPay = await findLinkedPaymentForReceipt(userId, voucher, models);
+      if (linkedPay) {
+        await Payment.deleteOne({ _id: linkedPay._id });
+        removedPayments += 1;
+      }
+    }
+    if (voucher.voucherType === 'Sales') {
+      const linkedSale = await findLinkedSalesRecord(userId, voucher, models);
+      if (linkedSale) {
+        await SalesHistory.deleteOne({ _id: linkedSale._id });
+        removedSales += 1;
+        removedDrafts += await removeOneMatchingDraftInvoice(userId, linkedSale, UserData);
+      }
+    }
+    await removeVoucherWithReversal(userId, voucher);
+    deletedVoucherIds.add(id);
+    removedVouchers += 1;
+  }
+
+  const sales = await SalesHistory.find({ userId, customer: rx });
+  for (const sale of sales) {
+    const linkedVouchers = await findLinkedSalesVouchers(userId, sale, models);
+    for (const voucher of linkedVouchers) {
+      await purgeVoucher(voucher);
+    }
+    if (Payment) {
+      const linkedPayments = await findLinkedPaymentsForSale(userId, sale, models);
+      for (const payment of linkedPayments) {
+        const receipts = await findReceiptVouchersForPayment(userId, payment, models);
+        for (const receipt of receipts) {
+          await purgeVoucher(receipt);
+        }
+        await Payment.deleteOne({ _id: payment._id });
+        removedPayments += 1;
+      }
+    }
+    removedDrafts += await removeOneMatchingDraftInvoice(userId, sale, UserData);
+    await SalesHistory.deleteOne({ _id: sale._id });
+    removedSales += 1;
+  }
+
+  const partyVouchers = await Voucher.find({
+    userId,
+    $or: [{ partyId: ledgerId }, { secondaryLedgerId: ledgerId }]
+  });
+  for (const voucher of partyVouchers) {
+    await purgeVoucher(voucher);
+  }
+
+  const journalVouchers = await Voucher.find({
+    userId,
+    voucherType: 'Journal',
+    'journalEntries.ledgerId': ledgerId
+  });
+  for (const voucher of journalVouchers) {
+    await purgeVoucher(voucher);
+  }
+
+  if (Payment) {
+    const orphanPayments = await Payment.find({ userId, customerName: rx });
+    for (const payment of orphanPayments) {
+      const receipts = await findReceiptVouchersForPayment(userId, payment, models);
+      for (const receipt of receipts) {
+        await purgeVoucher(receipt);
+      }
+      await Payment.deleteOne({ _id: payment._id });
+      removedPayments += 1;
+    }
+  }
+
+  const userData = await UserData.findOne({ userId });
+  if (userData?.invoices?.length) {
+    const custLower = String(ledger.partyName || '').trim().toLowerCase();
+    const before = userData.invoices.length;
+    userData.invoices = userData.invoices.filter(
+      (inv) => String(inv.customer || '').trim().toLowerCase() !== custLower
+    );
+    if (userData.invoices.length < before) {
+      removedDrafts += before - userData.invoices.length;
+      await userData.save();
+    }
+  }
+
+  await Ledger.deleteOne({ _id: ledgerId, userId });
+
+  if (Payment) {
+    await reconcileAllDebtorLedgers(userId, models, { force: true });
+  }
+
+  return { removedVouchers, removedSales, removedPayments, removedDrafts };
+}
+
 app.delete('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.LEDGER_DELETE), async (req, res) => {
   try {
-    const inUse = await Voucher.findOne({ userId: req.dataUserId, $or: [{ partyId: req.params.id }, { secondaryLedgerId: req.params.id }] });
-    if (inUse) return res.status(400).json({ error: 'Is ledger ka transaction history hai, delete nahi kar sakte.' });
-    await Ledger.deleteOne({ _id: req.params.id, userId: req.dataUserId });
-    res.json({ success: true });
+    const ledger = await Ledger.findOne({ _id: req.params.id, userId: req.dataUserId });
+    if (!ledger) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
+
+    const stats = await removeLedgerWithCascade(req.dataUserId, ledger);
+    const parts = [`Ledger "${ledger.partyName}" deleted`];
+    if (stats.removedVouchers) parts.push(`${stats.removedVouchers} voucher(s) removed`);
+    if (stats.removedSales) parts.push(`${stats.removedSales} sale(s) removed`);
+    if (stats.removedPayments) parts.push(`${stats.removedPayments} payment(s) removed`);
+    if (stats.removedDrafts) parts.push(`${stats.removedDrafts} draft invoice(s) cleared`);
+    parts.push('Ledgers & Credit Ledger updated');
+
+    res.json({ success: true, message: parts.join(' — ') + '.', ...stats });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

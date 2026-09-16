@@ -6468,13 +6468,19 @@ function getEWayBillDetails() {
   }
 
   window.deleteKhataLedger = async function (id) {
-    if (!confirm("Delete this ledger?")) return;
+    const row = khataPag.ledgers.data.find((l) => String(l._id) === String(id));
+    const name = row?.partyName || "this ledger";
+    if (!confirm(
+      `Delete "${name}" and ALL linked transactions?\n\n`
+      + "This removes sales, vouchers, payments and udhar entries for this party. Cannot be undone."
+    )) return;
     try {
       const res = await fetch(`${API_URL}/api/ledgers/${id}`, { method: "DELETE", headers: khataHeaders() });
       const data = await res.json();
-      if (!res.ok) { showToast("❌ " + data.error, "error"); return; }
-      showToast("Ledger deleted.");
+      if (!res.ok || !data.success) { showToast("❌ " + (data.error || "Delete failed"), "error"); return; }
+      showToast("✅ " + (data.message || "Ledger deleted."));
       loadKhataLedgers();
+      if (typeof refreshUdharKhata === "function") refreshUdharKhata();
     } catch (err) { showToast("❌ " + err.message, "error"); }
   };
 
