@@ -166,32 +166,21 @@ let state = {
 };
 window.state = state;
 
-/** Purge legacy invoice draft from browser + server (table ab memory-only hai) */
-async function clearInvoiceDraftSession({ syncServer = true, silent = false } = {}) {
+/** Invoice draft clear — Purchase jaisa memory-only table */
+function resetInvoiceDraftTable() {
   invoiceLineItems = [];
   editingIndex = -1;
   localStorage.removeItem("bolkarigar_invoices");
   const addBtn = document.getElementById("addInvoiceBtn");
   if (addBtn) addBtn.textContent = "Add Item (F2)";
   const statusEl = document.getElementById("invoiceStatus");
-  if (statusEl) statusEl.textContent = "";
-  if (typeof renderInvoice === "function") renderInvoice();
-  if (syncServer && getToken()) {
-    try {
-      await fetch(`${API_URL}/api/dashboard/update`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({ type: "invoices", payload: [] })
-      });
-    } catch (err) {
-      if (!silent) console.warn("Invoice draft server purge:", err);
-    }
+  if (statusEl) {
+    statusEl.textContent = "";
+    statusEl.style.color = "";
   }
+  if (typeof renderInvoice === "function") renderInvoice();
 }
-window.clearInvoiceDraftSession = clearInvoiceDraftSession;
+window.clearInvoiceDraftSession = resetInvoiceDraftTable;
 
 // Unified Sync Engine
 async function syncWithBackend(type, newPayload) {
@@ -445,6 +434,10 @@ async function loadServerData(opts = {}) {
     const meRes = await fetch(`${API_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (meRes.status === 401 || meRes.status === 403) {
+      logoutUser();
+      return;
+    }
     if (meRes.ok) {
       const me = await meRes.json();
       if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
@@ -488,7 +481,7 @@ async function loadServerData(opts = {}) {
         window._bkAccountInfo.subscription = errData.subscription;
         applyRoleBasedUI(window._bkAccountInfo);
       }
-      await clearInvoiceDraftSession({ syncServer: false, silent: true });
+      resetInvoiceDraftTable();
       return;
     }
     
@@ -497,26 +490,30 @@ async function loadServerData(opts = {}) {
     state.todos = data.todos || [];
     state.projects = data.projects || [];
     state.expenses = data.expenses || [];
-    await clearInvoiceDraftSession({ syncServer: true, silent: true });
+    resetInvoiceDraftTable();
 
-    showDataStatusBanner(window._bkAccountInfo, 0, 0);
+    showDataStatusBanner(window._bkAccountInfo, (data.invoices || []).length, 0);
 
     renderTodos();
     renderProjects();
     renderExpenses();
+    renderInvoice();
 
-    calculateFinancials([], state.expenses);
     await refreshOverviewSalesFromHistory();
+    calculateFinancials([], state.expenses);
     await loadCompanyProfile();
     if (typeof window.enhanceMobileTables === "function") {
       window.enhanceMobileTables();
     }
   } catch (err) {
     console.error("Initial load failed:", err);
-    await clearInvoiceDraftSession({ syncServer: false, silent: true });
+    resetInvoiceDraftTable();
+    renderTodos();
+    renderProjects();
+    renderExpenses();
+    await refreshOverviewSalesFromHistory().catch(() => null);
     calculateFinancials([], state.expenses || []);
-    await refreshOverviewSalesFromHistory();
-    showToast("Could not load from server — invoice draft cleared. Sales history is on the server when connection returns.", "error");
+    showToast("Could not load all data from server — please refresh.", "error");
   }
 }
 // ================= TODOS SECTION =================
@@ -1205,6 +1202,7 @@ function refreshInvoicePanel() {
   if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
   if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
   if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
   renderInvoice();
 }
 window.refreshInvoicePanel = refreshInvoicePanel;
