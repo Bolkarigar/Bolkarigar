@@ -182,19 +182,24 @@
     color: var(--muted);
     font-weight: 500;
   }
-  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
-  .topbar-head-actions {
+  .topbar-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
     flex-shrink: 0;
   }
-  .topbar-head-actions .clock-box {
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-toolbar .topbar-clock {
     flex-shrink: 0;
     text-align: right;
     line-height: 1.15;
     white-space: nowrap;
+    order: 1;
   }
+  .topbar-toolbar .voice-btn { order: 2; }
+  .topbar-toolbar .top-actions { order: 3; }
   .topbar-more-btn {
     display: none;
     width: 40px;
@@ -2578,15 +2583,16 @@ body.sidebar-open .sidebar-tally-card {
     max-width: 100%;
   }
   .brand-mark { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; }
-  .topbar-head-actions {
+  .topbar-toolbar {
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
     margin-left: auto;
+    position: static;
   }
-  .topbar-more-btn { display: inline-flex; }
-  .topbar-head-actions .voice-btn {
+  .topbar-more-btn { display: inline-flex; order: 3; }
+  .topbar-toolbar .voice-btn {
     min-width: 0;
     padding: 8px 10px;
     font-size: 11px;
@@ -2869,7 +2875,7 @@ body.sidebar-open .sidebar-tally-card {
 
   .brand-mark { width: 32px; height: 32px; border-radius: 8px; }
 
-  .topbar-head-actions .voice-btn {
+  .topbar-toolbar .voice-btn {
     font-size: 10px;
     padding: 8px;
     max-width: 72px;
@@ -4157,12 +4163,23 @@ body.app-lock-active { overflow: hidden; }
   font-size: 1rem;
 }
 
-/* ——— Desktop topbar: voice + actions in one row ——— */
+/* ——— Desktop topbar: live time → voice → actions ——— */
 @media (min-width: 769px) {
   .topbar { justify-content: flex-start; }
   .brand-wrap { flex: 1; min-width: 0; }
   .topbar-more-btn { display: none !important; }
-  .topbar-head-actions { margin-left: auto; }
+  .topbar-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .topbar-toolbar .topbar-clock {
+    display: flex !important;
+    order: 1;
+  }
+  .topbar-toolbar .voice-btn { order: 2; }
   .top-actions {
     display: flex !important;
     position: static;
@@ -4177,6 +4194,7 @@ body.app-lock-active { overflow: hidden; }
     max-height: none;
     overflow: visible;
     gap: 10px;
+    order: 3;
   }
   .top-actions .theme-btn,
   .top-actions .staff-mode-banner {
@@ -4347,7 +4365,7 @@ body.app-lock-active { overflow: hidden; }
 }
 
 @media (max-width: 480px) {
-  .topbar-head-actions .voice-btn {
+  .topbar-toolbar .voice-btn {
     max-width: 64px;
     font-size: 9px;
     padding: 7px 6px;
