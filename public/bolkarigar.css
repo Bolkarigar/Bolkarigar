@@ -189,6 +189,12 @@
     gap: 8px;
     flex-shrink: 0;
   }
+  .topbar-head-actions .clock-box {
+    flex-shrink: 0;
+    text-align: right;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
   .topbar-more-btn {
     display: none;
     width: 40px;
@@ -4361,5 +4367,133 @@ body.app-lock-active { overflow: hidden; }
   .modify-actions button {
     width: 100%;
     min-height: 44px;
+  }
+}
+
+/* ——— Mobile: date inputs & voucher/modify forms ——— */
+input[type="date"]:not(.inv-date-input-hidden) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+input[type="date"].inv-date-input-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  input[type="date"]:not(.inv-date-input-hidden) {
+    min-height: 44px;
+    height: 44px;
+    padding: 10px 12px;
+    font-size: 16px;
+    line-height: 1.2;
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+  }
+
+  /* Header date chip = source of truth — hide duplicate Bill/Voucher Date row */
+  #purchasePanel .inv-party-grid > label:has(#pvDateInput),
+  #paymentVoucherPanel .inv-party-grid > label:has(#pmvDateInput),
+  #receiptVoucherPanel .inv-party-grid > label:has(#rcvDateInput) {
+    display: none !important;
+  }
+
+  .inv-voucher-card .inv-vch-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .inv-voucher-card .inv-vch-meta {
+    justify-content: flex-start;
+  }
+  .inv-meta-chip {
+    padding: 10px 14px;
+    font-size: 14px;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .inv-party-grid,
+  .voucher-party-grid,
+  .voucher-stock-grid,
+  .voucher-form-card .grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .voucher-field {
+    min-width: 0;
+    width: 100%;
+  }
+  .voucher-field input:not([type="hidden"]),
+  .voucher-field select,
+  .voucher-field textarea {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .modify-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modify-form-grid label,
+  .modify-form-grid .modify-span2 {
+    grid-column: auto !important;
+    min-width: 0;
+    width: 100%;
+  }
+  .modify-form-grid input,
+  .modify-form-grid select,
+  .modify-form-grid textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .modify-date-filters {
+    grid-template-columns: 1fr !important;
+  }
+  .modify-date-field input[type="date"] {
+    width: 100%;
+  }
+
+  .modify-edit-card {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .inv-voucher-card {
+    padding: 12px 10px;
+    overflow-x: hidden;
+  }
+
+  .inv-action-row,
+  .purchase-panel-card > .btn-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .inv-action-row button,
+  .purchase-panel-card > .btn-row button {
+    width: 100%;
+    min-height: 44px;
+    flex: 1 1 auto !important;
+  }
+
+  .sales-date-field input[type="date"] {
+    min-height: 44px;
+    height: 44px;
   }
 }

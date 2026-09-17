@@ -170,6 +170,7 @@
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  min-width: 0;
 }
 .modify-form-grid input,
 .modify-form-grid select,
@@ -230,10 +231,19 @@
   font-size: 13px;
   min-height: 1.2em;
 }
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .modify-form-grid { grid-template-columns: 1fr; }
   .modify-form-grid .modify-span2 { grid-column: auto; }
   .modify-date-filters { grid-template-columns: 1fr; }
+  .modify-form-grid input[type="date"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    min-height: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
   .modify-panel-card { padding: 12px; margin-bottom: 10px; }
   .modify-search-input { font-size: 16px; padding: 12px; }
   .modify-actions {
