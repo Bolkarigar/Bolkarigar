@@ -302,6 +302,29 @@
       <div class="bc-lux-seal bc-anim-glow" style="--bc-glow:${accent}">👑 LUXURY</div>`;
   }
 
+  /** Centered logo block — used across Pro & Luxury layouts */
+  function renderCenteredLuxLogo(initial, tpl, innerHtml) {
+    const a = tpl.accent;
+    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a};margin-bottom:10px">${renderLuxEmblem(initial, tpl)}</div>
+      ${innerHtml || ""}
+    </div>`;
+  }
+
+  function renderCenteredQR(data, accent, size) {
+    const sz = size || 104;
+    return `<div class="bc-qr-center" style="display:flex;align-items:center;justify-content:center;height:100%;padding:8px">
+      <div class="bc-anim-qr-pulse" style="--bc-accent:${accent}">${renderLuxQRBlock(data, accent, sz)}</div>
+    </div>`;
+  }
+
+  function renderProLogoCircle(initial, accent, logoColor, onDarkSide, size) {
+    const sz = size || 90;
+    const bg = onDarkSide ? "#fff" : accent;
+    const col = onDarkSide ? accent : logoColor;
+    return `<div class="bc-anim-float bc-logo-glow" style="--bc-accent:${accent};width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz * 0.38)}px;font-weight:800;border:3px solid ${onDarkSide ? accent : accent + "88"};box-shadow:0 8px 24px ${accent}44">${initial}</div>`;
+  }
+
   function renderMetaChip(text, accent, textColor, filled) {
     if (!text) return "";
     const bg = filled ? accent : `${accent}22`;
@@ -649,10 +672,10 @@
           ${renderSwooshContactItem("pin", addr, iconStyle)}
         </div>
       </div>
-      <div style="position:absolute;right:0;top:0;width:${rightW}%;height:100%;padding:36px 28px 32px;display:flex;flex-direction:column;align-items:center;z-index:4;box-sizing:border-box">
-        <div style="position:absolute;right:10%;top:12%;font-size:140px;font-weight:700;color:${accent};opacity:0.07;font-family:Georgia,serif;pointer-events:none;line-height:1">${initial}</div>
-        <div style="text-align:center;flex-shrink:0;width:100%">
-          <div style="display:flex;justify-content:center;margin-bottom:10px;padding:12px;border-radius:50%;background:linear-gradient(135deg,${accent}22,${accent}08);border:2px solid ${accent}44;box-shadow:0 4px 20px ${accent}33" class="bc-anim-float">${renderSwooshLogo(logoType, accent)}</div>
+      <div style="position:absolute;right:0;top:0;width:${rightW}%;height:100%;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:4;box-sizing:border-box">
+        <div style="position:absolute;right:10%;top:50%;transform:translateY(-50%);font-size:140px;font-weight:700;color:${accent};opacity:0.06;font-family:Georgia,serif;pointer-events:none;line-height:1">${initial}</div>
+        <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${accent};display:flex;justify-content:center;padding:14px;border-radius:50%;background:linear-gradient(135deg,${accent}22,${accent}08);border:2px solid ${accent}44;box-shadow:0 4px 20px ${accent}33">${renderSwooshLogo(logoType, accent)}</div>
+        <div style="text-align:center;width:100%">
           <div style="font-size:14px;font-weight:800;letter-spacing:2.5px;color:${textDark};font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;line-height:1.3">${biz}</div>
           <div style="font-size:10px;letter-spacing:1.5px;color:${textDark};opacity:0.6;margin-top:5px;font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;font-weight:600">${tagline}</div>
           <div style="width:70%;height:2px;background:linear-gradient(90deg,transparent,${accent},transparent);margin:12px auto"></div>
@@ -662,10 +685,8 @@
           </div>
           ${renderActionMiniGrid(accent, textDark)}
         </div>
-        <div style="margin-top:auto;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:2px;width:100%">
-          <div style="padding:10px 14px;background:linear-gradient(135deg,${accent}18,${accent}08);border:2px solid ${accent}55;border-radius:12px;box-shadow:0 6px 20px ${accent}25">
-            ${renderRealQR(data, 108)}
-          </div>
+        <div class="bc-anim-qr-pulse" style="--bc-accent:${accent};padding:10px 14px;background:linear-gradient(135deg,${accent}18,${accent}08);border:2px solid ${accent}55;border-radius:12px;box-shadow:0 6px 20px ${accent}25;text-align:center">
+          ${renderRealQR(data, 108)}
           <div style="font-size:9px;letter-spacing:2.5px;color:${textDark};opacity:0.55;margin-top:8px;font-weight:800;text-transform:uppercase">Scan · Connect · Grow</div>
         </div>
       </div>
@@ -726,23 +747,23 @@
           ${meta ? `<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${t};opacity:0.8;text-align:right;font-weight:600">${meta}</div>` : ""}
         </div>
         <div style="height:2px;background:linear-gradient(90deg,${a},${a}66,transparent);margin-bottom:10px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:40% 1fr;grid-template-rows:1fr auto auto;gap:10px 24px;min-height:0">
-          <div style="grid-row:1;display:flex;flex-direction:column;justify-content:flex-start;border-right:2px solid ${a}44;padding-right:20px;background:${a}08;border-radius:0 12px 12px 0;padding:16px 20px 16px 8px">
-            <div style="margin-bottom:10px;transform:scale(0.95);transform-origin:left top">${renderLuxEmblem(initial, tpl)}</div>
-            <h2 style="margin:0;font-size:46px;font-weight:700;color:${a};line-height:1.05;letter-spacing:0.5px">${name}</h2>
-            ${desig ? `<p style="margin:6px 0 0;font-size:17px;color:${t};opacity:0.9;letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
-            <div style="width:72px;height:3px;background:${a};margin-top:14px;opacity:0.9"></div>
-            ${renderActionChips(data.mobile, shop, a, tpl.bg)}
-            <div style="margin-top:auto;padding-top:12px;font-size:10px;letter-spacing:4px;color:${a};opacity:0.7;text-transform:uppercase;font-weight:700">Premium Visiting Card</div>
-          </div>
-          <div style="grid-row:1;display:flex;flex-direction:column;min-height:0;height:100%;padding-top:4px">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 270px 200px;grid-template-rows:1fr auto auto;gap:12px 18px;align-items:center;min-height:0">
+          <div style="grid-row:1;display:flex;flex-direction:column;justify-content:center;padding-right:16px;border-right:2px solid ${a}33;min-height:0">
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
             ${renderLuxMetaChips(cat, shop, gst, a)}
-            <div style="margin-top:auto;display:flex;justify-content:flex-end;padding-top:8px">
-              ${renderLuxQRBlock(data, a, 108)}
-            </div>
+            ${renderActionMiniGrid(a, t)}
           </div>
+          <div style="grid-row:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 14px;background:${a}10;border-radius:14px;border:1px solid ${a}35;height:100%;min-height:0">
+            ${renderCenteredLuxLogo(initial, tpl, `
+              <h2 style="margin:0;font-size:38px;font-weight:700;color:${a};line-height:1.05;letter-spacing:0.5px">${name}</h2>
+              ${desig ? `<p style="margin:6px 0 0;font-size:15px;color:${t};opacity:0.9;letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
+              <div style="width:64px;height:3px;background:${a};margin:12px auto;opacity:0.9"></div>
+              ${renderActionChips(data.mobile, shop, a, tpl.bg)}
+              <div style="margin-top:10px;font-size:10px;letter-spacing:4px;color:${a};opacity:0.7;text-transform:uppercase;font-weight:700">Premium Visiting Card</div>
+            `)}
+          </div>
+          <div style="grid-row:1">${renderCenteredQR(data, a, 108)}</div>
           ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:3px;color:${a};opacity:0.75;text-transform:uppercase;white-space:nowrap;font-weight:700">Bolkarigar</div>`)}
           ${foilBar}
         </div>
@@ -767,7 +788,7 @@
 
     return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
       <div style="position:absolute;left:0;top:0;bottom:0;width:30%;background:linear-gradient(180deg,${a}35,${a}12);border-right:2px solid ${a}55;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px;z-index:2">
-        <div style="transform:scale(0.92)">${renderLuxEmblem(initial, tpl)}</div>
+        <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a};transform:scale(0.92)">${renderLuxEmblem(initial, tpl)}</div>
         <div style="margin-top:14px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${a};text-align:center;line-height:1.6;font-weight:800">${biz}</div>
         ${renderActionChips(data.mobile, shop, a, tpl.bg)}
       </div>
@@ -779,12 +800,12 @@
           </div>
         </div>
         <div style="height:2px;background:linear-gradient(90deg,${a},transparent);margin:12px 0"></div>
-        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;align-items:stretch">
           ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
           ${renderLuxContactRow("EMAIL", email, "email", a, t)}
           ${renderLuxMetaChips(cat, shop, gst, a)}
-          <div style="margin-top:auto;display:flex;justify-content:flex-end;padding-top:6px">${renderLuxQRBlock(data, a, 104)}</div>
-          <div style="margin-top:10px">${renderLuxFooterBar(addr, a, t, "")}</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 0">${renderCenteredQR(data, a, 104)}</div>
+          <div style="margin-top:6px">${renderLuxFooterBar(addr, a, t, "")}</div>
         </div>
         <div style="height:5px;background:linear-gradient(90deg,transparent,${a},transparent);margin-top:10px;opacity:0.65"></div>
       </div>
@@ -816,23 +837,22 @@
           ${cat || shop ? `<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${t};opacity:0.8;font-weight:600">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
         </div>
         <div style="height:2px;background:linear-gradient(90deg,${a},${a}55,transparent);margin-bottom:8px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:36% 1fr 190px;gap:16px 20px;align-items:stretch;min-height:0">
-          <div style="display:flex;flex-direction:column;justify-content:center;padding:12px 16px 12px 8px;background:${a}10;border-radius:10px;border:1px solid ${a}33">
-            <div style="transform:scale(0.92);transform-origin:left center;margin-bottom:8px">${renderLuxEmblem(initial, tpl)}</div>
-            <h2 style="margin:0;font-size:${isNoir ? "42" : "40"}px;font-weight:${isNoir ? "300" : "700"};color:${isNoir ? t : a};letter-spacing:${isNoir ? "2px" : "0.5px"};line-height:1.05">${name}</h2>
-            ${desig ? `<p style="margin:6px 0 0;font-size:16px;color:${a};letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
-            <div style="width:56px;height:2px;background:${a};margin-top:10px"></div>
-            ${renderActionChips(data.mobile, shop, a, tpl.bg)}
-          </div>
-          <div style="display:flex;flex-direction:column;justify-content:center;padding:8px 0">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 260px 200px;gap:16px 18px;align-items:center;min-height:0">
+          <div style="display:flex;flex-direction:column;justify-content:center;padding:8px 12px 8px 0;border-right:2px solid ${a}33">
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+            ${renderLuxMetaChips(cat, shop, gst, a)}
           </div>
-          <div style="display:flex;flex-direction:column;justify-content:center;align-items:center">
-            ${renderLuxQRBlock(data, a, 100)}
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px 12px;background:${a}10;border-radius:14px;border:1px solid ${a}33;height:100%">
+            ${renderCenteredLuxLogo(initial, tpl, `
+              <h2 style="margin:0;font-size:${isNoir ? "36" : "34"}px;font-weight:${isNoir ? "300" : "700"};color:${isNoir ? t : a};letter-spacing:${isNoir ? "2px" : "0.5px"};line-height:1.05">${name}</h2>
+              ${desig ? `<p style="margin:6px 0 0;font-size:15px;color:${a};letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
+              <div style="width:56px;height:2px;background:${a};margin:10px auto"></div>
+              ${renderActionChips(data.mobile, shop, a, tpl.bg)}
+            `)}
           </div>
+          <div>${renderCenteredQR(data, a, 100)}</div>
         </div>
-        ${renderLuxMetaChips(cat, shop, gst, a)}
         <div style="margin-top:8px">${renderLuxFooterBar(addr, a, t, "")}</div>
         <div style="height:5px;background:linear-gradient(90deg,transparent,${a},transparent);margin-top:8px;opacity:0.6"></div>
       </div>
@@ -858,20 +878,20 @@
       <div style="position:absolute;inset:14px;border:1px solid ${a};opacity:0.45;pointer-events:none;z-index:2"></div>
       <div style="position:absolute;inset:22px;border:1px solid ${a};opacity:0.2;pointer-events:none;z-index:2"></div>
       ${renderLuxWatermark(initial, a)}
-      <div style="position:absolute;inset:0;padding:28px 32px;display:grid;grid-template-columns:1fr auto;gap:20px;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
+      <div style="position:absolute;inset:0;padding:28px 32px;display:grid;grid-template-columns:1fr 250px 200px;grid-template-rows:1fr auto;gap:16px 18px;font-family:${font};z-index:3;height:100%;box-sizing:border-box;align-items:center">
         <div style="display:flex;flex-direction:column;justify-content:center">
           <div style="font-size:12px;letter-spacing:5px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">${biz}</div>
-          <h2 style="margin:0;font-size:48px;font-weight:700;color:${t};line-height:1.05;letter-spacing:0.5px">${name}</h2>
+          <h2 style="margin:0;font-size:44px;font-weight:700;color:${t};line-height:1.05;letter-spacing:0.5px">${name}</h2>
           ${desig ? `<p style="margin:8px 0 0;font-size:17px;color:${a};letter-spacing:3px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
           <div style="width:80px;height:3px;background:linear-gradient(90deg,${a},transparent);margin:16px 0"></div>
           ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
           ${renderLuxContactRow("EMAIL", email, "email", a, t)}
           ${renderActionChips(data.mobile, data.shopType, a, tpl.bg)}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
-          <div style="transform:scale(0.88)">${renderLuxEmblem(initial, tpl)}</div>
-          ${renderLuxQRBlock(data, a, 108)}
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;background:${a}12;border-radius:14px;border:1px solid ${a}35">
+          ${renderCenteredLuxLogo(initial, tpl, "")}
         </div>
+        <div>${renderCenteredQR(data, a, 108)}</div>
         ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:4px;color:${a};font-weight:800">LUXURY</div>`)}
       </div>
     </div>`;
@@ -894,20 +914,22 @@
     return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
       <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(135deg,${a},${a}88);z-index:1"></div>
       <div style="position:absolute;top:0;left:0;right:0;height:120px;opacity:0.15;background:repeating-linear-gradient(-45deg,#fff 0,#fff 1px,transparent 1px,transparent 8px);z-index:2"></div>
-      <div style="position:absolute;top:28px;left:48px;width:88px;height:88px;border-radius:50%;background:${tpl.bg};border:4px solid ${a};display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;color:${a};z-index:3;box-shadow:0 8px 24px rgba(0,0,0,0.35)">${initial}</div>
-      <div style="position:absolute;inset:0;padding:36px 40px 28px 160px;display:flex;flex-direction:column;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
-        <div style="padding-top:8px">
+      <div style="position:absolute;top:22px;left:50%;transform:translateX(-50%);z-index:3">
+        <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a};width:92px;height:92px;border-radius:50%;background:${tpl.bg};border:4px solid ${a};display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:${a};box-shadow:0 8px 24px rgba(0,0,0,0.35)">${initial}</div>
+      </div>
+      <div style="position:absolute;inset:0;padding:118px 36px 28px;display:flex;flex-direction:column;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
+        <div style="text-align:center;padding-bottom:8px">
           <div style="font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#fff;font-weight:800;opacity:0.95">${biz}</div>
-          <h2 style="margin:6px 0 0;font-size:44px;font-weight:700;color:#fff;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,0.2)">${name}</h2>
+          <h2 style="margin:6px 0 0;font-size:42px;font-weight:700;color:#fff;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,0.2)">${name}</h2>
           ${desig ? `<p style="margin:4px 0 0;font-size:16px;color:rgba(255,255,255,0.92);letter-spacing:2px;text-transform:uppercase">${desig}</p>` : ""}
         </div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr auto;gap:16px;margin-top:20px;align-items:end">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 200px;gap:16px;margin-top:12px;align-items:center">
           <div>
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
             ${renderLuxMetaChips(cat, data.shopType, gst, a)}
           </div>
-          <div>${renderLuxQRBlock(data, a, 100)}</div>
+          <div>${renderCenteredQR(data, a, 100)}</div>
         </div>
         ${renderLuxFooterBar(addr, a, t, "")}
         <div style="height:4px;background:linear-gradient(90deg,${a},transparent);margin-top:10px;opacity:0.7"></div>
@@ -950,9 +972,9 @@
           <div style="font-size:18px;font-weight:700;color:${t}">${phone}</div>
           ${email ? `<div style="font-size:16px;color:${t};opacity:0.9">${email}</div>` : ""}
         </div>
-        <div style="margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding-top:16px">
-          <div style="font-size:14px;color:${t};opacity:0.85;text-align:left;flex:1;line-height:1.5">${addr ? `📍 ${addr}` : ""}</div>
-          ${renderLuxQRBlock(data, a, 96)}
+        <div style="margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:16px">
+          ${renderCenteredQR(data, a, 96)}
+          <div style="font-size:14px;color:${t};opacity:0.85;text-align:center;line-height:1.5;max-width:90%">${addr ? `📍 ${addr}` : ""}</div>
         </div>
       </div>
     </div>`;
@@ -1028,7 +1050,8 @@
       return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${topBand}${renderVisitingAccent(a)}
         <div style="position:absolute;inset:0;padding:28px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;height:100%;box-sizing:border-box">
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">★ PRO VISITING CARD</div>
-          <div style="width:84px;height:84px;border-radius:50%;background:${a};color:${logoColor};display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;margin-bottom:12px;box-shadow:0 6px 20px ${a}55;border:3px solid ${a}88" class="bc-anim-float">${initial}</div>
+          ${renderProLogoCircle(initial, a, logoColor, false, 92)}
+          <div style="height:12px"></div>
           <div style="font-size:13px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800">${biz}</div>
           <h2 style="margin:10px 0 0;font-size:44px;font-weight:800;color:${t};line-height:1.08">${name}</h2>
           ${desig ? `<p style="margin:6px 0 0;font-size:17px;color:${a};font-weight:700;text-transform:uppercase;letter-spacing:1px">${desig}</p>` : ""}
@@ -1040,10 +1063,8 @@
           <div style="font-size:22px;font-weight:800;color:${t}">${phone}</div>
           ${email ? `<div style="font-size:16px;margin-top:8px;color:${t};opacity:0.9">${email}</div>` : ""}
           ${renderActionMiniGrid(a, t)}
-          <div style="margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-top:12px;text-align:left">
-            <div style="font-size:15px;line-height:1.5;font-weight:600;flex:1;padding:10px 12px;background:${a}18;border-left:4px solid ${a};border-radius:0 8px 8px 0">${addr ? `📍 ${addr}` : "Your business address"}</div>
-            <div style="padding:8px 10px;background:${a}14;border:2px solid ${a}55;border-radius:10px">${renderLuxQRBlock(data, a, 96)}</div>
-          </div>
+          <div style="margin-top:14px;width:100%;display:flex;justify-content:center">${renderCenteredQR(data, a, 96)}</div>
+          <div style="margin-top:12px;width:100%;font-size:15px;line-height:1.5;font-weight:600;padding:10px 14px;background:${a}18;border-left:4px solid ${a};border-radius:0 8px 8px 0;text-align:center">${addr ? `📍 ${addr}` : "Your business address"}</div>
           ${renderProBottomBand(data, a, t)}
         </div>
       </div>`;
@@ -1056,9 +1077,8 @@
           ${cat || shop ? `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.85;text-align:right;font-weight:700;color:${bizColor}">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
         </div>
         <div style="height:4px;width:72px;background:${accentColor};margin-bottom:10px;border-radius:2px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr auto;gap:14px 18px;min-height:0;align-items:stretch">
-          <div style="display:flex;flex-direction:column;justify-content:flex-start">
-            <div style="width:72px;height:72px;border-radius:50%;background:${onDarkSide ? "#fff" : a};color:${onDarkSide ? a : logoColor};display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin-bottom:12px;border:3px solid ${onDarkSide ? a : "transparent"};box-shadow:0 4px 12px rgba(0,0,0,0.15)">${initial}</div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 190px 180px;gap:14px 16px;min-height:0;align-items:center">
+          <div style="display:flex;flex-direction:column;justify-content:center">
             <h2 style="margin:0;font-size:${nameSize}px;font-weight:800;color:${nameColor};line-height:1.08">${name}</h2>
             ${desig ? `<p style="margin:5px 0 0;font-size:18px;color:${onDarkSide ? "#fff" : a};font-weight:700;letter-spacing:1px;text-transform:uppercase">${desig}</p>` : ""}
             <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;border-left:3px solid ${accentColor};padding-left:16px">
@@ -1068,9 +1088,10 @@
             </div>
             ${renderActionChips(data.mobile, shop, accentColor, onDarkSide ? a : tpl.bg)}
           </div>
-          <div style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:2px">
-            ${renderLuxQRBlock(data, accentColor, 100)}
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px 8px;background:${a}12;border-radius:12px;border:1px solid ${a}33">
+            ${renderProLogoCircle(initial, a, logoColor, onDarkSide, 86)}
           </div>
+          <div>${renderCenteredQR(data, accentColor, 100)}</div>
         </div>
         <div style="margin-top:10px;padding:12px 16px;background:${a}22;border-left:4px solid ${a};border-radius:0 8px 8px 0;font-size:16px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;font-weight:600;color:${t}">
           <span style="opacity:0.9;font-size:18px">📍</span><span>${addr || "Your business address"}</span>

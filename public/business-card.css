@@ -1118,9 +1118,19 @@
 .bc-export-capture .bc-lux-seal {
   display: none !important;
 }
-.bc-export-capture .bc-anim-float {
+.bc-export-capture .bc-anim-float,
+.bc-export-capture .bc-logo-glow,
+.bc-export-capture .bc-anim-qr-pulse {
   animation: none !important;
   transform: none !important;
+  filter: none !important;
+}
+
+.bc-logo-glow {
+  animation: bc-float-y 3.2s ease-in-out infinite, bc-logo-glow-pulse 2.6s ease-in-out infinite;
+}
+.bc-anim-qr-pulse {
+  animation: bc-qr-pulse 2.8s ease-in-out infinite;
 }
 
 @keyframes bc-shimmer-sweep {
@@ -1165,6 +1175,14 @@
 @keyframes bc-thumb-shimmer {
   0%, 100% { transform: translateX(-100%); }
   50% { transform: translateX(200%); }
+}
+@keyframes bc-logo-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--bc-accent, #d4af37)); }
+  50% { filter: drop-shadow(0 0 14px var(--bc-accent, #d4af37)); }
+}
+@keyframes bc-qr-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 @media (max-width: 768px) {
