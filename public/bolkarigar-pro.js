@@ -233,15 +233,9 @@
     const body = document.getElementById('companiesBody');
     if (!body) return;
     const data = await apiGet('/api/companies');
-    const hint = document.getElementById('companiesPlanHint');
     const addBtn = document.getElementById('addCompanyBtn');
     const count = data.count ?? (data.companies || []).length;
     const limit = data.limit ?? 0;
-    if (hint) {
-      hint.textContent = limit
-        ? `${data.planLabel || data.plan || 'Plan'}: ${count} / ${limit} extra companies used.`
-        : 'Active Pro or Business plan required to add companies.';
-    }
     if (addBtn) {
       addBtn.disabled = limit > 0 ? count >= limit : true;
       addBtn.title = count >= limit && limit ? 'Plan limit reached — upgrade or delete a company.' : '';
