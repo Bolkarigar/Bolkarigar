@@ -5281,6 +5281,322 @@ async function getNextInvoiceNumber(companyName) {
   return `${prefix}/${counter}/${year}`;
 }
 
+function bkFormatBusyInvoiceDate(value) {
+  const dt = value instanceof Date ? value : new Date(value || Date.now());
+  if (Number.isNaN(dt.getTime())) return "-";
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${dt.getFullYear()}`;
+}
+
+function bkAmountInWordsRupees(num) {
+  const n = Math.round(parseFloat(num) || 0);
+  if (!n) return "Rupees Zero Only";
+  const a = ["", "One ", "Two ", "Three ", "Four ", "Five ", "Six ", "Seven ", "Eight ", "Nine ", "Ten ",
+    "Eleven ", "Twelve ", "Thirteen ", "Fourteen ", "Fifteen ", "Sixteen ", "Seventeen ", "Eighteen ", "Nineteen "];
+  const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  function inWords(x) {
+    const numStr = Math.floor(x).toString();
+    if (numStr.length > 9) return "Amount Too Large";
+    const nArray = ("000000000" + numStr).slice(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!nArray) return "";
+    let str = "";
+    str += (nArray[1] != 0) ? (a[Number(nArray[1])] || b[nArray[1][0]] + " " + a[nArray[1][1]]) + "Crore " : "";
+    str += (nArray[2] != 0) ? (a[Number(nArray[2])] || b[nArray[2][0]] + " " + a[nArray[2][1]]) + "Lakh " : "";
+    str += (nArray[3] != 0) ? (a[Number(nArray[3])] || b[nArray[3][0]] + " " + a[nArray[3][1]]) + "Thousand " : "";
+    str += (nArray[4] != 0) ? (a[Number(nArray[4])] || b[nArray[4][0]] + " " + a[nArray[4][1]]) + "Hundred " : "";
+    str += (nArray[5] != 0) ? ((str !== "") ? "and " : "") + (a[Number(nArray[5])] || b[nArray[5][0]] + " " + a[nArray[5][1]]) : "";
+    return str.trim();
+  }
+  return "Rupees " + (inWords(n) || "Zero") + " Only";
+}
+
+function bkBusyMoney(n) {
+  return Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function bkBusyPlaceOfSupply(profile) {
+  const state = deriveCompanyStateFromProfile(profile || {});
+  const code = String(profile?.gstin || "").trim().slice(0, 2);
+  if (state && code) return `${state} (${code})`;
+  return state || code || "-";
+}
+
+function bkComputeBusyInvoiceLines(rawItems, opts) {
+  const gstOn = !!opts?.gstOn;
+  const isIntraState = opts?.isIntraState !== false;
+  const lines = [];
+  const rateSummary = {};
+  let totalQty = 0;
+  let grandTotal = 0;
+
+  rawItems.forEach((item, index) => {
+    const qty = parseFloat(item.qty) || 1;
+    const price = parseFloat(item.price) || 0;
+    const unit = item.unit || "Pcs";
+    const gstRate = gstOn ? (parseFloat(item.gstRate) || 0) : 0;
+    const base = price * qty;
+    let cgstRate = 0;
+    let sgstRate = 0;
+    let cgstAmt = 0;
+    let sgstAmt = 0;
+    let igstAmt = 0;
+
+    if (gstRate > 0 && isIntraState) {
+      cgstRate = gstRate / 2;
+      sgstRate = gstRate / 2;
+      cgstAmt = (base * cgstRate) / 100;
+      sgstAmt = (base * sgstRate) / 100;
+    } else if (gstRate > 0) {
+      igstAmt = (base * gstRate) / 100;
+    }
+
+    const lineTotal = parseFloat(item.totalAmount) || base + cgstAmt + sgstAmt + igstAmt;
+    totalQty += qty;
+    grandTotal += lineTotal;
+
+    lines.push({
+      sn: index + 1,
+      product: item.product || "Sales Account",
+      hsn: item.hsn || "-",
+      qty,
+      unit,
+      price,
+      base,
+      cgstRate,
+      cgstAmt,
+      sgstRate,
+      sgstAmt,
+      igstRate: gstRate,
+      igstAmt,
+      lineTotal,
+      gstRate
+    });
+
+    if (gstRate > 0) {
+      const key = String(gstRate);
+      if (!rateSummary[key]) rateSummary[key] = { rate: gstRate, taxable: 0, cgst: 0, sgst: 0, igst: 0 };
+      rateSummary[key].taxable += base;
+      rateSummary[key].cgst += cgstAmt;
+      rateSummary[key].sgst += sgstAmt;
+      rateSummary[key].igst += igstAmt;
+    }
+  });
+
+  return { lines, rateSummary, totalQty, grandTotal };
+}
+
+function bkBuildBusyInvoicePayload(opts) {
+  const profile = opts.profile || {};
+  const buyer = opts.buyer || {};
+  const gstOn = opts.gstOn !== false;
+  const taxMode = resolveGstTaxMode(profile, buyer.state, buyer.pincode);
+  const isIntraState = gstOn ? (opts.isIntraState ?? taxMode.isIntraState) : true;
+  const computed = bkComputeBusyInvoiceLines(opts.items || [], { gstOn, isIntraState });
+  const companyState = deriveCompanyStateFromProfile(profile);
+  const totalTax = computed.lines.reduce((s, l) => s + l.cgstAmt + l.sgstAmt + l.igstAmt, 0);
+
+  return {
+    companyName: profile.name || "Your Company Name",
+    companyCity: (companyState || "").toUpperCase(),
+    companyGstin: profile.gstin || "",
+    companyAddress: profile.address || "",
+    buyerName: buyer.name || "Customer",
+    buyerGstin: buyer.gstin || "",
+    buyerAddress: buyer.address || "",
+    invoiceNo: opts.invoiceNo || "-",
+    invoiceDate: bkFormatBusyInvoiceDate(opts.invoiceDate || new Date()),
+    placeOfSupply: opts.placeOfSupply || bkBusyPlaceOfSupply(profile),
+    reverseCharge: "N",
+    paymentType: opts.paymentType || "",
+    copyLabel: opts.copyLabel || "Original Copy",
+    gstOn,
+    isIntraState,
+    jurisdiction: companyState || "Local",
+    ...computed,
+    totalTax,
+    amountWords: bkAmountInWordsRupees(computed.grandTotal)
+  };
+}
+
+function bkRenderBusyTaxInvoiceHtml(p) {
+  const esc = (v) => escapeHtml(String(v ?? ""));
+  const itemRows = p.lines.map((line) => {
+    if (p.gstOn && !p.isIntraState) {
+      return `<tr>
+        <td class="c">${line.sn}</td>
+        <td>${esc(line.product)}</td>
+        <td class="c">${esc(line.hsn)}</td>
+        <td class="r">${bkBusyMoney(line.qty)}</td>
+        <td class="c">${esc(line.unit)}</td>
+        <td class="r">${bkBusyMoney(line.price)}</td>
+        <td class="c">${line.igstRate ? line.igstRate + "%" : ""}</td>
+        <td class="r">${line.igstAmt ? bkBusyMoney(line.igstAmt) : ""}</td>
+        <td class="r b">${bkBusyMoney(line.lineTotal)}</td>
+      </tr>`;
+    }
+    return `<tr>
+      <td class="c">${line.sn}</td>
+      <td>${esc(line.product)}</td>
+      <td class="c">${esc(line.hsn)}</td>
+      <td class="r">${bkBusyMoney(line.qty)}</td>
+      <td class="c">${esc(line.unit)}</td>
+      <td class="r">${bkBusyMoney(line.price)}</td>
+      <td class="c">${p.gstOn && line.cgstRate ? line.cgstRate + "%" : ""}</td>
+      <td class="r">${p.gstOn && line.cgstAmt ? bkBusyMoney(line.cgstAmt) : ""}</td>
+      <td class="c">${p.gstOn && line.sgstRate ? line.sgstRate + "%" : ""}</td>
+      <td class="r">${p.gstOn && line.sgstAmt ? bkBusyMoney(line.sgstAmt) : ""}</td>
+      <td class="r b">${bkBusyMoney(line.lineTotal)}</td>
+    </tr>`;
+  }).join("");
+
+  const itemHead = (p.gstOn && !p.isIntraState)
+    ? `<tr>
+        <th>S.N.</th><th>Description of Goods</th><th>HSN/SAC<br>Code</th><th>Qty</th><th>Unit</th><th>Price</th>
+        <th colspan="2">IGST</th><th>Amount</th>
+      </tr>
+      <tr><th></th><th></th><th></th><th></th><th></th><th></th><th>Rate</th><th>Amount</th><th></th></tr>`
+    : `<tr>
+        <th>S.N.</th><th>Description of Goods</th><th>HSN/SAC<br>Code</th><th>Qty</th><th>Unit</th><th>Price</th>
+        <th colspan="2">CGST</th><th colspan="2">SGST</th><th>Amount</th>
+      </tr>
+      <tr><th></th><th></th><th></th><th></th><th></th><th></th><th>Rate</th><th>Amount</th><th>Rate</th><th>Amount</th><th></th></tr>`;
+
+  const totalCols = (p.gstOn && !p.isIntraState) ? 9 : 11;
+  const gstSummaryRows = Object.keys(p.rateSummary).sort((a, b) => parseFloat(a) - parseFloat(b)).map((key) => {
+    const row = p.rateSummary[key];
+    const totalTax = row.cgst + row.sgst + row.igst;
+    if (p.gstOn && !p.isIntraState) {
+      return `<tr>
+        <td class="c">${row.rate}%</td>
+        <td class="r">${bkBusyMoney(row.taxable)}</td>
+        <td class="r">${bkBusyMoney(row.igst)}</td>
+        <td class="r">${bkBusyMoney(totalTax)}</td>
+      </tr>`;
+    }
+    return `<tr>
+      <td class="c">${row.rate}%</td>
+      <td class="r">${bkBusyMoney(row.taxable)}</td>
+      <td class="r">${bkBusyMoney(row.cgst)}</td>
+      <td class="r">${bkBusyMoney(row.sgst)}</td>
+      <td class="r">${bkBusyMoney(totalTax)}</td>
+    </tr>`;
+  }).join("");
+
+  const gstSummaryHead = (p.gstOn && !p.isIntraState)
+    ? `<tr><th>Tax Rate</th><th>Taxable Amt.</th><th>IGST Amt.</th><th>Total Tax</th></tr>`
+    : `<tr><th>Tax Rate</th><th>Taxable Amt.</th><th>CGST Amt.</th><th>SGST Amt.</th><th>Total Tax</th></tr>`;
+
+  const gstSummaryBlock = p.gstOn && gstSummaryRows
+    ? `<table class="busy tbl gst-sum">
+        <caption>GST Summary</caption>
+        <thead>${gstSummaryHead}</thead>
+        <tbody>${gstSummaryRows}</tbody>
+      </table>`
+    : "";
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Tax Invoice - ${esc(p.invoiceNo)}</title>
+<style>
+  @page { size: A4; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
+  .busy-wrap { position: relative; max-width: 210mm; margin: 0 auto; border: 1px solid #000; padding: 8px 10px 12px; }
+  .busy-wrap::before {
+    content: "BolKarigar"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 52px; font-weight: 700; color: rgba(0,0,0,0.04); transform: rotate(-32deg); pointer-events: none; z-index: 0;
+  }
+  .busy-wrap > * { position: relative; z-index: 1; }
+  .busy-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .busy-title { text-align: center; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin: 2px 0; }
+  .busy-company { text-align: center; font-size: 13px; font-weight: 700; margin-top: 2px; text-transform: uppercase; }
+  .busy-city { text-align: center; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; }
+  .busy.tbl { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .busy.tbl th, .busy.tbl td { border: 1px solid #000; padding: 3px 4px; vertical-align: top; }
+  .busy.tbl th { font-weight: 700; text-align: center; background: #fff; }
+  .busy.tbl caption { caption-side: top; text-align: left; font-weight: 700; padding: 2px 0; }
+  .c { text-align: center; } .r { text-align: right; } .b { font-weight: 700; }
+  .party td { width: 50%; height: 48px; }
+  .words { margin-top: 6px; font-weight: 700; }
+  .terms { margin-top: 8px; font-size: 9px; line-height: 1.45; }
+  .sign { display: flex; justify-content: space-between; margin-top: 18px; min-height: 70px; align-items: flex-end; }
+  .sign-right { text-align: right; }
+  .total-row td { font-weight: 700; }
+</style></head>
+<body onload="window.print()">
+  <div class="busy-wrap">
+    <div class="busy-top">
+      <div><strong>GSTIN :</strong> ${esc(p.companyGstin) || "&nbsp;"}</div>
+      <div><strong>${esc(p.copyLabel)}</strong></div>
+    </div>
+    <div class="busy-title">TAX INVOICE</div>
+    <div class="busy-company">${esc(p.companyName)}</div>
+    <div class="busy-city">${esc(p.companyCity)}</div>
+
+    <table class="busy tbl meta">
+      <tr>
+        <td><strong>Invoice No. :</strong> ${esc(p.invoiceNo)}</td>
+        <td><strong>Dated :</strong> ${esc(p.invoiceDate)}</td>
+        <td><strong>Place of Supply :</strong> ${esc(p.placeOfSupply)}</td>
+        <td><strong>Reverse Charge :</strong> ${esc(p.reverseCharge)}</td>
+      </tr>
+    </table>
+
+    <table class="busy tbl party">
+      <tr>
+        <td><strong>Billed to :</strong><br>${esc(p.buyerName)}<br>${esc(p.buyerAddress)}<br><strong>GSTIN / UIN :</strong> ${esc(p.buyerGstin) || ""}</td>
+        <td><strong>Shipped to :</strong><br>${esc(p.buyerName)}<br>${esc(p.buyerAddress)}<br><strong>GSTIN / UIN :</strong> ${esc(p.buyerGstin) || ""}</td>
+      </tr>
+    </table>
+
+    <table class="busy tbl items">
+      <thead>${itemHead}</thead>
+      <tbody>
+        ${itemRows}
+        <tr class="total-row">
+          <td colspan="3" class="r">Total</td>
+          <td class="r">${bkBusyMoney(p.totalQty)}</td>
+          <td colspan="${totalCols - 5}" class="r"></td>
+          <td class="r">${bkBusyMoney(p.grandTotal)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    ${gstSummaryBlock}
+
+    <div class="words">${esc(p.amountWords)}</div>
+
+    <div class="terms">
+      <strong>Terms &amp; Conditions</strong><br>
+      1. Goods once sold will not be taken back.<br>
+      2. Interest @ 18% p.a. will be charged if the payment is not made within the stipulated time.<br>
+      3. All disputes are subject to '${esc(p.jurisdiction)}' Jurisdiction only.<br>
+      4. Any discrepancy whatsoever must be intimated in writing within 7 days.<br>
+      5. E. &amp; O.E.
+    </div>
+
+    <div class="sign">
+      <div><em>Receiver's Signature</em></div>
+      <div class="sign-right">
+        <div>for <strong>${esc(p.companyName)}</strong></div>
+        <br><br>
+        <div><em>Authorised Signatory</em></div>
+      </div>
+    </div>
+  </div>
+</body></html>`;
+}
+
+function bkOpenTaxInvoicePrint(html, title) {
+  const w = window.open("", "_blank");
+  if (!w) {
+    alert("Please allow pop-ups in your browser to print the invoice!");
+    return false;
+  }
+  w.document.write(html);
+  w.document.close();
+  return true;
+}
+
 async function printTallyBill(ev) {
   const printBtn = ev?.currentTarget || document.getElementById("savePrintInvoiceBtn");
 
@@ -5327,330 +5643,47 @@ async function printTallyBill(ev) {
   }
 
   return window.bkWithSaveLock(printBtn, async () => {
-  const isIntraState = gstOnBill ? taxMode.isIntraState : true;
-
-  const grandTotalStr = document.getElementById("grandTotal")?.textContent || "0.00";
-  const grandTotalNum = parseFloat(grandTotalStr.replace(/,/g, '')) || 0;
-
-  const invoiceDate = getInvoiceSelectedDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const invoiceNo = await getNextInvoiceNumber(companyName);
 
-  // Auto-generated reference IRN/Ack (LOCAL ONLY — see disclaimer above)
-  const irn = generateRandomIRN();
-  const ackNo = generateAckNo();
-  const ackDate = invoiceDate;
-
-  const ewayBillNo = document.getElementById("ewayBillNo")?.value?.trim() || "";
-  const vehicleNo = document.getElementById("vehicleNo")?.value?.trim() || "";
-  const distanceKm = clampDistanceKmInput();
-
-  let itemsRows = "";
-  let totalBase = 0;
-  let totalTax = 0;
-  let totalQty = 0; // Quantity ka sum, Total row me dikhane ke liye
-  const hsnSummary = {}; // HSN-wise tax summary ke liye
-
-  if (invoiceLineItems.length > 0) {
-    invoiceLineItems.forEach((item, index) => {
-      const price = parseFloat(item.price) || 0;
-      const qty = parseFloat(item.qty) || 1;
-      const gstRate = getInvoiceLineGstRate(item.gstRate);
-      const hsn = item.hsn || "-";
-
-      const baseTotal = price * qty;
-      totalBase += baseTotal;
-      totalQty += qty;
-
-      let taxRows = "";
-      if (gstRate > 0) {
-      if (isIntraState) {
-        const cgstAmt = (baseTotal * (gstRate / 2)) / 100;
-        const sgstAmt = (baseTotal * (gstRate / 2)) / 100;
-        totalTax += cgstAmt + sgstAmt;
-        taxRows = `
-          <tr class="item-row tax-row">
-            <td></td><td style="padding-left: 20px;"><em>CGST (${(gstRate / 2)}%)</em></td><td></td><td></td><td></td><td></td>
-            <td style="text-align:right;">${cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          </tr>
-          <tr class="item-row tax-row">
-            <td></td><td style="padding-left: 20px;"><em>SGST (${(gstRate / 2)}%)</em></td><td></td><td></td><td></td><td></td>
-            <td style="text-align:right;">${sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          </tr>`;
-        if (!hsnSummary[hsn]) hsnSummary[hsn] = { taxable: 0, cgstRate: gstRate / 2, cgstAmt: 0, sgstRate: gstRate / 2, sgstAmt: 0, igstAmt: 0 };
-        hsnSummary[hsn].taxable += baseTotal;
-        hsnSummary[hsn].cgstAmt += cgstAmt;
-        hsnSummary[hsn].sgstAmt += sgstAmt;
-      } else {
-        const igstAmt = (baseTotal * gstRate) / 100;
-        totalTax += igstAmt;
-        taxRows = `
-          <tr class="item-row tax-row">
-            <td></td><td style="padding-left: 20px;"><em>IGST (${gstRate}%)</em></td><td></td><td></td><td></td><td></td>
-            <td style="text-align:right;">${igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          </tr>`;
-        if (!hsnSummary[hsn]) hsnSummary[hsn] = { taxable: 0, igstRate: gstRate, igstAmt: 0 };
-        hsnSummary[hsn].taxable += baseTotal;
-        hsnSummary[hsn].igstAmt += igstAmt;
-      }
-      }
-
-      itemsRows += `
-        <tr class="item-row">
-          <td class="col-sl" style="text-align:center;">${index + 1}</td>
-          <td class="col-desc"><strong>${item.product || "Sales Account"}</strong></td>
-          <td style="text-align:center;">${hsn}</td>
-          <td class="col-qty" style="text-align:center;">${qty} No</td>
-          <td class="col-rate" style="text-align:right;">${price.toFixed(2)}</td>
-          <td class="col-per" style="text-align:center;">No</td>
-          <td class="col-amt" style="text-align:right;">${baseTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        </tr>
-        ${taxRows}`;
-    });
-  } else {
+  if (!invoiceLineItems.length) {
     alert("At least one item is required in the invoice to print.");
     return;
   }
 
-  function numberToWords(num) {
-    if (!num || isNaN(num) || num === 0) return "INR Zero Only";
-    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
-    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    function inWords(n) {
-      let numStr = Math.floor(n).toString();
-      if (numStr.length > 9) return 'Amount Too Large';
-      let n_array = ('000000000' + numStr).slice(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-      if (!n_array) return '';
-      let str = '';
-      str += (n_array[1] != 0) ? (a[Number(n_array[1])] || b[n_array[1][0]] + ' ' + a[n_array[1][1]]) + 'Crore ' : '';
-      str += (n_array[2] != 0) ? (a[Number(n_array[2])] || b[n_array[2][0]] + ' ' + a[n_array[2][1]]) + 'Lakh ' : '';
-      str += (n_array[3] != 0) ? (a[Number(n_array[3])] || b[n_array[3][0]] + ' ' + a[n_array[3][1]]) + 'Thousand ' : '';
-      str += (n_array[4] != 0) ? (a[Number(n_array[4])] || b[n_array[4][0]] + ' ' + a[n_array[4][1]]) + 'Hundred ' : '';
-      str += (n_array[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_array[5])] || b[n_array[5][0]] + ' ' + a[n_array[5][1]]) : '';
-      return str;
-    }
-    return "INR " + (inWords(num) || "Zero") + " Only";
-  }
+  const defaultUnit = document.getElementById("productUnitTag")?.textContent?.trim() || "Pcs";
+  const printItems = invoiceLineItems.map((item) => ({
+    product: item.product,
+    hsn: item.hsn,
+    qty: item.qty,
+    price: item.price,
+    gstRate: getInvoiceLineGstRate(item.gstRate),
+    unit: item.unit || defaultUnit
+  }));
 
-  const amountInWords = numberToWords(grandTotalNum);
-  const taxInWords = numberToWords(totalTax);
-
-  // HSN summary table rows banao
-  let hsnRows = "";
-  let hsnTotalTaxable = 0, hsnTotalCgst = 0, hsnTotalSgst = 0, hsnTotalTax = 0;
-  Object.keys(hsnSummary).forEach(hsn => {
-    const row = hsnSummary[hsn];
-    hsnTotalTaxable += row.taxable;
-    if (isIntraState) {
-      hsnTotalCgst += row.cgstAmt;
-      hsnTotalSgst += row.sgstAmt;
-      const rowTotalTax = row.cgstAmt + row.sgstAmt;
-      hsnTotalTax += rowTotalTax;
-      hsnRows += `
-        <tr>
-          <td>${hsn}</td>
-          <td style="text-align:right;">${row.taxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align:center;">${row.cgstRate}%</td>
-          <td style="text-align:right;">${row.cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align:center;">${row.sgstRate}%</td>
-          <td style="text-align:right;">${row.sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align:right;">${rowTotalTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        </tr>`;
-    } else {
-      hsnTotalTax += row.igstAmt;
-      hsnRows += `
-        <tr>
-          <td>${hsn}</td>
-          <td style="text-align:right;">${row.taxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td colspan="2" style="text-align:center;">IGST ${row.igstRate}%</td>
-          <td style="text-align:right;" colspan="2">${row.igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="text-align:right;">${row.igstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-        </tr>`;
-    }
+  const payload = bkBuildBusyInvoicePayload({
+    profile: {
+      name: companyName,
+      address: companyAddress,
+      gstin: companyGstin,
+      phone: companyPhone,
+      state: companyPincodeDisplay
+    },
+    buyer: {
+      name: customer,
+      gstin: customerGstin,
+      address: customerAddress,
+      state: customerState,
+      pincode: customerPincode
+    },
+    items: printItems,
+    invoiceNo,
+    invoiceDate: getInvoiceSelectedDate(),
+    gstOn: gstOnBill,
+    isIntraState: taxMode.isIntraState,
+    paymentType: document.getElementById("invoicePaymentType")?.value || "Cash"
   });
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    alert("Please allow pop-ups in your browser to print the invoice!");
-    return;
-  }
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Tax Invoice - ${invoiceNo}</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-      <style>
-        * { box-sizing: border-box; font-family: 'Arial', sans-serif; font-size: 11px; }
-        body { margin: 0; padding: 15px; background: #fff; color: #000; }
-        .tally-container { width: 210mm; min-height: 297mm; margin: auto; border: 1.5px solid #000; padding: 10px; }
-        .title-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
-        .title { font-weight: bold; font-size: 15px; }
-        .einv-label { font-weight: bold; font-size: 11px; text-align: right; }
-        #qrBox { width: 90px; height: 90px; margin-left: auto; margin-top: 4px; }
-        .irn-block { font-size: 10px; border-bottom: 1px solid #000; padding: 6px 0; margin-bottom: 6px; }
-        .irn-block div { margin-bottom: 2px; word-break: break-all; }
-        .demo-note { font-size: 8.5px; color: #b45309; font-style: italic; margin-top: 3px; }
-
-        .grid-header { display: flex; border-bottom: 1px solid #000; }
-        .col-left { width: 50%; border-right: 1px solid #000; padding: 5px; }
-        .col-right { width: 50%; }
-        .company-name { font-weight: bold; font-size: 12px; margin-bottom: 3px; text-transform: uppercase; }
-        .party-block { padding: 5px; border-bottom: 1px solid #000; }
-        .party-label { font-size: 9.5px; color: #444; }
-        .party-name { font-weight: bold; font-size: 11.5px; margin: 2px 0; }
-
-        .sub-table { width: 100%; border-collapse: collapse; }
-        .sub-table td { border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px 5px; vertical-align: top; font-size: 10px; }
-        .sub-table tr td:last-child { border-right: none; }
-        .sub-table tr:last-child td { border-bottom: none; }
-
-        .items-table, .hsn-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-        .items-table th, .hsn-table th { border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 10px; }
-        .item-row td { border-right: 1px solid #000; padding: 3px 5px; border-bottom: none; }
-        .item-row td:last-child { border-right: none; }
-        .total-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 4px; font-weight: bold; }
-        .total-row td:last-child { border-right: none; }
-        .hsn-table td { border: 1px solid #000; padding: 4px; font-size: 10px; }
-
-        .footer-section { padding: 5px; border-bottom: 1px solid #000; margin-top: 6px; }
-        .sign-section { display: flex; justify-content: space-between; padding: 10px 5px; align-items: flex-end; }
-        .declaration { font-size: 9.5px; border-bottom: 1px solid #000; padding: 6px 5px; }
-      </style>
-    </head>
-    <body onload="(function(){if(window.QRCode){new QRCode(document.getElementById('qrBox'),{text:'IRN:${irn}',width:90,height:90});var upi='${(companyUpi || '').replace(/'/g, '')}';if(upi&&document.getElementById('upiQrBox')){var amt=${Math.round(grandTotalNum)};new QRCode(document.getElementById('upiQrBox'),{text:'upi://pay?pa='+encodeURIComponent(upi)+'&pn='+encodeURIComponent('${companyName.replace(/'/g, '')}')+'&am='+amt+'&cu=INR',width:90,height:90});}}}());window.print();">
-      <div class="tally-container">
-        <div class="title-row">
-          <div class="title">Tax Invoice</div>
-          <div>
-            <div class="einv-label">Tax Invoice (Reference Copy — Not Government e-Invoice)</div>
-            <div id="qrBox"></div>
-          </div>
-        </div>
-
-        <div class="irn-block">
-          <div><strong>IRN</strong> &nbsp;: &nbsp;${irn}</div>
-          <div><strong>Ack No.</strong> &nbsp;: &nbsp;${ackNo}</div>
-          <div><strong>Ack Date</strong> &nbsp;: &nbsp;${ackDate}</div>
-          <div class="demo-note" style="background:#fef3c7;border:1px solid #f59e0b;padding:8px;margin:8px 0;border-radius:4px;font-weight:600;">⚠️ REFERENCE BILL ONLY — Yeh government e-Invoice NAHI hai. Asli IRN ke liye GSP portal integration chahiye. BolKarigar par yeh sirf billing/print ke liye hai.</div>
-        </div>
-
-        <div class="grid-header">
-          <div class="col-left">
-            <div class="company-name">${companyName}</div>
-            <div>${companyAddress}</div>
-            <div>State Name: ${companyStateDisplay}${companyPincodeDisplay ? ` - ${companyPincodeDisplay}` : ''}</div>
-            <div>GSTIN/UIN: ${companyGstin}</div>
-            <div>Contact: ${companyPhone}</div>
-          </div>
-          <div class="col-right">
-            <table class="sub-table">
-              <tr><td><strong>Invoice No.</strong><br>${invoiceNo}</td><td><strong>Dated</strong><br>${invoiceDate}</td></tr>
-              <tr><td><strong>Delivery Note</strong><br>&nbsp;</td><td><strong>Mode/Terms of Payment</strong><br>&nbsp;</td></tr>
-              <tr><td><strong>Reference No. &amp; Date</strong><br>&nbsp;</td><td><strong>Other References</strong><br>&nbsp;</td></tr>
-              <tr><td><strong>Buyer's Order No.</strong><br>&nbsp;</td><td><strong>Dated</strong><br>&nbsp;</td></tr>
-              <tr><td><strong>E-Way Bill No.</strong><br>${ewayBillNo || "&nbsp;"}</td><td><strong>Vehicle No.</strong><br>${vehicleNo || "&nbsp;"}</td></tr>
-            </table>
-          </div>
-        </div>
-
-        <div class="party-block">
-          <div class="party-label">Consignee (Ship to)</div>
-          <div class="party-name">${customer}</div>
-          <div>${customerAddress}</div>
-          <div>GSTIN/UIN: ${customerGstin || "-"}</div>
-          <div>State Name: ${customerState}</div>
-        </div>
-        <div class="party-block">
-          <div class="party-label">Buyer (Bill to)</div>
-          <div class="party-name">${customer}</div>
-          <div>${customerAddress}</div>
-          <div>GSTIN/UIN: ${customerGstin || "-"}</div>
-          <div>State Name: ${customerState}</div>
-        </div>
-
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th style="width: 5%;">Sl</th>
-              <th style="width: 33%;">Description of Goods</th>
-              <th style="width: 10%;">HSN/SAC</th>
-              <th style="width: 10%;">Quantity</th>
-              <th style="width: 12%;">Rate</th>
-              <th style="width: 8%;">per</th>
-              <th style="width: 22%;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows}
-            <tr class="total-row">
-              <td colspan="2" style="text-align: right;">Total</td>
-              <td></td>
-              <td style="text-align: center;">${totalQty} No</td>
-              <td></td><td></td>
-              <td style="text-align: right;">₹${grandTotalNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="footer-section">
-          <div><strong>Amount Chargeable (in words):</strong></div>
-          <div style="font-weight: bold; margin-top: 3px;">${amountInWords}</div>
-        </div>
-
-        <table class="hsn-table">
-          <thead>
-            <tr>
-              <th rowspan="2">HSN/SAC</th>
-              <th rowspan="2">Taxable Value</th>
-              <th colspan="2">Central Tax</th>
-              <th colspan="2">State Tax</th>
-              <th rowspan="2">Total Tax Amount</th>
-            </tr>
-            <tr><th>Rate</th><th>Amount</th><th>Rate</th><th>Amount</th></tr>
-          </thead>
-          <tbody>
-            ${hsnRows}
-            <tr class="total-row">
-              <td>Total</td>
-              <td style="text-align:right;">${hsnTotalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-              ${isIntraState ? `
-              <td></td>
-              <td style="text-align:right;">${hsnTotalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-              <td></td>
-              <td style="text-align:right;">${hsnTotalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-              ` : `
-              <td colspan="2" style="text-align:center;">IGST</td>
-              <td colspan="2" style="text-align:right;">${hsnTotalTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-              `}
-              <td style="text-align:right;">${hsnTotalTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="footer-section">
-          <div><strong>Tax Amount (in words):</strong> ${taxInWords}</div>
-        </div>
-
-        <div class="declaration">
-          <strong>Declaration</strong><br>
-          We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
-        </div>
-
-        <div class="sign-section">
-          <div><em>Customer's Seal and Signature</em></div>
-          <div style="text-align: right;">
-            ${companyUpi ? `<div style="font-size:10px;margin-bottom:6px;">Scan to Pay UPI: ${companyUpi}<div id="upiQrBox" style="margin:6px 0 0 auto;width:90px;height:90px;"></div></div>` : ''}
-            <div>for <strong>${companyName}</strong></div>
-            <br><br>
-            <div>Authorised Signatory</div>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+  bkOpenTaxInvoicePrint(bkRenderBusyTaxInvoiceHtml(payload), `Tax Invoice - ${invoiceNo}`);
   }, {
     alsoLock: ["saveInvoiceBtn"],
     loadingText: "⏳ Saving...",
@@ -5731,74 +5764,41 @@ async function printSavedSaleBill(saleId) {
 
     let savedProfile = {};
     try { savedProfile = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}"); } catch { /* */ }
-    const companyName = escapeHtml(savedProfile.name || "Your Company");
-    const companyAddress = escapeHtml(savedProfile.address || "");
-    const companyGstin = escapeHtml(savedProfile.gstin || "");
-    const companyPhone = escapeHtml(savedProfile.phone || "");
-    const companyUpi = escapeHtml(savedProfile.upiId || savedProfile.upi || "");
-    const customer = escapeHtml(anchor.customer || "Customer");
-    const invoiceNo = escapeHtml(anchor.invoiceNo || "—");
-    const invDate = new Date(anchor.date).toLocaleDateString("en-IN", {
-      day: "2-digit", month: "short", year: "numeric"
+
+    const gstOn = items.some((item) => (parseFloat(item.gstRate) || 0) > 0);
+    const printItems = items.map((item) => ({
+      product: item.product,
+      hsn: item.hsn,
+      qty: item.qty,
+      price: item.price,
+      gstRate: item.gstRate,
+      totalAmount: item.totalAmount,
+      unit: item.unit || "Pcs"
+    }));
+
+    const payload = bkBuildBusyInvoicePayload({
+      profile: savedProfile,
+      buyer: {
+        name: anchor.customer || "Customer",
+        gstin: "",
+        address: "",
+        state: "",
+        pincode: ""
+      },
+      items: printItems,
+      invoiceNo: anchor.invoiceNo || "-",
+      invoiceDate: anchor.date,
+      gstOn,
+      paymentType: anchor.paymentType || "Cash",
+      copyLabel: "Duplicate Copy"
     });
-    const paymentType = escapeHtml(anchor.paymentType || "Cash");
-    const status = escapeHtml(anchor.status || "Paid");
 
-    let grandTotal = 0;
-    const itemRows = items.map((item, idx) => {
-      const qty = parseFloat(item.qty) || 1;
-      const price = parseFloat(item.price) || 0;
-      const gstRate = parseFloat(item.gstRate) || 0;
-      const lineTotal = parseFloat(item.totalAmount) || price * qty * (1 + gstRate / 100);
-      grandTotal += lineTotal;
-      return `<tr>
-        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${idx + 1}</td>
-        <td style="padding:6px;border:1px solid #ccc;">${escapeHtml(item.product || "Item")}</td>
-        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${escapeHtml(item.hsn || "-")}</td>
-        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${qty}</td>
-        <td style="text-align:right;padding:6px;border:1px solid #ccc;">₹${price.toFixed(2)}</td>
-        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${gstRate > 0 ? gstRate + "%" : "—"}</td>
-        <td style="text-align:right;padding:6px;border:1px solid #ccc;font-weight:600;">₹${lineTotal.toFixed(2)}</td>
-      </tr>`;
-    }).join("");
-
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("Please allow pop-ups in your browser to print the bill.");
-      return;
+    if (!bkOpenTaxInvoicePrint(
+      bkRenderBusyTaxInvoiceHtml(payload),
+      `Tax Invoice - ${anchor.invoiceNo || saleId}`
+    )) {
+      throw new Error("Pop-up blocked. Allow pop-ups to print the bill.");
     }
-    w.document.write(`<!DOCTYPE html><html><head><title>Bill ${invoiceNo}</title>
-      <style>
-        body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#111;}
-        .wrap{max-width:760px;margin:0 auto;border:1px solid #ccc;padding:18px;}
-        h1{margin:0 0 4px;font-size:22px;} .sub{color:#555;font-size:13px;margin-bottom:14px;}
-        table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
-        th{background:#f3f4f6;padding:7px;border:1px solid #ccc;text-align:left;}
-        .totals{margin-top:14px;text-align:right;font-size:15px;}
-        .meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-top:10px;}
-        .box{border:1px solid #ddd;border-radius:8px;padding:10px;background:#fafafa;}
-        @media print{body{padding:0}.wrap{border:none}}
-      </style></head>
-      <body onload="window.print()">
-        <div class="wrap">
-          <h1>${companyName}</h1>
-          <div class="sub">${companyAddress}${companyGstin ? " | GSTIN: " + companyGstin : ""}${companyPhone ? " | " + companyPhone : ""}</div>
-          <div class="meta">
-            <div class="box"><strong>Bill To</strong><br>${customer}</div>
-            <div class="box"><strong>Invoice</strong><br>${invoiceNo}<br>Date: ${invDate}<br>Payment: ${paymentType}<br>Status: ${status}</div>
-          </div>
-          <table>
-            <thead><tr>
-              <th>#</th><th>Product</th><th>HSN</th><th>Qty</th><th>Rate</th><th>GST</th><th>Amount</th>
-            </tr></thead>
-            <tbody>${itemRows}</tbody>
-          </table>
-          <div class="totals"><strong>Grand Total: ₹${grandTotal.toFixed(2)}</strong></div>
-          ${companyUpi ? `<p style="text-align:center;margin-top:16px;font-size:13px;">UPI: ${companyUpi}</p>` : ""}
-          <p style="text-align:center;margin-top:20px;font-size:11px;color:#666;">Generated from BolKarigar Sales Records</p>
-        </div>
-      </body></html>`);
-    w.document.close();
   } catch (err) {
     console.error("printSavedSaleBill:", err);
     if (typeof showToast === "function") showToast(err.message || "Could not print bill.", "error");
@@ -5806,6 +5806,9 @@ async function printSavedSaleBill(saleId) {
   }
 }
 window.printSavedSaleBill = printSavedSaleBill;
+window.bkBuildBusyInvoicePayload = bkBuildBusyInvoicePayload;
+window.bkRenderBusyTaxInvoiceHtml = bkRenderBusyTaxInvoiceHtml;
+window.bkOpenTaxInvoicePrint = bkOpenTaxInvoicePrint;
 
 
 
