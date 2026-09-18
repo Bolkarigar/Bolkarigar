@@ -197,11 +197,12 @@
     </svg>`;
   }
 
-  function renderLuxQRBlock(data, accent, size) {
+  function renderLuxQRBlock(data, accent, size, label) {
     const sz = size || 112;
-    return `<div style="text-align:center;background:${accent}18;border:2px solid ${accent}55;border-radius:10px;padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
-      ${renderRealQR(data, sz)}
-      <div style="font-size:10px;letter-spacing:2.5px;color:${accent};margin-top:8px;opacity:0.9;font-weight:800">SCAN TO CONTACT</div>
+    const caption = label || "SCAN TO CONTACT";
+    return `<div class="bc-qr-block" style="background:${accent}18;border:2px solid ${accent}55;border-radius:10px;padding:12px 16px;box-shadow:0 4px 14px rgba(0,0,0,0.12)">
+      <div class="bc-qr-img-wrap">${renderRealQR(data, sz)}</div>
+      <div class="bc-qr-label" style="color:${accent}">${caption}</div>
     </div>`;
   }
 
@@ -313,7 +314,7 @@
 
   function renderCenteredQR(data, accent, size) {
     const sz = size || 104;
-    return `<div class="bc-qr-center" style="display:flex;align-items:center;justify-content:center;height:100%;padding:8px">
+    return `<div class="bc-qr-center">
       <div class="bc-anim-qr-pulse" style="--bc-accent:${accent}">${renderLuxQRBlock(data, accent, sz)}</div>
     </div>`;
   }
@@ -503,9 +504,9 @@
     const payload = buildCardQrPayload(data);
     const dataUrl = qrToDataUrl(payload, sz);
     if (dataUrl) {
-      return `<img src="${dataUrl}" width="${sz}" height="${sz}" alt="Scan QR" class="bc-qr-img" style="display:block;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.08)"/>`;
+      return `<img src="${dataUrl}" width="${sz}" height="${sz}" alt="Scan QR" class="bc-qr-img" style="width:${sz}px;height:${sz}px;background:#fff;border:1px solid #d1d5db;border-radius:4px;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.08)"/>`;
     }
-    return `<div class="bc-qr-host" data-qr-payload="${escAttr(payload)}" data-qr-size="${sz}" style="width:${sz}px;height:${sz}px;background:#fff;border:1px solid #d1d5db;border-radius:4px"></div>`;
+    return `<div class="bc-qr-host" data-qr-payload="${escAttr(payload)}" data-qr-size="${sz}" style="width:${sz}px;height:${sz}px;min-width:${sz}px;background:#fff;border:1px solid #d1d5db;border-radius:4px"></div>`;
   }
 
   function hydrateCardQrs(root) {
@@ -685,10 +686,7 @@
           </div>
           ${renderActionMiniGrid(accent, textDark)}
         </div>
-        <div class="bc-anim-qr-pulse" style="--bc-accent:${accent};padding:10px 14px;background:linear-gradient(135deg,${accent}18,${accent}08);border:2px solid ${accent}55;border-radius:12px;box-shadow:0 6px 20px ${accent}25;text-align:center">
-          ${renderRealQR(data, 108)}
-          <div style="font-size:9px;letter-spacing:2.5px;color:${textDark};opacity:0.55;margin-top:8px;font-weight:800;text-transform:uppercase">Scan · Connect · Grow</div>
-        </div>
+        <div class="bc-anim-qr-pulse" style="--bc-accent:${accent}">${renderLuxQRBlock(data, accent, 108, "Scan · Connect · Grow")}</div>
       </div>
     </div>`;
   }

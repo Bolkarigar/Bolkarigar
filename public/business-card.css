@@ -1130,7 +1130,70 @@
   animation: bc-float-y 3.2s ease-in-out infinite, bc-logo-glow-pulse 2.6s ease-in-out infinite;
 }
 .bc-anim-qr-pulse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: bc-qr-pulse 2.8s ease-in-out infinite;
+}
+
+.bc-qr-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.bc-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.bc-qr-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.bc-qr-img {
+  display: block;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.bc-qr-host {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.bc-qr-host img,
+.bc-qr-host canvas,
+.bc-qr-host table {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.bc-qr-label {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-top: 8px;
+  opacity: 0.9;
+  font-weight: 800;
+  text-align: center;
+  width: 100%;
 }
 
 @keyframes bc-shimmer-sweep {
