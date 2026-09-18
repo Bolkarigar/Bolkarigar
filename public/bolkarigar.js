@@ -1856,6 +1856,9 @@ function openPanel(id) {
   if (id === "todoPanel" && typeof window.BolKarigarTeamTodos?.loadTeamTodos === "function") {
     window.BolKarigarTeamTodos.loadTeamTodos();
   }
+  if (id === "galleryPanel" && typeof window.BolKarigarTeamGallery?.loadTeamGallery === "function") {
+    window.BolKarigarTeamGallery.loadTeamGallery();
+  }
   if (typeof window.BolKarigarMeetings?.closeMeetingRoom === "function") {
     window.BolKarigarMeetings.closeMeetingRoom();
   }
@@ -4084,6 +4087,8 @@ function renderGalleryThumbs(photos) {
   if (galleryMain) { galleryMain.src = galleryImageUrl(photos[0].fileId); galleryMain.style.display = "block"; }
   if (galleryStatusText) galleryStatusText.textContent = `${photos.length} photo(s) uploaded.`;
 }
+window.bkRenderGalleryThumbs = renderGalleryThumbs;
+window.loadGalleryPhotos = loadGalleryPhotos;
 
 async function loadGalleryPhotos() {
   try {
@@ -4128,6 +4133,7 @@ galleryFileInput?.addEventListener("change", async (e) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload fail hua");
       loadGalleryPhotos();
+      window.BolKarigarTeamGallery?.loadTeamGallery?.();
     } catch (err) {
       console.error("Gallery upload error:", err);
       alert("❌ Upload failed: " + err.message);
@@ -4138,8 +4144,15 @@ galleryFileInput?.addEventListener("change", async (e) => {
 });
 
 // Gallery panel khulte hi photos load karo
-document.querySelector('.tab-btn[data-tab="galleryPanel"]')?.addEventListener("click", loadGalleryPhotos);
-if (document.getElementById("galleryPanel")?.classList.contains("active")) loadGalleryPhotos();
+document.querySelector('.tab-btn[data-tab="galleryPanel"]')?.addEventListener("click", () => {
+  if (typeof window.BolKarigarTeamGallery?.loadTeamGallery === "function") {
+    window.BolKarigarTeamGallery.loadTeamGallery();
+  } else loadGalleryPhotos();
+});
+if (document.getElementById("galleryPanel")?.classList.contains("active")) {
+  if (typeof window.BolKarigarTeamGallery?.loadTeamGallery === "function") window.BolKarigarTeamGallery.loadTeamGallery();
+  else loadGalleryPhotos();
+}
 
 const searchInput = document.getElementById("searchInput");
 const searchList = document.querySelectorAll("#searchList li");

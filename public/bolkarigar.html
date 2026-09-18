@@ -1843,9 +1843,28 @@
         <!-- GALLERY PANEL -->
         <section class="panel" id="galleryPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="gallery.eyebrow">Products</p><h3 data-i18n="gallery.title">Product Gallery</h3></div></div>
-          <div class="btn-row">
-            <input type="file" id="galleryFileInput" accept="image/*" style="display:none" />
-            <button id="galleryUploadBtn" type="button" data-i18n="gallery.upload">📷 Upload Photo</button>
+          <div id="teamGalleryHostBlock" class="mini-card team-todo-host">
+            <h4 style="margin:0 0 8px;">📤 Share photo with team</h4>
+            <p class="helper-text">Upload below, then send to all staff or selected members — they see it in Gallery when logged in.</p>
+            <select id="teamGalleryPhotoSelect"><option value="">— Select photo —</option></select>
+            <input type="text" id="teamGalleryNote" placeholder="Message e.g. New stock arrival, check quality..." style="margin-top:8px;" />
+            <div class="meet-invite-mode" style="margin-top:10px;">
+              <label><input type="radio" name="teamGalleryAssignMode" value="all" checked /> All staff</label>
+              <label><input type="radio" name="teamGalleryAssignMode" value="selected" /> Selected only</label>
+            </div>
+            <div id="teamGalleryStaffPick" class="hidden">
+              <div id="teamGalleryStaffList" class="meet-staff-list"></div>
+            </div>
+            <button id="teamGallerySendBtn" type="button" style="margin-top:10px;">Send photo to team</button>
+          </div>
+          <p class="helper-text" id="teamGalleryShareStatus">Shared with team:</p>
+          <ul id="teamGalleryShareList" class="todo-list team-todo-list" style="margin-bottom:14px;"></ul>
+          <div id="galleryOwnerLibrary">
+            <p class="helper-text">Your uploads (owner library):</p>
+            <div class="btn-row" id="galleryUploadRow">
+              <input type="file" id="galleryFileInput" accept="image/*" style="display:none" />
+              <button id="galleryUploadBtn" type="button" data-i18n="gallery.upload">📷 Upload Photo</button>
+            </div>
           </div>
           <p class="helper-text" id="galleryStatusText" data-i18n="gallery.status">Upload your product photos here.</p>
           <div class="gallery-viewer"><img id="mainGalleryImage" src="" alt="Main product preview" style="display:none" /></div>
@@ -2202,6 +2221,7 @@
   <script src="payroll-ui.js?v=20260918pay2"></script>
   <script src="team-meeting-ui.js?v=20260918meet2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>
+  <script src="team-gallery-ui.js?v=20260918gal1"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>

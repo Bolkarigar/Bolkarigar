@@ -1541,6 +1541,7 @@ button.bk-save-busy {
 }
 .team-meeting-room-header h3 { margin: 0; font-size: 1.05rem; }
 .jitsi-meeting-container { flex: 1; min-height: 0; background: #0f172a; }
+.team-todo-host select,
 .team-todo-host input[type="text"] {
   width: 100%;
   margin-top: 8px;

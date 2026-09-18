@@ -23,6 +23,7 @@ const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
 const { setupTeamMeetingFeatures } = require('./team-meeting-features.js');
 const { setupTeamTodoFeatures } = require('./team-todo-features.js');
+const { setupTeamGalleryFeatures } = require('./team-gallery-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
@@ -60,6 +61,7 @@ const {
 const logger = require('./logger');
 
 let payrollHelpers = null;
+let teamGalleryHelpers = null;
 
 const app = express();
 const PORT = process.env.PORT || 5002;
@@ -2167,8 +2169,14 @@ app.get('/api/gallery/image/:fileId', async (req, res) => {
     let user;
     try { user = jwt.verify(token, JWT_SECRET); } catch { return res.status(403).send('Invalid token'); }
 
-    const photo = await Photo.findOne({ fileId: req.params.fileId, userId: user.id });
+    const dbUser = await User.findById(user.id);
+    const dataUserId = dbUser?.ownerId ? String(dbUser.ownerId) : String(user.id);
+    const photo = await Photo.findOne({ fileId: req.params.fileId, userId: dataUserId });
     if (!photo) return res.status(404).send('Not found');
+    if (dbUser?.ownerId && teamGalleryHelpers?.staffCanViewPhoto) {
+      const ok = await teamGalleryHelpers.staffCanViewPhoto(dataUserId, user.id, photo._id);
+      if (!ok) return res.status(403).send('Not shared with you');
+    }
     if (!galleryBucket) return res.status(503).send('Not ready');
 
     res.set('Content-Type', photo.contentType || 'image/jpeg');
@@ -3337,6 +3345,11 @@ setupTeamMeetingFeatures({
 setupTeamTodoFeatures({
   app, mongoose, authenticateToken, rbac,
   models: { User }
+});
+
+teamGalleryHelpers = setupTeamGalleryFeatures({
+  app, mongoose, authenticateToken, rbac,
+  models: { User, Photo }
 });
 
 setupLiveFeatures({
