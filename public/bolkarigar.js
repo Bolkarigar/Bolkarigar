@@ -1505,7 +1505,10 @@ window.addEventListener("load", () => {
   const urlParams = new URLSearchParams(window.location.search);
   const openPanelId = urlParams.get("openPanel");
   const planFromUrl = urlParams.get("plan");
-  if (openPanelId && document.getElementById(openPanelId)) {
+  const meetJoin = urlParams.get("meetJoin");
+  if (meetJoin && urlParams.get("code") && document.getElementById("teamMeetingPanel")) {
+    openPanel("teamMeetingPanel");
+  } else if (openPanelId && document.getElementById(openPanelId)) {
     openPanel(openPanelId);
     if (openPanelId === "myPlanPanel" && planFromUrl) {
       setTimeout(() => {
@@ -1846,6 +1849,12 @@ function openPanel(id) {
   }
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
+  }
+  if (id === "teamMeetingPanel" && typeof window.BolKarigarMeetings?.loadTeamMeetingPanel === "function") {
+    window.BolKarigarMeetings.loadTeamMeetingPanel();
+  }
+  if (typeof window.BolKarigarMeetings?.closeMeetingRoom === "function") {
+    window.BolKarigarMeetings.closeMeetingRoom();
   }
   if (id === "overviewPanel") {
     if (typeof window.bkOverviewResetView === "function") window.bkOverviewResetView();

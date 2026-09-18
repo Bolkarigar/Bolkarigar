@@ -21,6 +21,7 @@ const { callVoiceParse } = require('./voice-ai.js');
 const { callChatAI, sanitizeHistory } = require('./chat-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
+const { setupTeamMeetingFeatures } = require('./team-meeting-features.js');
 const rbac = require('./rbac');
 const { PERMISSIONS, effectiveRole, getPermissionsForRole, requirePermission, requireOwner, requireDashboardUpdate } = rbac;
 const { setupLiveFeatures } = require('./live-features');
@@ -3323,6 +3324,11 @@ setupProFeatures({
 });
 
 payrollHelpers = setupPayrollFeatures({
+  app, mongoose, authenticateToken, rbac, requireBusinessPlan,
+  models: { User, BusinessProfile }
+});
+
+setupTeamMeetingFeatures({
   app, mongoose, authenticateToken, rbac, requireBusinessPlan,
   models: { User, BusinessProfile }
 });

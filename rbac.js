@@ -80,6 +80,7 @@ const TAB_ACCESS = {
   businessCardPanel: ['owner', 'manager', 'cashier', 'staff'],
   staffPanel: ['owner'],
   payrollPanel: ['owner', 'manager', 'cashier', 'staff'],
+  teamMeetingPanel: ['owner', 'manager', 'cashier', 'staff'],
   companiesPanel: ['owner'],
   helpPanel: ['owner', 'manager', 'cashier', 'staff']
 };

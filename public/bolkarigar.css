@@ -1468,6 +1468,70 @@ button.bk-save-busy {
   flex-wrap: wrap;
   gap: 6px;
 }
+.meet-schedule-card { margin-bottom: 4px; }
+.meet-invite-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+  margin-top: 12px;
+}
+.meet-invite-mode label { font-size: 13px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.meet-staff-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.meet-staff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.meet-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--card2);
+}
+.meet-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.meet-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+.meet-badge--scheduled { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.meet-badge--ended { background: rgba(148, 163, 184, 0.2); color: #64748b; }
+.meet-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.team-meeting-room-modal { z-index: 10050; }
+.team-meeting-room-box {
+  max-width: 96vw;
+  width: 1100px;
+  height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.team-meeting-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.team-meeting-room-header h3 { margin: 0; font-size: 1.05rem; }
+.jitsi-meeting-container { flex: 1; min-height: 0; background: #0f172a; }
 .hidden { display: none !important; }
 #udharPaymentModal:not(.hidden),
 #udharDetailModal:not(.hidden) { display: flex !important; }

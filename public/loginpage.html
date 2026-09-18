@@ -335,8 +335,16 @@
 
   <script>
     // 1. Session check on login page boot
+    function bkLoginRedirectTarget() {
+      const p = new URLSearchParams(window.location.search);
+      const r = p.get("redirect");
+      if (r && !/^[a-z]+:/i.test(r) && !r.startsWith("//")) {
+        if (r.startsWith("/") || r.startsWith("bolkarigar.html")) return r;
+      }
+      return "bolkarigar.html?_=" + Date.now();
+    }
     if (localStorage.getItem("bk_token")) {
-      window.location.href = "bolkarigar.html?_=" + Date.now();
+      window.location.href = bkLoginRedirectTarget();
     }
 
     // OTP-based reset flow
@@ -508,7 +516,7 @@
 
         localStorage.setItem("bk_token", result.token);
         localStorage.setItem("bk_user", result.username);
-        window.location.href = "bolkarigar.html?_=" + Date.now();
+        window.location.href = bkLoginRedirectTarget();
       } catch (err) {
         errorEl.textContent = loginMsgEn(err.message, LOGIN_MSG.wrongLogin);
         errorEl.style.display = "block";

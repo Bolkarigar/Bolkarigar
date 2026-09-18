@@ -157,6 +157,7 @@
           <div class="nav-group nav-group-hajri staff-hajri-nav">
             <p class="nav-group-label" data-i18n="nav.hajri">Attendance</p>
             <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">💼 Staff Payroll</button>
+            <button class="tab-btn" data-tab="teamMeetingPanel" type="button">📞 Team Meeting</button>
           </div>
           <div class="nav-group nav-group-accounting">
             <p class="nav-group-label" data-i18n="nav.accounting">Accounting</p>
@@ -1341,6 +1342,50 @@
           </div>
         </section>
 
+        <!-- Team Meeting — voice/video with staff (Business plan) -->
+        <section class="panel" id="teamMeetingPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Business Plan</p>
+              <h3>📞 Official Team Meeting</h3>
+            </div>
+          </div>
+          <p class="helper-text">Schedule voice or video meetings with all staff or selected members. Share the join link — staff open it while logged in to enter the call.</p>
+
+          <div id="meetNoAccess" class="hidden payroll-no-access">
+            <p>⚠️ Team meetings need an active <strong>Business plan (₹299)</strong>. Owner can upgrade from My Plan.</p>
+          </div>
+
+          <div id="meetMainContent">
+            <div id="meetHostBlock" class="meet-schedule-card mini-card">
+              <h4 style="margin:0 0 10px;">Schedule a meeting</h4>
+              <div class="grid-2">
+                <input id="meetTitle" type="text" placeholder="Meeting title * (e.g. Weekly Review)" />
+                <select id="meetCallType">
+                  <option value="video">📹 Video call</option>
+                  <option value="audio">🎙️ Voice call only</option>
+                </select>
+                <input id="meetAgenda" type="text" placeholder="Agenda (optional)" style="grid-column:1/-1;" />
+              </div>
+              <div class="meet-invite-mode">
+                <span class="helper-text">Invite:</span>
+                <label><input type="radio" name="meetInviteMode" value="all" checked /> All staff</label>
+                <label><input type="radio" name="meetInviteMode" value="selected" /> Selected members only</label>
+              </div>
+              <div id="meetStaffPickBlock" class="hidden">
+                <p class="helper-text">Select team members:</p>
+                <div id="meetStaffList" class="meet-staff-list"></div>
+              </div>
+              <button id="meetCreateBtn" type="button" style="margin-top:12px;">➕ Create &amp; Copy Link</button>
+            </div>
+
+            <div class="meet-list-section" style="margin-top:18px;">
+              <h4 style="margin:0 0 10px;">Active meetings</h4>
+              <div id="meetingsList"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- 🟢 STAFF / MULTI-USER -->
         <section class="panel" id="staffPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="staff.eyebrow">Team Management</p><h3 data-i18n="staff.title">👥 Staff & Cashier Login</h3></div></div>
@@ -2104,7 +2149,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918busy1"></script>
+  <script src="bolkarigar.js?v=20260918meet1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2126,6 +2171,7 @@
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
   <script src="payroll-ui.js?v=20260918pay2"></script>
+  <script src="team-meeting-ui.js?v=20260918meet1"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>
@@ -2197,6 +2243,17 @@
   <div id="bcExportHost"></div>
 
   <!-- Payroll salary slip — body level overlay (har panel par nahi dikhe) -->
+  <div id="teamMeetingRoomModal" class="modal-overlay hidden team-meeting-room-modal" role="dialog" aria-modal="true" aria-label="Team meeting">
+    <div class="modal-box team-meeting-room-box">
+      <div class="team-meeting-room-header">
+        <h3 id="teamMeetingRoomTitle">Team Meeting</h3>
+        <button type="button" id="teamMeetingRoomCloseBtn" class="btn-close" aria-label="Leave meeting">✕</button>
+      </div>
+      <div id="jitsiMeetingContainer" class="jitsi-meeting-container"></div>
+      <p class="helper-text" style="padding:8px 12px;margin:0;">Official BolKarigar meeting — allow camera/microphone when prompted. Voice-only meetings start with video off.</p>
+    </div>
+  </div>
+
   <div id="payrollSlipModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Salary slip">
     <div class="modal-box payroll-slip-modal-box" style="max-width:820px;text-align:left;">
       <div id="payrollSlipBody"></div>
