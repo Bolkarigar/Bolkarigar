@@ -1853,6 +1853,9 @@ function openPanel(id) {
   if (id === "teamMeetingPanel" && typeof window.BolKarigarMeetings?.loadTeamMeetingPanel === "function") {
     window.BolKarigarMeetings.loadTeamMeetingPanel();
   }
+  if (id === "todoPanel" && typeof window.BolKarigarTeamTodos?.loadTeamTodos === "function") {
+    window.BolKarigarTeamTodos.loadTeamTodos();
+  }
   if (typeof window.BolKarigarMeetings?.closeMeetingRoom === "function") {
     window.BolKarigarMeetings.closeMeetingRoom();
   }

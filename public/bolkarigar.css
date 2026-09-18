@@ -1541,6 +1541,24 @@ button.bk-save-busy {
 }
 .team-meeting-room-header h3 { margin: 0; font-size: 1.05rem; }
 .jitsi-meeting-container { flex: 1; min-height: 0; background: #0f172a; }
+.team-todo-host input[type="text"] {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--text);
+}
+.team-todo-list .team-todo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.team-todo-item--done { opacity: 0.75; }
+.team-todo-main { flex: 1; min-width: 200px; }
 .hidden { display: none !important; }
 #udharPaymentModal:not(.hidden),
 #udharDetailModal:not(.hidden) { display: flex !important; }

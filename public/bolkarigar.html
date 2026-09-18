@@ -1853,7 +1853,30 @@
         </section>
 
         <!-- TODO PANEL -->
-        <section class="panel" id="todoPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="todo.eyebrow">Task manager</p><h3 data-i18n="todo.title">Todo Manager</h3></div></div><input type="text" id="todoInput" data-i18n-placeholder="todo.placeholder" placeholder="Add a task..." /><div class="btn-row"><button id="addTodoBtn" type="button" data-i18n="todo.add">Add task</button><button class="secondary" id="clearTodoBtn" type="button" data-i18n="todo.clear">Clear all</button></div><p class="helper-text" id="todoStatus" data-i18n="todo.statusEmpty">Your tasks will appear below.</p><ul id="todoList" class="todo-list"></ul></section>
+        <section class="panel" id="todoPanel">
+          <div class="panel-header"><div><p class="eyebrow" data-i18n="todo.eyebrow">Task manager</p><h3 data-i18n="todo.title">Todo Manager</h3></div></div>
+          <div id="teamTodoHostBlock" class="mini-card team-todo-host">
+            <h4 style="margin:0 0 8px;">📤 Send todo to team</h4>
+            <p class="helper-text">All staff at once, or pick specific members — they see it in Todo when logged in.</p>
+            <input type="text" id="teamTodoInput" placeholder="Message e.g. Close shop at 9 PM, stock check..." />
+            <div class="meet-invite-mode" style="margin-top:10px;">
+              <label><input type="radio" name="teamTodoAssignMode" value="all" checked /> All staff</label>
+              <label><input type="radio" name="teamTodoAssignMode" value="selected" /> Selected only</label>
+            </div>
+            <div id="teamTodoStaffPick" class="hidden">
+              <div id="teamTodoStaffList" class="meet-staff-list"></div>
+            </div>
+            <button id="teamTodoSendBtn" type="button" style="margin-top:10px;">Send to team</button>
+          </div>
+          <p class="helper-text" id="teamTodoStatus">Team messages appear below.</p>
+          <ul id="teamTodoList" class="todo-list team-todo-list"></ul>
+          <hr style="margin:18px 0;border:none;border-top:1px solid var(--border);" />
+          <p class="helper-text">Personal / shop notes (shared draft list):</p>
+          <input type="text" id="todoInput" data-i18n-placeholder="todo.placeholder" placeholder="Add a task..." />
+          <div class="btn-row"><button id="addTodoBtn" type="button" data-i18n="todo.add">Add task</button><button class="secondary" id="clearTodoBtn" type="button" data-i18n="todo.clear">Clear all</button></div>
+          <p class="helper-text" id="todoStatus" data-i18n="todo.statusEmpty">Your tasks will appear below.</p>
+          <ul id="todoList" class="todo-list"></ul>
+        </section>
 
         <!-- QR PANEL -->
         <section class="panel" id="qrPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="qr.eyebrow">QR sharing</p><h3 data-i18n="qr.title">QR Generator</h3></div></div><input type="text" id="qrInput" data-i18n-placeholder="qr.placeholder" placeholder="Enter text or URL..." /><div class="btn-row"><button id="generateQrBtn" type="button" data-i18n="qr.generate">Generate QR</button><button class="secondary" id="clearQrBtn" type="button" data-i18n="qr.clear">Clear</button></div><div class="qr-box" id="qrCodeBox"></div></section>
@@ -2178,6 +2201,7 @@
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
   <script src="payroll-ui.js?v=20260918pay2"></script>
   <script src="team-meeting-ui.js?v=20260918meet2"></script>
+  <script src="team-todo-ui.js?v=20260918todo1"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>
