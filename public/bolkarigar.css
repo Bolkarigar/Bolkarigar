@@ -1560,6 +1560,16 @@ button.bk-save-busy {
 }
 .team-todo-item--done { opacity: 0.75; }
 .team-todo-main { flex: 1; min-width: 200px; }
+.purchase-item-entry .inv-field-item-select {
+  min-width: 140px;
+  flex: 1 1 160px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--text);
+  font-size: 13.5px;
+}
 .hidden { display: none !important; }
 #udharPaymentModal:not(.hidden),
 #udharDetailModal:not(.hidden) { display: flex !important; }

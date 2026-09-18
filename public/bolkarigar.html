@@ -1642,47 +1642,37 @@
         <h3 data-i18n="nav.purchase">📥 Purchase Bill</h3>
       </div>
       <div class="inv-vch-meta">
+        <input type="date" id="pvDateInput" class="inv-date-input-hidden" aria-hidden="true" tabindex="-1" />
         <span class="inv-meta-chip inv-date-clickable" id="pvDateDisplay" title="Click to change date">—</span>
       </div>
     </div>
 
     <div class="grid-2 inv-party-grid">
-      <label class="voucher-field">
-        <span class="voucher-label">Supplier Invoice No. *</span>
-        <input type="text" id="pvBillNoInput" placeholder="e.g. INV-2026-001" maxlength="32" />
-      </label>
-      <label class="voucher-field">
-        <span class="voucher-label">Bill Date</span>
-        <input type="date" id="pvDateInput" />
-      </label>
-      <label class="voucher-field">
-        <span class="voucher-label">Supplier GSTIN</span>
-        <input type="text" id="pvSupplierGstinInput" placeholder="15 digit GSTIN (optional)" maxlength="15" />
-      </label>
-      <label class="voucher-field">
-        <span class="voucher-label">Payment Mode</span>
-        <select id="pvPaymentModeInput">
-          <option value="Credit">Credit (Sundry Creditor)</option>
-          <option value="Cash">Cash — Paid</option>
-          <option value="Bank">Bank — Paid</option>
-          <option value="UPI">UPI — Paid</option>
-        </select>
-      </label>
-      <label class="voucher-field inv-full-span">
-        <span class="voucher-label">Supplier / Party (Sundry Creditor) *</span>
-        <div class="inv-party-autocomplete">
-          <input type="text" id="pvPartySearch" placeholder="Supplier name search (search ledger)..." autocomplete="off" />
-          <input type="hidden" id="pvPartyInput" />
-          <ul id="pvPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
-        </div>
-      </label>
+      <input type="text" id="pvBillNoInput" placeholder="Supplier bill no. * (e.g. INV-2026-001)" maxlength="32" />
+      <input type="text" id="pvSupplierGstinInput" placeholder="Supplier GSTIN (optional, B2B)" maxlength="15" />
+      <div class="inv-party-autocomplete inv-full-span">
+        <input type="text" id="pvPartySearch" placeholder="Supplier / Party name * (search ledger)" autocomplete="off" />
+        <input type="hidden" id="pvPartyInput" />
+        <ul id="pvPartySuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+      </div>
+      <select id="pvPaymentModeInput">
+        <option value="Credit">📖 Credit (Sundry Creditor)</option>
+        <option value="Cash">💵 Cash (Paid)</option>
+        <option value="UPI">📱 UPI (Paid)</option>
+        <option value="Bank">🏦 Bank (Paid)</option>
+      </select>
+      <input type="text" id="pvNoteInput" class="inv-full-span" placeholder="Narration (optional) e.g. Cement 50 bags — main warehouse" />
     </div>
 
     <div class="inv-item-entry purchase-item-entry">
-      <span class="inv-entry-label">Stock Entry</span>
-      <select id="pvItemInput" class="pv-field-item"><option value="">-- Select Item --</option></select>
+      <span class="inv-entry-label">Item Entry</span>
+      <select id="pvItemInput" class="pv-field-item inv-field-item-select" title="Select from stock">
+        <option value="">Item name * (select from stock)</option>
+      </select>
+      <input type="text" id="pvHsnDisplay" class="inv-field-hsn" placeholder="HSN/SAC" readonly title="Auto from stock item" />
       <input id="pvQtyInput" type="number" class="inv-field-qty" min="0" step="0.01" placeholder="Qty" value="1" />
-      <input id="pvRateInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Purchase Rate ₹" />
+      <span id="pvUnitTag" class="inv-unit-tag">Pcs</span>
+      <input id="pvRateInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Rate (Excl. GST) ₹" />
       <select id="pvGstInput" class="inv-field-gst">
         <option value="0">0%</option>
         <option value="5">5%</option>
@@ -1717,15 +1707,27 @@
       </table>
     </div>
 
-    <label class="voucher-field" style="margin-top:10px;display:block;">
-      <span class="voucher-label">Narration / Note</span>
-      <textarea id="pvNoteInput" placeholder="e.g. Cement 50 bags — main warehouse" rows="2" style="width:100%;"></textarea>
-    </label>
+    <div class="grid-2 inv-tax-footer">
+      <div class="inv-info-card">
+        <div class="inv-info-title">Tax Summary</div>
+        <p id="pvTaxTypeDesc" class="inv-tax-desc">Add items to see GST breakup.</p>
+        <div class="inv-tax-table-wrap">
+          <table class="inv-tax-table">
+            <thead><tr><th>Rate</th><th>Taxable (₹)</th><th>Tax (₹)</th></tr></thead>
+            <tbody id="pvTaxSummaryBody"><tr><td colspan="3">Add items to see tax breakup</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="inv-info-card">
+        <div class="inv-info-title">Bill Info</div>
+        <p id="pvBillInfo" class="inv-info-text">Supplier and item details will appear here.</p>
+      </div>
+    </div>
 
-    <p class="helper-text" id="pvStatusText"></p>
+    <p class="helper-text" id="pvStatusText">Fill supplier details and add items.</p>
 
     <div class="btn-row inv-action-row">
-      <button type="button" id="savePurchaseVoucherBtn">💾 Save Purchase Bill</button>
+      <button type="button" id="savePurchaseVoucherBtn" class="bk-save-btn">💾 Save Purchase Bill</button>
       <button type="button" class="secondary" onclick="typeof openPanel==='function'&&openPanel('khataDaybookPanel')">Day Book</button>
       <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
     </div>
@@ -2197,7 +2199,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918meet1"></script>
+  <script src="bolkarigar.js?v=20260918pur1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

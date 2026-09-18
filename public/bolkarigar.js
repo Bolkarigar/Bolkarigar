@@ -7631,6 +7631,58 @@ function getEWayBillDetails() {
     return taxable + (taxable * gstRate / 100);
   }
 
+  function updatePurchaseTaxSummary() {
+    const taxBody = document.getElementById("pvTaxSummaryBody");
+    const taxDesc = document.getElementById("pvTaxTypeDesc");
+    const billInfo = document.getElementById("pvBillInfo");
+    if (!taxBody) return;
+
+    const buckets = {};
+    let grand = 0;
+    purchaseLineItems.forEach((line) => {
+      const gst = parseFloat(line.gstRate) || 0;
+      const taxable = (parseFloat(line.rate) || 0) * (parseFloat(line.qty) || 0);
+      const tax = taxable * gst / 100;
+      grand += taxable + tax;
+      if (!buckets[gst]) buckets[gst] = { taxable: 0, tax: 0 };
+      buckets[gst].taxable += taxable;
+      buckets[gst].tax += tax;
+    });
+
+    const rates = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+    if (!rates.length) {
+      taxBody.innerHTML = "<tr><td colspan=\"3\">Add items to see tax breakup</td></tr>";
+      if (taxDesc) taxDesc.textContent = "Add items to see GST breakup.";
+    } else {
+      taxBody.innerHTML = rates.map((r) =>
+        `<tr><td>${r}%</td><td>₹${buckets[r].taxable.toFixed(2)}</td><td>₹${buckets[r].tax.toFixed(2)}</td></tr>`
+      ).join("");
+      if (taxDesc) taxDesc.textContent = `Purchase total incl. GST: ₹${grand.toFixed(2)}`;
+    }
+
+    if (billInfo) {
+      const party = document.getElementById("pvPartySearch")?.value.trim() || "—";
+      const billNo = document.getElementById("pvBillNoInput")?.value.trim() || "—";
+      billInfo.textContent = `Supplier: ${party} · Bill No: ${billNo} · Lines: ${purchaseLineItems.length}`;
+    }
+  }
+
+  function syncPurchaseItemMetaFromSelect() {
+    const itemSel = document.getElementById("pvItemInput");
+    const opt = itemSel?.selectedOptions[0];
+    const hsnEl = document.getElementById("pvHsnDisplay");
+    const unitTag = document.getElementById("pvUnitTag");
+    if (hsnEl) hsnEl.value = opt?.dataset.hsn || "";
+    if (unitTag) unitTag.textContent = opt?.dataset.unit || "Pcs";
+    if (opt?.dataset.gst) {
+      const gstEl = document.getElementById("pvGstInput");
+      if (gstEl) gstEl.value = opt.dataset.gst;
+    }
+    const rate = parseFloat(opt?.dataset.purchase) || 0;
+    const rateEl = document.getElementById("pvRateInput");
+    if (rateEl && rate > 0) rateEl.value = rate;
+  }
+
   function renderPurchaseItems() {
     const body = document.getElementById("pvItemsBody");
     const grandEl = document.getElementById("pvGrandTotal");
@@ -7666,11 +7718,16 @@ function getEWayBillDetails() {
     }
 
     if (grandEl) grandEl.textContent = grand.toFixed(2);
+    updatePurchaseTaxSummary();
   }
 
   function clearPurchaseEntryFields() {
     const itemSel = document.getElementById("pvItemInput");
     if (itemSel) itemSel.value = "";
+    const hsnEl = document.getElementById("pvHsnDisplay");
+    if (hsnEl) hsnEl.value = "";
+    const unitTag = document.getElementById("pvUnitTag");
+    if (unitTag) unitTag.textContent = "Pcs";
     const qtyEl = document.getElementById("pvQtyInput");
     if (qtyEl) qtyEl.value = "1";
     const rateEl = document.getElementById("pvRateInput");
@@ -7728,6 +7785,7 @@ function getEWayBillDetails() {
     if (!line) return;
     const itemSel = document.getElementById("pvItemInput");
     if (itemSel) itemSel.value = line.itemId;
+    syncPurchaseItemMetaFromSelect();
     const qtyEl = document.getElementById("pvQtyInput");
     if (qtyEl) qtyEl.value = line.qty;
     const rateEl = document.getElementById("pvRateInput");
@@ -7773,7 +7831,7 @@ function getEWayBillDetails() {
       if (ledData.success) invoiceLedgerCache = ledData.ledgers || [];
       const itemSel = document.getElementById("pvItemInput");
       if (itemSel && itemData.success) {
-        itemSel.innerHTML = '<option value="">-- Select Item --</option>' +
+        itemSel.innerHTML = '<option value="">Item name * (select from stock)</option>' +
           (itemData.items || []).map(i =>
             `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-gst="${i.gstRate || 0}" data-hsn="${escapeHtml(i.hsnCode || '')}" data-unit="${escapeHtml(i.unit || 'Pcs')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
           ).join("");
@@ -7799,16 +7857,9 @@ function getEWayBillDetails() {
   document.getElementById("pvDateInput")?.addEventListener("change", updatePurchaseDateDisplay);
   document.getElementById("pvDateInput")?.addEventListener("input", updatePurchaseDateDisplay);
 
-  document.getElementById("pvItemInput")?.addEventListener("change", () => {
-    const itemSel = document.getElementById("pvItemInput");
-    const opt = itemSel?.selectedOptions[0];
-    if (opt?.dataset.gst) {
-      const gstEl = document.getElementById("pvGstInput");
-      if (gstEl) gstEl.value = opt.dataset.gst;
-    }
-    const rate = parseFloat(opt?.dataset.purchase) || 0;
-    const rateEl = document.getElementById("pvRateInput");
-    if (rateEl) rateEl.value = rate > 0 ? rate : "";
+  document.getElementById("pvItemInput")?.addEventListener("change", syncPurchaseItemMetaFromSelect);
+  ["pvPartySearch", "pvBillNoInput"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", updatePurchaseTaxSummary);
   });
 
   document.getElementById("addPurchaseItemBtn")?.addEventListener("click", executePurchaseAdd);
