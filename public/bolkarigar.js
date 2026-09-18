@@ -1324,7 +1324,10 @@ async function executeInvoiceAdd() {
   return true;
 }
 
+let _invoiceSaveInFlight = false;
+
 async function saveInvoiceVoucher() {
+  if (_invoiceSaveInFlight) return false;
   const customer = document.getElementById("customerName")?.value.trim();
   if (!customer) {
     if (typeof showToast === "function") showToast("Party / customer name is required before saving.", "error");
@@ -1338,8 +1341,14 @@ async function saveInvoiceVoucher() {
 
   const saveBtn = document.getElementById("saveInvoiceBtn");
   const statusEl = document.getElementById("invoiceStatus");
+  const lockFn = typeof window.bkWithSaveLock === "function" ? window.bkWithSaveLock : null;
+  _invoiceSaveInFlight = true;
 
-  return window.bkWithSaveLock(saveBtn, async () => {
+  const runSave = async () => {
+  if (statusEl) {
+    statusEl.textContent = "⏳ Saving invoice...";
+    statusEl.style.color = "#fbbf24";
+  }
   try {
     const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
     let prof = {};
@@ -1355,6 +1364,9 @@ async function saveInvoiceVoucher() {
         price: item.price, qty: item.qty, gstRate: item.gstRate,
         paymentType: payType, invoiceNo
       });
+      if (!saleMeta) {
+        throw new Error("Server did not confirm save. Check login and connection.");
+      }
       await recordKhataSaleFromInvoice({
         customer: cust, product: item.product, hsn: item.hsn,
         price: item.price, qty: item.qty, gstRate: item.gstRate,
@@ -1390,7 +1402,31 @@ async function saveInvoiceVoucher() {
     if (typeof showToast === "function") showToast("Could not save invoice. Check connection and try again.", "error");
     return false;
   }
-  });
+  };
+
+  try {
+    if (lockFn) {
+      return await lockFn(saveBtn, runSave, {
+        alsoLock: ["savePrintInvoiceBtn"],
+        loadingText: "⏳ Saving...",
+        minLockMs: 1000
+      });
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.classList.add("bk-save-busy");
+      saveBtn.style.cursor = "not-allowed";
+    }
+    return await runSave();
+  } finally {
+    _invoiceSaveInFlight = false;
+    if (!lockFn && saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.classList.remove("bk-save-busy");
+      saveBtn.style.cursor = "";
+    }
+  }
 }
 window.saveInvoiceVoucher = saveInvoiceVoucher;
 
@@ -5283,6 +5319,12 @@ async function printTallyBill(ev) {
     }
   }
 
+  const statusEl = document.getElementById("invoiceStatus");
+  if (statusEl) {
+    statusEl.textContent = "⏳ Saving & preparing print...";
+    statusEl.style.color = "#fbbf24";
+  }
+
   return window.bkWithSaveLock(printBtn, async () => {
   const isIntraState = gstOnBill ? taxMode.isIntraState : true;
 
@@ -5608,6 +5650,10 @@ async function printTallyBill(ev) {
     </html>
   `);
   printWindow.document.close();
+  }, {
+    alsoLock: ["saveInvoiceBtn"],
+    loadingText: "⏳ Saving...",
+    minLockMs: 1000
   });
 }
 

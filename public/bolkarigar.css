@@ -1179,11 +1179,25 @@ textarea.form-input {
   touch-action: manipulation;
 }
 
+button.bk-save-busy,
 button.bk-save-btn.bk-save-busy,
-button.bk-save-btn[disabled] {
+button.bk-save-btn[disabled],
+.btn-row button.bk-save-busy,
+.inv-action-row button.bk-save-busy {
   cursor: not-allowed !important;
-  opacity: 0.72;
-  pointer-events: none;
+  opacity: 0.68 !important;
+  pointer-events: none !important;
+  filter: grayscale(0.15);
+  user-select: none;
+}
+button.bk-save-busy::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: not-allowed;
+}
+button.bk-save-busy {
+  position: relative;
 }
 
 /* ================================================================== */
