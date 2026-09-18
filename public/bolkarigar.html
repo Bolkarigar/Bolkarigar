@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi" data-theme="dark">
+<html lang="hi" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
@@ -84,7 +84,7 @@
           <button id="businessProfileBtn" class="theme-btn owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
           <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
           <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
-          <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.light">Light</button>
+          <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.dark">Dark</button>
           <button id="logoutBtn" class="theme-btn top-action-logout" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
         </div>
       </div>
@@ -1449,7 +1449,7 @@
         <span class="inv-meta-chip inv-vch-no" id="busyVchNo" title="Voucher No.">—</span>
         <label class="gst-toggle-wrap" title="GST ON / OFF">
           <span class="gst-toggle-label">GST</span>
-          <input type="checkbox" id="invoiceGstToggle" checked />
+          <input type="checkbox" id="invoiceGstToggle" />
           <span class="gst-toggle-slider"></span>
         </label>
       </div>
@@ -2097,7 +2097,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918save2"></script>
+  <script src="bolkarigar.js?v=20260918def1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

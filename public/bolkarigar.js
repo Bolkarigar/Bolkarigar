@@ -750,7 +750,7 @@ let invoiceLedgerCache = [];
 let invoiceGstLastRate = 18;
 
 function isInvoiceGstEnabled() {
-  return document.getElementById("invoiceGstToggle")?.checked !== false;
+  return document.getElementById("invoiceGstToggle")?.checked === true;
 }
 
 function getInvoiceLineGstRate(storedRate) {
@@ -1798,6 +1798,7 @@ function setTheme(mode) {
       : (mode === "dark" ? "Light" : "Dark");
   }
 }
+setTheme(root.getAttribute("data-theme") || "light");
 themeToggle?.addEventListener("click", () => {
   const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
   setTheme(next);
@@ -1806,7 +1807,7 @@ themeToggle?.addEventListener("click", () => {
 document.addEventListener("bk:langchange", () => {
   if (typeof renderTodos === "function") renderTodos();
   if (voiceToggle) voiceToggle.textContent = bkVoiceBtnLabel(voiceOn);
-  const mode = root.getAttribute("data-theme") || "dark";
+  const mode = root.getAttribute("data-theme") || "light";
   setTheme(mode);
   if (voiceOn && typeof restartRecognition === "function") {
     try { recognition?.stop(); } catch { /* */ }
