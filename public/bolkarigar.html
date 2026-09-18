@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260918save2">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260918rec1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
@@ -372,7 +372,7 @@
               <div class="sales-filter-row">
                 <label class="sales-date-field"><span>From</span><input type="date" id="salesFromDate" /></label>
                 <label class="sales-date-field"><span>To</span><input type="date" id="salesToDate" /></label>
-                <button type="button" id="salesApplyDateBtn">Apply</button>
+                <button type="button" id="salesApplyDateBtn" class="bk-apply-filter-btn">Apply</button>
                 <button type="button" id="salesClearDateBtn" class="secondary">Clear</button>
                 <div class="sales-quick-filters">
                   <button type="button" class="secondary sales-quick-btn" data-range="thisMonth">This Month</button>
@@ -383,8 +383,8 @@
               <p id="salesDateFilterLabel" class="helper-text sales-date-filter-label hidden"></p>
               <div class="table-wrap" style="margin-top:12px;">
                 <table>
-                  <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Product</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
-                  <tbody id="salesHistoryBody"><tr><td colspan="8" style="text-align:center;color:#94a3b8;">Loading sales records...</td></tr></tbody>
+                  <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Product</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody id="salesHistoryBody"><tr><td colspan="9" style="text-align:center;color:#94a3b8;">Loading sales records...</td></tr></tbody>
                 </table>
               </div>
               <div class="panel-pagination-bar">
@@ -409,7 +409,7 @@
               <div class="sales-filter-row">
                 <label class="sales-date-field"><span>From</span><input type="date" id="ovPurchaseFromDate" /></label>
                 <label class="sales-date-field"><span>To</span><input type="date" id="ovPurchaseToDate" /></label>
-                <button type="button" id="ovPurchaseApplyDateBtn">Apply</button>
+                <button type="button" id="ovPurchaseApplyDateBtn" class="bk-apply-filter-btn">Apply</button>
                 <button type="button" id="ovPurchaseClearDateBtn" class="secondary">Clear</button>
                 <div class="sales-quick-filters">
                   <button type="button" class="secondary voucher-quick-btn" data-voucher-type="Purchase" data-range="thisMonth">This Month</button>
@@ -432,7 +432,7 @@
               <div class="sales-filter-row">
                 <label class="sales-date-field"><span>From</span><input type="date" id="ovPaymentFromDate" /></label>
                 <label class="sales-date-field"><span>To</span><input type="date" id="ovPaymentToDate" /></label>
-                <button type="button" id="ovPaymentApplyDateBtn">Apply</button>
+                <button type="button" id="ovPaymentApplyDateBtn" class="bk-apply-filter-btn">Apply</button>
                 <button type="button" id="ovPaymentClearDateBtn" class="secondary">Clear</button>
                 <div class="sales-quick-filters">
                   <button type="button" class="secondary voucher-quick-btn" data-voucher-type="Payment" data-range="thisMonth">This Month</button>
@@ -455,7 +455,7 @@
               <div class="sales-filter-row">
                 <label class="sales-date-field"><span>From</span><input type="date" id="ovReceiptFromDate" /></label>
                 <label class="sales-date-field"><span>To</span><input type="date" id="ovReceiptToDate" /></label>
-                <button type="button" id="ovReceiptApplyDateBtn">Apply</button>
+                <button type="button" id="ovReceiptApplyDateBtn" class="bk-apply-filter-btn">Apply</button>
                 <button type="button" id="ovReceiptClearDateBtn" class="secondary">Clear</button>
                 <div class="sales-quick-filters">
                   <button type="button" class="secondary voucher-quick-btn" data-voucher-type="Receipt" data-range="thisMonth">This Month</button>
@@ -475,7 +475,7 @@
               <div class="sales-filter-row">
                 <label class="sales-date-field"><span>From</span><input type="date" id="ovCustomerFromDate" /></label>
                 <label class="sales-date-field"><span>To</span><input type="date" id="ovCustomerToDate" /></label>
-                <button type="button" id="ovCustomerApplyDateBtn">Apply</button>
+                <button type="button" id="ovCustomerApplyDateBtn" class="bk-apply-filter-btn">Apply</button>
                 <button type="button" id="ovCustomerClearDateBtn" class="secondary">Clear</button>
                 <div class="sales-quick-filters">
                   <button type="button" class="secondary voucher-quick-btn" data-voucher-type="Customer" data-range="thisMonth">This Month</button>
@@ -2097,7 +2097,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918def1"></script>
+  <script src="bolkarigar.js?v=20260918rec1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

@@ -5706,6 +5706,107 @@ async function printThermalBill() {
 }
 window.printThermalBill = printThermalBill;
 
+async function printSavedSaleBill(saleId) {
+  if (!saleId) return;
+  try {
+    if (typeof showToast === "function") showToast("Preparing bill for print...", "info");
+    const hdrs = { Authorization: `Bearer ${getToken()}` };
+    const res = await fetch(`${API_URL}/api/sales/${saleId}`, { headers: hdrs });
+    const data = await res.json();
+    if (!data.success || !data.record) throw new Error(data.error || "Sale record not found.");
+
+    const anchor = data.record;
+    let items = [anchor];
+    if (anchor.invoiceNo) {
+      const listRes = await fetch(
+        `${API_URL}/api/sales?search=${encodeURIComponent(anchor.invoiceNo)}&limit=100`,
+        { headers: hdrs }
+      );
+      const listData = await listRes.json();
+      const matched = (listData.records || []).filter(
+        (r) => String(r.invoiceNo || "") === String(anchor.invoiceNo)
+      );
+      if (matched.length) items = matched;
+    }
+
+    let savedProfile = {};
+    try { savedProfile = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}"); } catch { /* */ }
+    const companyName = escapeHtml(savedProfile.name || "Your Company");
+    const companyAddress = escapeHtml(savedProfile.address || "");
+    const companyGstin = escapeHtml(savedProfile.gstin || "");
+    const companyPhone = escapeHtml(savedProfile.phone || "");
+    const companyUpi = escapeHtml(savedProfile.upiId || savedProfile.upi || "");
+    const customer = escapeHtml(anchor.customer || "Customer");
+    const invoiceNo = escapeHtml(anchor.invoiceNo || "—");
+    const invDate = new Date(anchor.date).toLocaleDateString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric"
+    });
+    const paymentType = escapeHtml(anchor.paymentType || "Cash");
+    const status = escapeHtml(anchor.status || "Paid");
+
+    let grandTotal = 0;
+    const itemRows = items.map((item, idx) => {
+      const qty = parseFloat(item.qty) || 1;
+      const price = parseFloat(item.price) || 0;
+      const gstRate = parseFloat(item.gstRate) || 0;
+      const lineTotal = parseFloat(item.totalAmount) || price * qty * (1 + gstRate / 100);
+      grandTotal += lineTotal;
+      return `<tr>
+        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${idx + 1}</td>
+        <td style="padding:6px;border:1px solid #ccc;">${escapeHtml(item.product || "Item")}</td>
+        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${escapeHtml(item.hsn || "-")}</td>
+        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${qty}</td>
+        <td style="text-align:right;padding:6px;border:1px solid #ccc;">₹${price.toFixed(2)}</td>
+        <td style="text-align:center;padding:6px;border:1px solid #ccc;">${gstRate > 0 ? gstRate + "%" : "—"}</td>
+        <td style="text-align:right;padding:6px;border:1px solid #ccc;font-weight:600;">₹${lineTotal.toFixed(2)}</td>
+      </tr>`;
+    }).join("");
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Please allow pop-ups in your browser to print the bill.");
+      return;
+    }
+    w.document.write(`<!DOCTYPE html><html><head><title>Bill ${invoiceNo}</title>
+      <style>
+        body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#111;}
+        .wrap{max-width:760px;margin:0 auto;border:1px solid #ccc;padding:18px;}
+        h1{margin:0 0 4px;font-size:22px;} .sub{color:#555;font-size:13px;margin-bottom:14px;}
+        table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+        th{background:#f3f4f6;padding:7px;border:1px solid #ccc;text-align:left;}
+        .totals{margin-top:14px;text-align:right;font-size:15px;}
+        .meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-top:10px;}
+        .box{border:1px solid #ddd;border-radius:8px;padding:10px;background:#fafafa;}
+        @media print{body{padding:0}.wrap{border:none}}
+      </style></head>
+      <body onload="window.print()">
+        <div class="wrap">
+          <h1>${companyName}</h1>
+          <div class="sub">${companyAddress}${companyGstin ? " | GSTIN: " + companyGstin : ""}${companyPhone ? " | " + companyPhone : ""}</div>
+          <div class="meta">
+            <div class="box"><strong>Bill To</strong><br>${customer}</div>
+            <div class="box"><strong>Invoice</strong><br>${invoiceNo}<br>Date: ${invDate}<br>Payment: ${paymentType}<br>Status: ${status}</div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>#</th><th>Product</th><th>HSN</th><th>Qty</th><th>Rate</th><th>GST</th><th>Amount</th>
+            </tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+          <div class="totals"><strong>Grand Total: ₹${grandTotal.toFixed(2)}</strong></div>
+          ${companyUpi ? `<p style="text-align:center;margin-top:16px;font-size:13px;">UPI: ${companyUpi}</p>` : ""}
+          <p style="text-align:center;margin-top:20px;font-size:11px;color:#666;">Generated from BolKarigar Sales Records</p>
+        </div>
+      </body></html>`);
+    w.document.close();
+  } catch (err) {
+    console.error("printSavedSaleBill:", err);
+    if (typeof showToast === "function") showToast(err.message || "Could not print bill.", "error");
+    else alert(err.message || "Could not print bill.");
+  }
+}
+window.printSavedSaleBill = printSavedSaleBill;
+
 
 
 
@@ -8008,7 +8109,7 @@ function getEWayBillDetails() {
     const signal = salesAbort.signal;
     salesLoading = true;
     if (!body.rows.length || body.textContent.includes("Loading")) {
-      body.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Loading...</td></tr>";
+      body.innerHTML = "<tr><td colspan='9' style='text-align:center;'>Loading...</td></tr>";
     }
     try {
       const params = new URLSearchParams({ page: currentPage, limit: currentPageSize });
@@ -8030,7 +8131,7 @@ function getEWayBillDetails() {
         const emptyMsg = currentSearch || currentFromDate || currentToDate
           ? "Is filter me koi record nahi mila."
           : "Abhi koi sale record nahi hai.";
-        body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>${emptyMsg}</td></tr>`;
+        body.innerHTML = `<tr><td colspan='9' style='text-align:center;'>${emptyMsg}</td></tr>`;
         window.bkSetTableAmountTotal(body, { hide: true });
       } else {
         const pageSum = data.records.reduce((s, r) => s + (parseFloat(r.totalAmount) || 0), 0);
@@ -8044,6 +8145,7 @@ function getEWayBillDetails() {
             <td style="color:#22c55e;font-weight:700;">₹${(r.totalAmount || 0).toFixed(2)}</td>
             <td>${r.paymentType || "Cash"}</td>
             <td><span style="background:#22c55e22;color:#22c55e;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12px;">${r.status || "Paid"}</span></td>
+            <td><button type="button" class="secondary sales-bill-btn" data-sale-id="${escapeHtml(r._id)}" title="Print / download bill">🖨 Bill</button></td>
           </tr>`).join("");
         window.bkSetTableAmountTotal(body, {
           label: "Page Total",
@@ -8075,7 +8177,7 @@ function getEWayBillDetails() {
     } catch (err) {
       if (token !== salesLoadToken) return;
       if (err?.name === "AbortError") return;
-      body.innerHTML = `<tr><td colspan='8' style='text-align:center;'>Error: ${err.message}</td></tr>`;
+      body.innerHTML = `<tr><td colspan='9' style='text-align:center;'>Error: ${err.message}</td></tr>`;
       window.bkSetTableAmountTotal(body, { hide: true });
     } finally {
       if (token === salesLoadToken) salesLoading = false;
@@ -8109,6 +8211,14 @@ function getEWayBillDetails() {
     salesSearchTimer = setTimeout(() => { loadSalesHistory(); }, 80);
     return true;
   };
+
+  document.getElementById("salesHistoryBody")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".sales-bill-btn");
+    const saleId = btn?.dataset?.saleId;
+    if (saleId && typeof window.printSavedSaleBill === "function") {
+      window.printSavedSaleBill(saleId);
+    }
+  });
 
   document.getElementById("salesApplyDateBtn")?.addEventListener("click", () => {
     const from = document.getElementById("salesFromDate")?.value || "";
