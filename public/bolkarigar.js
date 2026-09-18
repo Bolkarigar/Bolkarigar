@@ -7622,6 +7622,33 @@ function getEWayBillDetails() {
   // ---------- PURCHASE PANEL (sidebar — Invoice jaisa multi-item table) ----------
   let purchaseLineItems = [];
   let purchaseEditingIndex = -1;
+  let purchaseStockItemsCache = [];
+
+  function findPurchaseStockItem(name) {
+    const q = String(name || "").trim().toLowerCase();
+    if (!q) return null;
+    return purchaseStockItemsCache.find(i => String(i.itemName || "").trim().toLowerCase() === q) || null;
+  }
+
+  function applyPurchaseStockItemToFields(name) {
+    const match = findPurchaseStockItem(name);
+    const hiddenId = document.getElementById("pvItemInput");
+    const hsnEl = document.getElementById("pvHsnDisplay");
+    const unitTag = document.getElementById("pvUnitTag");
+    const gstEl = document.getElementById("pvGstInput");
+    const rateEl = document.getElementById("pvRateInput");
+    if (!match) {
+      if (hiddenId) hiddenId.value = "";
+      return false;
+    }
+    if (hiddenId) hiddenId.value = match._id;
+    if (hsnEl) hsnEl.value = match.hsnCode || "";
+    if (unitTag) unitTag.textContent = match.unit || "Pcs";
+    if (gstEl && match.gstRate != null) gstEl.value = String(match.gstRate);
+    const rate = parseFloat(match.purchasePrice) || 0;
+    if (rateEl && rate > 0) rateEl.value = rate;
+    return true;
+  }
 
   function purchaseLineTotal(line) {
     const rate = parseFloat(line.rate) || 0;
@@ -7668,19 +7695,8 @@ function getEWayBillDetails() {
   }
 
   function syncPurchaseItemMetaFromSelect() {
-    const itemSel = document.getElementById("pvItemInput");
-    const opt = itemSel?.selectedOptions[0];
-    const hsnEl = document.getElementById("pvHsnDisplay");
-    const unitTag = document.getElementById("pvUnitTag");
-    if (hsnEl) hsnEl.value = opt?.dataset.hsn || "";
-    if (unitTag) unitTag.textContent = opt?.dataset.unit || "Pcs";
-    if (opt?.dataset.gst) {
-      const gstEl = document.getElementById("pvGstInput");
-      if (gstEl) gstEl.value = opt.dataset.gst;
-    }
-    const rate = parseFloat(opt?.dataset.purchase) || 0;
-    const rateEl = document.getElementById("pvRateInput");
-    if (rateEl && rate > 0) rateEl.value = rate;
+    const name = document.getElementById("pvItemNameInput")?.value.trim() || "";
+    applyPurchaseStockItemToFields(name);
   }
 
   function renderPurchaseItems() {
@@ -7722,8 +7738,10 @@ function getEWayBillDetails() {
   }
 
   function clearPurchaseEntryFields() {
-    const itemSel = document.getElementById("pvItemInput");
-    if (itemSel) itemSel.value = "";
+    const nameEl = document.getElementById("pvItemNameInput");
+    if (nameEl) nameEl.value = "";
+    const hiddenId = document.getElementById("pvItemInput");
+    if (hiddenId) hiddenId.value = "";
     const hsnEl = document.getElementById("pvHsnDisplay");
     if (hsnEl) hsnEl.value = "";
     const unitTag = document.getElementById("pvUnitTag");
@@ -7737,27 +7755,33 @@ function getEWayBillDetails() {
   }
 
   function executePurchaseAdd() {
-    const itemSel = document.getElementById("pvItemInput");
-    const itemId = itemSel?.value || "";
-    const opt = itemSel?.selectedOptions[0];
+    const itemName = document.getElementById("pvItemNameInput")?.value.trim() || "";
+    let itemId = document.getElementById("pvItemInput")?.value || "";
+    const stockMatch = findPurchaseStockItem(itemName);
+    if (stockMatch) itemId = String(stockMatch._id);
     const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
     let rate = parseFloat(document.getElementById("pvRateInput")?.value);
     const gstRate = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
     const statusText = document.getElementById("pvStatusText");
+    const hsn = document.getElementById("pvHsnDisplay")?.value.trim() || "";
+    const unit = document.getElementById("pvUnitTag")?.textContent.trim() || "Pcs";
 
-    if (!itemId) { alert("Please select an item from stock."); return false; }
+    if (!itemName) {
+      if (typeof showToast === "function") showToast("Enter item name to add.", "error");
+      else alert("Please enter item name.");
+      return false;
+    }
     if (!qty || qty <= 0) { alert("Please enter quantity."); return false; }
     if (Number.isNaN(rate) || rate <= 0) {
-      rate = parseFloat(opt?.dataset.purchase) || 0;
+      rate = parseFloat(stockMatch?.purchasePrice) || 0;
     }
     if (!rate || rate <= 0) { alert("Please enter purchase rate."); return false; }
 
-    const itemName = (opt?.textContent || "").split(" (Stock:")[0].trim();
     const line = {
-      itemId,
+      itemId: itemId || null,
       itemName,
-      unit: opt?.dataset.unit || "Pcs",
-      hsn: opt?.dataset.hsn || "",
+      unit: stockMatch?.unit || unit,
+      hsn: stockMatch?.hsnCode || hsn,
       qty,
       rate,
       gstRate
@@ -7783,9 +7807,14 @@ function getEWayBillDetails() {
   window.editPurchaseItem = function (index) {
     const line = purchaseLineItems[index];
     if (!line) return;
-    const itemSel = document.getElementById("pvItemInput");
-    if (itemSel) itemSel.value = line.itemId;
-    syncPurchaseItemMetaFromSelect();
+    const nameEl = document.getElementById("pvItemNameInput");
+    if (nameEl) nameEl.value = line.itemName || "";
+    const hiddenId = document.getElementById("pvItemInput");
+    if (hiddenId) hiddenId.value = line.itemId || "";
+    const hsnEl = document.getElementById("pvHsnDisplay");
+    if (hsnEl) hsnEl.value = line.hsn || "";
+    const unitTag = document.getElementById("pvUnitTag");
+    if (unitTag) unitTag.textContent = line.unit || "Pcs";
     const qtyEl = document.getElementById("pvQtyInput");
     if (qtyEl) qtyEl.value = line.qty;
     const rateEl = document.getElementById("pvRateInput");
@@ -7829,12 +7858,14 @@ function getEWayBillDetails() {
       const ledData = await ledRes.json();
       const itemData = await itemRes.json();
       if (ledData.success) invoiceLedgerCache = ledData.ledgers || [];
-      const itemSel = document.getElementById("pvItemInput");
-      if (itemSel && itemData.success) {
-        itemSel.innerHTML = '<option value="">Item name * (select from stock)</option>' +
-          (itemData.items || []).map(i =>
-            `<option value="${i._id}" data-purchase="${i.purchasePrice || 0}" data-gst="${i.gstRate || 0}" data-hsn="${escapeHtml(i.hsnCode || '')}" data-unit="${escapeHtml(i.unit || 'Pcs')}">${escapeHtml(i.itemName)} (Stock: ${i.stockQty})</option>`
+      if (itemData.success) {
+        purchaseStockItemsCache = itemData.items || [];
+        const dl = document.getElementById("pvStockList");
+        if (dl) {
+          dl.innerHTML = purchaseStockItemsCache.map(i =>
+            `<option value="${escapeHtml(i.itemName)}"></option>`
           ).join("");
+        }
       }
     } catch (err) {
       console.error("Purchase modal dropdown load:", err);
@@ -7857,7 +7888,12 @@ function getEWayBillDetails() {
   document.getElementById("pvDateInput")?.addEventListener("change", updatePurchaseDateDisplay);
   document.getElementById("pvDateInput")?.addEventListener("input", updatePurchaseDateDisplay);
 
-  document.getElementById("pvItemInput")?.addEventListener("change", syncPurchaseItemMetaFromSelect);
+  document.getElementById("pvItemNameInput")?.addEventListener("input", (e) => {
+    applyPurchaseStockItemToFields(e.target.value);
+  });
+  document.getElementById("pvItemNameInput")?.addEventListener("change", (e) => {
+    applyPurchaseStockItemToFields(e.target.value);
+  });
   ["pvPartySearch", "pvBillNoInput"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updatePurchaseTaxSummary);
   });
@@ -7881,7 +7917,8 @@ function getEWayBillDetails() {
     }
 
     const items = purchaseLineItems.map((line) => ({
-      itemId: line.itemId,
+      itemId: line.itemId || undefined,
+      itemName: line.itemName,
       qty: line.qty,
       rate: line.rate,
       gstRate: line.gstRate
