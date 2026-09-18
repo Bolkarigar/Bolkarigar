@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -16,18 +16,21 @@
     :root {
       --primary-blue: #3b82f6;
       --hover-blue: #2563eb;
-      --card-bg: #1e1e2e;
-      --border-color: #333;
-      --text-white: #ffffff;
-      --text-gray: #9ca3af;
+      --card-bg: #ffffff;
+      --border-color: rgba(15, 23, 42, 0.12);
+      --text-primary: #111827;
+      --text-gray: #6b7280;
+      --page-bg: #e5e7eb;
+      --input-bg: #ffffff;
+      --input-border: #d1d5db;
     }
 
     body {
       font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
-      background: #11111b;
-      color: var(--text-white);
+      background: var(--page-bg);
+      color: var(--text-primary);
     }
 
     .login-container {
@@ -52,7 +55,7 @@
       filter: blur(120px);
       top: 10%;
       left: 10%;
-      opacity: 0.15;
+      opacity: 0.12;
       pointer-events: none;
     }
 
@@ -63,7 +66,7 @@
       border-radius: 16px;
       width: 100%;
       max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.1);
       text-align: center;
       backdrop-filter: blur(10px);
       animation: fadeInUp 0.5s ease-out;
@@ -79,7 +82,7 @@
       font-size: 32px; 
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(to right, #fff, #a78bfa);
+      background: linear-gradient(to right, #111827, #6366f1);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -95,7 +98,7 @@
     .login-card p { color: var(--text-gray); margin-bottom: 30px; font-size: 14px; }
     
     .input-group { margin-bottom: 22px; text-align: left; }
-    .input-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #e5e7eb; }
+    .input-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; }
     
     .password-wrapper {
       position: relative;
@@ -107,9 +110,9 @@
       width: 100%;
       padding: 14px 16px;
       border-radius: 10px;
-      border: 1px solid #444;
-      background: rgba(0, 0, 0, 0.25);
-      color: #fff;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
       font-size: 15px;
       box-sizing: border-box;
       transition: all 0.2s ease;
@@ -132,7 +135,7 @@
       font-weight: 600;
     }
 
-    .toggle-password:hover { color: #fff; }
+    .toggle-password:hover { color: var(--text-primary); }
 
     .form-options {
       display: flex;
@@ -185,7 +188,7 @@
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
+      background: rgba(15, 23, 42, 0.45);
       display: flex; justify-content: center; align-items: center;
       z-index: 1000; opacity: 0; pointer-events: none;
       transition: opacity 0.3s ease;
@@ -205,7 +208,7 @@
       transition: transform 0.3s ease;
     }
     .modal-overlay.active .modal-box { transform: scale(1); }
-    .modal-box h3 { margin: 0 0 10px 0; font-size: 20px; }
+    .modal-box h3 { margin: 0 0 10px 0; font-size: 20px; color: var(--text-primary); }
     .modal-box p { color: var(--text-gray); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
     
     .modal-actions {
@@ -223,8 +226,8 @@
       font-size: 14px;
     }
     .btn-submit { background: var(--primary-blue); color: #fff; }
-    .btn-cancel { background: #333; color: #ccc; }
-    .btn-cancel:hover { background: #444; color: #fff; }
+    .btn-cancel { background: #e5e7eb; color: #374151; }
+    .btn-cancel:hover { background: #d1d5db; color: #111827; }
     .btn-close:hover,
     .btn-cancel.btn-close:hover {
       background: #ef4444 !important;
@@ -277,12 +280,12 @@
   &nbsp;|&nbsp; <a href="pricing.html" style="color:#a855f7;text-decoration:none;font-weight:500;">Pricing</a>
   <br><br>Staff or cashier? <a href="#" id="staffSignupToggle" style="color: #22c55e; text-decoration: none; font-weight: 500;">Create staff account (Invite Code)</a>
 </div>
-<div id="staffSignupBox" style="display:none;margin-top:20px;text-align:left;border-top:1px solid #333;padding-top:16px;">
-  <p style="font-size:13px;color:#9ca3af;margin-bottom:12px;">Get an invite code from the owner. <strong>Your role is set by the invite code</strong> — you cannot choose Manager yourself.<br><strong style="color:#22c55e;">You do not need to buy a separate plan — the owner's plan covers you.</strong></p>
-  <input type="text" id="staffUsername" placeholder="Username" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
-  <input type="email" id="staffEmail" placeholder="Email" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
-  <input type="password" id="staffPassword" placeholder="Password" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;">
-  <input type="text" id="staffInviteCode" placeholder="Invite Code (from owner)" style="width:100%;margin-bottom:12px;padding:10px;border-radius:8px;border:1px solid #333;background:#fff;color:#111;font-weight:bold;">
+<div id="staffSignupBox" style="display:none;margin-top:20px;text-align:left;border-top:1px solid #d1d5db;padding-top:16px;">
+  <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">Get an invite code from the owner. <strong>Your role is set by the invite code</strong> — you cannot choose Manager yourself.<br><strong style="color:#16a34a;">You do not need to buy a separate plan — the owner's plan covers you.</strong></p>
+  <input type="text" id="staffUsername" placeholder="Username" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#111827;">
+  <input type="email" id="staffEmail" placeholder="Email" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#111827;">
+  <input type="password" id="staffPassword" placeholder="Password" style="width:100%;margin-bottom:8px;padding:10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#111827;">
+  <input type="text" id="staffInviteCode" placeholder="Invite Code (from owner)" style="width:100%;margin-bottom:12px;padding:10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#111827;font-weight:bold;">
   <button type="button" id="staffSignupBtn" class="login-btn" style="margin-top:0;">Create Staff Account</button>
 </div>
     </div>
