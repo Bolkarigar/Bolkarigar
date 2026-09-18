@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260918rec1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260918co2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
@@ -1482,14 +1482,18 @@
         <!-- 🟢 MULTI-COMPANY -->
         <section class="panel" id="companiesPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="companies.eyebrow">Multi Business</p><h3 data-i18n="companies.title">🏢 Companies</h3></div></div>
-          <div class="live-notice-banner">Beta — ek account se kai firms: yahan naam + GSTIN + address save karein. <strong>Switch</strong> par active firm ka detail <strong>Business Profile</strong> (invoice header) mein aa jata hai. Poora khata abhi ek hi account ke under hai; company-wise alag data future mein.</div>
-          <div class="grid-2">
-            <input id="coNameInput" placeholder="Company Name" />
-            <input id="coGstinInput" placeholder="GSTIN" />
-            <input id="coAddressInput" placeholder="Address" style="grid-column:1/-1" />
+          <div class="live-notice-banner">Same fields as <strong>Business Profile</strong>. <strong>Set Active</strong> se invoice header update hota hai. Limits: <strong>Pro ₹99</strong> — 4 extra companies · <strong>Business ₹299</strong> — 10 extra.</div>
+          <p id="companiesPlanHint" class="helper-text" style="margin:8px 0 0;"></p>
+          <div class="grid-2 companies-add-grid">
+            <input id="coNameInput" placeholder="Company / Firm Name *" autocomplete="organization" />
+            <input id="coGstinInput" placeholder="GSTIN *" />
+            <input id="coPhoneInput" placeholder="Phone Number" type="tel" />
+            <input id="coUpiInput" placeholder="UPI ID (invoice QR)" />
+            <input id="coStateInput" placeholder="State & Pincode" />
+            <textarea id="coAddressInput" placeholder="Full Address *" rows="2" style="grid-column:1/-1"></textarea>
           </div>
           <button id="addCompanyBtn" type="button" style="margin-top: 10px;">➕ Add Company</button>
-          <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Company</th><th>GSTIN</th><th>Status</th><th>Action</th></tr></thead><tbody id="companiesBody"></tbody></table></div>
+          <div class="table-wrap companies-table-wrap" style="margin-top:12px;"><table class="companies-table"><thead><tr><th>Company</th><th>Phone</th><th>GSTIN</th><th>UPI</th><th>State</th><th>Address</th><th>Status</th><th>Action</th></tr></thead><tbody id="companiesBody"></tbody></table></div>
         </section>
 
 
@@ -2199,7 +2203,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918pur2"></script>
+  <script src="bolkarigar.js?v=20260918co2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2219,7 +2223,7 @@
   <script src="subscription-ui.js?v=20260918ui55"></script>
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar-pro.js?v=20260918co1"></script>
+  <script src="bolkarigar-pro.js?v=20260918co2"></script>
   <script src="payroll-ui.js?v=20260918pay2"></script>
   <script src="team-meeting-ui.js?v=20260918meet2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>

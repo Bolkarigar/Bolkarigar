@@ -106,10 +106,40 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     companyName: { type: String, required: true },
     gstin: String,
+    phone: String,
+    upiId: String,
+    statePincode: String,
+    fullAddress: String,
     address: String,
     isActive: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
   });
+
+  const COMPANY_LIMIT_PRO = 4;
+  const COMPANY_LIMIT_BUSINESS = 10;
+
+  async function companyLimitForOwner(ownerId) {
+    const user = await User.findById(ownerId);
+    const sub = await getSubscriptionForUser(User, user);
+    if (!sub.isActive) {
+      return { max: 0, plan: sub.plan || 'starter', planLabel: 'No active plan' };
+    }
+    if (sub.fullAccess || sub.plan === 'business') {
+      return { max: COMPANY_LIMIT_BUSINESS, plan: 'business', planLabel: 'Business ₹299' };
+    }
+    return { max: COMPANY_LIMIT_PRO, plan: 'pro', planLabel: 'Pro ₹99' };
+  }
+
+  function businessProfileFromCompany(co) {
+    return {
+      companyName: co.companyName,
+      gstin: co.gstin || '',
+      phone: co.phone || '',
+      upiId: co.upiId || '',
+      statePincode: co.statePincode || '',
+      fullAddress: co.fullAddress || co.address || ''
+    };
+  }
 
   const Payment = mongoose.model('Payment', paymentSchema);
   const LabourAttendance = mongoose.model('LabourAttendance', labourSchema);
@@ -572,32 +602,63 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   });
 
   // ===================== MULTI-COMPANY =====================
-  app.post('/api/companies', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+  app.post('/api/companies', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
     try {
-      const { companyName, gstin, address } = req.body;
+      const { companyName, gstin, phone, upiId, statePincode, fullAddress, address } = req.body;
       if (!companyName) return res.status(400).json({ error: 'Company naam zaroori.' });
-      const co = await Company.create({ userId: req.ownerId, companyName, gstin, address });
-      res.json({ success: true, company: co });
+      const addr = (fullAddress || address || '').trim();
+      if (!addr) return res.status(400).json({ error: 'Full address zaroori.' });
+      const limitInfo = await companyLimitForOwner(req.ownerId);
+      const count = await Company.countDocuments({ userId: req.ownerId });
+      if (count >= limitInfo.max) {
+        return res.status(402).json({
+          error: limitInfo.plan === 'business'
+            ? `Business plan par max ${COMPANY_LIMIT_BUSINESS} extra companies add ho sakti hain.`
+            : `Pro ₹99 plan par max ${COMPANY_LIMIT_PRO} extra companies add ho sakti hain — Business ₹299 par ${COMPANY_LIMIT_BUSINESS} tak.`,
+          limit: limitInfo.max,
+          count,
+          plan: limitInfo.plan
+        });
+      }
+      const co = await Company.create({
+        userId: req.ownerId,
+        companyName: companyName.trim(),
+        gstin: (gstin || '').trim(),
+        phone: (phone || '').trim(),
+        upiId: (upiId || '').trim(),
+        statePincode: (statePincode || '').trim(),
+        fullAddress: addr,
+        address: addr
+      });
+      res.json({ success: true, company: co, limit: limitInfo.max, count: count + 1 });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
-  app.get('/api/companies', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
-    const companies = await Company.find({ userId: req.ownerId });
-    res.json({ success: true, companies });
+  app.get('/api/companies', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+    const companies = await Company.find({ userId: req.ownerId }).sort({ createdAt: 1 });
+    const limitInfo = await companyLimitForOwner(req.ownerId);
+    res.json({
+      success: true,
+      companies,
+      count: companies.length,
+      limit: limitInfo.max,
+      plan: limitInfo.plan,
+      planLabel: limitInfo.planLabel
+    });
   });
-  app.post('/api/companies/:id/activate', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+  app.post('/api/companies/:id/activate', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
     await Company.updateMany({ userId: req.ownerId }, { isActive: false });
     await Company.updateOne({ _id: req.params.id, userId: req.ownerId }, { isActive: true });
     const active = await Company.findById(req.params.id);
     if (active) {
       await BusinessProfile.findOneAndUpdate(
         { userId: req.ownerId },
-        { companyName: active.companyName, gstin: active.gstin || '', fullAddress: active.address || '' },
+        businessProfileFromCompany(active),
         { upsert: true }
       );
     }
     res.json({ success: true, message: 'Company switch ho gayi.' });
   });
-  app.delete('/api/companies/:id', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+  app.delete('/api/companies/:id', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
     try {
       const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
       if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
@@ -609,7 +670,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           await Company.updateOne({ _id: next._id }, { isActive: true });
           await BusinessProfile.findOneAndUpdate(
             { userId: req.ownerId },
-            { companyName: next.companyName, gstin: next.gstin || '', fullAddress: next.address || '' },
+            businessProfileFromCompany(next),
             { upsert: true }
           );
         }

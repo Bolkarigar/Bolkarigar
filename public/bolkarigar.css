@@ -4680,8 +4680,22 @@ input[type="date"].inv-date-input-hidden {
     flex: 1 1 auto !important;
   }
 
+  .companies-table-wrap { overflow-x: auto; }
+  .companies-table { font-size: 13px; min-width: 720px; }
+  .companies-table .co-actions-cell { white-space: nowrap; }
+  .companies-table .co-actions-cell button { margin-right: 6px; }
+  .companies-table .co-active-btn { opacity: 0.85; cursor: default; }
+  .companies-add-grid textarea { resize: vertical; min-height: 52px; }
+
   .sales-date-field input[type="date"] {
     min-height: 44px;
     height: 44px;
   }
 }
+
+.companies-table-wrap { overflow-x: auto; }
+.companies-table { font-size: 13px; min-width: 720px; }
+.companies-table .co-actions-cell { white-space: nowrap; }
+.companies-table .co-actions-cell button { margin-right: 6px; }
+.companies-table .co-active-btn { opacity: 0.85; cursor: default; }
+.companies-add-grid textarea { resize: vertical; min-height: 52px; }

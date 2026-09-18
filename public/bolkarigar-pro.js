@@ -218,29 +218,71 @@
   }
 
   // ==================== COMPANIES ====================
+  function coAddr(c) {
+    return (c.fullAddress || c.address || '').trim();
+  }
+  function coShort(s, n) {
+    const t = String(s || '');
+    return t.length <= n ? esc(t) : esc(t.slice(0, n - 1)) + '…';
+  }
+  function refreshProfileAfterCompanyChange() {
+    if (typeof window.loadCompanyProfile === 'function') window.loadCompanyProfile();
+  }
+
   async function loadCompanies() {
     const body = document.getElementById('companiesBody');
     if (!body) return;
     const data = await apiGet('/api/companies');
-    body.innerHTML = (data.companies||[]).map(c =>
-      `<tr><td>${esc(c.companyName)}</td><td>${esc(c.gstin)}</td><td>${c.isActive?'✅ Active':'—'}</td><td class="co-actions-cell">${c.isActive ? '' : `<button type="button" class="activate-co-btn" data-id="${c._id}">Switch</button> `}<button type="button" class="delete-co-btn" data-id="${c._id}" data-name="${esc(c.companyName)}">Delete</button></td></tr>`
-    ).join('') || '<tr><td colspan="4">Ek company add karein.</td></tr>';
-    body.querySelectorAll('.activate-co-btn').forEach(b => b.addEventListener('click', async () => {
-      await apiPost('/api/companies/' + b.dataset.id + '/activate', {});
-      showToast('✅ Company switched.');
-      loadCompanies();
-      if (typeof window.loadBusinessProfile === 'function') window.loadBusinessProfile();
-    }));
-    body.querySelectorAll('.delete-co-btn').forEach(b => b.addEventListener('click', async () => {
-      const name = b.getAttribute('data-name') || 'this company';
-      if (!confirm('Delete company "' + name + '"? Business Profile tab mein jo naam/GSTIN hai woh tab badlega jab aap kisi aur company par Switch karein.')) return;
-      const data = await apiDelete('/api/companies/' + b.dataset.id);
-      if (data.success) {
-        showToast('✅ Company removed.');
-        loadCompanies();
-        if (typeof window.loadBusinessProfile === 'function') window.loadBusinessProfile();
-      } else showToast('❌ ' + (data.error || 'Delete fail'), 'error');
-    }));
+    const hint = document.getElementById('companiesPlanHint');
+    const addBtn = document.getElementById('addCompanyBtn');
+    const count = data.count ?? (data.companies || []).length;
+    const limit = data.limit ?? 0;
+    if (hint) {
+      hint.textContent = limit
+        ? `${data.planLabel || data.plan || 'Plan'}: ${count} / ${limit} extra companies used.`
+        : 'Active Pro or Business plan required to add companies.';
+    }
+    if (addBtn) {
+      addBtn.disabled = limit > 0 ? count >= limit : true;
+      addBtn.title = count >= limit && limit ? 'Plan limit reached — upgrade or delete a company.' : '';
+    }
+    body.innerHTML = (data.companies || []).map(c => {
+      const activeBtn = c.isActive
+        ? '<button type="button" class="activate-co-btn co-active-btn" disabled>Active Company</button>'
+        : `<button type="button" class="activate-co-btn">Set Active</button>`;
+      return `<tr data-id="${c._id}">
+        <td>${esc(c.companyName)}</td>
+        <td>${esc(c.phone || '—')}</td>
+        <td>${esc(c.gstin || '—')}</td>
+        <td>${esc(c.upiId || '—')}</td>
+        <td>${esc(c.statePincode || '—')}</td>
+        <td title="${esc(coAddr(c))}">${coShort(coAddr(c), 28)}</td>
+        <td>${c.isActive ? '✅ Active' : '—'}</td>
+        <td class="co-actions-cell">${activeBtn} <button type="button" class="delete-co-btn">Delete</button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8">Ek company add karein — fields Business Profile jaisi hain.</td></tr>';
+
+    body.querySelectorAll('tr[data-id]').forEach(row => {
+      const id = row.getAttribute('data-id');
+      const name = row.querySelector('td')?.textContent || 'company';
+      row.querySelector('.activate-co-btn:not(.co-active-btn)')?.addEventListener('click', async () => {
+        const res = await apiPost('/api/companies/' + id + '/activate', {});
+        if (res.success) {
+          showToast('✅ Active company — Business Profile update ho gaya.');
+          loadCompanies();
+          refreshProfileAfterCompanyChange();
+        } else showToast('❌ ' + (res.error || 'Switch fail'), 'error');
+      });
+      row.querySelector('.delete-co-btn')?.addEventListener('click', async () => {
+        if (!confirm('Delete company "' + name + '"?')) return;
+        const del = await apiDelete('/api/companies/' + id);
+        if (del.success) {
+          showToast('✅ Company removed.');
+          loadCompanies();
+          refreshProfileAfterCompanyChange();
+        } else showToast('❌ ' + (del.error || 'Delete fail'), 'error');
+      });
+    });
   }
 
   // ==================== UDHAR PAYMENT ====================
@@ -377,11 +419,22 @@
     document.getElementById('addCompanyBtn')?.addEventListener('click', async () => {
       const companyName = document.getElementById('coNameInput')?.value.trim();
       const gstin = document.getElementById('coGstinInput')?.value.trim();
-      const address = document.getElementById('coAddressInput')?.value.trim();
-      if (!companyName) return;
-      await apiPost('/api/companies', { companyName, gstin, address });
-      loadCompanies();
-      showToast('✅ Company added.');
+      const phone = document.getElementById('coPhoneInput')?.value.trim();
+      const upiId = document.getElementById('coUpiInput')?.value.trim();
+      const statePincode = document.getElementById('coStateInput')?.value.trim();
+      const fullAddress = document.getElementById('coAddressInput')?.value.trim();
+      if (!companyName) { showToast('Company name required.', 'error'); return; }
+      if (!gstin) { showToast('GSTIN required.', 'error'); return; }
+      if (!fullAddress) { showToast('Full address required.', 'error'); return; }
+      const res = await apiPost('/api/companies', { companyName, gstin, phone, upiId, statePincode, fullAddress });
+      if (res.success) {
+        ['coNameInput', 'coGstinInput', 'coPhoneInput', 'coUpiInput', 'coStateInput', 'coAddressInput'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        loadCompanies();
+        showToast('✅ Company added.');
+      } else showToast('❌ ' + (res.error || 'Add fail'), 'error');
     });
 
     // Udhar payment

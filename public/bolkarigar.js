@@ -1844,7 +1844,7 @@ function openPanel(id) {
   if (id === "khataVoucherPanel" && typeof window.refreshKhataVoucherPanel === "function") {
     window.refreshKhataVoucherPanel();
   }
-  if (id === "bankReconPanel" || id === "companiesPanel") {
+  if (id === "bankReconPanel") {
     showToast("This feature is coming soon — basic entry saves for now, auto-match is not available yet.", "info");
   }
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
