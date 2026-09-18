@@ -597,6 +597,26 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     }
     res.json({ success: true, message: 'Company switch ho gayi.' });
   });
+  app.delete('/api/companies/:id', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+    try {
+      const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
+      if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
+      const wasActive = !!co.isActive;
+      await Company.deleteOne({ _id: co._id, userId: req.ownerId });
+      if (wasActive) {
+        const next = await Company.findOne({ userId: req.ownerId }).sort({ createdAt: 1 });
+        if (next) {
+          await Company.updateOne({ _id: next._id }, { isActive: true });
+          await BusinessProfile.findOneAndUpdate(
+            { userId: req.ownerId },
+            { companyName: next.companyName, gstin: next.gstin || '', fullAddress: next.address || '' },
+            { upsert: true }
+          );
+        }
+      }
+      res.json({ success: true, message: 'Company delete ho gayi.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
 
   // Ledger groups list for frontend
   app.get('/api/ledger-groups', authenticateToken, (req, res) => {

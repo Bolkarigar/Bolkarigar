@@ -223,12 +223,23 @@
     if (!body) return;
     const data = await apiGet('/api/companies');
     body.innerHTML = (data.companies||[]).map(c =>
-      `<tr><td>${esc(c.companyName)}</td><td>${esc(c.gstin)}</td><td>${c.isActive?'✅ Active':'—'}</td><td><button class="activate-co-btn" data-id="${c._id}">Switch</button></td></tr>`
+      `<tr><td>${esc(c.companyName)}</td><td>${esc(c.gstin)}</td><td>${c.isActive?'✅ Active':'—'}</td><td class="co-actions-cell">${c.isActive ? '' : `<button type="button" class="activate-co-btn" data-id="${c._id}">Switch</button> `}<button type="button" class="delete-co-btn" data-id="${c._id}" data-name="${esc(c.companyName)}">Delete</button></td></tr>`
     ).join('') || '<tr><td colspan="4">Ek company add karein.</td></tr>';
     body.querySelectorAll('.activate-co-btn').forEach(b => b.addEventListener('click', async () => {
       await apiPost('/api/companies/' + b.dataset.id + '/activate', {});
       showToast('✅ Company switched.');
       loadCompanies();
+      if (typeof window.loadBusinessProfile === 'function') window.loadBusinessProfile();
+    }));
+    body.querySelectorAll('.delete-co-btn').forEach(b => b.addEventListener('click', async () => {
+      const name = b.getAttribute('data-name') || 'this company';
+      if (!confirm('Delete company "' + name + '"? Business Profile tab mein jo naam/GSTIN hai woh tab badlega jab aap kisi aur company par Switch karein.')) return;
+      const data = await apiDelete('/api/companies/' + b.dataset.id);
+      if (data.success) {
+        showToast('✅ Company removed.');
+        loadCompanies();
+        if (typeof window.loadBusinessProfile === 'function') window.loadBusinessProfile();
+      } else showToast('❌ ' + (data.error || 'Delete fail'), 'error');
     }));
   }
 
