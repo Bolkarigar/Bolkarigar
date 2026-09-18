@@ -1430,10 +1430,13 @@
     }
   }
 
-  function saveCard() {
-    saveData(getFormData());
-    if (typeof showToast === "function") showToast("✅ Business card details saved!");
-    else alert("Details saved!");
+  async function saveCard() {
+    const saveBtn = document.getElementById("bcSaveBtn");
+    await window.bkWithSaveLock(saveBtn, async () => {
+      saveData(getFormData());
+      if (typeof showToast === "function") showToast("✅ Business card details saved!");
+      else alert("Details saved!");
+    }, { showLoading: true, loadingText: "⏳ Saving..." });
   }
 
   function init() {

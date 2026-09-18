@@ -149,19 +149,22 @@
       if (typeof showToast === "function") showToast("Item name is required.", "error");
       return;
     }
-    try {
-      const url = editId ? `${API()}/api/items/${editId}` : `${API()}/api/items`;
-      const method = editId ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Save fail");
-      if (typeof showToast === "function") showToast("✅ " + (data.message || "Item saved."));
-      resetForm();
-      loadInventory();
-      if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
-    } catch (err) {
-      if (typeof showToast === "function") showToast("❌ " + err.message, "error");
-    }
+    const saveBtn = document.getElementById("invSaveBtn");
+    await window.bkWithSaveLock(saveBtn, async () => {
+      try {
+        const url = editId ? `${API()}/api/items/${editId}` : `${API()}/api/items`;
+        const method = editId ? "PUT" : "POST";
+        const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Save fail");
+        if (typeof showToast === "function") showToast("✅ " + (data.message || "Item saved."));
+        resetForm();
+        loadInventory();
+        if (typeof window.refreshKhataPro === "function") window.refreshKhataPro();
+      } catch (err) {
+        if (typeof showToast === "function") showToast("❌ " + err.message, "error");
+      }
+    });
   }
 
   window.invEditItem = function (id) {

@@ -1562,12 +1562,12 @@
     <p class="helper-text" id="invoiceStatus" data-i18n="invoice.status">Fill party details and add items.</p>
 
     <div class="btn-row inv-action-row">
-      <button type="button" id="saveInvoiceBtn">💾 Save Invoice</button>
+      <button type="button" id="saveInvoiceBtn" class="bk-save-btn">💾 Save Invoice</button>
       <button type="button" class="secondary" onclick="document.getElementById('businessProfileBtn')?.click()">Business Profile</button>
       <button type="button" class="secondary" id="downloadInvoiceBtn">Download</button>
       <button type="button" id="whatsappShareBtn" style="background:#25D366;color:#fff;">WhatsApp Share</button>
       <button type="button" id="tallySyncBtn" style="display:none;background:#0078D7;color:#fff;font-weight:bold;" disabled title="Sync enables when HTTP is ready">📊 Sync Tally (setup pending)</button>
-      <button type="button" onclick="printTallyBill()">Save &amp; Print</button>
+      <button type="button" id="savePrintInvoiceBtn" class="bk-save-btn" onclick="printTallyBill(event)">Save &amp; Print</button>
       <button type="button" class="secondary" onclick="printThermalBill()">Thermal Print</button>
       <button type="button" class="secondary inv-btn-quit" onclick="typeof openPanel==='function'&&openPanel('overviewPanel')">Back</button>
     </div>
@@ -2095,8 +2095,9 @@
   <script src="voice-controller.js?v=20260909v1"></script>
   <script src="plan-pricing.js?v=20260918ui55"></script>
   <script src="messages-en.js?v=20260918ui55"></script>
+  <script src="save-button-lock.js?v=20260918save1"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260918ui55"></script>
+  <script src="bolkarigar.js?v=20260918save1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

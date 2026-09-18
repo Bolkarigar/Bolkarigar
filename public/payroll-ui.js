@@ -471,15 +471,18 @@
   }
 
   async function saveDailyAttendance() {
-    const date = document.getElementById('payrollAttDate')?.value;
-    const rows = [...document.querySelectorAll('#payrollAttendanceBody tr[data-emp]')].map((tr) => ({
-      employeeId: tr.dataset.emp,
-      status: tr.querySelector('.payroll-att-status')?.value,
-      note: tr.querySelector('.payroll-att-note')?.value || ''
-    }));
-    const res = await apiPost('/api/payroll/attendance', { date, records: rows });
-    toast(res.success ? `✅ ${res.saved} attendance save` : (res.error || 'Fail'), res.success ? 'success' : 'error');
-    loadDailyAttendance();
+    const saveBtn = document.getElementById('payrollSaveAttBtn');
+    await window.bkWithSaveLock(saveBtn, async () => {
+      const date = document.getElementById('payrollAttDate')?.value;
+      const rows = [...document.querySelectorAll('#payrollAttendanceBody tr[data-emp]')].map((tr) => ({
+        employeeId: tr.dataset.emp,
+        status: tr.querySelector('.payroll-att-status')?.value,
+        note: tr.querySelector('.payroll-att-note')?.value || ''
+      }));
+      const res = await apiPost('/api/payroll/attendance', { date, records: rows });
+      toast(res.success ? `✅ ${res.saved} attendance save` : (res.error || 'Fail'), res.success ? 'success' : 'error');
+      loadDailyAttendance();
+    });
   }
 
   async function populateAdvanceSelect() {
@@ -663,10 +666,13 @@
     });
 
     document.getElementById('payrollSaveSettingsBtn')?.addEventListener('click', async () => {
-      const payrollViewerRole = document.getElementById('payrollViewerRole')?.value;
-      const res = await apiPut('/api/payroll/settings', { payrollViewerRole });
-      toast(res.message || res.error || 'Saved', res.success ? 'success' : 'error');
-      loadPayrollSettings();
+      const settingsBtn = document.getElementById('payrollSaveSettingsBtn');
+      await window.bkWithSaveLock(settingsBtn, async () => {
+        const payrollViewerRole = document.getElementById('payrollViewerRole')?.value;
+        const res = await apiPut('/api/payroll/settings', { payrollViewerRole });
+        toast(res.message || res.error || 'Saved', res.success ? 'success' : 'error');
+        loadPayrollSettings();
+      });
     });
 
     document.getElementById('payrollSlipCloseBtn')?.addEventListener('click', closePayrollSlipModal);

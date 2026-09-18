@@ -589,6 +589,8 @@
   }
 
   async function saveModification() {
+    const saveBtn = document.getElementById("modifySaveBtn");
+    await window.bkWithSaveLock(saveBtn, async () => {
     if (!selectedRecord || !currentType) {
       setStatus("Please choose a type and search for a record first.", false);
       return;
@@ -687,6 +689,7 @@
       setStatus("❌ " + err.message, false);
       if (typeof showToast === "function") showToast("❌ " + err.message, "error");
     }
+    });
   }
 
   async function deleteModification() {

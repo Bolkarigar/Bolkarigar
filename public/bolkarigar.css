@@ -1179,6 +1179,13 @@ textarea.form-input {
   touch-action: manipulation;
 }
 
+button.bk-save-btn.bk-save-busy,
+button.bk-save-btn[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
 /* ================================================================== */
 /* 🟢 LIVE AI — BolKarigar Smart AI Assistant styles (NAYA FEATURE)     */
 /* Pasand na aaye to yeh poora block (yahan se "LIVE AI styles END"     */

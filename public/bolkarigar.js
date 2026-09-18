@@ -1338,8 +1338,8 @@ async function saveInvoiceVoucher() {
 
   const saveBtn = document.getElementById("saveInvoiceBtn");
   const statusEl = document.getElementById("invoiceStatus");
-  if (saveBtn) saveBtn.disabled = true;
 
+  return window.bkWithSaveLock(saveBtn, async () => {
   try {
     const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
     let prof = {};
@@ -1389,9 +1389,8 @@ async function saveInvoiceVoucher() {
     if (statusEl) { statusEl.textContent = "❌ " + err.message; statusEl.style.color = "#ef4444"; }
     if (typeof showToast === "function") showToast("Could not save invoice. Check connection and try again.", "error");
     return false;
-  } finally {
-    if (saveBtn) saveBtn.disabled = false;
   }
+  });
 }
 window.saveInvoiceVoucher = saveInvoiceVoucher;
 
@@ -5245,7 +5244,9 @@ async function getNextInvoiceNumber(companyName) {
   return `${prefix}/${counter}/${year}`;
 }
 
-async function printTallyBill() {
+async function printTallyBill(ev) {
+  const printBtn = ev?.currentTarget || document.getElementById("savePrintInvoiceBtn");
+
   // 1. LocalStorage se saved company profile data fetch karein
   let savedProfile = {};
   try {
@@ -5282,6 +5283,7 @@ async function printTallyBill() {
     }
   }
 
+  return window.bkWithSaveLock(printBtn, async () => {
   const isIntraState = gstOnBill ? taxMode.isIntraState : true;
 
   const grandTotalStr = document.getElementById("grandTotal")?.textContent || "0.00";
@@ -5606,6 +5608,7 @@ async function printTallyBill() {
     </html>
   `);
   printWindow.document.close();
+  });
 }
 
 window.printTallyBill = printTallyBill;
@@ -5757,7 +5760,9 @@ async function saveCompanyProfile(event) {
   };
 
   const token = getToken();
+  const saveBtn = document.getElementById("btnSaveProfile");
 
+  return window.bkWithSaveLock(saveBtn, async () => {
   try {
     const response = await fetch(`${API_URL}/api/profile`, {
       method: "POST",
@@ -5798,6 +5803,7 @@ async function saveCompanyProfile(event) {
     console.error("Exact Error:", error);
     alert("❌ Network error: check the console (F12).");
   }
+  });
 }
 // 4. Edit Button Handler
 function toggleEditProfile() {
@@ -7376,7 +7382,9 @@ function getEWayBillDetails() {
     if (refNo) noteParts.unshift(`Ref: ${refNo}`);
     if (reason) noteParts.unshift(`Reason: ${reason}`);
     const fullNote = noteParts.filter(Boolean).join(" | ");
+    const voucherSaveBtn = document.getElementById("saveVoucherBtn");
 
+    await window.bkWithSaveLock(voucherSaveBtn, async () => {
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
         method: "POST", headers: khataHeaders(),
@@ -7429,6 +7437,7 @@ function getEWayBillDetails() {
     } catch (err) {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
     }
+    });
   });
 
   updateVoucherFormUI();
@@ -7657,6 +7666,8 @@ function getEWayBillDetails() {
       return;
     }
 
+    const purchaseSaveBtn = document.getElementById("savePurchaseVoucherBtn");
+    await window.bkWithSaveLock(purchaseSaveBtn, async () => {
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
         method: "POST", headers: khataHeaders(),
@@ -7686,6 +7697,7 @@ function getEWayBillDetails() {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
       showToast("❌ " + err.message, "error");
     }
+    });
   });
 
   window.refreshKhataVoucherPanel = () => {
@@ -7748,11 +7760,12 @@ function getEWayBillDetails() {
   setupClickableDateChip("pmvDateDisplay", "pmvDateInput", updatePaymentDateDisplay);
   setupClickableDateChip("rcvDateDisplay", "rcvDateInput", updateReceiptDateDisplay);
 
-  async function saveSimpleVoucher(voucherType, fields) {
+  async function saveSimpleVoucher(voucherType, fields, saveBtn) {
     const { partyId, amount, paymentMode, voucherDate, note, statusId, clearIds, partyHiddenId, partySearchId, partySuggestId } = fields;
     const statusText = document.getElementById(statusId);
     if (!partyId) { alert("Please select a party / ledger from the list."); return; }
     if (!amount || amount <= 0) { alert("Please enter amount."); return; }
+    await window.bkWithSaveLock(saveBtn, async () => {
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, {
         method: "POST", headers: khataHeaders(),
@@ -7773,6 +7786,7 @@ function getEWayBillDetails() {
       if (statusText) { statusText.textContent = "❌ " + err.message; statusText.style.color = "#ef4444"; }
       showToast("❌ " + err.message, "error");
     }
+    });
   }
 
   document.getElementById("savePaymentVoucherBtn")?.addEventListener("click", () => {
@@ -7787,7 +7801,7 @@ function getEWayBillDetails() {
       partySearchId: "pmvPartySearch",
       partySuggestId: "pmvPartySuggest",
       clearIds: ["pmvAmountInput", "pmvNoteInput"]
-    });
+    }, document.getElementById("savePaymentVoucherBtn"));
   });
 
   document.getElementById("saveReceiptVoucherBtn")?.addEventListener("click", () => {
@@ -7802,7 +7816,7 @@ function getEWayBillDetails() {
       partySearchId: "rcvPartySearch",
       partySuggestId: "rcvPartySuggest",
       clearIds: ["rcvAmountInput", "rcvNoteInput"]
-    });
+    }, document.getElementById("saveReceiptVoucherBtn"));
   });
 
   window.openPaymentVoucherPanel = function () {

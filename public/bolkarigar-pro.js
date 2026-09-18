@@ -246,13 +246,16 @@
     const paymentMode = document.getElementById('payMode')?.value || 'Cash';
     const note = document.getElementById('payNote')?.value || '';
     if (!customerName || !amount) { showToast('Please enter customer and amount.', 'error'); return; }
-    const data = await apiPost('/api/payments', { customerName, amount, paymentMode, note });
-    if (data.success) {
-      showToast('✅ Payment recorded and receipt voucher created.');
-      document.getElementById('udharPaymentModal')?.classList.add('hidden');
-      if (typeof window.refreshUdharKhata === 'function') window.refreshUdharKhata();
-      if (typeof window.calculateFinancials === 'function') window.calculateFinancials(window.state?.invoices || [], window.state?.expenses || []);
-    } else showToast('❌ ' + (data.error || 'Fail'), 'error');
+    const saveBtn = document.getElementById('savePaymentBtn');
+    await window.bkWithSaveLock(saveBtn, async () => {
+      const data = await apiPost('/api/payments', { customerName, amount, paymentMode, note });
+      if (data.success) {
+        showToast('✅ Payment recorded and receipt voucher created.');
+        document.getElementById('udharPaymentModal')?.classList.add('hidden');
+        if (typeof window.refreshUdharKhata === 'function') window.refreshUdharKhata();
+        if (typeof window.calculateFinancials === 'function') window.calculateFinancials(window.state?.invoices || [], window.state?.expenses || []);
+      } else showToast('❌ ' + (data.error || 'Fail'), 'error');
+    });
   }
 
   // ==================== TALLY IMPORT ====================
