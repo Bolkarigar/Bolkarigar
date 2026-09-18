@@ -1,11 +1,11 @@
 /**
  * BolKarigar — Business Card Maker (Khatabook-style)
- * 12 Free + 25 Premium designs | Form editor | Download | WhatsApp Share
+ * 18 Pro + 30 Business luxury designs | Form editor | Download | WhatsApp Share
  */
 (function () {
   const STORAGE_KEY = "bolkarigar_business_card";
-  const FREE_COUNT = 12;
-  const PREMIUM_COUNT = 25;
+  const FREE_COUNT = 18;
+  const PREMIUM_COUNT = 30;
 
   const DESIGNATIONS = [
     "Owner", "Proprietor", "Director", "Partner", "Manager",
@@ -21,44 +21,62 @@
   const FREE_TEMPLATES = [
     { id: "f01", name: "Classic White", bg: "#ffffff", accent: "#2563eb", text: "#1e293b", layout: "classic", pattern: "none" },
     { id: "f02", name: "Ocean Blue", bg: "#1e40af", accent: "#93c5fd", text: "#ffffff", layout: "modern", pattern: "dots" },
-    { id: "f03", name: "Forest Green", bg: "#14532d", accent: "#86efac", text: "#ffffff", layout: "classic", pattern: "none" },
-    { id: "f04", name: "Sunset Orange", bg: "#ea580c", accent: "#fed7aa", text: "#ffffff", layout: "wave", pattern: "none" },
-    { id: "f05", name: "Royal Purple", bg: "#6b21a8", accent: "#e9d5ff", text: "#ffffff", layout: "split", pattern: "none" },
+    { id: "f03", name: "Forest Green", bg: "#14532d", accent: "#86efac", text: "#ffffff", layout: "split", pattern: "none" },
+    { id: "f04", name: "Sunset Wave", bg: "#ea580c", accent: "#fed7aa", text: "#ffffff", layout: "wave", pattern: "none" },
+    { id: "f05", name: "Royal Purple", bg: "#6b21a8", accent: "#e9d5ff", text: "#ffffff", layout: "banner", pattern: "none" },
     { id: "f06", name: "Minimal Dark", bg: "#0f172a", accent: "#38bdf8", text: "#f8fafc", layout: "minimal", pattern: "lines" },
-    { id: "f07", name: "Teal Gradient", bg: "linear-gradient(135deg,#0d9488,#0891b2)", accent: "#ccfbf1", text: "#ffffff", layout: "classic", pattern: "none" },
-    { id: "f08", name: "Coral Pink", bg: "#be185d", accent: "#fbcfe8", text: "#ffffff", layout: "modern", pattern: "dots" },
-    { id: "f09", name: "Slate Pro", bg: "#334155", accent: "#94a3b8", text: "#f1f5f9", layout: "classic", pattern: "none" },
-    { id: "f10", name: "Golden Accent", bg: "#fffbeb", accent: "#d97706", text: "#78350f", layout: "modern", pattern: "none" },
-    { id: "f11", name: "Sky Light", bg: "#e0f2fe", accent: "#0284c7", text: "#0c4a6e", layout: "wave", pattern: "none" },
-    { id: "f12", name: "Mint Fresh", bg: "#ecfdf5", accent: "#059669", text: "#064e3b", layout: "classic", pattern: "dots" }
+    { id: "f07", name: "Teal Gradient", bg: "linear-gradient(135deg,#0d9488,#0891b2)", accent: "#ccfbf1", text: "#ffffff", layout: "diagonal", pattern: "none" },
+    { id: "f08", name: "Coral Pink", bg: "#be185d", accent: "#fbcfe8", text: "#ffffff", layout: "corner", pattern: "dots" },
+    { id: "f09", name: "Slate Pro", bg: "#334155", accent: "#94a3b8", text: "#f1f5f9", layout: "stripe", pattern: "none" },
+    { id: "f10", name: "Golden Accent", bg: "#fffbeb", accent: "#d97706", text: "#78350f", layout: "centered", pattern: "none" },
+    { id: "f11", name: "Sky Light", bg: "#e0f2fe", accent: "#0284c7", text: "#0c4a6e", layout: "glass", pattern: "none" },
+    { id: "f12", name: "Mint Fresh", bg: "#ecfdf5", accent: "#059669", text: "#064e3b", layout: "bold", pattern: "dots" },
+    { id: "f13", name: "Midnight Diagonal", bg: "#1e1b4b", accent: "#818cf8", text: "#ffffff", layout: "diagonal", pattern: "lines" },
+    { id: "f14", name: "Crimson Corner", bg: "#450a0a", accent: "#fca5a5", text: "#ffffff", layout: "corner", pattern: "none" },
+    { id: "f15", name: "Navy Banner", bg: "#0c4a6e", accent: "#7dd3fc", text: "#ffffff", layout: "banner", pattern: "dots" },
+    { id: "f16", name: "Sage Center", bg: "#f0fdf4", accent: "#16a34a", text: "#14532d", layout: "centered", pattern: "none" },
+    { id: "f17", name: "Charcoal Glass", bg: "#18181b", accent: "#a1a1aa", text: "#fafafa", layout: "glass", pattern: "lines" },
+    { id: "f18", name: "Amber Bold", bg: "#78350f", accent: "#fcd34d", text: "#fffbeb", layout: "bold", pattern: "none" }
   ];
 
   const PREMIUM_TEMPLATES = [
-    { id: "p01", name: "Black Orange Classic", layout: "lux-swoosh", darkBg: "#0a0a0a", lightBg: "#ffffff", accent: "#f97316", textDark: "#111827", swoosh: 0, logo: "bars", deco: "strip", stroke: 28, iconStyle: "circle", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p02", name: "Navy Sky Pro", layout: "lux-swoosh", darkBg: "#0f172a", lightBg: "#f8fafc", accent: "#0ea5e9", textDark: "#0f172a", swoosh: 1, logo: "triangle", deco: "dots", stroke: 24, iconStyle: "square", nameStyle: "light", darkStyle: "gradient" },
-    { id: "p03", name: "Charcoal Gold", layout: "lux-swoosh", darkBg: "#1c1917", lightBg: "#fffbeb", accent: "#d4af37", textDark: "#292524", swoosh: 2, logo: "bars", deco: "double", stroke: 30, iconStyle: "filled", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p04", name: "Wine Ivory", layout: "lux-swoosh", darkBg: "#450a0a", lightBg: "#fef7ed", accent: "#e11d48", textDark: "#431407", swoosh: 3, logo: "diamond", deco: "glow", stroke: 26, iconStyle: "circle", nameStyle: "condensed", darkStyle: "gradient" },
-    { id: "p05", name: "Emerald Clean", layout: "lux-swoosh", darkBg: "#064e3b", lightBg: "#ffffff", accent: "#10b981", textDark: "#064e3b", swoosh: 4, logo: "hex", deco: "lines", stroke: 22, iconStyle: "square", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p06", name: "Royal Purple", layout: "lux-swoosh", darkBg: "#3b0764", lightBg: "#faf5ff", accent: "#a855f7", textDark: "#3b0764", swoosh: 5, logo: "star", deco: "mesh", stroke: 28, iconStyle: "filled", nameStyle: "light", darkStyle: "gradient" },
-    { id: "p07", name: "Steel Blue", layout: "lux-swoosh", darkBg: "#1e293b", lightBg: "#f1f5f9", accent: "#3b82f6", textDark: "#1e293b", swoosh: 6, logo: "bars", deco: "corners", stroke: 25, iconStyle: "circle", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p08", name: "Rose Blush", layout: "lux-swoosh", darkBg: "#831843", lightBg: "#fff1f2", accent: "#f43f5e", textDark: "#500724", swoosh: 7, logo: "triangle", deco: "strip", stroke: 27, iconStyle: "square", nameStyle: "condensed", darkStyle: "gradient" },
-    { id: "p09", name: "Teal Mint", layout: "lux-swoosh", darkBg: "#134e4a", lightBg: "#ecfdf5", accent: "#14b8a6", textDark: "#134e4a", swoosh: 8, logo: "wave", deco: "dots", stroke: 23, iconStyle: "filled", nameStyle: "light", darkStyle: "solid" },
-    { id: "p10", name: "Copper Slate", layout: "lux-swoosh", darkBg: "#292524", lightBg: "#fafaf9", accent: "#ea580c", textDark: "#1c1917", swoosh: 9, logo: "rings", deco: "double", stroke: 29, iconStyle: "circle", nameStyle: "bold", darkStyle: "gradient" },
-    { id: "p11", name: "Indigo Gold", layout: "lux-swoosh", darkBg: "#1e1b4b", lightBg: "#eef2ff", accent: "#eab308", textDark: "#1e1b4b", swoosh: 10, logo: "diamond", deco: "glow", stroke: 26, iconStyle: "square", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p12", name: "Carbon Cyan", layout: "lux-swoosh", darkBg: "#09090b", lightBg: "#ecfeff", accent: "#22d3ee", textDark: "#18181b", swoosh: 11, logo: "hex", deco: "lines", stroke: 24, iconStyle: "filled", nameStyle: "condensed", darkStyle: "gradient" },
-    { id: "p13", name: "Burgundy Cream", layout: "lux-swoosh", darkBg: "#4c0519", lightBg: "#fff7ed", accent: "#fb7185", textDark: "#4c0519", swoosh: 12, logo: "bars", deco: "mesh", stroke: 28, iconStyle: "circle", nameStyle: "light", darkStyle: "solid" },
-    { id: "p14", name: "Midnight Lime", layout: "lux-swoosh", darkBg: "#14532d", lightBg: "#f7fee7", accent: "#84cc16", textDark: "#14532d", swoosh: 13, logo: "triangle", deco: "strip", stroke: 22, iconStyle: "square", nameStyle: "bold", darkStyle: "gradient" },
-    { id: "p15", name: "Obsidian Rose", layout: "lux-swoosh", darkBg: "#0a0a0a", lightBg: "#fdf2f8", accent: "#ec4899", textDark: "#0a0a0a", swoosh: 14, logo: "wave", deco: "corners", stroke: 30, iconStyle: "filled", nameStyle: "condensed", darkStyle: "solid" },
-    { id: "p16", name: "Ocean Royale", layout: "lux-swoosh", darkBg: "#0c4a6e", lightBg: "#f0f9ff", accent: "#38bdf8", textDark: "#0c4a6e", swoosh: 15, logo: "star", deco: "dots", stroke: 25, iconStyle: "circle", nameStyle: "bold", darkStyle: "gradient" },
-    { id: "p17", name: "Espresso Bronze", layout: "lux-swoosh", darkBg: "#292018", lightBg: "#fef3c7", accent: "#b45309", textDark: "#292018", swoosh: 16, logo: "diamond", deco: "double", stroke: 27, iconStyle: "square", nameStyle: "light", darkStyle: "solid" },
-    { id: "p18", name: "Plum Silver", layout: "lux-swoosh", darkBg: "#2e1065", lightBg: "#f8fafc", accent: "#c4b5fd", textDark: "#2e1065", swoosh: 17, logo: "hex", deco: "glow", stroke: 23, iconStyle: "filled", nameStyle: "bold", darkStyle: "gradient" },
-    { id: "p19", name: "Crimson White", layout: "lux-swoosh", darkBg: "#7f1d1d", lightBg: "#ffffff", accent: "#ef4444", textDark: "#7f1d1d", swoosh: 18, logo: "rings", deco: "lines", stroke: 26, iconStyle: "circle", nameStyle: "condensed", darkStyle: "solid" },
-    { id: "p20", name: "Graphite Yellow", layout: "lux-swoosh", darkBg: "#27272a", lightBg: "#fefce8", accent: "#facc15", textDark: "#27272a", swoosh: 19, logo: "triangle", deco: "mesh", stroke: 24, iconStyle: "square", nameStyle: "bold", darkStyle: "gradient" },
-    { id: "p21", name: "Deep Aqua", layout: "lux-swoosh", darkBg: "#164e63", lightBg: "#ecfeff", accent: "#06b6d4", textDark: "#164e63", swoosh: 20, logo: "wave", deco: "strip", stroke: 28, iconStyle: "filled", nameStyle: "light", darkStyle: "solid" },
-    { id: "p22", name: "Magenta Noir", layout: "lux-swoosh", darkBg: "#500724", lightBg: "#fce7f3", accent: "#d946ef", textDark: "#500724", swoosh: 21, logo: "bars", deco: "corners", stroke: 22, iconStyle: "circle", nameStyle: "condensed", darkStyle: "gradient" },
-    { id: "p23", name: "Forest Amber", layout: "lux-swoosh", darkBg: "#14532d", lightBg: "#fffbeb", accent: "#f59e0b", textDark: "#14532d", swoosh: 22, logo: "star", deco: "dots", stroke: 29, iconStyle: "square", nameStyle: "bold", darkStyle: "solid" },
-    { id: "p24", name: "Slate Coral", layout: "lux-swoosh", darkBg: "#334155", lightBg: "#fff7ed", accent: "#fb923c", textDark: "#334155", swoosh: 23, logo: "diamond", deco: "double", stroke: 25, iconStyle: "filled", nameStyle: "light", darkStyle: "gradient" },
-    { id: "p25", name: "Black Gold Crown", layout: "lux-swoosh", darkBg: "#000000", lightBg: "#fffef7", accent: "#ca8a04", textDark: "#1c1917", swoosh: 24, logo: "rings", deco: "glow", stroke: 32, iconStyle: "circle", nameStyle: "bold", darkStyle: "solid" }
+    /* Swoosh curve — 5 unique curves */
+    { id: "p01", name: "Black Orange Swoosh", layout: "lux-swoosh", darkBg: "#0a0a0a", lightBg: "#ffffff", accent: "#f97316", textDark: "#111827", swoosh: 0, logo: "bars", deco: "strip", stroke: 28, iconStyle: "circle", nameStyle: "bold", darkStyle: "solid" },
+    { id: "p02", name: "Navy Sky Swoosh", layout: "lux-swoosh", darkBg: "#0f172a", lightBg: "#f8fafc", accent: "#0ea5e9", textDark: "#0f172a", swoosh: 3, logo: "triangle", deco: "dots", stroke: 24, iconStyle: "square", nameStyle: "light", darkStyle: "gradient" },
+    { id: "p03", name: "Charcoal Gold Swoosh", layout: "lux-swoosh", darkBg: "#1c1917", lightBg: "#fffbeb", accent: "#d4af37", textDark: "#292524", swoosh: 7, logo: "rings", deco: "double", stroke: 30, iconStyle: "filled", nameStyle: "bold", darkStyle: "solid" },
+    { id: "p04", name: "Wine Ivory Swoosh", layout: "lux-swoosh", darkBg: "#450a0a", lightBg: "#fef7ed", accent: "#e11d48", textDark: "#431407", swoosh: 11, logo: "diamond", deco: "glow", stroke: 26, iconStyle: "circle", nameStyle: "condensed", darkStyle: "gradient" },
+    { id: "p05", name: "Emerald Swoosh", layout: "lux-swoosh", darkBg: "#064e3b", lightBg: "#ffffff", accent: "#10b981", textDark: "#064e3b", swoosh: 15, logo: "hex", deco: "lines", stroke: 22, iconStyle: "square", nameStyle: "bold", darkStyle: "solid" },
+    /* Split marble — 5 layouts */
+    { id: "p06", name: "Gold Frame Elite", layout: "lux-marble", bg: "#0f0f0f", accent: "#d4af37", text: "#fafafa", pattern: "frame-gold", font: "serif" },
+    { id: "p07", name: "Marble Royale", layout: "lux-marble", bg: "#1a1a2e", accent: "#e94560", text: "#eaeaea", pattern: "marble-lux", font: "serif" },
+    { id: "p08", name: "Botanical Luxe", layout: "lux-boutique", bg: "#14532d", accent: "#86efac", text: "#ecfdf5", pattern: "botanical", font: "serif" },
+    { id: "p09", name: "Geometric Noir", layout: "lux-geometric", bg: "#18181b", accent: "#fbbf24", text: "#fafafa", pattern: "geometric-lux", font: "sans" },
+    { id: "p10", name: "Platinum Foil", layout: "lux-platinum", bg: "#1e293b", accent: "#cbd5e1", text: "#f8fafc", pattern: "foil", font: "sans" },
+    /* Vertical sidebar — 5 layouts */
+    { id: "p11", name: "Royal Purple Side", layout: "lux-vertical", bg: "#3b0764", accent: "#c084fc", text: "#faf5ff", pattern: "corners", font: "serif" },
+    { id: "p12", name: "Steel Executive", layout: "lux-vertical", bg: "#1e293b", accent: "#60a5fa", text: "#f1f5f9", pattern: "frame-gold", font: "sans" },
+    { id: "p13", name: "Rose Boutique", layout: "lux-vertical", bg: "#831843", accent: "#fda4af", text: "#fff1f2", pattern: "botanical", font: "serif" },
+    { id: "p14", name: "Teal Corporate", layout: "lux-vertical", bg: "#134e4a", accent: "#5eead4", text: "#ecfdf5", pattern: "geometric-lux", font: "sans" },
+    { id: "p15", name: "Copper Heritage", layout: "lux-vertical", bg: "#292524", accent: "#fb923c", text: "#fafaf9", pattern: "foil", font: "serif" },
+    /* Center noir — 5 layouts */
+    { id: "p16", name: "Obsidian Center", layout: "lux-noir", bg: "#0a0a0a", accent: "#ec4899", text: "#fdf2f8", pattern: "marble-lux", font: "serif" },
+    { id: "p17", name: "Indigo Crown", layout: "lux-noir", bg: "#1e1b4b", accent: "#eab308", text: "#eef2ff", pattern: "frame-gold", font: "serif" },
+    { id: "p18", name: "Carbon Elite", layout: "lux-noir", bg: "#09090b", accent: "#22d3ee", text: "#ecfeff", pattern: "geometric-lux", font: "sans" },
+    { id: "p19", name: "Burgundy Prestige", layout: "lux-noir", bg: "#4c0519", accent: "#fb7185", text: "#fff7ed", pattern: "corners", font: "serif" },
+    { id: "p20", name: "Graphite Premium", layout: "lux-noir", bg: "#27272a", accent: "#facc15", text: "#fefce8", pattern: "foil", font: "sans" },
+    /* Diagonal luxury — 5 layouts */
+    { id: "p21", name: "Gold Diagonal", layout: "lux-diagonal", bg: "#0c0c0c", accent: "#ca8a04", text: "#fffef7", pattern: "frame-gold", font: "serif" },
+    { id: "p22", name: "Ocean Diagonal", layout: "lux-diagonal", bg: "#0c4a6e", accent: "#38bdf8", text: "#f0f9ff", pattern: "marble-lux", font: "sans" },
+    { id: "p23", name: "Crimson Diagonal", layout: "lux-diagonal", bg: "#7f1d1d", accent: "#fca5a5", text: "#ffffff", pattern: "geometric-lux", font: "serif" },
+    { id: "p24", name: "Forest Diagonal", layout: "lux-diagonal", bg: "#14532d", accent: "#fbbf24", text: "#fffbeb", pattern: "botanical", font: "serif" },
+    { id: "p25", name: "Magenta Diagonal", layout: "lux-diagonal", bg: "#500724", accent: "#e879f9", text: "#fce7f3", pattern: "foil", font: "sans" },
+    /* Executive banner — 3 layouts */
+    { id: "p26", name: "Executive Gold", layout: "lux-executive", bg: "#111827", accent: "#d4af37", text: "#f9fafb", pattern: "frame-gold", font: "serif" },
+    { id: "p27", name: "Executive Navy", layout: "lux-executive", bg: "#0f172a", accent: "#3b82f6", text: "#f8fafc", pattern: "corners", font: "sans" },
+    { id: "p28", name: "Executive Emerald", layout: "lux-executive", bg: "#064e3b", accent: "#34d399", text: "#ecfdf5", pattern: "marble-lux", font: "serif" },
+    /* Art deco — 2 layouts */
+    { id: "p29", name: "Art Deco Gold", layout: "lux-artdeco", bg: "#1c1917", accent: "#d4af37", text: "#fafaf9", pattern: "geometric-lux", font: "serif" },
+    { id: "p30", name: "Art Deco Onyx", layout: "lux-artdeco", bg: "#000000", accent: "#f59e0b", text: "#fffbeb", pattern: "frame-gold", font: "serif" }
   ];
 
   const ALL_TEMPLATES = [
@@ -252,6 +270,68 @@
       <div style="position:absolute;bottom:0;left:0;width:0;height:0;border-style:solid;border-width:140px 0 0 140px;border-color:transparent transparent transparent ${accent}20;pointer-events:none;z-index:1"></div>
       <div style="position:absolute;top:0;left:0;right:0;height:7px;background:linear-gradient(90deg,${accent},${accent}aa,transparent);pointer-events:none;z-index:1"></div>
       <div style="position:absolute;bottom:0;left:0;right:0;height:5px;background:linear-gradient(90deg,transparent,${accent}88,${accent});pointer-events:none;z-index:1"></div>`;
+  }
+
+  /** Animated luxury overlay — preview only (shimmer + sparks) */
+  function renderLuxAnimLayers(accent) {
+    const a = accent || "#d4af37";
+    return `<div class="bc-anim-shimmer" style="--bc-shimmer:${a}"></div>
+      <div class="bc-anim-border-glow" style="--bc-glow:${a}"></div>
+      <div class="bc-anim-spark bc-anim-spark-1" style="background:${a}"></div>
+      <div class="bc-anim-spark bc-anim-spark-2" style="background:${a}"></div>
+      <div class="bc-anim-spark bc-anim-spark-3" style="background:${a}"></div>`;
+  }
+
+  /** Pro plan animated accents */
+  function renderProAnimLayers(accent) {
+    return `<div class="bc-pro-anim-bar" style="--bc-accent:${accent}"></div>
+      <div class="bc-pro-anim-pulse" style="--bc-accent:${accent}"></div>`;
+  }
+
+  function renderProCornerFrame(accent) {
+    return `<div class="bc-pro-corner bc-pro-corner-tl" style="border-color:${accent}"></div>
+      <div class="bc-pro-corner bc-pro-corner-br" style="border-color:${accent}"></div>
+      <div class="bc-pro-watermark">PRO</div>`;
+  }
+
+  function renderLuxCornerFrame(accent) {
+    return `<div class="bc-lux-corner bc-lux-corner-tl" style="border-color:${accent}"></div>
+      <div class="bc-lux-corner bc-lux-corner-tr" style="border-color:${accent}"></div>
+      <div class="bc-lux-corner bc-lux-corner-bl" style="border-color:${accent}"></div>
+      <div class="bc-lux-corner bc-lux-corner-br" style="border-color:${accent}"></div>
+      <div class="bc-lux-seal bc-anim-glow" style="--bc-glow:${accent}">👑 LUXURY</div>`;
+  }
+
+  function renderMetaChip(text, accent, textColor, filled) {
+    if (!text) return "";
+    const bg = filled ? accent : `${accent}22`;
+    const col = filled ? (textColor || "#fff") : accent;
+    return `<span style="font-size:10px;letter-spacing:1.5px;padding:6px 12px;border-radius:20px;border:1.5px solid ${accent}66;background:${bg};color:${col};font-weight:800;text-transform:uppercase;white-space:nowrap">${esc(text)}</span>`;
+  }
+
+  function renderActionMiniGrid(accent, textDark) {
+    const items = [
+      { icon: "📞", label: "Call" },
+      { icon: "💬", label: "WhatsApp" },
+      { icon: "📍", label: "Visit" }
+    ];
+    return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:220px;margin:10px auto">
+      ${items.map((it) => `<div style="text-align:center;padding:10px 6px;background:${accent}14;border:1.5px solid ${accent}44;border-radius:10px;box-shadow:0 2px 8px ${accent}22">
+        <div style="font-size:18px;line-height:1">${it.icon}</div>
+        <div style="font-size:8px;letter-spacing:1.5px;color:${textDark};opacity:0.75;margin-top:4px;font-weight:800">${it.label}</div>
+      </div>`).join("")}
+    </div>`;
+  }
+
+  function renderProBottomBand(data, accent, textColor) {
+    const cat = data.category ? esc(data.category) : "";
+    const gst = data.gst ? esc(data.gst) : "";
+    const shop = data.shopType ? esc(data.shopType) : "";
+    const chips = [cat, shop, gst ? `GST ${gst}` : ""].filter(Boolean);
+    if (!chips.length) return "";
+    return `<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;background:${accent}18;border-top:2px solid ${accent}55;margin-top:8px">
+      ${chips.map((c) => renderMetaChip(c, accent, textColor, false)).join("")}
+    </div>`;
   }
 
   function renderActionChips(phone, shopType, accent, textColor) {
@@ -529,42 +609,64 @@
       ? `<path d="${geo.curve}" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="8" stroke-linecap="round"/>`
       : "";
 
-    return `<div class="bc-card-export bc-swoosh-card" style="background:${light};border-radius:28px;overflow:hidden">
+    const initial = esc(getInitial(data.name || data.businessName));
+    const gst = data.gst ? esc(data.gst) : "";
+    const rightW = (100 - parseFloat(geo.leftPct)).toFixed(2);
+
+    return `<div class="bc-card-export bc-swoosh-card bc-card-luxury" style="background:${light};border-radius:28px;overflow:hidden">
       <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:1" viewBox="0 0 1050 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="bcDarkGrad-${tpl.id}" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="${dark}"/>
             <stop offset="100%" stop-color="${accent}44"/>
           </linearGradient>
+          <pattern id="bcLuxDots-${tpl.id}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="${accent}" opacity="0.15"/>
+          </pattern>
         </defs>
         <rect width="1050" height="600" fill="${light}" rx="28"/>
+        <rect x="${geo.split}" y="0" width="${1050 - geo.split}" height="600" fill="url(#bcLuxDots-${tpl.id})"/>
         <path d="${geo.clip}" fill="${darkFill}"/>
         <path d="${geo.curve}" fill="none" stroke="${accent}" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round"/>
         ${innerCurve}
       </svg>
-      ${renderSwooshDeco(tpl, dark, light, accent, geo)}
-      <div style="position:absolute;left:0;top:0;width:${geo.leftPct}%;height:100%;padding:44px 36px 40px 48px;display:flex;flex-direction:column;z-index:3;box-sizing:border-box">
+      ${renderLuxAnimLayers(accent)}${renderLuxCornerFrame(accent)}${renderSwooshDeco(tpl, dark, light, accent, geo)}
+      <div style="position:absolute;left:0;top:0;width:${geo.leftPct}%;height:100%;padding:44px 36px 40px 48px;display:flex;flex-direction:column;z-index:4;box-sizing:border-box">
         <div style="flex-shrink:0">
+          <div style="font-size:10px;letter-spacing:4px;color:${accent};font-weight:800;margin-bottom:8px;opacity:0.95">★ PREMIUM VISITING CARD</div>
           <h2 style="${swooshNameStyle(nameStyle)}">${name}</h2>
-          <div style="width:100%;max-width:300px;height:1px;background:rgba(255,255,255,0.55);margin:14px 0 10px"></div>
+          <div style="width:100%;max-width:300px;height:2px;background:linear-gradient(90deg,${accent},rgba(255,255,255,0.5),transparent);margin:14px 0 10px"></div>
           <p style="margin:0;font-size:17px;color:rgba(255,255,255,0.92);font-weight:300;font-family:'Segoe UI',system-ui,sans-serif;letter-spacing:0.3px">${desig}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            ${renderMetaChip(data.shopType, accent, "#fff", true)}
+            ${renderMetaChip(data.category, accent, "#fff", false)}
+          </div>
         </div>
-        <div style="margin-top:auto;padding-top:24px;max-width:92%">
+        <div style="margin-top:auto;padding-top:20px;max-width:92%">
           ${renderSwooshContactItem("phone", phone, iconStyle)}
           ${renderSwooshContactItem("email", email, iconStyle)}
           ${renderSwooshContactItem("globe", webLine, iconStyle)}
           ${renderSwooshContactItem("pin", addr, iconStyle)}
         </div>
       </div>
-      <div style="position:absolute;right:0;top:0;width:${(100 - parseFloat(geo.leftPct)).toFixed(2)}%;height:100%;padding:48px 36px 44px 28px;display:flex;flex-direction:column;align-items:center;z-index:3;box-sizing:border-box">
-        <div style="text-align:center;flex-shrink:0">
-          <div style="display:flex;justify-content:center;margin-bottom:14px;padding:10px;border-radius:50%;background:${accent}12">${renderSwooshLogo(logoType, accent)}</div>
-          <div style="font-size:15px;font-weight:800;letter-spacing:2.5px;color:${textDark};font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;line-height:1.3">${biz}</div>
-          <div style="font-size:11px;letter-spacing:1.5px;color:${textDark};opacity:0.55;margin-top:6px;font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;font-weight:500">${tagline}</div>
+      <div style="position:absolute;right:0;top:0;width:${rightW}%;height:100%;padding:36px 28px 32px;display:flex;flex-direction:column;align-items:center;z-index:4;box-sizing:border-box">
+        <div style="position:absolute;right:10%;top:12%;font-size:140px;font-weight:700;color:${accent};opacity:0.07;font-family:Georgia,serif;pointer-events:none;line-height:1">${initial}</div>
+        <div style="text-align:center;flex-shrink:0;width:100%">
+          <div style="display:flex;justify-content:center;margin-bottom:10px;padding:12px;border-radius:50%;background:linear-gradient(135deg,${accent}22,${accent}08);border:2px solid ${accent}44;box-shadow:0 4px 20px ${accent}33" class="bc-anim-float">${renderSwooshLogo(logoType, accent)}</div>
+          <div style="font-size:14px;font-weight:800;letter-spacing:2.5px;color:${textDark};font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;line-height:1.3">${biz}</div>
+          <div style="font-size:10px;letter-spacing:1.5px;color:${textDark};opacity:0.6;margin-top:5px;font-family:'Segoe UI',system-ui,sans-serif;text-transform:uppercase;font-weight:600">${tagline}</div>
+          <div style="width:70%;height:2px;background:linear-gradient(90deg,transparent,${accent},transparent);margin:12px auto"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px">
+            ${gst ? renderMetaChip(`GST ${gst}`, accent, textDark, false) : ""}
+            ${renderMetaChip("Verified Business", accent, textDark, false)}
+          </div>
+          ${renderActionMiniGrid(accent, textDark)}
         </div>
-        <div style="margin-top:auto;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px">
-          ${renderRealQR(data, 118)}
-          <div style="font-size:9px;letter-spacing:2px;color:${textDark};opacity:0.45;margin-top:8px;font-weight:600;text-transform:uppercase">Scan to connect</div>
+        <div style="margin-top:auto;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:2px;width:100%">
+          <div style="padding:10px 14px;background:linear-gradient(135deg,${accent}18,${accent}08);border:2px solid ${accent}55;border-radius:12px;box-shadow:0 6px 20px ${accent}25">
+            ${renderRealQR(data, 108)}
+          </div>
+          <div style="font-size:9px;letter-spacing:2.5px;color:${textDark};opacity:0.55;margin-top:8px;font-weight:800;text-transform:uppercase">Scan · Connect · Grow</div>
         </div>
       </div>
     </div>`;
@@ -616,7 +718,7 @@
     const meta = [cat, shop].filter(Boolean).join("  ·  ");
     const foilBar = `<div style="grid-column:1/-1;height:6px;background:linear-gradient(90deg,transparent,${a},${a}88,${a},transparent);border-radius:3px;opacity:0.75;margin-top:8px"></div>`;
 
-    return `<div class="bc-card-export bc-lux-card" style="background:${tpl.bg};color:${t}">${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
       <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a},${a}55);z-index:2"></div>
       <div style="position:absolute;inset:0;padding:22px 26px 22px 30px;display:flex;flex-direction:column;font-family:${font};z-index:2;height:100%;box-sizing:border-box">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px">
@@ -663,7 +765,7 @@
     const t = tpl.text;
     const font = luxFont(tpl);
 
-    return `<div class="bc-card-export bc-lux-card" style="background:${tpl.bg};color:${t}">${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
       <div style="position:absolute;left:0;top:0;bottom:0;width:30%;background:linear-gradient(180deg,${a}35,${a}12);border-right:2px solid ${a}55;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px;z-index:2">
         <div style="transform:scale(0.92)">${renderLuxEmblem(initial, tpl)}</div>
         <div style="margin-top:14px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${a};text-align:center;line-height:1.6;font-weight:800">${biz}</div>
@@ -705,7 +807,7 @@
     const font = luxFont(tpl);
     const isNoir = tpl.layout === "lux-noir";
 
-    return `<div class="bc-card-export bc-lux-card" style="background:${tpl.bg};color:${t}">${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
       <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a},${a}44);z-index:2"></div>
       <div style="position:absolute;right:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a}44,${a});z-index:2"></div>
       <div style="position:absolute;inset:0;padding:20px 28px 18px 32px;display:flex;flex-direction:column;font-family:${font};z-index:2;height:100%;box-sizing:border-box">
@@ -737,14 +839,133 @@
     </div>`;
   }
 
+  function renderLuxDiagonalCard(data, tpl) {
+    const name = esc(data.name || "Your Name");
+    const desig = esc(data.designation || "");
+    const biz = esc(data.businessName || "Business Name");
+    const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
+    const email = data.email ? esc(data.email) : "";
+    const addr = data.address ? esc(data.address) : "";
+    const initial = esc(getInitial(data.name || data.businessName));
+    const a = tpl.accent;
+    const t = tpl.text;
+    const font = luxFont(tpl);
+
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,${a}44 0%,transparent 42%,${a}22 100%);pointer-events:none;z-index:1"></div>
+      <div style="position:absolute;top:-80px;right:-80px;width:320px;height:320px;background:linear-gradient(135deg,${a},${a}55);transform:rotate(45deg);opacity:0.35;z-index:1"></div>
+      <div style="position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;border:3px solid ${a};transform:rotate(45deg);opacity:0.25;z-index:1"></div>
+      <div style="position:absolute;inset:14px;border:1px solid ${a};opacity:0.45;pointer-events:none;z-index:2"></div>
+      <div style="position:absolute;inset:22px;border:1px solid ${a};opacity:0.2;pointer-events:none;z-index:2"></div>
+      ${renderLuxWatermark(initial, a)}
+      <div style="position:absolute;inset:0;padding:28px 32px;display:grid;grid-template-columns:1fr auto;gap:20px;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
+        <div style="display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:12px;letter-spacing:5px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">${biz}</div>
+          <h2 style="margin:0;font-size:48px;font-weight:700;color:${t};line-height:1.05;letter-spacing:0.5px">${name}</h2>
+          ${desig ? `<p style="margin:8px 0 0;font-size:17px;color:${a};letter-spacing:3px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
+          <div style="width:80px;height:3px;background:linear-gradient(90deg,${a},transparent);margin:16px 0"></div>
+          ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
+          ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+          ${renderActionChips(data.mobile, data.shopType, a, tpl.bg)}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+          <div style="transform:scale(0.88)">${renderLuxEmblem(initial, tpl)}</div>
+          ${renderLuxQRBlock(data, a, 108)}
+        </div>
+        ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:4px;color:${a};font-weight:800">LUXURY</div>`)}
+      </div>
+    </div>`;
+  }
+
+  function renderLuxExecutiveCard(data, tpl) {
+    const name = esc(data.name || "Your Name");
+    const desig = esc(data.designation || "");
+    const biz = esc(data.businessName || "Business Name");
+    const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
+    const email = data.email ? esc(data.email) : "";
+    const gst = data.gst ? esc(data.gst) : "";
+    const addr = data.address ? esc(data.address) : "";
+    const cat = data.category ? esc(data.category) : "";
+    const initial = esc(getInitial(data.name || data.businessName));
+    const a = tpl.accent;
+    const t = tpl.text;
+    const font = luxFont(tpl);
+
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(135deg,${a},${a}88);z-index:1"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:120px;opacity:0.15;background:repeating-linear-gradient(-45deg,#fff 0,#fff 1px,transparent 1px,transparent 8px);z-index:2"></div>
+      <div style="position:absolute;top:28px;left:48px;width:88px;height:88px;border-radius:50%;background:${tpl.bg};border:4px solid ${a};display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;color:${a};z-index:3;box-shadow:0 8px 24px rgba(0,0,0,0.35)">${initial}</div>
+      <div style="position:absolute;inset:0;padding:36px 40px 28px 160px;display:flex;flex-direction:column;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
+        <div style="padding-top:8px">
+          <div style="font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#fff;font-weight:800;opacity:0.95">${biz}</div>
+          <h2 style="margin:6px 0 0;font-size:44px;font-weight:700;color:#fff;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,0.2)">${name}</h2>
+          ${desig ? `<p style="margin:4px 0 0;font-size:16px;color:rgba(255,255,255,0.92);letter-spacing:2px;text-transform:uppercase">${desig}</p>` : ""}
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr auto;gap:16px;margin-top:20px;align-items:end">
+          <div>
+            ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
+            ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+            ${renderLuxMetaChips(cat, data.shopType, gst, a)}
+          </div>
+          <div>${renderLuxQRBlock(data, a, 100)}</div>
+        </div>
+        ${renderLuxFooterBar(addr, a, t, "")}
+        <div style="height:4px;background:linear-gradient(90deg,${a},transparent);margin-top:10px;opacity:0.7"></div>
+      </div>
+    </div>`;
+  }
+
+  function renderLuxArtDecoCard(data, tpl) {
+    const name = esc(data.name || "Your Name");
+    const desig = esc(data.designation || "");
+    const biz = esc(data.businessName || "Business Name");
+    const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
+    const email = data.email ? esc(data.email) : "";
+    const addr = data.address ? esc(data.address) : "";
+    const initial = esc(getInitial(data.name || data.businessName));
+    const a = tpl.accent;
+    const t = tpl.text;
+    const font = luxFont(tpl);
+    const decoCorner = (top, left, flip) => {
+      const pos = top ? "top:20px" : "bottom:20px";
+      const side = left ? "left:20px" : "right:20px";
+      const rot = flip ? "scaleX(-1)" : "";
+      return `<div style="position:absolute;${pos};${side};width:56px;height:56px;border-${top ? "top" : "bottom"}:3px solid ${a};border-${left ? "left" : "right"}:3px solid ${a};opacity:0.65;transform:${rot};z-index:2"></div>`;
+    };
+
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      ${decoCorner(true, true, false)}${decoCorner(true, false, true)}${decoCorner(false, true, false)}${decoCorner(false, false, true)}
+      <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;margin:-100px 0 0 -100px;border:1px solid ${a};opacity:0.12;transform:rotate(45deg);z-index:1"></div>
+      <div style="position:absolute;top:50%;left:50%;width:140px;height:140px;margin:-70px 0 0 -70px;border:1px solid ${a};opacity:0.18;transform:rotate(45deg);z-index:1"></div>
+      <div style="position:absolute;inset:0;padding:32px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
+        <div style="font-size:11px;letter-spacing:6px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:6px">${biz}</div>
+        <div style="width:120px;height:2px;background:linear-gradient(90deg,transparent,${a},transparent);margin-bottom:14px"></div>
+        <div style="width:72px;height:72px;border:2px solid ${a};display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:${a};margin-bottom:12px;transform:rotate(45deg)">
+          <span style="transform:rotate(-45deg)">${initial}</span>
+        </div>
+        <h2 style="margin:0;font-size:46px;font-weight:300;color:${t};letter-spacing:4px;text-transform:uppercase;line-height:1.1">${name}</h2>
+        ${desig ? `<p style="margin:8px 0 0;font-size:15px;color:${a};letter-spacing:3px;text-transform:uppercase">${desig}</p>` : ""}
+        <div style="width:80px;height:1px;background:${a};margin:16px auto;opacity:0.6"></div>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px 32px;margin-top:8px">
+          <div style="font-size:18px;font-weight:700;color:${t}">${phone}</div>
+          ${email ? `<div style="font-size:16px;color:${t};opacity:0.9">${email}</div>` : ""}
+        </div>
+        <div style="margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding-top:16px">
+          <div style="font-size:14px;color:${t};opacity:0.85;text-align:left;flex:1;line-height:1.5">${addr ? `📍 ${addr}` : ""}</div>
+          ${renderLuxQRBlock(data, a, 96)}
+        </div>
+      </div>
+    </div>`;
+  }
+
   function renderLuxuryCard(data, tpl) {
-    if (tpl.layout === "lux-swoosh" || isPremiumTemplateId(tpl.id)) {
-      return renderSwooshCard(data, tpl);
-    }
-    const layout = tpl.layout || "lux-gold";
+    const layout = tpl.layout || "lux-swoosh";
+    if (layout === "lux-swoosh") return renderSwooshCard(data, tpl);
     if (layout === "lux-vertical") return renderLuxVerticalCard(data, tpl);
-    if (layout === "lux-marble") return renderLuxSplitCard(data, tpl);
     if (layout === "lux-noir") return renderLuxCenterCard(data, tpl);
+    if (layout === "lux-diagonal") return renderLuxDiagonalCard(data, tpl);
+    if (layout === "lux-executive") return renderLuxExecutiveCard(data, tpl);
+    if (layout === "lux-artdeco") return renderLuxArtDecoCard(data, tpl);
     return renderLuxSplitCard(data, tpl);
   }
 
@@ -761,49 +982,100 @@
     const initial = esc(getInitial(data.name || data.businessName));
     const a = tpl.accent;
     const t = tpl.text;
+    const layout = tpl.layout || "classic";
     const isGrad = String(tpl.bg).includes("gradient");
     const logoColor = isGrad ? "#fff" : (tpl.bg === "#ffffff" || tpl.bg.startsWith("#fff") ? a : tpl.bg);
+    const onDarkSide = layout === "split" || layout === "banner" || layout === "diagonal";
 
     let patternHtml = "";
     if (tpl.pattern === "dots") patternHtml = `<div class="bc-pattern-dots" style="color:${t}"></div>`;
     else if (tpl.pattern === "lines") patternHtml = `<div class="bc-pattern-lines" style="color:${t}"></div>`;
 
-    const waveAccent = tpl.layout === "wave"
-      ? `<svg style="position:absolute;bottom:0;left:0;right:0;height:100px;pointer-events:none" viewBox="0 0 1050 120" preserveAspectRatio="none"><path fill="${a}" fill-opacity="0.3" d="M0,60 C200,120 400,0 600,60 C800,120 950,30 1050,60 L1050,120 L0,120 Z"/></svg>`
+    let layoutDeco = "";
+    if (layout === "wave") {
+      layoutDeco += `<svg style="position:absolute;bottom:0;left:0;right:0;height:100px;pointer-events:none;z-index:1" viewBox="0 0 1050 120" preserveAspectRatio="none"><path fill="${a}" fill-opacity="0.3" d="M0,60 C200,120 400,0 600,60 C800,120 950,30 1050,60 L1050,120 L0,120 Z"/></svg>`;
+    } else if (layout === "split") {
+      layoutDeco += `<div style="position:absolute;left:0;top:0;bottom:0;width:34%;background:linear-gradient(180deg,${a}ee,${a}88);z-index:1"></div>`;
+    } else if (layout === "modern") {
+      layoutDeco += `<div style="position:absolute;left:0;top:0;bottom:0;width:10px;background:${a};z-index:1"></div>`;
+    } else if (layout === "diagonal") {
+      layoutDeco += `<div style="position:absolute;inset:0;background:linear-gradient(125deg,${a}55 0%,${a}22 38%,transparent 38%);z-index:1"></div>`;
+    } else if (layout === "corner") {
+      layoutDeco += `<div style="position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 180px 180px 0;border-color:transparent ${a}44 transparent transparent;z-index:1"></div>`;
+    } else if (layout === "banner") {
+      layoutDeco += `<div style="position:absolute;top:0;left:0;right:0;height:100px;background:linear-gradient(90deg,${a},${a}aa);z-index:1"></div>`;
+    } else if (layout === "stripe") {
+      layoutDeco += `<div style="position:absolute;inset:0;opacity:0.08;background:repeating-linear-gradient(90deg,${a} 0,${a} 4px,transparent 4px,transparent 24px);z-index:1"></div>`;
+    } else if (layout === "glass") {
+      layoutDeco += `<div style="position:absolute;inset:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:16px;backdrop-filter:blur(4px);z-index:1"></div>`;
+    }
+
+    const topBand = layout !== "banner"
+      ? `<div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,${a},${a}cc,transparent);z-index:1"></div>`
       : "";
 
-    const sideBar = tpl.layout === "modern" || tpl.layout === "split"
-      ? `<div style="position:absolute;left:0;top:0;bottom:0;width:${tpl.layout === "split" ? "34%" : "10px"};background:${tpl.layout === "split" ? `linear-gradient(180deg,${a}ee,${a}88)` : a};opacity:${tpl.layout === "split" ? "1" : "1"};z-index:1"></div>`
-      : "";
+    let padLeft = "28px";
+    if (layout === "split") padLeft = "38%";
+    else if (layout === "modern") padLeft = "44px";
 
-    const topBand = `<div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,${a},${a}cc,transparent);z-index:1"></div>`;
+    let nameSize = layout === "bold" ? "48" : "42";
+    let nameColor = onDarkSide ? "#fff" : t;
+    let accentColor = onDarkSide ? "#fff" : a;
+    let bizColor = layout === "banner" ? "#fff" : (onDarkSide ? "#fff" : t);
+    let padTop = layout === "banner" ? "112px" : "24px";
 
-    return `<div class="bc-card-export bc-free-card" style="background:${tpl.bg};color:${t}">${patternHtml}${sideBar}${waveAccent}${renderVisitingAccent(a)}${topBand}
-      <div style="position:absolute;inset:0;padding:24px 28px;padding-left:${tpl.layout === "split" ? "38%" : tpl.layout === "modern" ? "44px" : "28px"};display:flex;flex-direction:column;height:100%;box-sizing:border-box;z-index:2">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
-          <div style="font-size:24px;font-weight:800;color:${tpl.layout === "split" ? "#fff" : t}">${biz}</div>
-          ${cat || shop ? `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.85;text-align:right;font-weight:700;color:${tpl.layout === "split" ? "#fff" : t}">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
+    if (layout === "centered") {
+      return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${topBand}${renderVisitingAccent(a)}
+        <div style="position:absolute;inset:0;padding:28px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;height:100%;box-sizing:border-box">
+          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">★ PRO VISITING CARD</div>
+          <div style="width:84px;height:84px;border-radius:50%;background:${a};color:${logoColor};display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;margin-bottom:12px;box-shadow:0 6px 20px ${a}55;border:3px solid ${a}88" class="bc-anim-float">${initial}</div>
+          <div style="font-size:13px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800">${biz}</div>
+          <h2 style="margin:10px 0 0;font-size:44px;font-weight:800;color:${t};line-height:1.08">${name}</h2>
+          ${desig ? `<p style="margin:6px 0 0;font-size:17px;color:${a};font-weight:700;text-transform:uppercase;letter-spacing:1px">${desig}</p>` : ""}
+          <div style="width:64px;height:3px;background:${a};margin:14px auto;border-radius:2px"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px">
+            ${renderMetaChip(shop, a, t, false)}
+            ${renderMetaChip(cat, a, t, true)}
+          </div>
+          <div style="font-size:22px;font-weight:800;color:${t}">${phone}</div>
+          ${email ? `<div style="font-size:16px;margin-top:8px;color:${t};opacity:0.9">${email}</div>` : ""}
+          ${renderActionMiniGrid(a, t)}
+          <div style="margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-top:12px;text-align:left">
+            <div style="font-size:15px;line-height:1.5;font-weight:600;flex:1;padding:10px 12px;background:${a}18;border-left:4px solid ${a};border-radius:0 8px 8px 0">${addr ? `📍 ${addr}` : "Your business address"}</div>
+            <div style="padding:8px 10px;background:${a}14;border:2px solid ${a}55;border-radius:10px">${renderLuxQRBlock(data, a, 96)}</div>
+          </div>
+          ${renderProBottomBand(data, a, t)}
         </div>
-        <div style="height:4px;width:72px;background:${tpl.layout === "split" ? "#fff" : a};margin-bottom:10px;border-radius:2px"></div>
+      </div>`;
+    }
+
+    return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${layoutDeco}${renderVisitingAccent(a)}${topBand}
+      <div style="position:absolute;inset:0;padding:${padTop} 28px 24px ${padLeft};display:flex;flex-direction:column;height:100%;box-sizing:border-box;z-index:2">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
+          <div style="font-size:24px;font-weight:800;color:${bizColor}">${biz}</div>
+          ${cat || shop ? `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.85;text-align:right;font-weight:700;color:${bizColor}">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
+        </div>
+        <div style="height:4px;width:72px;background:${accentColor};margin-bottom:10px;border-radius:2px"></div>
         <div style="flex:1;display:grid;grid-template-columns:1fr auto;gap:14px 18px;min-height:0;align-items:stretch">
           <div style="display:flex;flex-direction:column;justify-content:flex-start">
-            <div style="width:72px;height:72px;border-radius:50%;background:${tpl.layout === "split" ? "#fff" : a};color:${tpl.layout === "split" ? a : logoColor};display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin-bottom:12px;border:3px solid ${tpl.layout === "split" ? a : "transparent"};box-shadow:0 4px 12px rgba(0,0,0,0.15)">${initial}</div>
-            <h2 style="margin:0;font-size:42px;font-weight:800;color:${tpl.layout === "split" ? "#fff" : t};line-height:1.08">${name}</h2>
-            ${desig ? `<p style="margin:5px 0 0;font-size:18px;color:${tpl.layout === "split" ? "#fff" : a};font-weight:700;letter-spacing:1px;text-transform:uppercase">${desig}</p>` : ""}
-            <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;border-left:3px solid ${tpl.layout === "split" ? "#fff" : a};padding-left:16px">
-              <div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${tpl.layout === "split" ? "#fff" : t}">MOBILE</div><div style="font-size:22px;font-weight:800;color:${tpl.layout === "split" ? "#fff" : t}">${phone}</div></div>
-              ${email ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${tpl.layout === "split" ? "#fff" : t}">EMAIL</div><div style="font-size:17px;font-weight:700;word-break:break-all;color:${tpl.layout === "split" ? "#fff" : t}">${email}</div></div>` : ""}
-              ${gst ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${tpl.layout === "split" ? "#fff" : t}">GSTIN</div><div style="font-size:15px;font-weight:700;color:${tpl.layout === "split" ? "#fff" : t}">${gst}</div></div>` : ""}
+            <div style="width:72px;height:72px;border-radius:50%;background:${onDarkSide ? "#fff" : a};color:${onDarkSide ? a : logoColor};display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin-bottom:12px;border:3px solid ${onDarkSide ? a : "transparent"};box-shadow:0 4px 12px rgba(0,0,0,0.15)">${initial}</div>
+            <h2 style="margin:0;font-size:${nameSize}px;font-weight:800;color:${nameColor};line-height:1.08">${name}</h2>
+            ${desig ? `<p style="margin:5px 0 0;font-size:18px;color:${onDarkSide ? "#fff" : a};font-weight:700;letter-spacing:1px;text-transform:uppercase">${desig}</p>` : ""}
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;border-left:3px solid ${accentColor};padding-left:16px">
+              <div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">MOBILE</div><div style="font-size:22px;font-weight:800;color:${nameColor}">${phone}</div></div>
+              ${email ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">EMAIL</div><div style="font-size:17px;font-weight:700;word-break:break-all;color:${nameColor}">${email}</div></div>` : ""}
+              ${gst ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">GSTIN</div><div style="font-size:15px;font-weight:700;color:${nameColor}">${gst}</div></div>` : ""}
             </div>
-            ${renderActionChips(data.mobile, shop, tpl.layout === "split" ? "#fff" : a, tpl.layout === "split" ? a : tpl.bg)}
+            ${renderActionChips(data.mobile, shop, accentColor, onDarkSide ? a : tpl.bg)}
           </div>
           <div style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:2px">
-            ${renderLuxQRBlock(data, tpl.layout === "split" ? "#fff" : a, 100)}
+            ${renderLuxQRBlock(data, accentColor, 100)}
           </div>
         </div>
-        <div style="margin-top:10px;padding:12px 16px;background:${a}22;border-left:4px solid ${a};border-radius:0 8px 8px 0;font-size:16px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;font-weight:600">
+        <div style="margin-top:10px;padding:12px 16px;background:${a}22;border-left:4px solid ${a};border-radius:0 8px 8px 0;font-size:16px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;font-weight:600;color:${t}">
           <span style="opacity:0.9;font-size:18px">📍</span><span>${addr || "Your business address"}</span>
         </div>
+        ${renderProBottomBand(data, a, t)}
         <div style="height:4px;background:linear-gradient(90deg,${a},transparent);margin-top:10px;opacity:0.55;border-radius:2px"></div>
       </div>
     </div>`;
@@ -905,9 +1177,15 @@
 
     let hint = "";
     if (layout === "lux-vertical") {
-      hint = '<div class="bc-tpv-left"></div><div class="bc-tpv-split-lines" style="left:36%"><span></span><span></span></div><div class="bc-tpv-qr" style="border-color:' + a + '"></div>';
-    } else if (layout === "lux-marble" || layout === "lux-noir") {
-      hint = '<div class="bc-tpv-marble"></div><div class="bc-tpv-ring" style="left:50%;top:32%;border-color:' + a + '"></div><div class="bc-tpv-goldline" style="left:50%;transform:translateX(-50%);width:40px;top:52%"></div><div class="bc-tpv-bottom-band"></div>';
+      hint = '<div class="bc-tpv-left" style="background:' + a + '33"></div><div class="bc-tpv-split-lines" style="left:36%"><span></span><span></span></div><div class="bc-tpv-qr" style="border-color:' + a + '"></div>';
+    } else if (layout === "lux-noir") {
+      hint = '<div class="bc-tpv-marble"></div><div class="bc-tpv-ring" style="left:18%;top:32%;border-color:' + a + '"></div><div class="bc-tpv-split-lines" style="left:52%"><span></span><span></span></div><div class="bc-tpv-qr" style="right:10px;border-color:' + a + '"></div>';
+    } else if (layout === "lux-diagonal") {
+      hint = '<div class="bc-tpv-diagonal" style="background:linear-gradient(135deg,' + a + '55,transparent 50%)"></div><div class="bc-tpv-diamond" style="border-color:' + a + '"></div><div class="bc-tpv-qr" style="border-color:' + a + '"></div>';
+    } else if (layout === "lux-executive") {
+      hint = '<div class="bc-tpv-exec-banner" style="background:' + a + '"></div><div class="bc-tpv-exec-avatar" style="border-color:' + a + '"></div><div class="bc-tpv-split-lines" style="left:38%;top:48%"><span></span><span></span></div>';
+    } else if (layout === "lux-artdeco") {
+      hint = '<div class="bc-tpv-deco-corner bc-tpv-deco-tl" style="border-color:' + a + '"></div><div class="bc-tpv-deco-corner bc-tpv-deco-br" style="border-color:' + a + '"></div><div class="bc-tpv-deco-diamond" style="border-color:' + a + '"></div>';
     } else {
       hint = '<div class="bc-tpv-split-left"></div><div class="bc-tpv-vdivider" style="background:' + a + '"></div><div class="bc-tpv-split-lines" style="left:52%"><span></span><span></span><span></span></div><div class="bc-tpv-qr" style="border-color:' + a + '"></div><div class="bc-tpv-bottom-band"></div>';
     }
@@ -925,10 +1203,23 @@
   }
 
   function renderFreeThumbPreview(tpl) {
+    const layout = tpl.layout || "classic";
+    let layoutHint = "";
+    if (layout === "split") layoutHint = '<div class="bc-tfv-split" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "wave") layoutHint = '<div class="bc-tfv-wave" style="border-color:' + tpl.accent + '"></div>';
+    else if (layout === "diagonal") layoutHint = '<div class="bc-tfv-diagonal" style="background:linear-gradient(125deg,' + tpl.accent + '66,transparent 45%)"></div>';
+    else if (layout === "corner") layoutHint = '<div class="bc-tfv-corner" style="border-color:' + tpl.accent + ' transparent transparent transparent"></div>';
+    else if (layout === "banner") layoutHint = '<div class="bc-tfv-banner" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "centered") layoutHint = '<div class="bc-tfv-center-dot" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "glass") layoutHint = '<div class="bc-tfv-glass"></div>';
+    else if (layout === "bold" || layout === "stripe") layoutHint = '<div class="bc-tfv-stripe" style="background:repeating-linear-gradient(90deg,' + tpl.accent + '33 0,' + tpl.accent + '33 2px,transparent 2px,transparent 8px)"></div>';
+    else if (layout === "modern") layoutHint = '<div class="bc-tfv-side" style="background:' + tpl.accent + '"></div>';
+
     return `<div class="bc-tfv" style="background:${tpl.bg};color:${tpl.text}">
+      ${layoutHint}
       <div class="bc-tfv-bar" style="background:${tpl.accent}"></div>
       <div class="bc-tfv-body">
-        <div class="bc-tfv-tag" style="color:${tpl.accent}">FREE</div>
+        <div class="bc-tfv-tag" style="color:${tpl.accent}">PRO</div>
         <div class="bc-tfv-name">${esc(tpl.name)}</div>
         <div class="bc-tfv-lines">
           <div class="bc-tfv-line med"></div>
@@ -961,7 +1252,7 @@
       const fullTpl = { ...tpl, tier };
       const badge = tier === "premium"
         ? '<span class="bc-premium-badge">LUXURY</span>'
-        : '<span class="bc-free-badge">FREE</span>';
+        : '<span class="bc-free-badge">PRO</span>';
       return `
         <div class="bc-thumb${tier === "premium" ? " bc-thumb-is-premium" : ""}" data-id="${tpl.id}" data-tier="${tier}" role="button" tabindex="0" aria-label="${esc(tpl.name)}">
           ${badge}
@@ -1045,7 +1336,9 @@
   async function captureCardBlob() {
     await loadHtml2Canvas();
     updatePreview();
-    await new Promise((r) => setTimeout(r, 80));
+    const exportHost = document.getElementById("bcExportHost");
+    exportHost?.classList.add("bc-export-capture");
+    await new Promise((r) => setTimeout(r, 120));
     const el = document.querySelector("#bcExportHost .bc-card-export");
     if (!el) throw new Error("Card render nahi hua");
     const canvas = await window.html2canvas(el, {
@@ -1055,6 +1348,7 @@
       width: 1050,
       height: 600
     });
+    exportHost?.classList.remove("bc-export-capture");
     return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png", 1));
   }
 

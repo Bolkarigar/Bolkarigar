@@ -179,7 +179,7 @@
       steps: [
         { en: "Fill shop name, owner, mobile, GST", hi: "Dukaan, naam, mobile, GST bharein", visual: { title: "💼 Card Details", lines: [{ label: "Shop", value: "Sharma Ply", animate: true }, { label: "Mobile", value: "98765xxxxx" }] } },
         { en: "Pick free template (12 designs)", hi: "Free template chunein (12 designs)", visual: { title: "🆓 Free Templates", action: "Choose Template" } },
-        { en: "Business plan unlocks 25 premium designs", hi: "Business plan se 25 premium designs", visual: { title: "👑 Premium", action: "Upgrade for Premium" } },
+        { en: "Business plan unlocks 30 luxury designs", hi: "Business plan se 30 luxury designs", visual: { title: "👑 Premium", action: "Upgrade for Premium" } },
         { en: "Download PNG or share on WhatsApp", hi: "PNG download ya WhatsApp share", visual: { title: "📤 Share", action: "Download / WhatsApp" } }
       ]
     },

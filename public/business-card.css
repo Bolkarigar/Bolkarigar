@@ -347,6 +347,129 @@
 .bc-tfv-line.short { width: 55%; }
 .bc-tfv-line.med { width: 75%; }
 
+/* Pro thumb layout hints */
+.bc-tfv-split {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32%;
+  opacity: 0.85;
+}
+.bc-tfv-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  border-top: 3px solid;
+  opacity: 0.35;
+}
+.bc-tfv-diagonal {
+  position: absolute;
+  inset: 0;
+}
+.bc-tfv-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 36px 36px 0;
+  opacity: 0.7;
+}
+.bc-tfv-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  opacity: 0.85;
+}
+.bc-tfv-center-dot {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+.bc-tfv-glass {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+}
+.bc-tfv-stripe {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+}
+.bc-tfv-side {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+
+/* Premium thumb — diagonal / executive / art deco */
+.bc-tpv-diagonal {
+  position: absolute;
+  inset: 0;
+  opacity: 0.75;
+}
+.bc-tpv-exec-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34%;
+  opacity: 0.9;
+}
+.bc-tpv-exec-avatar {
+  position: absolute;
+  top: 14%;
+  left: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: rgba(0,0,0,0.35);
+}
+.bc-tpv-deco-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+}
+.bc-tpv-deco-tl {
+  top: 10px;
+  left: 10px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+.bc-tpv-deco-br {
+  bottom: 28px;
+  right: 10px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+.bc-tpv-deco-diamond {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid;
+  transform: rotate(45deg);
+  opacity: 0.75;
+}
+
 .bc-switch-free-link {
   display: none;
   margin: 0 0 12px;
@@ -803,6 +926,244 @@
   top: 0;
   pointer-events: none;
   z-index: -1;
+}
+
+/* ── Pro vs Luxury card tiers + live preview animations ── */
+.bc-card-export {
+  isolation: isolate;
+}
+.bc-card-pro {
+  border-radius: 16px;
+}
+.bc-card-luxury {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.bc-anim-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.bc-anim-shimmer::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    color-mix(in srgb, var(--bc-shimmer, #d4af37) 38%, transparent) 50%,
+    transparent 60%
+  );
+  animation: bc-shimmer-sweep 4.5s ease-in-out infinite;
+  transform: rotate(12deg);
+}
+
+.bc-anim-border-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bc-glow, #d4af37) 35%, transparent);
+  animation: bc-border-glow 3s ease-in-out infinite;
+}
+
+.bc-anim-glow {
+  animation: bc-seal-glow 2.8s ease-in-out infinite;
+}
+
+.bc-anim-float {
+  animation: bc-float-y 3.2s ease-in-out infinite;
+}
+
+.bc-anim-spark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  box-shadow: 0 0 10px currentColor;
+  animation: bc-spark-pop 3s ease-in-out infinite;
+}
+.bc-anim-spark-1 { top: 16%; right: 24%; animation-delay: 0s; }
+.bc-anim-spark-2 { top: 52%; right: 10%; animation-delay: 1.1s; }
+.bc-anim-spark-3 { bottom: 26%; right: 32%; animation-delay: 2.2s; }
+
+.bc-pro-anim-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, transparent, var(--bc-accent), transparent);
+  background-size: 200% 100%;
+  animation: bc-pro-bar-slide 2.8s linear infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+.bc-pro-anim-pulse {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--bc-accent) 22%, transparent) 0%, transparent 48%);
+  animation: bc-pro-pulse 4s ease-in-out infinite;
+}
+
+.bc-pro-corner {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.75;
+}
+.bc-pro-corner-tl {
+  top: 12px;
+  left: 12px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+}
+.bc-pro-corner-br {
+  bottom: 12px;
+  right: 12px;
+  border-bottom: 3px solid;
+  border-right: 3px solid;
+}
+.bc-pro-watermark {
+  position: absolute;
+  right: 20px;
+  bottom: 56px;
+  font-size: 68px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: rgba(0, 0, 0, 0.045);
+  pointer-events: none;
+  z-index: 1;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  transform: rotate(-90deg);
+  transform-origin: right bottom;
+}
+
+.bc-lux-corner {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.88;
+}
+.bc-lux-corner-tl { top: 14px; left: 14px; border-top: 3px solid; border-left: 3px solid; }
+.bc-lux-corner-tr { top: 14px; right: 14px; border-top: 3px solid; border-right: 3px solid; }
+.bc-lux-corner-bl { bottom: 14px; left: 14px; border-bottom: 3px solid; border-left: 3px solid; }
+.bc-lux-corner-br { bottom: 14px; right: 14px; border-bottom: 3px solid; border-right: 3px solid; }
+
+.bc-lux-seal {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bc-glow, #d4af37) 28%, #1a1a1a),
+    color-mix(in srgb, var(--bc-glow, #d4af37) 12%, #0a0a0a)
+  );
+  border: 2px solid color-mix(in srgb, var(--bc-glow, #d4af37) 72%, transparent);
+  color: var(--bc-glow, #d4af37);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--bc-glow, #d4af37) 38%, transparent);
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.bc-preview-viewport:has(.bc-card-luxury) {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(212, 175, 55, 0.4),
+    0 0 28px rgba(212, 175, 55, 0.15);
+}
+.bc-preview-viewport:has(.bc-card-pro) {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 2px rgba(34, 197, 94, 0.28);
+}
+
+.bc-thumb-is-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(212, 175, 55, 0.28) 50%, transparent 58%);
+  transform: translateX(-100%);
+  animation: bc-thumb-shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bc-export-capture .bc-anim-shimmer::after,
+.bc-export-capture .bc-anim-spark,
+.bc-export-capture .bc-pro-anim-bar,
+.bc-export-capture .bc-pro-anim-pulse {
+  animation: none !important;
+  opacity: 0 !important;
+}
+.bc-export-capture .bc-anim-float,
+.bc-export-capture .bc-anim-border-glow,
+.bc-export-capture .bc-lux-seal.bc-anim-glow {
+  animation: none !important;
+}
+
+@keyframes bc-shimmer-sweep {
+  0%, 100% { transform: translateX(0) rotate(12deg); opacity: 0; }
+  12% { opacity: 1; }
+  50% { transform: translateX(320%) rotate(12deg); opacity: 1; }
+  62% { opacity: 0; }
+}
+@keyframes bc-border-glow {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bc-glow, #d4af37) 22%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 3px color-mix(in srgb, var(--bc-glow, #d4af37) 62%, transparent),
+      0 0 26px color-mix(in srgb, var(--bc-glow, #d4af37) 22%, transparent);
+  }
+}
+@keyframes bc-seal-glow {
+  0%, 100% { filter: brightness(1); transform: scale(1); }
+  50% { filter: brightness(1.25); transform: scale(1.04); }
+}
+@keyframes bc-float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes bc-spark-pop {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  8% { opacity: 0.95; transform: scale(1.25); }
+  20% { opacity: 0; transform: scale(0.2); }
+}
+@keyframes bc-pro-bar-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes bc-pro-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.78; }
+}
+@keyframes bc-thumb-shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
 }
 
 @media (max-width: 768px) {
