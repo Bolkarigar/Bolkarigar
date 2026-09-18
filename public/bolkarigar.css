@@ -1468,6 +1468,15 @@ button.bk-save-busy {
   flex-wrap: wrap;
   gap: 6px;
 }
+.meet-quick-btns .theme-btn { min-width: 180px; }
+.meet-live-banner {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), rgba(34, 197, 94, 0.08));
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-size: 14px;
+}
 .meet-schedule-card { margin-bottom: 4px; }
 .meet-invite-mode {
   display: flex;

@@ -1350,17 +1350,23 @@
               <h3>📞 Official Team Meeting</h3>
             </div>
           </div>
-          <p class="helper-text">Schedule voice or video meetings with all staff or selected members. Share the join link — staff open it while logged in to enter the call.</p>
+          <p class="helper-text">Voice &amp; video run <strong>inside BolKarigar</strong> — no external app. Owner starts the call here; staff open <strong>Team Meeting</strong> and tap <strong>Join</strong>. Link is optional (WhatsApp only).</p>
 
           <div id="meetNoAccess" class="hidden payroll-no-access">
             <p>⚠️ Team meetings need an active <strong>Business plan (₹299)</strong>. Owner can upgrade from My Plan.</p>
           </div>
 
           <div id="meetMainContent">
+            <div id="meetLiveBanner" class="meet-live-banner hidden"></div>
             <div id="meetHostBlock" class="meet-schedule-card mini-card">
-              <h4 style="margin:0 0 10px;">Schedule a meeting</h4>
+              <h4 style="margin:0 0 10px;">Start call now (in-app)</h4>
+              <div class="btn-row meet-quick-btns" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                <button type="button" id="meetQuickVideoBtn" class="theme-btn">📹 Start Video Call</button>
+                <button type="button" id="meetQuickVoiceBtn" class="secondary">🎙️ Start Voice Call</button>
+              </div>
+              <h4 style="margin:0 0 10px;font-size:14px;color:var(--muted,#64748b);">Or schedule with details</h4>
               <div class="grid-2">
-                <input id="meetTitle" type="text" placeholder="Meeting title * (e.g. Weekly Review)" />
+                <input id="meetTitle" type="text" placeholder="Meeting title (optional if using quick start)" />
                 <select id="meetCallType">
                   <option value="video">📹 Video call</option>
                   <option value="audio">🎙️ Voice call only</option>
@@ -1376,7 +1382,7 @@
                 <p class="helper-text">Select team members:</p>
                 <div id="meetStaffList" class="meet-staff-list"></div>
               </div>
-              <button id="meetCreateBtn" type="button" style="margin-top:12px;">➕ Create &amp; Copy Link</button>
+              <button id="meetCreateBtn" type="button" style="margin-top:12px;">➕ Start Meeting (open call in app)</button>
             </div>
 
             <div class="meet-list-section" style="margin-top:18px;">
@@ -2171,7 +2177,7 @@
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
   <script src="payroll-ui.js?v=20260918pay2"></script>
-  <script src="team-meeting-ui.js?v=20260918meet1"></script>
+  <script src="team-meeting-ui.js?v=20260918meet2"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>

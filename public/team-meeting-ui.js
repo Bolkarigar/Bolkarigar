@@ -1,5 +1,5 @@
 /**
- * BolKarigar Team Meeting UI — voice/video via Jitsi, shareable join links
+ * BolKarigar Team Meeting UI — in-app voice/video (embedded room)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
@@ -8,6 +8,7 @@
 
   let jitsiApi = null;
   let activeMeetingId = null;
+  let meetPollTimer = null;
 
   function esc(s) {
     const d = document.createElement('div');
@@ -17,7 +18,7 @@
 
   function toast(msg, type) {
     if (typeof window.showToast === 'function') window.showToast(msg, type);
-    else alert(msg);
+    else if (type === 'error') alert(msg);
   }
 
   async function parseApiResponse(r) {
@@ -47,6 +48,12 @@
     return `${window.location.origin}/${path}`;
   }
 
+  function defaultMeetingTitle(callType) {
+    const kind = callType === 'audio' ? 'Voice' : 'Video';
+    const t = new Date();
+    return `Team ${kind} — ${t.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} ${t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
   function getInviteMode() {
     const sel = document.querySelector('input[name="meetInviteMode"]:checked');
     return sel?.value === 'selected' ? 'selected' : 'all';
@@ -59,10 +66,9 @@
   function paintStaffPickers(staff, canHost) {
     const box = document.getElementById('meetStaffList');
     const hostBlock = document.getElementById('meetHostBlock');
-    const staffBlock = document.getElementById('meetStaffPickBlock');
     if (hostBlock) hostBlock.classList.toggle('hidden', !canHost);
-    if (staffBlock) staffBlock.classList.toggle('hidden', !canHost);
     if (!box) return;
+    if (!canHost) return;
     if (!staff?.length) {
       box.innerHTML = '<p class="helper-text">No staff accounts yet. Create invite codes from the Staff panel.</p>';
       return;
@@ -70,29 +76,46 @@
     box.innerHTML = staff.map((u) =>
       `<label class="meet-staff-chip"><input type="checkbox" value="${u.id}" /> ${esc(u.username)} <span class="helper-text">(${esc(u.role)})</span></label>`
     ).join('');
+    toggleStaffPickVisibility();
+  }
+
+  function paintLiveBanner(meetings) {
+    const banner = document.getElementById('meetLiveBanner');
+    if (!banner) return;
+    const live = (meetings || []).filter((m) => m.status === 'live' || m.status === 'scheduled');
+    if (!live.length) {
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
+      return;
+    }
+    const m = live[0];
+    banner.classList.remove('hidden');
+    banner.innerHTML = `<strong>🔴 Meeting ready:</strong> ${esc(m.title)} — tap <strong>Join</strong> below to enter the call inside BolKarigar.`;
   }
 
   function paintMeetingsList(meetings, canHost) {
     const list = document.getElementById('meetingsList');
     if (!list) return;
+    paintLiveBanner(meetings);
     if (!meetings?.length) {
-      list.innerHTML = '<p class="helper-text">No active meetings. Owner/Manager can schedule one above.</p>';
+      list.innerHTML = '<p class="helper-text">No active meeting. Owner/Manager: use <strong>Start Video Call</strong> above — staff will see Join here automatically.</p>';
       return;
     }
     list.innerHTML = meetings.map((m) => {
       const typeLabel = m.callType === 'audio' ? '🎙️ Voice' : '📹 Video';
       const inviteLabel = m.inviteMode === 'all' ? 'All staff' : 'Selected members';
       const joinUrl = absoluteJoinUrl(m.joinPath);
+      const liveTag = m.status === 'live' ? ' 🔴 LIVE' : '';
       return `<div class="meet-card" data-id="${m.id}">
         <div class="meet-card-head">
-          <strong>${esc(m.title)}</strong>
+          <strong>${esc(m.title)}${liveTag}</strong>
           <span class="meet-badge meet-badge--${esc(m.status)}">${esc(m.status)}</span>
         </div>
         <p class="helper-text">${typeLabel} · ${inviteLabel}${m.agenda ? ' · ' + esc(m.agenda) : ''}</p>
         <div class="meet-card-actions">
-          <button type="button" class="theme-btn meet-join-btn" data-id="${m.id}" data-code="${esc(m.joinCode)}">Join</button>
-          <button type="button" class="secondary meet-copy-btn" data-url="${esc(joinUrl)}">Copy Link</button>
-          <button type="button" class="secondary meet-wa-btn" data-url="${esc(joinUrl)}" data-title="${esc(m.title)}">WhatsApp</button>
+          <button type="button" class="theme-btn meet-join-btn" data-id="${m.id}" data-code="${esc(m.joinCode)}">Join in app</button>
+          ${canHost ? `<button type="button" class="secondary meet-copy-btn" data-url="${esc(joinUrl)}">Copy link (optional)</button>` : ''}
+          ${canHost ? `<button type="button" class="secondary meet-wa-btn" data-url="${esc(joinUrl)}" data-title="${esc(m.title)}">WhatsApp</button>` : ''}
           ${canHost ? `<button type="button" class="secondary meet-end-btn" data-id="${m.id}">End</button>` : ''}
         </div>
       </div>`;
@@ -102,11 +125,11 @@
       btn.addEventListener('click', () => joinMeeting(btn.dataset.id, btn.dataset.code));
     });
     list.querySelectorAll('.meet-copy-btn').forEach((btn) => {
-      btn.addEventListener('click', () => copyText(btn.dataset.url, 'Meeting link copied'));
+      btn.addEventListener('click', () => copyText(btn.dataset.url, 'Link copied (optional — staff can also Join from this tab)'));
     });
     list.querySelectorAll('.meet-wa-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const text = encodeURIComponent(`BolKarigar Team Meeting: ${btn.dataset.title}\nJoin: ${btn.dataset.url}`);
+        const text = encodeURIComponent(`BolKarigar meeting: ${btn.dataset.title}\nOpen app → Team Meeting → Join\nOr link: ${btn.dataset.url}`);
         window.open(`https://wa.me/?text=${text}`, '_blank');
       });
     });
@@ -125,7 +148,7 @@
       await navigator.clipboard.writeText(text);
       toast(okMsg || 'Copied', 'success');
     } catch {
-      toast(text, 'info');
+      toast(okMsg || 'Could not copy — staff can Join from Team Meeting tab', 'info');
     }
   }
 
@@ -136,7 +159,7 @@
       s.src = 'https://meet.jit.si/external_api.js';
       s.async = true;
       s.onload = () => resolve();
-      s.onerror = () => reject(new Error('Could not load meeting engine'));
+      s.onerror = () => reject(new Error('Meeting engine load failed. Check internet and try again.'));
       document.head.appendChild(s);
     });
   }
@@ -154,7 +177,16 @@
   }
 
   async function joinMeeting(meetingId, code) {
+    const joinBtn = document.querySelector(`.meet-join-btn[data-id="${meetingId}"]`);
+    if (joinBtn) {
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Connecting…';
+    }
     const res = await apiPost(`/api/meetings/${meetingId}/join`, { code });
+    if (joinBtn) {
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Join in app';
+    }
     if (!res.success) {
       toast(res.error || 'Could not join', 'error');
       return;
@@ -173,10 +205,11 @@
 
     closeMeetingRoom();
     activeMeetingId = meetingId;
-    if (titleEl) titleEl.textContent = res.meeting.title || 'Team Meeting';
+    if (titleEl) titleEl.textContent = res.meeting.title || 'BolKarigar Meeting';
 
     modal.classList.remove('hidden');
     const { domain, roomName, displayName, isModerator, startWithVideoMuted, subject } = res.jitsi;
+    const audioOnly = res.meeting.callType === 'audio';
 
     jitsiApi = new window.JitsiMeetExternalAPI(domain, {
       roomName,
@@ -186,27 +219,42 @@
       userInfo: { displayName },
       configOverwrite: {
         startWithAudioMuted: false,
-        startWithVideoMuted: !!startWithVideoMuted,
-        prejoinPageEnabled: true,
+        startWithVideoMuted: audioOnly || !!startWithVideoMuted,
+        prejoinPageEnabled: false,
+        disableDeepLinking: true,
         subject: subject || 'BolKarigar Meeting'
       },
       interfaceConfigOverwrite: {
         MOBILE_APP_PROMO: false,
-        SHOW_JITSI_WATERMARK: false
+        SHOW_JITSI_WATERMARK: false,
+        APP_NAME: 'BolKarigar',
+        NATIVE_APP_NAME: 'BolKarigar'
       }
     });
 
-    if (isModerator) {
-      jitsiApi.executeCommand('subject', subject || 'BolKarigar Meeting');
+    if (isModerator && subject) {
+      try { jitsiApi.executeCommand('subject', subject); } catch (_) { /* ignore */ }
     }
 
     jitsiApi.addListener('readyToClose', () => {
       closeMeetingRoom();
       loadTeamMeetingPanel();
     });
+
+    toast('✅ Call opened inside BolKarigar — allow mic/camera when browser asks', 'success');
   }
 
-  async function loadTeamMeetingPanel() {
+  function startMeetPolling() {
+    if (meetPollTimer) clearInterval(meetPollTimer);
+    meetPollTimer = setInterval(() => {
+      const panel = document.getElementById('teamMeetingPanel');
+      if (panel?.classList.contains('active') && !activeMeetingId) {
+        loadTeamMeetingPanel(true);
+      }
+    }, 12000);
+  }
+
+  async function loadTeamMeetingPanel(silent) {
     const noAccess = document.getElementById('meetNoAccess');
     const main = document.getElementById('meetMainContent');
     const me = window._bkAccountInfo;
@@ -221,31 +269,50 @@
 
     const data = await apiGet('/api/meetings');
     if (!data.success) {
-      toast(data.error || 'Could not load meetings', 'error');
+      if (!silent) toast(data.error || 'Could not load meetings', 'error');
       return;
     }
     paintMeetingsList(data.meetings, data.canHost);
 
     const staffData = await apiGet('/api/meetings/staff');
     if (staffData.success) paintStaffPickers(staffData.staff, data.canHost);
+    startMeetPolling();
   }
 
-  async function createMeeting() {
-    const title = document.getElementById('meetTitle')?.value.trim();
+  async function createMeeting(callType, autoJoin) {
+    let title = document.getElementById('meetTitle')?.value.trim();
     const agenda = document.getElementById('meetAgenda')?.value.trim();
-    const callType = document.getElementById('meetCallType')?.value || 'video';
+    const type = callType || document.getElementById('meetCallType')?.value || 'video';
     const inviteMode = getInviteMode();
     const inviteeUserIds = inviteMode === 'selected' ? selectedStaffIds() : [];
-    if (!title) return toast('Meeting title is required', 'error');
+    if (!title) title = defaultMeetingTitle(type);
+    if (inviteMode === 'selected' && !inviteeUserIds.length) {
+      return toast('Select at least one team member, or choose All staff', 'error');
+    }
 
-    const res = await apiPost('/api/meetings', { title, agenda, callType, inviteMode, inviteeUserIds });
-    if (!res.success) return toast(res.error || 'Failed', 'error');
-    toast('✅ Meeting created — share the link with your team', 'success');
+    const btn = autoJoin
+      ? document.getElementById(type === 'audio' ? 'meetQuickVoiceBtn' : 'meetQuickVideoBtn')
+      : document.getElementById('meetCreateBtn');
+    const prevText = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Starting…'; }
+
+    const res = await apiPost('/api/meetings', { title, agenda, callType: type, inviteMode, inviteeUserIds });
+    if (btn) { btn.disabled = false; btn.textContent = prevText || btn.textContent; }
+
+    if (!res.success) return toast(res.error || 'Failed to start meeting', 'error');
+
     document.getElementById('meetTitle').value = '';
     document.getElementById('meetAgenda').value = '';
-    const url = absoluteJoinUrl(res.meeting.joinPath);
-    await copyText(url, 'Meeting link copied — send to staff');
-    loadTeamMeetingPanel();
+    await loadTeamMeetingPanel(true);
+
+    if (autoJoin && res.meeting?.id && res.meeting?.joinCode) {
+      await joinMeeting(String(res.meeting.id), res.meeting.joinCode);
+      return;
+    }
+    toast('✅ Meeting started — open the call with Join in app', 'success');
+    if (res.meeting?.id && res.meeting?.joinCode) {
+      await joinMeeting(String(res.meeting.id), res.meeting.joinCode);
+    }
   }
 
   function toggleStaffPickVisibility() {
@@ -274,12 +341,14 @@
 
   async function openPanelAndJoin(id, code) {
     if (typeof window.openPanel === 'function') window.openPanel('teamMeetingPanel');
-    await loadTeamMeetingPanel();
+    await loadTeamMeetingPanel(true);
     setTimeout(() => joinFromLink(id, code), 400);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('meetCreateBtn')?.addEventListener('click', createMeeting);
+    document.getElementById('meetQuickVideoBtn')?.addEventListener('click', () => createMeeting('video', true));
+    document.getElementById('meetQuickVoiceBtn')?.addEventListener('click', () => createMeeting('audio', true));
+    document.getElementById('meetCreateBtn')?.addEventListener('click', () => createMeeting(null, true));
     document.getElementById('teamMeetingRoomCloseBtn')?.addEventListener('click', closeMeetingRoom);
     document.getElementById('teamMeetingRoomModal')?.addEventListener('click', (e) => {
       if (e.target?.id === 'teamMeetingRoomModal') closeMeetingRoom();
@@ -288,7 +357,7 @@
       r.addEventListener('change', toggleStaffPickVisibility);
     });
     document.querySelectorAll('.tab-btn[data-tab="teamMeetingPanel"]').forEach((btn) => {
-      btn.addEventListener('click', loadTeamMeetingPanel);
+      btn.addEventListener('click', () => loadTeamMeetingPanel());
     });
     toggleStaffPickVisibility();
     setTimeout(tryMeetJoinFromUrl, 1500);
