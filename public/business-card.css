@@ -957,9 +957,10 @@
   background: linear-gradient(
     105deg,
     transparent 40%,
-    color-mix(in srgb, var(--bc-shimmer, #d4af37) 38%, transparent) 50%,
+    var(--bc-shimmer, #d4af37) 50%,
     transparent 60%
   );
+  opacity: 0.38;
   animation: bc-shimmer-sweep 4.5s ease-in-out infinite;
   transform: rotate(12deg);
 }
@@ -970,7 +971,8 @@
   pointer-events: none;
   z-index: 2;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bc-glow, #d4af37) 35%, transparent);
+  box-shadow: inset 0 0 0 2px var(--bc-glow, #d4af37);
+  opacity: 0.35;
   animation: bc-border-glow 3s ease-in-out infinite;
 }
 
@@ -1014,7 +1016,8 @@
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  background: radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--bc-accent) 22%, transparent) 0%, transparent 48%);
+  background: radial-gradient(circle at 88% 12%, var(--bc-accent, #22c55e) 0%, transparent 48%);
+  opacity: 0.22;
   animation: bc-pro-pulse 4s ease-in-out infinite;
 }
 
@@ -1076,14 +1079,10 @@
   letter-spacing: 2px;
   padding: 7px 14px;
   border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--bc-glow, #d4af37) 28%, #1a1a1a),
-    color-mix(in srgb, var(--bc-glow, #d4af37) 12%, #0a0a0a)
-  );
-  border: 2px solid color-mix(in srgb, var(--bc-glow, #d4af37) 72%, transparent);
+  background: linear-gradient(135deg, #1f1a12, #0c0c0c);
+  border: 2px solid var(--bc-glow, #d4af37);
   color: var(--bc-glow, #d4af37);
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--bc-glow, #d4af37) 38%, transparent);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   text-transform: uppercase;
 }
@@ -1111,33 +1110,35 @@
   z-index: 1;
 }
 
-.bc-export-capture .bc-anim-shimmer::after,
+.bc-export-capture .bc-anim-shimmer,
+.bc-export-capture .bc-anim-border-glow,
 .bc-export-capture .bc-anim-spark,
 .bc-export-capture .bc-pro-anim-bar,
-.bc-export-capture .bc-pro-anim-pulse {
-  animation: none !important;
-  opacity: 0 !important;
+.bc-export-capture .bc-pro-anim-pulse,
+.bc-export-capture .bc-lux-seal {
+  display: none !important;
 }
-.bc-export-capture .bc-anim-float,
-.bc-export-capture .bc-anim-border-glow,
-.bc-export-capture .bc-lux-seal.bc-anim-glow {
+.bc-export-capture .bc-anim-float {
   animation: none !important;
+  transform: none !important;
 }
 
 @keyframes bc-shimmer-sweep {
   0%, 100% { transform: translateX(0) rotate(12deg); opacity: 0; }
-  12% { opacity: 1; }
-  50% { transform: translateX(320%) rotate(12deg); opacity: 1; }
+  12% { opacity: 0.38; }
+  50% { transform: translateX(320%) rotate(12deg); opacity: 0.38; }
   62% { opacity: 0; }
 }
 @keyframes bc-border-glow {
   0%, 100% {
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bc-glow, #d4af37) 22%, transparent);
+    opacity: 0.22;
+    box-shadow: inset 0 0 0 2px var(--bc-glow, #d4af37);
   }
   50% {
+    opacity: 0.62;
     box-shadow:
-      inset 0 0 0 3px color-mix(in srgb, var(--bc-glow, #d4af37) 62%, transparent),
-      0 0 26px color-mix(in srgb, var(--bc-glow, #d4af37) 22%, transparent);
+      inset 0 0 0 3px var(--bc-glow, #d4af37),
+      0 0 26px var(--bc-glow, #d4af37);
   }
 }
 @keyframes bc-seal-glow {

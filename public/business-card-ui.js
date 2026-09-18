@@ -1338,18 +1338,21 @@
     updatePreview();
     const exportHost = document.getElementById("bcExportHost");
     exportHost?.classList.add("bc-export-capture");
-    await new Promise((r) => setTimeout(r, 120));
-    const el = document.querySelector("#bcExportHost .bc-card-export");
-    if (!el) throw new Error("Card render nahi hua");
-    const canvas = await window.html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null,
-      width: 1050,
-      height: 600
-    });
-    exportHost?.classList.remove("bc-export-capture");
-    return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png", 1));
+    try {
+      await new Promise((r) => setTimeout(r, 120));
+      const el = document.querySelector("#bcExportHost .bc-card-export");
+      if (!el) throw new Error("Card render nahi hua");
+      const canvas = await window.html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        width: 1050,
+        height: 600
+      });
+      return await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png", 1));
+    } finally {
+      exportHost?.classList.remove("bc-export-capture");
+    }
   }
 
   async function downloadCard() {
