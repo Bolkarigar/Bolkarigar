@@ -13,6 +13,69 @@
     { v: 'unpaid_leave', l: '🚫 Unpaid Leave' },
     { v: 'absent', l: '❌ Absent' }
   ];
+  const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  function getEmployeeWeeklyOffs(employee) {
+    if (Array.isArray(employee?.weeklyOffs) && employee.weeklyOffs.length) {
+      return [...new Set(employee.weeklyOffs.map(Number).filter((n) => n >= 0 && n <= 6))].sort((a, b) => a - b);
+    }
+    const legacy = employee?.weeklyOff;
+    if (Number.isFinite(Number(legacy)) && legacy >= 0 && legacy <= 6) return [Number(legacy)];
+    return [];
+  }
+
+  function formatWeeklyOffCell(employee) {
+    const offs = getEmployeeWeeklyOffs(employee);
+    if (!offs.length) return '—';
+    return offs.map((d) => WEEKDAY_SHORT[d]).join(', ');
+  }
+
+  function getSelectedWeeklyOffs() {
+    return [...document.querySelectorAll('#payrollEmpWeeklyOffs input[type="checkbox"]:checked')]
+      .map((cb) => Number(cb.value))
+      .filter((n) => n >= 0 && n <= 6)
+      .sort((a, b) => a - b);
+  }
+
+  function setWeeklyOffCheckboxes(offs) {
+    const selected = new Set((offs || []).map(Number));
+    document.querySelectorAll('#payrollEmpWeeklyOffs input[type="checkbox"]').forEach((cb) => {
+      cb.checked = selected.has(Number(cb.value));
+    });
+  }
+
+  function resetEmployeeForm() {
+    document.getElementById('payrollEmpEditId').value = '';
+    document.getElementById('payrollEmpName').value = '';
+    document.getElementById('payrollEmpPhone').value = '';
+    document.getElementById('payrollEmpDesignation').value = '';
+    document.getElementById('payrollEmpSalary').value = '';
+    document.getElementById('payrollLinkUser').value = '';
+    setWeeklyOffCheckboxes([]);
+    const addBtn = document.getElementById('payrollAddEmpBtn');
+    const cancelBtn = document.getElementById('payrollCancelEmpBtn');
+    if (addBtn) addBtn.textContent = '➕ Add Employee';
+    if (cancelBtn) cancelBtn.classList.add('hidden');
+  }
+
+  function startEditEmployee(employee) {
+    document.getElementById('payrollEmpEditId').value = employee._id;
+    document.getElementById('payrollEmpName').value = employee.name || '';
+    document.getElementById('payrollEmpPhone').value = employee.phone || '';
+    document.getElementById('payrollEmpDesignation').value = employee.designation || '';
+    document.getElementById('payrollEmpSalary').value = employee.monthlySalary ?? '';
+    setWeeklyOffCheckboxes(getEmployeeWeeklyOffs(employee));
+    const addBtn = document.getElementById('payrollAddEmpBtn');
+    const cancelBtn = document.getElementById('payrollCancelEmpBtn');
+    if (addBtn) addBtn.textContent = '💾 Update Employee';
+    if (cancelBtn) cancelBtn.classList.remove('hidden');
+    populateStaffLinkSelect(true).then(() => {
+      const sel = document.getElementById('payrollLinkUser');
+      if (sel && employee.linkedUserId) sel.value = String(employee.linkedUserId);
+    });
+    document.getElementById('payrollEmpName')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   function esc(s) {
     const d = document.createElement('div');
@@ -214,7 +277,7 @@
             </tr>
             <tr>
               <td class="lbl">DOJ</td><td class="val">${fmtDate(s.employee.joinDate)}</td>
-              <td class="lbl">Weekly Off</td><td class="val">${esc(s.employee.weeklyOffLabel || 'Sunday')}</td>
+              <td class="lbl">Weekly Off</td><td class="val">${esc(s.employee.weeklyOffLabel || 'None')}</td>
             </tr>
             <tr>
               <td class="lbl">Monthly Salary</td><td class="val">${fmtMoney(s.employee.monthlySalary)}</td>
@@ -354,16 +417,28 @@
         <td><strong>${esc(e.name)}</strong><br><span class="helper-text">${esc(e.designation)}</span></td>
         <td>${esc(e.phone || '—')}</td>
         <td>₹${Number(e.monthlySalary).toFixed(2)}</td>
-        <td>${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][e.weeklyOff ?? 0]}</td>
+        <td>${esc(formatWeeklyOffCell(e))}</td>
         <td>${e.linkedUserId ? '✅ App linked' : '—'}</td>
-        <td><button type="button" class="secondary payroll-del-emp" data-id="${e._id}">Remove</button></td>
+        <td>
+          <div class="payroll-emp-actions">
+            <button type="button" class="secondary payroll-edit-emp" data-id="${e._id}">Update</button>
+            <button type="button" class="secondary payroll-del-emp" data-id="${e._id}">Remove</button>
+          </div>
+        </td>
       </tr>
     `).join('');
+    body.querySelectorAll('.payroll-edit-emp').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const employee = payrollEmployees.find((e) => String(e._id) === btn.dataset.id);
+        if (employee) startEditEmployee(employee);
+      });
+    });
     body.querySelectorAll('.payroll-del-emp').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm('Remove this employee?')) return;
         const res = await apiDelete('/api/payroll/employees/' + btn.dataset.id);
         toast(res.message || res.error || 'Done', res.success ? 'success' : 'error');
+        if (String(document.getElementById('payrollEmpEditId')?.value) === btn.dataset.id) resetEmployeeForm();
         loadEmployees();
       });
     });
@@ -458,7 +533,16 @@
       body.innerHTML = '<tr><td colspan="4">Add an employee first.</td></tr>';
       return;
     }
+    const attDow = new Date(`${date}T12:00:00`).getDay();
     body.innerHTML = data.rows.map((row) => {
+      const offs = getEmployeeWeeklyOffs(row.employee);
+      if (offs.includes(attDow)) {
+        return `<tr data-emp="${row.employee._id}" data-weekly-off="1">
+          <td><strong>${esc(row.employee.name)}</strong></td>
+          <td>${esc(row.employee.designation)}</td>
+          <td colspan="2"><span class="helper-text">Weekly Off (${WEEKDAY_LONG[attDow]})</span></td>
+        </tr>`;
+      }
       const cur = row.attendance?.status || 'present';
       const opts = STATUS_OPTS.map((o) => `<option value="${o.v}" ${o.v === cur ? 'selected' : ''}>${o.l}</option>`).join('');
       return `<tr data-emp="${row.employee._id}">
@@ -474,7 +558,7 @@
     const saveBtn = document.getElementById('payrollSaveAttBtn');
     await window.bkWithSaveLock(saveBtn, async () => {
       const date = document.getElementById('payrollAttDate')?.value;
-      const rows = [...document.querySelectorAll('#payrollAttendanceBody tr[data-emp]')].map((tr) => ({
+      const rows = [...document.querySelectorAll('#payrollAttendanceBody tr[data-emp]:not([data-weekly-off="1"])')].map((tr) => ({
         employeeId: tr.dataset.emp,
         status: tr.querySelector('.payroll-att-status')?.value,
         note: tr.querySelector('.payroll-att-note')?.value || ''
@@ -561,14 +645,17 @@
     }
     const att = await apiGet('/api/payroll/attendance');
     const cur = att.attendance?.status || '';
+    const attDate = att.date || new Date().toISOString().slice(0, 10);
+    const attDow = new Date(`${attDate}T12:00:00`).getDay();
+    const isWeeklyOff = getEmployeeWeeklyOffs(data.employee).includes(attDow);
     const btns = STATUS_OPTS.map((o) =>
       `<button type="button" class="theme-btn payroll-self-mark ${cur === o.v ? 'active' : ''}" data-status="${o.v}">${o.l}</button>`
     ).join(' ');
     box.innerHTML = `
       <p><strong>${esc(data.employee.name)}</strong> (${esc(data.employee.designation)}) — Aaj ki hajri</p>
-      <p class="helper-text">Date: ${att.date || 'today'} | Tap to mark attendance</p>
-      <div class="btn-row" style="flex-wrap:wrap;gap:8px;margin:12px 0;">${btns}</div>
-      <p class="helper-text">Today's status: <strong>${cur ? cur.replace('_', ' ') : 'Not marked yet'}</strong></p>
+      <p class="helper-text">Date: ${attDate} | ${isWeeklyOff ? `Weekly Off (${WEEKDAY_LONG[attDow]})` : 'Tap to mark attendance'}</p>
+      ${isWeeklyOff ? '' : `<div class="btn-row" style="flex-wrap:wrap;gap:8px;margin:12px 0;">${btns}</div>
+      <p class="helper-text">Today's status: <strong>${cur ? cur.replace('_', ' ') : 'Not marked yet'}</strong></p>`}
       <div class="btn-row" style="gap:8px;flex-wrap:wrap;">
         <button type="button" id="payrollViewMySlipBtn" class="secondary">📄 Meri Salary Slip</button>
       </div>`;
@@ -632,24 +719,30 @@
     initPayrollSubtabs();
 
     document.getElementById('payrollAddEmpBtn')?.addEventListener('click', async () => {
+      const editId = document.getElementById('payrollEmpEditId')?.value.trim();
       const name = document.getElementById('payrollEmpName')?.value.trim();
       const phone = document.getElementById('payrollEmpPhone')?.value.trim();
       const designation = document.getElementById('payrollEmpDesignation')?.value.trim();
       const monthlySalary = document.getElementById('payrollEmpSalary')?.value;
-      const weeklyOff = document.getElementById('payrollEmpWeeklyOff')?.value;
+      const weeklyOffs = getSelectedWeeklyOffs();
       const linkedUserId = document.getElementById('payrollLinkUser')?.value || null;
       if (!name) return toast('Name is required', 'error');
-      const res = await apiPost('/api/payroll/employees', { name, phone, designation, monthlySalary, weeklyOff, linkedUserId });
-      toast(res.success ? '✅ Employee added' : (res.error || 'Failed'), res.success ? 'success' : 'error');
+      const payload = { name, phone, designation, monthlySalary, weeklyOffs, linkedUserId };
+      const res = editId
+        ? await apiPut('/api/payroll/employees/' + editId, payload)
+        : await apiPost('/api/payroll/employees', payload);
+      toast(
+        res.success ? (editId ? '✅ Employee updated' : '✅ Employee added') : (res.error || 'Failed'),
+        res.success ? 'success' : 'error'
+      );
       if (res.success) {
-        document.getElementById('payrollEmpName').value = '';
-        document.getElementById('payrollEmpPhone').value = '';
-        document.getElementById('payrollEmpSalary').value = '';
-        document.getElementById('payrollLinkUser').value = '';
+        resetEmployeeForm();
         loadEmployees();
         populateStaffLinkSelect(true);
       }
     });
+
+    document.getElementById('payrollCancelEmpBtn')?.addEventListener('click', resetEmployeeForm);
 
     document.getElementById('payrollSaveAttBtn')?.addEventListener('click', saveDailyAttendance);
     document.getElementById('payrollLoadAttBtn')?.addEventListener('click', loadDailyAttendance);

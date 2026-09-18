@@ -1447,6 +1447,27 @@ button.bk-save-busy {
   grid-column: 1 / -1;
   margin: -4px 0 0;
 }
+.payroll-weekly-off-field {
+  grid-column: 1 / -1;
+}
+.payroll-weekly-off-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+.payroll-weekly-off-picks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.payroll-emp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .hidden { display: none !important; }
 #udharPaymentModal:not(.hidden),
 #udharDetailModal:not(.hidden) { display: flex !important; }

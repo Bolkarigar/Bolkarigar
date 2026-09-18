@@ -1249,19 +1249,26 @@
                 <input id="payrollEmpPhone" placeholder="Phone" />
                 <input id="payrollEmpDesignation" placeholder="Designation (Cashier, Helper...)" />
                 <input id="payrollEmpSalary" type="number" placeholder="Monthly Salary ₹ *" />
-                <select id="payrollEmpWeeklyOff">
-                  <option value="0">Weekly Off: Sunday</option>
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                </select>
+                <div class="payroll-weekly-off-field">
+                  <span class="helper-text">Weekly Off (one or more days):</span>
+                  <div id="payrollEmpWeeklyOffs" class="payroll-weekly-off-picks">
+                    <label><input type="checkbox" value="0" /> Sun</label>
+                    <label><input type="checkbox" value="1" /> Mon</label>
+                    <label><input type="checkbox" value="2" /> Tue</label>
+                    <label><input type="checkbox" value="3" /> Wed</label>
+                    <label><input type="checkbox" value="4" /> Thu</label>
+                    <label><input type="checkbox" value="5" /> Fri</label>
+                    <label><input type="checkbox" value="6" /> Sat</label>
+                  </div>
+                </div>
                 <select id="payrollLinkUser"><option value="">— App login link (optional) —</option></select>
                 <p id="payrollLinkHint" class="helper-text payroll-link-hint">Staff app login link (optional) — invited staff are linked automatically.</p>
               </div>
-              <button id="payrollAddEmpBtn" type="button" style="margin-top: 10px;">➕ Add Employee</button>
+              <input type="hidden" id="payrollEmpEditId" value="" />
+              <div class="btn-row" style="margin-top: 10px; flex-wrap: wrap; gap: 8px;">
+                <button id="payrollAddEmpBtn" type="button">➕ Add Employee</button>
+                <button id="payrollCancelEmpBtn" type="button" class="secondary hidden">Cancel Edit</button>
+              </div>
               <div class="table-wrap" style="margin-top:14px;">
                 <table>
                   <thead><tr><th>Name</th><th>Phone</th><th>Salary</th><th>Weekly Off</th><th>App Link</th><th></th></tr></thead>
@@ -2118,7 +2125,7 @@
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260902r1"></script>
-  <script src="payroll-ui.js?v=20260918ui55"></script>
+  <script src="payroll-ui.js?v=20260918pay2"></script>
   <script src="live-features-ui.js?v=20260902r1"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>

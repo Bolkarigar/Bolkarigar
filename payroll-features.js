@@ -12,6 +12,38 @@ const STATUS_LABELS = {
 };
 const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+function normalizeWeeklyOffs(employee) {
+  const raw = employee?.weeklyOffs;
+  if (Array.isArray(raw) && raw.length) {
+    return [...new Set(raw.map(Number).filter((n) => n >= 0 && n <= 6))].sort((a, b) => a - b);
+  }
+  const legacy = employee?.weeklyOff;
+  if (Number.isFinite(Number(legacy)) && legacy >= 0 && legacy <= 6) return [Number(legacy)];
+  return [];
+}
+
+function formatWeeklyOffLabel(employee) {
+  const offs = normalizeWeeklyOffs(employee);
+  if (!offs.length) return 'None';
+  return offs.map((d) => WEEKDAY_NAMES[d]).join(', ');
+}
+
+function parseWeeklyOffsInput(body) {
+  if (Array.isArray(body?.weeklyOffs)) {
+    return [...new Set(body.weeklyOffs.map(Number).filter((n) => n >= 0 && n <= 6))].sort((a, b) => a - b);
+  }
+  if (body?.weeklyOff !== undefined && body?.weeklyOff !== null && body?.weeklyOff !== '') {
+    const n = Number(body.weeklyOff);
+    if (Number.isFinite(n) && n >= 0 && n <= 6) return [n];
+  }
+  return null;
+}
+
+function applyWeeklyOffFields(emp, weeklyOffs) {
+  emp.weeklyOffs = weeklyOffs;
+  emp.weeklyOff = weeklyOffs.length ? weeklyOffs[0] : 0;
+}
+
 function dateKeyFromParts(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -47,7 +79,7 @@ function calcMonthlySalary(employee, attendanceByDate, advances, year, month) {
 
     const key = dateKeyFromParts(year, month, d);
     const dow = dt.getDay();
-    const isWeeklyOff = dow === (employee.weeklyOff ?? 0);
+    const isWeeklyOff = normalizeWeeklyOffs(employee).includes(dow);
 
     if (isWeeklyOff) {
       dailyRows.push({ date: key, weekday: WEEKDAY_NAMES[dow], status: 'weekly_off', earned: 0 });
@@ -138,6 +170,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     designation: { type: String, default: 'Staff' },
     monthlySalary: { type: Number, required: true, min: 0 },
     weeklyOff: { type: Number, default: 0, min: 0, max: 6 },
+    weeklyOffs: { type: [Number], default: [] },
     joinDate: { type: Date, default: Date.now },
     linkedUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     isActive: { type: Boolean, default: true }
@@ -208,6 +241,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
       designation: roleLabel,
       monthlySalary: 0,
       weeklyOff: 0,
+      weeklyOffs: [0],
       linkedUserId: user._id,
       joinDate: user.createdAt || new Date()
     });
@@ -321,7 +355,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
   });
 
   app.post('/api/payroll/employees', authenticateToken, biz, ownerMiddleware, payrollContextMiddleware, requirePayrollManage, async (req, res) => {
-    const { name, phone, designation, monthlySalary, weeklyOff, joinDate, linkedUserId } = req.body || {};
+    const { name, phone, designation, monthlySalary, weeklyOff, weeklyOffs, joinDate, linkedUserId } = req.body || {};
     if (!name?.trim()) return res.status(400).json({ error: 'Employee naam zaroori hai.' });
     const salary = Number(monthlySalary);
     if (!Number.isFinite(salary) || salary < 0) return res.status(400).json({ error: 'Valid monthly salary daalein.' });
@@ -333,13 +367,17 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
       if (existing) return res.status(400).json({ error: 'Yeh staff user pehle se kisi employee se linked hai.' });
     }
 
+    const parsedOffs = parseWeeklyOffsInput({ weeklyOffs, weeklyOff });
+    const offs = parsedOffs !== null ? parsedOffs : [];
+
     const emp = await PayrollEmployee.create({
       ownerId: req.ownerId,
       name: name.trim(),
       phone: phone || '',
       designation: designation || 'Staff',
       monthlySalary: salary,
-      weeklyOff: Number.isFinite(Number(weeklyOff)) ? Number(weeklyOff) : 0,
+      weeklyOff: offs.length ? offs[0] : 0,
+      weeklyOffs: offs,
       joinDate: joinDate ? new Date(joinDate) : new Date(),
       linkedUserId: linkedUserId || null
     });
@@ -350,12 +388,13 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     const emp = await PayrollEmployee.findOne({ _id: req.params.id, ownerId: req.ownerId, isActive: true });
     if (!emp) return res.status(404).json({ error: 'Employee nahi mila.' });
 
-    const { name, phone, designation, monthlySalary, weeklyOff, joinDate, linkedUserId } = req.body || {};
+    const { name, phone, designation, monthlySalary, weeklyOff, weeklyOffs, joinDate, linkedUserId } = req.body || {};
     if (name) emp.name = name.trim();
     if (phone !== undefined) emp.phone = phone;
     if (designation) emp.designation = designation;
     if (monthlySalary !== undefined) emp.monthlySalary = Number(monthlySalary);
-    if (weeklyOff !== undefined) emp.weeklyOff = Number(weeklyOff);
+    const parsedOffs = parseWeeklyOffsInput({ weeklyOffs, weeklyOff });
+    if (parsedOffs !== null) applyWeeklyOffFields(emp, parsedOffs);
     if (joinDate) emp.joinDate = new Date(joinDate);
 
     if (linkedUserId !== undefined) {
@@ -540,7 +579,8 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
         designation: employee.designation,
         monthlySalary: employee.monthlySalary,
         weeklyOff: employee.weeklyOff,
-        weeklyOffLabel: WEEKDAY_NAMES[employee.weeklyOff ?? 0],
+        weeklyOffs: normalizeWeeklyOffs(employee),
+        weeklyOffLabel: formatWeeklyOffLabel(employee),
         joinDate: employee.joinDate || null
       },
       ...calc,
