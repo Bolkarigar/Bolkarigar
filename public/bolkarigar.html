@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260919alert1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260919est2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
@@ -153,6 +153,7 @@
             <button class="tab-btn" data-tab="projectPanel" type="button" data-i18n="nav.projects">📁 Projects</button>
             <button class="tab-btn" data-tab="inventoryPanel" type="button" data-i18n="nav.inventory">📦 Inventory</button>
             <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
+            <button class="tab-btn" data-tab="estimatePanel" type="button" data-i18n="nav.estimate">📋 Estimate / Quote</button>
           </div>
           <div class="nav-group nav-group-hajri staff-hajri-nav">
             <p class="nav-group-label" data-i18n="nav.hajri">Attendance</p>
@@ -1217,6 +1218,88 @@
           </div>
         </section>
 
+        <!-- 🟢 ESTIMATE / QUOTATION — Kaccha bill before work (Business ₹299) -->
+        <section class="panel" id="estimatePanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Business Plan — ₹299</p>
+              <h3 data-i18n="estimate.title">📋 Quotation / Estimate Builder</h3>
+            </div>
+          </div>
+          <p class="helper-text" data-i18n="estimate.hint">Share a PDF estimate with your client before starting work. When they accept, convert to invoice in one click.</p>
+
+          <div id="estNoAccess" class="hidden payroll-no-access">
+            <p>⚠️ Estimates are on the <strong>Business plan (₹299)</strong> only. Upgrade from My Plan.</p>
+          </div>
+
+          <div id="estMainContent">
+            <div class="btn-row est-subtabs" style="margin-bottom:14px;flex-wrap:wrap;">
+              <button type="button" class="est-subtab-btn active" data-sub="estFormSub" id="estFormSubtab">✏️ New Estimate</button>
+              <button type="button" class="est-subtab-btn" data-sub="estListSub">📂 Saved Estimates</button>
+            </div>
+
+            <div class="est-subpanel active" id="estFormSub">
+              <div class="grid-2">
+                <input id="estNumber" placeholder="Estimate No. (auto)" readonly />
+                <input id="estDate" type="date" aria-label="Estimate date" />
+                <input id="estCustomer" placeholder="Client / Customer Name *" />
+                <input id="estProject" placeholder="Project / Site (optional)" />
+                <input id="estCustomerGstin" placeholder="Client GSTIN (optional)" />
+                <input id="estValidUntil" type="date" aria-label="Valid until" />
+                <input id="estCustomerState" placeholder="Client State" />
+                <input id="estCustomerPincode" placeholder="Pincode" />
+              </div>
+              <input id="estCustomerAddress" placeholder="Client Address" style="width:100%;margin-top:8px;" />
+              <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;align-items:center;gap:10px;">
+                <select id="estPaymentType">
+                  <option value="Cash">Cash</option>
+                  <option value="Credit">Credit (Udhar)</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank">Bank</option>
+                </select>
+                <label><input type="checkbox" id="estGstToggle" checked /> GST on estimate</label>
+              </div>
+              <textarea id="estNotes" placeholder="Terms / notes for client (optional)" rows="2" style="width:100%;margin-top:8px;"></textarea>
+
+              <h4 style="margin:16px 0 8px;">Line items</h4>
+              <div class="grid-2">
+                <input id="estItemName" placeholder="Work / Item description *" />
+                <input id="estItemHsn" placeholder="HSN/SAC (optional)" />
+                <input id="estItemQty" type="number" placeholder="Qty" value="1" />
+                <input id="estItemUnit" placeholder="Unit" value="Pcs" />
+                <input id="estItemPrice" type="number" placeholder="Rate ₹ *" />
+                <input id="estItemGst" type="number" placeholder="GST %" value="18" />
+              </div>
+              <button type="button" id="estAddLineBtn" style="margin-top:10px;">➕ Add Line</button>
+
+              <div class="table-wrap" style="margin-top:14px;">
+                <table>
+                  <thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+                  <tbody id="estLineBody"></tbody>
+                </table>
+              </div>
+              <p style="text-align:right;margin-top:8px;"><strong>Total: ₹<span id="estGrandTotal">0.00</span></strong></p>
+
+              <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+                <button type="button" id="estSaveBtn">💾 Save Estimate</button>
+                <button type="button" id="estPdfBtn" class="secondary">📄 PDF / Print</button>
+                <button type="button" id="estConvertBtn" class="secondary">✅ Client Accepted → Invoice</button>
+                <button type="button" id="estNewBtn" class="secondary">🆕 Clear Form</button>
+              </div>
+              <p id="estSaveStatus" class="helper-text" style="margin-top:8px;"></p>
+            </div>
+
+            <div class="est-subpanel" id="estListSub">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Estimate No.</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="estSavedBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- 🟢 PAYROLL — Employee Hajri & Monthly Salary (Business ₹299) -->
         <section class="panel" id="payrollPanel">
           <div class="panel-header">
@@ -2199,7 +2282,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260919noconv1"></script>
+  <script src="bolkarigar.js?v=20260919est2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2221,6 +2304,7 @@
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260918co3"></script>
   <script src="payroll-ui.js?v=20260919staffpay1"></script>
+  <script src="estimate-ui.js?v=20260919est2"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
   <script src="team-meeting-ui.js?v=20260919meet1"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>

@@ -247,6 +247,18 @@
       ]
     },
     {
+      id: "estimatePanel", panelId: "estimatePanel", plans: ["business"], hideForStaff: true, color: "#059669",
+      title: "📋 Quotation / Estimate",
+      hindi: "Kaam shuru karne se pehle client ko PDF estimate bhejein — accept hone par ek click se Invoice ban jaye.",
+      english: "Build PDF estimates before work starts; when the client accepts, convert to a tax invoice in one click.",
+      steps: [
+        { en: "Add client, project/site and line items (work + rate)", hi: "Client, project aur line items (kaam + rate) add karein", visual: { title: "📋 New", lines: [{ label: "Client", value: "Sharma Ji", animate: true }, { label: "Work", value: "Modular kitchen" }] } },
+        { en: "Save and PDF / Print — share on WhatsApp", hi: "Save karke PDF print — WhatsApp par bhejein", visual: { title: "📄 PDF", action: "Save as PDF" } },
+        { en: "Mark Sent when shared; Accept when client agrees", hi: "Bhejne par Sent; client OK par Accept", visual: { title: "✅ Status", lines: [{ label: "Status", value: "Accepted" }] } },
+        { en: "Client Accepted → Invoice — new invoice number + sales record", hi: "→ Invoice — naya bill number aur sales record", visual: { title: "🧾 Invoice", lines: [{ label: "From", value: "EST/12/25 → INV/45/25" }] } }
+      ]
+    },
+    {
       id: "payrollPanel", panelId: "payrollPanel", plans: ["business"], hideForStaff: true, color: "#7c3aed",
       title: "💼 Staff Payroll & Attendance",
       hindi: "Staff ki daily hajri — Present/Half-day/Leave. Month-end salary auto, advance minus, salary slip print/WhatsApp.",

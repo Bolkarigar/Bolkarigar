@@ -21,6 +21,7 @@ const { callVoiceParse } = require('./voice-ai.js');
 const { callChatAI, sanitizeHistory } = require('./chat-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
+const { setupEstimateFeatures } = require('./estimate-features.js');
 const { setupTeamMeetingFeatures } = require('./team-meeting-features.js');
 const { setupTeamTodoFeatures } = require('./team-todo-features.js');
 const { setupTeamGalleryFeatures } = require('./team-gallery-features.js');
@@ -356,6 +357,7 @@ const businessProfileSchema = new mongoose.Schema({
   // konsa agent connection kis dukaandaar/company ka hai.
   agentToken: { type: String, default: null },
   invoiceCounter: { type: Number, default: 0 },
+  estimateCounter: { type: Number, default: 0 },
   payrollViewerRole: { type: String, enum: ['manager', 'cashier'], default: 'manager' }
 });
 
@@ -3336,6 +3338,11 @@ setupProFeatures({
 payrollHelpers = setupPayrollFeatures({
   app, mongoose, authenticateToken, rbac, requireBusinessPlan,
   models: { User, BusinessProfile }
+});
+
+setupEstimateFeatures({
+  app, mongoose, authenticateToken, rbac, requireBusinessPlan,
+  models: { BusinessProfile, SalesHistory }
 });
 
 setupTeamMeetingFeatures({

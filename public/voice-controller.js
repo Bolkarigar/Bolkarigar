@@ -24,6 +24,7 @@
     { panel: "inventoryPanel", words: ["inventory", "stock", "स्टॉक", "इन्वेंटरी", "सामान"] },
     { panel: "totalSalesPanel", words: ["total sales", "total sale", "sales history", "sale history", "बिक्री", "कुल बिक्री", "टोटल सेल्स", "सेल्स", "sales report", "bikri report"] },
     { panel: "contractorPanel", words: ["contractor", "mazdoor", "labour", "ठेकेदार", "मजदूर"] },
+    { panel: "estimatePanel", words: ["estimate", "quotation", "quote", "kaccha bill", "एस्टीमेट", "कोटेशन", "कच्चा बिल"] },
     { panel: "payrollPanel", words: ["payroll", "hajri", "salary", "staff payroll", "वेतन", "हाजरी", "मेरी हाजरी"] },
     { panel: "ledgerPanel", words: ["udhar khata", "udhar", "credit", "उधार", "उधार खाता"] },
     { panel: "khataLedgersPanel", words: ["ledger", "ledgers", "party ledger", "खाता", "लेजर"] },

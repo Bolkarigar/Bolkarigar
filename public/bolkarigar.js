@@ -89,6 +89,7 @@ async function recordKhataSaleFromInvoice({ customer, product, hsn, price, qty, 
     console.error("Khata record-sale error:", err);
   }
 }
+window.recordKhataSaleFromInvoice = recordKhataSaleFromInvoice;
 
 // 🔴 SECURITY FIX: User-entered text (todo, customer name, project name, item
 // name, ledger name, etc.) pehle seedha innerHTML mein daala ja raha tha —
@@ -245,6 +246,10 @@ function bkCanAccessTab(me, tabId) {
   // Overview detail pages (Total Sales, Purchase, etc.) — same access as Overview
   if (tabId === "businessRecordsPanel") return bkCanAccessTab(me, "overviewPanel");
   // Staff Meri Hajri — Pro/Business active plan par; allowedTabs se pehle check karo
+  if (tabId === "estimatePanel") {
+    if (me?.isStaff) return false;
+    return !!sub?.fullAccess;
+  }
   if (tabId === "payrollPanel") {
     if (!me?.isStaff) return !!sub?.fullAccess;
     if (!sub?.isActive) return false;
@@ -409,6 +414,9 @@ function applyRoleBasedUI(me) {
   if (typeof window.renderHelpModules === "function") window.renderHelpModules(me);
   if (typeof window.BolKarigarPayroll?.setPayrollViewMode === "function") {
     window.BolKarigarPayroll.setPayrollViewMode();
+  }
+  if (typeof window.BolKarigarEstimates?.refreshAccess === "function") {
+    window.BolKarigarEstimates.refreshAccess();
   }
   if (typeof window.bkSyncBusinessCardPlan === "function") window.bkSyncBusinessCardPlan();
   if (typeof window.bkRenderBusinessCardGrid === "function") window.bkRenderBusinessCardGrid();
@@ -1851,6 +1859,9 @@ function openPanel(id) {
   }
   if (id === "payrollPanel" && typeof window.BolKarigarPayroll?.loadPayrollPanel === "function") {
     window.BolKarigarPayroll.loadPayrollPanel();
+  }
+  if (id === "estimatePanel" && typeof window.BolKarigarEstimates?.loadEstimatePanel === "function") {
+    window.BolKarigarEstimates.loadEstimatePanel();
   }
   if (id === "teamMeetingPanel" && typeof window.BolKarigarMeetings?.loadTeamMeetingPanel === "function") {
     window.BolKarigarMeetings.loadTeamMeetingPanel();

@@ -63,6 +63,7 @@ const TAB_ACCESS = {
   inventoryPanel: ['owner', 'manager', 'cashier'],
   totalSalesPanel: ['owner', 'manager', 'cashier'],
   contractorPanel: ['owner', 'manager'],
+  estimatePanel: ['owner', 'manager', 'cashier'],
   ledgerPanel: ['owner', 'manager', 'cashier'],
   khataLedgersPanel: ['owner', 'manager', 'cashier'],
   khataItemsPanel: ['owner', 'manager', 'cashier'],

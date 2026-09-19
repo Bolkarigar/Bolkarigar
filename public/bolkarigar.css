@@ -1392,6 +1392,11 @@ button.bk-save-busy {
 .khata-subpanel.active { display: block; }
 .contractor-subpanel { display: none; margin-top: 16px; }
 .contractor-subpanel.active { display: block; }
+
+.est-subpanel { display: none; margin-top: 8px; }
+.est-subpanel.active { display: block; }
+.est-subtab-btn.active { font-weight: 700; }
+#estimatePanel .est-actions-cell { min-width: 200px; }
 .payroll-subpanel { display: none; margin-top: 16px; }
 .payroll-subpanel.active { display: block; }
 .payroll-subtab-btn {
