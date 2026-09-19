@@ -4699,3 +4699,28 @@ input[type="date"].inv-date-input-hidden {
 .companies-table .co-actions-cell button { margin-right: 6px; }
 .companies-table .co-active-btn { opacity: 0.85; cursor: default; }
 .companies-add-grid textarea { resize: vertical; min-height: 52px; }
+
+.bk-team-alert-bar {
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  left: 16px;
+  max-width: 420px;
+  margin-left: auto;
+  z-index: 10050;
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  color: #ecfdf5;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  padding: 14px 16px;
+  animation: bkAlertPop 0.35s ease;
+}
+.bk-team-alert-bar.hidden { display: none; }
+.bk-team-alert-inner { display: flex; flex-direction: column; gap: 10px; }
+.bk-team-alert-text { font-size: 14px; line-height: 1.4; }
+.bk-team-alert-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bk-team-alert-actions .theme-btn { flex: 1; min-width: 120px; }
+@keyframes bkAlertPop {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

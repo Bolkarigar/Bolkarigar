@@ -76,6 +76,7 @@ function setupTeamGalleryFeatures({ app, mongoose, authenticateToken, models, rb
         return {
           id: s._id,
           note: s.note,
+          createdBy: s.createdBy,
           assignToAll: s.assignToAll,
           assigneesLabel: assignees,
           createdAt: s.createdAt,

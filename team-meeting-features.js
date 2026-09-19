@@ -109,6 +109,8 @@ function setupTeamMeetingFeatures({ app, mongoose, authenticateToken, models, rb
         inviteeUserIds: m.inviteeUserIds,
         status: m.status,
         scheduledAt: m.scheduledAt,
+        createdAt: m.createdAt,
+        createdBy: m.createdBy,
         joinPath: buildJoinPath(m),
         joinCode: m.joinCode
       }))

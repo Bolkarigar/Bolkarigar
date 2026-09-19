@@ -714,6 +714,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       }
     }
     res.json({
+      userId: req.user.id,
       username: user?.username,
       email: user?.email,
       role,

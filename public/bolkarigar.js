@@ -455,6 +455,8 @@ async function loadServerData(opts = {}) {
       }
       window._bkAccountInfo = me;
       applyRoleBasedUI(me);
+      if (window.BolKarigarAlerts?.requestNotifyPermission) window.BolKarigarAlerts.requestNotifyPermission();
+      if (window.BolKarigarAlerts?.pollNow) window.BolKarigarAlerts.pollNow();
 
       if (me.subscription?.isExpired) {
         const paywallText = document.getElementById("subscriptionPaywallText");

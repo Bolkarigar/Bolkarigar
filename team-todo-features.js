@@ -51,6 +51,7 @@ function setupTeamTodoFeatures({ app, mongoose, authenticateToken, models, rbac 
     return {
       id: todo._id,
       text: todo.text,
+      createdBy: todo.createdBy,
       assignToAll: todo.assignToAll,
       assigneesLabel: assignees,
       createdAt: todo.createdAt,

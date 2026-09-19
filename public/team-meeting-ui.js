@@ -176,6 +176,34 @@
     if (modal) modal.classList.add('hidden');
   }
 
+  async function requestMediaAccess(needVideo) {
+    if (!navigator.mediaDevices?.getUserMedia) return true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: !!needVideo
+      });
+      stream.getTracks().forEach((t) => t.stop());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function applyJitsiIframePermissions(container) {
+    const apply = () => {
+      container.querySelectorAll('iframe').forEach((iframe) => {
+        const allow = 'camera; microphone; fullscreen; display-capture; autoplay; clipboard-write';
+        iframe.setAttribute('allow', allow);
+        iframe.allow = allow;
+      });
+    };
+    apply();
+    const obs = new MutationObserver(apply);
+    obs.observe(container, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 15000);
+  }
+
   async function joinMeeting(meetingId, code) {
     const joinBtn = document.querySelector(`.meet-join-btn[data-id="${meetingId}"]`);
     if (joinBtn) {
@@ -210,6 +238,10 @@
     modal.classList.remove('hidden');
     const { domain, roomName, displayName, isModerator, startWithVideoMuted, subject } = res.jitsi;
     const audioOnly = res.meeting.callType === 'audio';
+    const mediaOk = await requestMediaAccess(!audioOnly);
+    if (!mediaOk) {
+      toast('Mic/camera allow karein — address bar 🔒 → Site settings → Allow microphone & camera', 'error');
+    }
 
     jitsiApi = new window.JitsiMeetExternalAPI(domain, {
       roomName,
@@ -220,9 +252,13 @@
       configOverwrite: {
         startWithAudioMuted: false,
         startWithVideoMuted: audioOnly || !!startWithVideoMuted,
-        prejoinPageEnabled: false,
+        prejoinPageEnabled: true,
+        enableWelcomePage: false,
         disableDeepLinking: true,
-        subject: subject || 'BolKarigar Meeting'
+        subject: subject || 'BolKarigar Meeting',
+        constraints: {
+          video: audioOnly ? false : { height: { ideal: 720, max: 720, min: 180 } }
+        }
       },
       interfaceConfigOverwrite: {
         MOBILE_APP_PROMO: false,
@@ -231,6 +267,8 @@
         NATIVE_APP_NAME: 'BolKarigar'
       }
     });
+
+    applyJitsiIframePermissions(host);
 
     if (isModerator && subject) {
       try { jitsiApi.executeCommand('subject', subject); } catch (_) { /* ignore */ }
@@ -247,10 +285,7 @@
   function startMeetPolling() {
     if (meetPollTimer) clearInterval(meetPollTimer);
     meetPollTimer = setInterval(() => {
-      const panel = document.getElementById('teamMeetingPanel');
-      if (panel?.classList.contains('active') && !activeMeetingId) {
-        loadTeamMeetingPanel(true);
-      }
+      if (!activeMeetingId) loadTeamMeetingPanel(true);
     }, 12000);
   }
 
@@ -300,6 +335,10 @@
     if (btn) { btn.disabled = false; btn.textContent = prevText || btn.textContent; }
 
     if (!res.success) return toast(res.error || 'Failed to start meeting', 'error');
+
+    if (res.meeting?.id && window.BolKarigarAlerts?.markSeen) {
+      window.BolKarigarAlerts.markSeen('meetings', res.meeting.id);
+    }
 
     document.getElementById('meetTitle').value = '';
     document.getElementById('meetAgenda').value = '';
