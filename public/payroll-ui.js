@@ -381,10 +381,37 @@
     document.querySelectorAll('.payroll-self-only').forEach((el) => {
       el.style.display = selfOnly ? '' : 'none';
     });
+    document.querySelectorAll('.payroll-owner-intro').forEach((el) => {
+      el.style.display = selfOnly ? 'none' : '';
+    });
     const noAccess = document.getElementById('payrollNoAccess');
     if (noAccess) {
       const show = !manager && !selfOnly;
       noAccess.classList.toggle('hidden', !show);
+    }
+  }
+
+  function selfSlipMonthYear() {
+    const month = Number(document.getElementById('payrollSelfMonth')?.value) || new Date().getMonth() + 1;
+    const year = Number(document.getElementById('payrollSelfYear')?.value) || new Date().getFullYear();
+    return { month, year };
+  }
+
+  function monthSelectOptions(selected) {
+    const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return names.map((n, i) => {
+      const v = i + 1;
+      return `<option value="${v}"${v === selected ? ' selected' : ''}>${n}</option>`;
+    }).join('');
+  }
+
+  function configureSlipModalForViewer(selfMode) {
+    const wa = document.getElementById('payrollSlipWhatsAppBtn');
+    const printBtn = document.getElementById('payrollSlipPrintBtn');
+    if (wa) wa.style.display = selfMode ? 'none' : '';
+    if (printBtn) {
+      printBtn.textContent = selfMode ? '📥 Download (PDF)' : '🖨️ Print';
+      printBtn.style.display = '';
     }
   }
 
@@ -615,8 +642,9 @@
     document.getElementById('payrollSlipModal')?.classList.add('hidden');
   }
 
-  async function showSalarySlip(employeeId) {
-    const { month, year } = monthYearInputs();
+  async function showSalarySlip(employeeId, opts = {}) {
+    const fromSelf = !!opts.fromSelf;
+    const { month, year } = fromSelf ? (opts.monthYear || selfSlipMonthYear()) : monthYearInputs();
     const data = await apiGet(`/api/payroll/salary/${employeeId}?month=${month}&year=${year}`);
     if (!data.success) return toast(data.error || 'Error', 'error');
     const s = data.slip;
@@ -626,12 +654,16 @@
     const m = data.month || month;
     const y = data.year || year;
     body.innerHTML = renderOfficialSlipHTML(s, m, y, data.company);
-    if (s.earnedDays === 0 && s.workingDays > 0) {
+    if (s.earnedDays === 0 && s.workingDays > 0 && !fromSelf) {
       body.insertAdjacentHTML('beforeend',
         '<p class="payroll-slip-warning payroll-slip-screen-only">⚠️ Earned Days 0 — mark Present/Half-day in Daily Attendance first, then salary will calculate.</p>');
     }
     window._lastPayrollSlip = { slip: s, month: m, year: y, company: data.company };
+    configureSlipModalForViewer(fromSelf || (isSelfView() && !isManagerView()));
     modal.classList.remove('hidden');
+    if (opts.autoDownload) {
+      setTimeout(() => printSalarySlip(), 400);
+    }
   }
 
   async function loadSelfAttendance() {
@@ -648,27 +680,42 @@
     const attDate = att.date || new Date().toISOString().slice(0, 10);
     const attDow = new Date(`${attDate}T12:00:00`).getDay();
     const isWeeklyOff = getEmployeeWeeklyOffs(data.employee).includes(attDow);
-    const btns = STATUS_OPTS.map((o) =>
-      `<button type="button" class="theme-btn payroll-self-mark ${cur === o.v ? 'active' : ''}" data-status="${o.v}">${o.l}</button>`
-    ).join(' ');
+    const now = new Date();
+    const selMonth = now.getMonth() + 1;
+    const selYear = now.getFullYear();
+    const presentDone = cur === 'present';
     box.innerHTML = `
-      <p><strong>${esc(data.employee.name)}</strong> (${esc(data.employee.designation)}) — Aaj ki hajri</p>
-      <p class="helper-text">Date: ${attDate} | ${isWeeklyOff ? `Weekly Off (${WEEKDAY_LONG[attDow]})` : 'Tap to mark attendance'}</p>
-      ${isWeeklyOff ? '' : `<div class="btn-row" style="flex-wrap:wrap;gap:8px;margin:12px 0;">${btns}</div>
-      <p class="helper-text">Today's status: <strong>${cur ? cur.replace('_', ' ') : 'Not marked yet'}</strong></p>`}
+      <p><strong>${esc(data.employee.name)}</strong> — ${esc(data.employee.designation || 'Staff')}</p>
+      <p class="helper-text">Today: ${attDate}${isWeeklyOff ? ` · Weekly off (${WEEKDAY_LONG[attDow]})` : ''}</p>
+      ${isWeeklyOff
+        ? '<p class="helper-text">Weekly off — attendance mark ki zaroorat nahi.</p>'
+        : `<div class="btn-row" style="margin:14px 0;">
+            <button type="button" id="payrollSelfPresentBtn" class="theme-btn"${presentDone ? ' disabled' : ''}>${presentDone ? '✅ Present (marked)' : '✅ Mark Present'}</button>
+          </div>
+          <p class="helper-text">Status: <strong>${cur ? cur.replace(/_/g, ' ') : 'Not marked yet'}</strong></p>`}
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;" />
+      <p><strong>📄 Meri Salary Slip</strong></p>
+      <p class="helper-text">Month select karke slip dekhein ya PDF download karein.</p>
+      <div class="btn-row payroll-self-slip-pick" style="align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;">
+        <select id="payrollSelfMonth">${monthSelectOptions(selMonth)}</select>
+        <input id="payrollSelfYear" type="number" min="2020" max="2100" value="${selYear}" style="width:100px;" aria-label="Year" />
+      </div>
       <div class="btn-row" style="gap:8px;flex-wrap:wrap;">
-        <button type="button" id="payrollViewMySlipBtn" class="secondary">📄 Meri Salary Slip</button>
+        <button type="button" id="payrollViewMySlipBtn" class="theme-btn">👁️ View Slip</button>
+        <button type="button" id="payrollDownloadMySlipBtn" class="secondary">📥 Download PDF</button>
       </div>`;
-    box.querySelectorAll('.payroll-self-mark').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const res = await apiPost('/api/payroll/attendance/self', { status: btn.dataset.status });
-        toast(res.message || res.error || 'Saved', res.success ? 'success' : 'error');
-        loadSelfAttendance();
-      });
+    document.getElementById('payrollSelfPresentBtn')?.addEventListener('click', async () => {
+      const res = await apiPost('/api/payroll/attendance/self', { status: 'present' });
+      toast(res.message || res.error || 'Saved', res.success ? 'success' : 'error');
+      loadSelfAttendance();
     });
-    document.getElementById('payrollViewMySlipBtn')?.addEventListener('click', () => {
-      if (data.employee?._id) showSalarySlip(data.employee._id);
-    });
+    const openMySlip = (autoDownload) => {
+      if (!data.employee?._id) return;
+      const my = selfSlipMonthYear();
+      showSalarySlip(data.employee._id, { fromSelf: true, monthYear: my, autoDownload });
+    };
+    document.getElementById('payrollViewMySlipBtn')?.addEventListener('click', () => openMySlip(false));
+    document.getElementById('payrollDownloadMySlipBtn')?.addEventListener('click', () => openMySlip(true));
   }
 
   function initPayrollSubtabs() {

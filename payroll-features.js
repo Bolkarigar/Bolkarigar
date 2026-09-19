@@ -498,6 +498,10 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     if (!ATTENDANCE_STATUSES.includes(status)) {
       return res.status(400).json({ error: 'Valid status chahiye: present, absent, half_day, paid_leave, unpaid_leave' });
     }
+    const role = req.userRole || 'staff';
+    if (role === 'staff' && status !== 'present') {
+      return res.status(403).json({ error: 'Staff account sirf Present mark kar sakta hai.' });
+    }
 
     const existing = await PayrollAttendance.findOne({
       employeeId: req.linkedEmployee._id,
