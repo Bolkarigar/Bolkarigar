@@ -176,7 +176,6 @@
             <button class="tab-btn" data-tab="businessCardPanel" type="button" data-i18n="nav.businessCard">💼 Business Card</button>
             <button class="tab-btn" data-tab="qrPanel" type="button" data-i18n="nav.qr">📱 QR Tool</button>
             <button class="tab-btn" data-tab="calcPanel" type="button" data-i18n="nav.calc">🔢 Calculator</button>
-            <button class="tab-btn" data-tab="converterPanel" type="button" data-i18n="nav.converter">🔄 Converter</button>
             <button class="tab-btn" data-tab="notesPanel" type="button" data-i18n="nav.notes">📝 Notes</button>
             <button class="tab-btn" data-tab="mediaPanel" type="button" data-i18n="nav.media">📷 Media</button>
           </div>
@@ -1908,7 +1907,6 @@
         <section class="panel" id="calcPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="calc.eyebrow">Quick math</p><h3 data-i18n="calc.title">Calculator</h3></div></div><input type="text" id="calcDisplay" readonly placeholder="0" /><div class="calc-grid btn-row"><button class="calc-btn" type="button">7</button><button class="calc-btn" type="button">8</button><button class="calc-btn" type="button">9</button><button class="calc-btn op" type="button">/</button><button class="calc-btn" type="button">4</button><button class="calc-btn" type="button">5</button><button class="calc-btn" type="button">6</button><button class="calc-btn op" type="button">*</button><button class="calc-btn" type="button">1</button><button class="calc-btn" type="button">2</button><button class="calc-btn" type="button">3</button><button class="calc-btn op" type="button">-</button><button class="calc-btn" type="button">0</button><button class="calc-btn" type="button">.</button><button id="calcEquals" class="calc-btn equal" type="button">=</button><button class="calc-btn op" type="button">+</button><button id="calcClear" class="calc-btn danger wide" type="button">Clear</button></div></section>
 
         <!-- CONVERTER PANEL -->
-        <section class="panel" id="converterPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="converter.eyebrow">Units</p><h3 data-i18n="converter.title">Unit Converter</h3></div></div><select id="unitType" class="btn-row"><option value="length" data-i18n="converter.length">Length</option><option value="weight" data-i18n="converter.weight">Weight</option><option value="temperature" data-i18n="converter.temperature">Temperature</option></select><input type="number" id="unitInput" data-i18n-placeholder="converter.placeholder" placeholder="Enter value" /><div class="grid-2 " style="margin-top: 10px;"><select id="fromUnit"></select><select id="toUnit"></select></div><div class="btn-row"><button id="convertBtn" type="button" data-i18n="converter.convert">Convert</button></div><div class="result-box" id="convertResult" data-i18n="converter.result">Converted value will appear here.</div></section>
 
         <!-- NOTES PANEL -->
         <section class="panel" id="notesPanel"><div class="panel-header"><div><p class="eyebrow" data-i18n="notes.eyebrow">Personal notes</p><h3 data-i18n="notes.title">Notes Saver</h3></div></div><textarea id="notesInput" rows="8" data-i18n-placeholder="notes.placeholder" placeholder="Write your notes here..."></textarea><div class="btn-row"><button id="saveNotesBtn" type="button" data-i18n="notes.download">Download notes</button><button class="secondary" id="clearNotesBtn" type="button" data-i18n="notes.clear">Clear notes</button></div><div class="result-box" id="notesStatus" data-i18n="notes.empty">No notes saved yet.</div></section>
@@ -2193,15 +2191,15 @@
   </div>
 
   <script src="responsive-ui.js?v=20260827r2"></script>
-  <script src="help-module-data.js?v=20260918ui55"></script>
+  <script src="help-module-data.js?v=20260919noconv1"></script>
   <script src="help-demo.js?v=20260918ui55"></script>
-  <script src="help-modules.js?v=20260918ui55"></script>
+  <script src="help-modules.js?v=20260919noconv1"></script>
   <script src="voice-controller.js?v=20260909v1"></script>
   <script src="plan-pricing.js?v=20260918ui55"></script>
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260919alert1"></script>
+  <script src="bolkarigar.js?v=20260919noconv1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

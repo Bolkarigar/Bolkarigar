@@ -319,18 +319,6 @@
       ]
     },
     {
-      id: "converterPanel", panelId: "converterPanel", plans: ["business"], color: "#2dd4bf",
-      title: "🔄 Unit Converter",
-      hindi: "Feet-inch, kg, temperature waghera convert — lakdi/steel measurement ke liye.",
-      english: "Convert feet-inch, kg, temperature and more for material measurements.",
-      steps: [
-        { en: "Pick conversion type (length/weight/temp)", hi: "Conversion type chunein", visual: { title: "🔄 Convert", lines: [{ label: "Type", value: "Feet → Meter ▾", animate: true }] } },
-        { en: "Enter value to convert", hi: "Value daalein convert karne ke liye", visual: { title: "Input", lines: [{ label: "Feet", value: "10", animate: true }] } },
-        { en: "Instant converted result", hi: "Turant converted result", visual: { title: "Output", lines: [{ label: "Meters", value: "3.048 m" }] } },
-        { en: "Useful for wood, steel, area estimates", hi: "Lakdi, steel, area estimate ke liye useful", visual: { title: "💡 Use", list: ["Board feet", "Sqft", "Running feet"] } }
-      ]
-    },
-    {
       id: "notesPanel", panelId: "notesPanel", plans: ["business"], color: "#64748b",
       title: "📝 Notes Saver",
       hindi: "Site ki baatein, rate list, quick reminders likh kar save/download karein.",

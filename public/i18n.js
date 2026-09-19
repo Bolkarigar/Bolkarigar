@@ -99,7 +99,7 @@
     'overview.cardExpenseTitle': 'Expense + Invoice',
     'overview.cardExpenseDesc': 'Rate, quantity and total calculate automatically.',
     'overview.cardUtilityTitle': 'Utility Pack',
-    'overview.cardUtilityDesc': 'Todo, notes, QR, calculator, converter and media tools included.',
+    'overview.cardUtilityDesc': 'Todo, notes, QR, calculator and media tools included.',
     'voice.eyebrow': 'Speech input',
     'voice.title': 'Voice Command Panel',
     'voice.tryTitle': 'Try commands',

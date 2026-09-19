@@ -2192,20 +2192,6 @@ function parseCommands(raw) {
   }
   
   if (
-    text.includes("converter") || text.includes("convert") || text.includes("conversion") ||
-    text.includes("unit converter") || text.includes("unit conversion") || text.includes("open converter") ||
-    text.includes("show converter") || text.includes("converter panel") || text.includes("open unit converter") ||
-    text.includes("convert units") || text.includes("unit") || text.includes("length converter") ||
-    text.includes("weight converter") || text.includes("temperature converter") || text.includes("कन्वर्टर") ||
-    text.includes("कनवर्टर") || text.includes("कन्वर्ट") || text.includes("कन्वर्टर खोलो") ||
-    text.includes("यूनिट कन्वर्टर") || text.includes("रूपांतरण") || text.includes("बदलना")
-  ) {
-    openPanel("converterPanel");
-    showCommand("Converter Panel open kiya ja raha hai.");
-    return true;
-  }
-  
-  if (
     text.includes("media") || text.includes("open media") || text.includes("show media") ||
     text.includes("media panel") || text.includes("media tools") || text.includes("image") ||
     text.includes("images") || text.includes("photo") || text.includes("photos") ||
@@ -3370,7 +3356,7 @@ window.speakText = speakText;
 // { keywords: [...], answer: "..." } object list me daal do.
 // -------------------------------------------------------------------
 const APP_FEATURES_OVERVIEW =
-  'BolKarigar me yeh sab hai: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Converter, Notes, Media, Help & Guide. Kisi feature ke baare me detail poochhiye!';
+  'BolKarigar me yeh sab hai: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Notes, Media, Help & Guide. Kisi feature ke baare me detail poochhiye!';
 
 const TODO_MODULE_ANSWER =
   'Todo List me yeh sab kar sakte ho: (1) Naya kaam add karna — Todo tab me likh kar Add dabao, ya bol kar "todo cement mangwana add karo", (2) Task delete karna — list me Delete button, (3) Saari list clear karna — Clear All button, (4) Sidebar se Todo tab khol kar apne tasks dekhna. Har task save hota hai aur refresh ke baad bhi rehta hai.';
@@ -3463,8 +3449,6 @@ const APP_FAQ = [
     answer: "'QR Tool' tab me text ya link daal ke uska QR code bana sakte ho." },
   { keywords: ["calculator", "calculate kaise"],
     answer: "'Calculator' tab me normal calculator hai, ya bol kar bhi calculation kar sakte ho jaise '25 plus 30'." },
-  { keywords: ["converter", "unit convert"],
-    answer: "'Converter' tab me length, weight aur temperature jaise units convert kar sakte ho." },
   { keywords: ["notes kaise", "note kaise"],
     answer: "'Notes' tab me apne notes likh sakte ho aur 'Download notes' se save bhi kar sakte ho." },
   { keywords: ["tally", "tally sync", "tally prime"],
@@ -3709,13 +3693,7 @@ async function handleSpeech(rawText) {
       if (handleNoteSpeech(raw)) return;
     }
 
-    // 7. Unit Converter
-    if (looksLikeConverterCommand(text)) {
-      handleConverterSpeech(raw);
-      return;
-    }
-
-    // 8. Calculator
+    // 7. Calculator
     const cleanExpr = extractCalcExpression(text);
     if (looksLikeCalculation(text, cleanExpr)) {
       handleCalculatorSpeech(raw, cleanExpr);
@@ -6253,8 +6231,6 @@ function getEWayBillDetails() {
       answer: "QR Tool tab me text ya link daal ke uska QR code bana sakte ho." },
     { keywords: ["calculator", "calculate kaise", "calc"],
       answer: "Calculator tab me normal calculator hai, ya bol kar bhi calculation kar sakte ho jaise '25 plus 30'." },
-    { keywords: ["converter", "unit convert", "convert kaise"],
-      answer: "Converter tab me length, weight aur temperature jaise units convert kar sakte ho." },
     { keywords: ["notes kaise", "note kaise", "notes", "note"],
       answer: "Notes tab me apne notes likh sakte ho aur Download notes se save bhi kar sakte ho." },
     { keywords: ["dark mode", "light mode", "theme kaise", "dark", "light"],
@@ -6314,7 +6290,6 @@ function getEWayBillDetails() {
       if (looksLikeNoteWriteCommand(text) || defineNoteSaveCommand(text)) {
         if (handleNoteSpeech(rawText)) return voiceResult?.textContent || prev;
       }
-      if (looksLikeConverterCommand(text)) { handleConverterSpeech(rawText); return voiceResult?.textContent || prev; }
       const cleanExpr = extractCalcExpression(text);
       if (looksLikeCalculation(text, cleanExpr)) { handleCalculatorSpeech(rawText, cleanExpr); return voiceResult?.textContent || prev; }
       if (looksLikeGalleryNavCommand(text) && handleGallerySpeech(rawText)) return voiceResult?.textContent || prev;

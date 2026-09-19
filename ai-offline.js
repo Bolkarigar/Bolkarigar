@@ -3,7 +3,7 @@
  */
 
 const APP_FEATURES_OVERVIEW =
-  'BolKarigar ek Hindi voice-first business app hai. Isme yeh sab hai: Overview dashboard (sales/expense/profit), Voice AI se poora control, Invoice/GST bill banana aur download, WhatsApp share, Tally Prime sync, Project aur Expense tracking, Inventory/Stock, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales report, Gallery, Todo list, QR Tool, Calculator, Unit Converter, Notes, Media scanner, Business Profile settings, aur Help & Guide. Kisi bhi feature ke baare me detail me poochhiye!';
+  'BolKarigar ek Hindi voice-first business app hai. Isme yeh sab hai: Overview dashboard (sales/expense/profit), Voice AI se poora control, Invoice/GST bill banana aur download, WhatsApp share, Tally Prime sync, Project aur Expense tracking, Inventory/Stock, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales report, Gallery, Todo list, QR Tool, Calculator, Notes, Media scanner, Business Profile settings, aur Help & Guide. Kisi bhi feature ke baare me detail me poochhiye!';
 
 const OFFLINE_FAQ = [
   { keywords: ['namaste', 'hello', 'hi', 'hey', 'kaise ho', 'good morning'], answer: 'Namaste! Main BolKarigar AI hoon. App ke baare me kuch bhi poochhiye — invoice, project, khata, tally, voice commands, sab bata sakta hoon.' },
@@ -21,7 +21,6 @@ const OFFLINE_FAQ = [
   { keywords: ['gallery', 'photo'], answer: 'Gallery tab me apni product photos upload aur dekho.' },
   { keywords: ['qr', 'qr code'], answer: 'QR Tool me text ya UPI link daal kar QR code generate karo.' },
   { keywords: ['calculator', 'calculate', 'jod', 'ghata'], answer: 'Calculator tab use karo ya bol do 25 plus 30, 100 into 5.' },
-  { keywords: ['converter', 'convert', 'meter', 'feet'], answer: 'Converter tab me length, weight, temperature units convert karo.' },
   { keywords: ['notes', 'note likho'], answer: 'Notes tab me likho aur Download notes se save karo.' },
   { keywords: ['profile', 'gstin', 'company name', 'business profile'], answer: 'Invoice tab ke upar Business Profile Settings me company name, GSTIN, phone, address bharo aur Save karo. Iske baad invoice generator unlock hota hai.' },
   { keywords: ['dark mode', 'light mode', 'theme'], answer: 'Header me Light/Dark button se theme badlo, ya bolo dark mode on.' },

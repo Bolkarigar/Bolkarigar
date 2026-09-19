@@ -36,7 +36,6 @@
     { panel: "todoPanel", words: ["todo", "to do", "task", "tasks", "टूडू", "टास्क", "काम की लिस्ट"] },
     { panel: "qrPanel", words: ["qr", "qr code", "क्यूआर"] },
     { panel: "calcPanel", words: ["calculator", "calc", "कैलकुलेटर", "हिसाब"] },
-    { panel: "converterPanel", words: ["converter", "unit convert", "कन्वर्टर", "नाप"] },
     { panel: "notesPanel", words: ["notes", "note", "नोट्स"] },
     { panel: "mediaPanel", words: ["media", "receipt scan", "पर्ची", "स्कैन"] },
     { panel: "businessCardPanel", words: ["business card", "visiting card", "बिज़नेस कार्ड", "विज़िटिंग कार्ड", "card maker"] },
