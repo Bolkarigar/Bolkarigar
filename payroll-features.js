@@ -48,9 +48,29 @@ function dateKeyFromParts(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/** India calendar date — attendance "aaj" Render UTC server par bhi sahi rahe */
 function todayKey() {
-  const n = new Date();
-  return dateKeyFromParts(n.getFullYear(), n.getMonth() + 1, n.getDate());
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+}
+
+function applyAttendanceToTotals(status, totals) {
+  switch (status) {
+    case 'present':
+      totals.presentDays++;
+      return 1;
+    case 'half_day':
+      totals.halfDays++;
+      return 0.5;
+    case 'paid_leave':
+      totals.paidLeaves++;
+      return 1;
+    case 'unpaid_leave':
+      totals.unpaidLeaves++;
+      return 0;
+    default:
+      totals.absentDays++;
+      return 0;
+  }
 }
 
 function daysInMonth(year, month) {
@@ -81,13 +101,32 @@ function calcMonthlySalary(employee, attendanceByDate, advances, year, month) {
     const dow = dt.getDay();
     const isWeeklyOff = normalizeWeeklyOffs(employee).includes(dow);
 
+    const rec = attendanceByDate[key];
+    const totals = { presentDays, halfDays, paidLeaves, unpaidLeaves, absentDays };
+
     if (isWeeklyOff) {
-      dailyRows.push({ date: key, weekday: WEEKDAY_NAMES[dow], status: 'weekly_off', earned: 0 });
+      if (rec?.status) {
+        const earned = applyAttendanceToTotals(rec.status, totals);
+        presentDays = totals.presentDays;
+        halfDays = totals.halfDays;
+        paidLeaves = totals.paidLeaves;
+        unpaidLeaves = totals.unpaidLeaves;
+        absentDays = totals.absentDays;
+        dailyRows.push({
+          date: key,
+          weekday: WEEKDAY_NAMES[dow],
+          status: rec.status,
+          earned,
+          note: rec.note || '',
+          weeklyOffWork: true
+        });
+      } else {
+        dailyRows.push({ date: key, weekday: WEEKDAY_NAMES[dow], status: 'weekly_off', earned: 0 });
+      }
       continue;
     }
 
     workingDays++;
-    const rec = attendanceByDate[key];
     let status = rec?.status || 'absent';
     let earned = 0;
 
@@ -95,28 +134,13 @@ function calcMonthlySalary(employee, attendanceByDate, advances, year, month) {
       absentDays++;
       earned = 0;
     } else {
-      switch (status) {
-        case 'present':
-          presentDays++;
-          earned = 1;
-          break;
-        case 'half_day':
-          halfDays++;
-          earned = 0.5;
-          break;
-        case 'paid_leave':
-          paidLeaves++;
-          earned = 1;
-          break;
-        case 'unpaid_leave':
-          unpaidLeaves++;
-          earned = 0;
-          break;
-        default:
-          absentDays++;
-          status = 'absent';
-          earned = 0;
-      }
+      earned = applyAttendanceToTotals(status, totals);
+      presentDays = totals.presentDays;
+      halfDays = totals.halfDays;
+      paidLeaves = totals.paidLeaves;
+      unpaidLeaves = totals.unpaidLeaves;
+      absentDays = totals.absentDays;
+      if (!earned && status !== 'unpaid_leave') status = status || 'absent';
     }
     dailyRows.push({ date: key, weekday: WEEKDAY_NAMES[dow], status, earned, note: rec?.note || '' });
   }

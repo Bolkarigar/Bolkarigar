@@ -563,17 +563,19 @@
     const attDow = new Date(`${date}T12:00:00`).getDay();
     body.innerHTML = data.rows.map((row) => {
       const offs = getEmployeeWeeklyOffs(row.employee);
-      if (offs.includes(attDow)) {
+      const onWeeklyOff = offs.includes(attDow);
+      if (onWeeklyOff && !row.attendance?.status) {
         return `<tr data-emp="${row.employee._id}" data-weekly-off="1">
           <td><strong>${esc(row.employee.name)}</strong></td>
           <td>${esc(row.employee.designation)}</td>
           <td colspan="2"><span class="helper-text">Weekly Off (${WEEKDAY_LONG[attDow]})</span></td>
         </tr>`;
       }
+      const offHint = onWeeklyOff ? ` <span class="helper-text">(Weekly off — marked)</span>` : '';
       const cur = row.attendance?.status || 'present';
       const opts = STATUS_OPTS.map((o) => `<option value="${o.v}" ${o.v === cur ? 'selected' : ''}>${o.l}</option>`).join('');
       return `<tr data-emp="${row.employee._id}">
-        <td><strong>${esc(row.employee.name)}</strong></td>
+        <td><strong>${esc(row.employee.name)}</strong>${offHint}</td>
         <td>${esc(row.employee.designation)}</td>
         <td><select class="payroll-att-status">${opts}</select></td>
         <td><input class="payroll-att-note" type="text" placeholder="Note" value="${esc(row.attendance?.note || '')}" /></td>
@@ -593,6 +595,9 @@
       const res = await apiPost('/api/payroll/attendance', { date, records: rows });
       toast(res.success ? `✅ ${res.saved} attendance save` : (res.error || 'Fail'), res.success ? 'success' : 'error');
       loadDailyAttendance();
+      if (document.getElementById('payrollSalSub')?.classList.contains('active')) {
+        loadSalarySummary();
+      }
     });
   }
 
