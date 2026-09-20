@@ -626,6 +626,10 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     const bankLedgers = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Bank' });
     res.json({ success: true, records, bankLedgers });
   });
+  app.delete('/api/bank-recon/all', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
+    const result = await BankRecon.deleteMany({ userId: req.ownerId });
+    res.json({ success: true, deleted: result.deletedCount || 0 });
+  });
   app.post('/api/bank-recon/auto-match', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
     const result = await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
     res.json({ success: true, ...result });

@@ -225,18 +225,37 @@
   }
 
   // ==================== BANK RECON ====================
+  function formatBankMoney(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x) || x <= 0 || x > 50000000000) return '-';
+    return '₹' + x.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   async function loadBankRecon() {
     const body = document.getElementById('bankReconBody');
     if (!body) return;
     const data = await apiGet('/api/bank-recon');
     body.innerHTML = (data.records||[]).map(r => {
       const dt = r.statementDate || r.date;
-      const dateStr = dt ? new Date(dt).toLocaleDateString('en-IN') : '—';
+      const d = dt ? new Date(dt) : null;
+      const y = d && !Number.isNaN(d.getTime()) ? d.getFullYear() : 0;
+      const dateStr = d && y >= 1990 && y <= 2100 ? d.toLocaleDateString('en-IN') : '—';
       const matchCell = r.matched
         ? `✅ <span class="helper-text">${esc(r.matchHint || 'App payment se match')}</span>`
         : '❌ Pending';
-      return `<tr><td>${dateStr}</td><td>${esc(r.description)}</td><td>${r.debit?('₹'+r.debit.toFixed(2)):'-'}</td><td>${r.credit?('₹'+r.credit.toFixed(2)):'-'}</td><td>${matchCell}</td></tr>`;
+      return `<tr><td>${dateStr}</td><td>${esc(r.description)}</td><td>${formatBankMoney(r.debit)}</td><td>${formatBankMoney(r.credit)}</td><td>${matchCell}</td></tr>`;
     }).join('') || '<tr><td colspan="5">No bank entries — statement add karein.</td></tr>';
+  }
+
+  async function clearBankReconEntries() {
+    if (!confirm('Saari bank statement entries delete ho jayengi. Continue?')) return;
+    const res = await apiDelete('/api/bank-recon/all');
+    if (res.error) {
+      showToast('❌ ' + res.error, 'error');
+      return;
+    }
+    loadBankRecon();
+    showToast('✅ Bank entries saaf ho gayi — dubara sahi CSV upload karein.');
   }
 
   // ==================== COMPANIES ====================
@@ -435,6 +454,7 @@
     if (bankDateInput && !bankDateInput.value) {
       bankDateInput.value = new Date().toISOString().slice(0, 10);
     }
+    document.getElementById('clearBankReconBtn')?.addEventListener('click', () => clearBankReconEntries());
     document.getElementById('addBankEntryBtn')?.addEventListener('click', async () => {
       const description = document.getElementById('bankDescInput')?.value.trim();
       const debit = parseFloat(document.getElementById('bankDebitInput')?.value) || 0;
@@ -539,5 +559,5 @@
   });
 
   // Expose for udhar table
-  window.BolKarigarPro = { loadReportsPro, importFromTally, openUdharPayment, loadBankRecon, loadCompanies };
+  window.BolKarigarPro = { loadReportsPro, importFromTally, openUdharPayment, loadBankRecon, clearBankReconEntries, loadCompanies };
 })();

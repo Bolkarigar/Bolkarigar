@@ -1,7 +1,7 @@
 /**
  * Bank reconciliation — safe payloads + auto-match against app Payments (UPI/Bank/Cheque).
  */
-const { parseBankStatementDate } = require('./bank-csv-utils');
+const { parseBankStatementDate, parseAmount } = require('./bank-csv-utils');
 
 function dayKeyIST(value) {
   const dt = value instanceof Date ? value : new Date(value);
@@ -11,8 +11,8 @@ function dayKeyIST(value) {
 
 function buildBankReconPayload(body, userId) {
   const description = String(body?.description || '').trim() || 'Bank entry';
-  const debit = Math.max(0, Number(body?.debit) || 0);
-  const credit = Math.max(0, Number(body?.credit) || 0);
+  const debit = parseAmount(body?.debit);
+  const credit = parseAmount(body?.credit);
   let statementDate = null;
   const rawDate = body?.statementDate ?? body?.date;
   if (rawDate) {
