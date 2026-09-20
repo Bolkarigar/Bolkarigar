@@ -29,7 +29,7 @@ const BK_PLAN_PRICING = {
     amountPaiseYearly: 299900,
     labelMonthly: '₹299/month',
     labelYearly: '₹2999/year',
-    staffSlots: 5
+    staffSlots: 25
   }
 };
 

@@ -355,13 +355,13 @@ function setupSubscription({ app, User, authenticateToken }) {
           trialDays: BUSINESS_TRIAL_DAYS,
           priceMonthly: BK_PLAN_PRICING.business.priceMonthly,
           priceYearly: BK_PLAN_PRICING.business.priceYearly,
-          staffSlots: 5,
+          staffSlots: BK_PLAN_PRICING.business.staffSlots,
           features: [
             `${BUSINESS_TRIAL_DAYS}-day free trial`,
             `Then ₹${BK_PLAN_PRICING.business.priceMonthly}/month or ₹${BK_PLAN_PRICING.business.priceYearly}/year`,
             'Everything in the app',
             'Tally sync + Voice AI + Reports Pro',
-            'Staff (5) + Payroll & Attendance'
+            `Staff (${BK_PLAN_PRICING.business.staffSlots}) + Payroll & Attendance`
           ]
         }
       ]

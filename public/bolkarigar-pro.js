@@ -164,6 +164,14 @@
       const data = await apiGet('/api/staff/list');
       if (codeEl) codeEl.textContent = data.inviteCode || 'Generate karein';
       if (roleEl) roleEl.textContent = data.inviteRole ? `(${data.inviteRole})` : '';
+      const slotsEl = document.getElementById('staffSlotsLabel');
+      if (slotsEl && data.staffSlots != null) {
+        const used = data.staffCount ?? (data.staff || []).length;
+        const max = data.staffSlots;
+        slotsEl.textContent = max
+          ? `Staff used: ${used} / ${max}${data.staffSlotsRemaining === 0 ? ' — limit full, remove someone to add more.' : ''}`
+          : 'Staff invite — Business plan (₹299) required.';
+      }
       staffListRows = data.staff || [];
       if (!staffListRows.length) {
         const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));

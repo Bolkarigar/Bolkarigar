@@ -179,6 +179,15 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           subscription
         });
       }
+      const staffCount = await User.countDocuments({ ownerId: user._id });
+      const maxStaff = subscription.staffSlots || 0;
+      if (maxStaff > 0 && staffCount >= maxStaff) {
+        return res.status(402).json({
+          error: `Business plan par maximum ${maxStaff} staff add ho sakte hain. Pehle kisi staff ko remove karein.`,
+          staffCount,
+          staffSlots: maxStaff
+        });
+      }
       const allowedRoles = ['cashier', 'manager', 'staff'];
       const inviteRole = allowedRoles.includes(req.body?.role) ? req.body.role : 'cashier';
       const code = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -214,6 +223,13 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           error: 'This store subscription has expired. Ask the owner to renew before creating a staff account.'
         });
       }
+      const staffCount = await User.countDocuments({ ownerId: owner._id });
+      const maxStaff = ownerSub.staffSlots || 0;
+      if (maxStaff > 0 && staffCount >= maxStaff) {
+        return res.status(402).json({
+          error: `Owner ke plan par staff limit (${maxStaff}) full hai. Owner se extra slot ya remove karne ko kahein.`
+        });
+      }
       const exists = await User.findOne({ $or: [{ username }, { email }] });
       if (exists) return res.status(400).json({ error: 'Username or email already exists.' });
       const staffRole = owner.staffInviteRole || 'staff';
@@ -232,9 +248,14 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const user = await User.findById(req.user.id);
       if (user.ownerId) return res.status(403).json({ error: 'Sirf owner staff list dekh sakta hai.' });
       const staff = await User.find({ ownerId: req.user.id }).select('username email role createdAt');
+      const subscription = await getSubscriptionForUser(User, user);
+      const staffSlots = subscription.staffSlots || 0;
       res.json({
         success: true,
         staff,
+        staffCount: staff.length,
+        staffSlots,
+        staffSlotsRemaining: Math.max(0, staffSlots - staff.length),
         inviteCode: user.staffInviteCode || null,
         inviteRole: user.staffInviteRole || null
       });
