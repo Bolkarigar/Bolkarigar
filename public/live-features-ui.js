@@ -8,6 +8,7 @@
 
   function toast(msg, type) {
     if (typeof window.showToast === 'function') window.showToast(msg, type);
+    else if (type === 'error') alert(msg);
     else console.log(msg);
   }
 
@@ -102,10 +103,15 @@
     });
     const d = await r.json();
     if (d.success) {
-      toast(`✅ ${d.imported} entries imported.`);
+      let msg = `✅ ${d.message || `${d.imported} entries imported.`}`;
+      if (d.warnings?.length) msg += ' ' + d.warnings[0];
+      toast(msg, d.skipped ? 'info' : 'success');
       if (typeof window.BolKarigarPro?.loadBankRecon === 'function') window.BolKarigarPro.loadBankRecon();
       else document.getElementById('bankReconPanel')?.dispatchEvent(new Event('focus'));
-    } else toast('❌ ' + (d.error || 'Import fail'), 'error');
+    } else {
+      const hint = d.hints?.length ? '\n' + d.hints.join('\n') : '';
+      toast('❌ ' + (d.error || 'Import fail') + hint, 'error');
+    }
   }
 
   async function bkRefreshDashboard() {

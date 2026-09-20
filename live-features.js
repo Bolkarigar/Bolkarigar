@@ -1,6 +1,9 @@
 /**
  * BolKarigar — Live-ready feature routes (daily summary, backup, alerts, CSV import)
  */
+const { parseBankCsvRows } = require('./bank-csv-utils');
+const { autoMatchBankRecon } = require('./bank-recon-service');
+
 function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, requireBusinessPlan }) {
   const { SalesHistory, Item, Ledger, Voucher, UserData, BusinessProfile } = models;
   const Payment = () => mongoose.model('Payment');
@@ -159,28 +162,43 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
       if (!csvText || typeof csvText !== 'string') {
         return res.status(400).json({ error: 'CSV text zaroori hai.' });
       }
-      const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
-      if (lines.length < 2) return res.status(400).json({ error: 'Kam se kam header + 1 row chahiye.' });
 
+      const { rows, skipped, errors } = parseBankCsvRows(csvText);
+      if (!rows.length) {
+        return res.status(400).json({
+          error: errors[0] || 'Koi valid row nahi mili. Date column DD/MM/YYYY ya YYYY-MM-DD honi chahiye.',
+          skipped,
+          hints: errors
+        });
+      }
+
+      const userId = req.dataUserId;
       let imported = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length < 3) continue;
-        const description = cols[1] || cols[0] || 'Bank entry';
-        const debit = parseFloat(cols[2]) || 0;
-        const credit = parseFloat(cols[3]) || 0;
+      const Payment = mongoose.model('Payment');
+      for (const row of rows) {
+        if (!row.statementDate || Number.isNaN(new Date(row.statementDate).getTime())) continue;
         await BankRecon.create({
-          userId: req.dataUserId,
-          description,
-          debit,
-          credit,
-          statementDate: cols[0] ? new Date(cols[0]) : new Date()
+          userId,
+          description: row.description,
+          debit: row.debit,
+          credit: row.credit,
+          statementDate: row.statementDate,
+          date: row.date || row.statementDate
         });
         imported++;
       }
-      res.json({ success: true, imported, message: `${imported} bank entries import ho gayi.` });
+      const matchResult = await autoMatchBankRecon({ BankRecon, Payment, userId });
+
+      res.json({
+        success: true,
+        imported,
+        skipped,
+        matched: matchResult.matchedCount,
+        warnings: errors,
+        message: `${imported} bank entries import ho gayi${skipped ? ` (${skipped} row skip — galat date/format)` : ''}${matchResult.matchedCount ? `; ${matchResult.matchedCount} Udhar payment se match.` : ''}.`
+      });
     } catch (e) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({ error: e.message || 'CSV import fail.' });
     }
   });
 

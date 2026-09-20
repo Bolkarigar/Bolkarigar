@@ -229,9 +229,14 @@
     const body = document.getElementById('bankReconBody');
     if (!body) return;
     const data = await apiGet('/api/bank-recon');
-    body.innerHTML = (data.records||[]).map(r =>
-      `<tr><td>${new Date(r.date).toLocaleDateString()}</td><td>${esc(r.description)}</td><td>${r.debit?('₹'+r.debit.toFixed(2)):'-'}</td><td>${r.credit?('₹'+r.credit.toFixed(2)):'-'}</td><td>${r.matched?'✅':'❌'}</td></tr>`
-    ).join('') || '<tr><td colspan="5">No bank entries — statement add karein.</td></tr>';
+    body.innerHTML = (data.records||[]).map(r => {
+      const dt = r.statementDate || r.date;
+      const dateStr = dt ? new Date(dt).toLocaleDateString('en-IN') : '—';
+      const matchCell = r.matched
+        ? `✅ <span class="helper-text">${esc(r.matchHint || 'App payment se match')}</span>`
+        : '❌ Pending';
+      return `<tr><td>${dateStr}</td><td>${esc(r.description)}</td><td>${r.debit?('₹'+r.debit.toFixed(2)):'-'}</td><td>${r.credit?('₹'+r.credit.toFixed(2)):'-'}</td><td>${matchCell}</td></tr>`;
+    }).join('') || '<tr><td colspan="5">No bank entries — statement add karein.</td></tr>';
   }
 
   // ==================== COMPANIES ====================
@@ -426,12 +431,25 @@
     });
 
     // Bank Recon
+    const bankDateInput = document.getElementById('bankDateInput');
+    if (bankDateInput && !bankDateInput.value) {
+      bankDateInput.value = new Date().toISOString().slice(0, 10);
+    }
     document.getElementById('addBankEntryBtn')?.addEventListener('click', async () => {
       const description = document.getElementById('bankDescInput')?.value.trim();
       const debit = parseFloat(document.getElementById('bankDebitInput')?.value) || 0;
       const credit = parseFloat(document.getElementById('bankCreditInput')?.value) || 0;
+      const statementDate = document.getElementById('bankDateInput')?.value || '';
       if (!description) return;
-      await apiPost('/api/bank-recon', { description, debit, credit });
+      if (!debit && !credit) {
+        showToast('Debit ya Credit amount likhein.', 'error');
+        return;
+      }
+      const res = await apiPost('/api/bank-recon', { description, debit, credit, statementDate });
+      if (res.error) {
+        showToast('❌ ' + res.error, 'error');
+        return;
+      }
       loadBankRecon();
       showToast('✅ Bank entry added.');
     });

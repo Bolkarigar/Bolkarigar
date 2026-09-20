@@ -12,6 +12,7 @@ const {
 } = require('./payment-utils');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { buildBankReconPayload, autoMatchBankRecon } = require('./bank-recon-service');
 
 // Full Tally-style chart of accounts (28 groups)
 const LEDGER_GROUPS_FULL = [
@@ -98,7 +99,8 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     debit: { type: Number, default: 0 },
     credit: { type: Number, default: 0 },
     matched: { type: Boolean, default: false },
-    voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
+    voucherId: { type: mongoose.Schema.Types.ObjectId },
+    matchHint: String,
     date: { type: Date, default: Date.now }
   });
 
@@ -612,14 +614,21 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   // ===================== BANK RECONCILIATION =====================
   app.post('/api/bank-recon', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
     try {
-      const rec = await BankRecon.create({ userId: req.ownerId, ...req.body });
+      const payload = buildBankReconPayload(req.body, req.ownerId);
+      const rec = await BankRecon.create(payload);
+      await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
       res.json({ success: true, record: rec });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
   app.get('/api/bank-recon', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
+    await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
     const records = await BankRecon.find({ userId: req.ownerId }).sort({ date: -1 });
     const bankLedgers = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Bank' });
     res.json({ success: true, records, bankLedgers });
+  });
+  app.post('/api/bank-recon/auto-match', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
+    const result = await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
+    res.json({ success: true, ...result });
   });
   app.patch('/api/bank-recon/:id/match', authenticateToken, ownerMiddleware, requireOwner, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
     await BankRecon.updateOne({ _id: req.params.id, userId: req.ownerId }, { matched: true, voucherId: req.body.voucherId });

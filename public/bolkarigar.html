@@ -1558,12 +1558,13 @@
         <!-- 🟢 BANK RECONCILIATION -->
         <section class="panel" id="bankReconPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="bank.eyebrow">Banking</p><h3 data-i18n="bank.title">🏦 Bank Reconciliation</h3></div></div>
-          <div class="live-notice-banner">CSV import available — format: Date, Description, Debit, Credit. Auto-matching next update me.</div>
+          <div class="live-notice-banner"><strong>Matched ✅</strong> = bank line ka amount + date, app ke <strong>Credit Ledger → Udhar Payment</strong> (UPI/Bank/Cheque) se mil gaya. <strong>❌ Pending</strong> = abhi koi payment nahi mili — amount/date check karein. CSV: <strong>Date, Description, Debit, Credit</strong> (date <strong>20/09/2026</strong> ya <strong>2026-09-20</strong>).</div>
           <div class="btn-row" style="margin-bottom:12px;">
             <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
             <span class="helper-text">Upload bank statement CSV</span>
           </div>
           <div class="grid-2">
+            <input id="bankDateInput" type="date" title="Statement date" />
             <input id="bankDescInput" placeholder="Statement Description" />
             <input id="bankDebitInput" type="number" placeholder="Debit ₹" />
             <input id="bankCreditInput" type="number" placeholder="Credit ₹" />
@@ -2293,7 +2294,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260919est2"></script>
+  <script src="bolkarigar.js?v=20260920bankcsv2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2313,14 +2314,14 @@
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar-pro.js?v=20260920staffpack1"></script>
+  <script src="bolkarigar-pro.js?v=20260920bankcsv2"></script>
   <script src="payroll-ui.js?v=20260920paycalc1"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
   <script src="team-meeting-ui.js?v=20260919meet1"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>
   <script src="team-gallery-ui.js?v=20260918gal1"></script>
-  <script src="live-features-ui.js?v=20260902r1"></script>
+  <script src="live-features-ui.js?v=20260920bankcsv2"></script>
   <script src="business-card-ui.js?v=20260918bc5"></script>
   <script src="app-lock.js?v=20260902r1"></script>
   <script src="form-enter-nav.js?v=20260918ui55"></script>
