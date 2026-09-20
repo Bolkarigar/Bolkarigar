@@ -1708,40 +1708,52 @@ button.bk-save-busy {
   margin-bottom: 18px;
 }
 .inv-stat-card {
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--card2);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-shadow: var(--shadow);
 }
 .inv-stat-card span {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--muted);
   font-weight: 600;
 }
 .inv-stat-card strong {
   font-size: 1.15rem;
-  color: #f8fafc;
+  color: var(--text);
 }
-.inv-stat-card.info { border-color: rgba(59, 130, 246, 0.45); }
-.inv-stat-card.info strong { color: #60a5fa; }
-.inv-stat-card.primary { border-color: rgba(139, 92, 246, 0.45); }
-.inv-stat-card.primary strong { color: #a78bfa; }
-.inv-stat-card.success { border-color: rgba(34, 197, 94, 0.45); }
-.inv-stat-card.success strong { color: #4ade80; }
-.inv-stat-card.warn { border-color: rgba(245, 158, 11, 0.45); }
-.inv-stat-card.warn strong { color: #fbbf24; }
-.inv-stat-card.danger { border-color: rgba(239, 68, 68, 0.45); }
-.inv-stat-card.danger strong { color: #f87171; }
+.inv-stat-card.info { border-color: rgba(59, 130, 246, 0.35); background: linear-gradient(180deg, var(--card2), rgba(59, 130, 246, 0.06)); }
+.inv-stat-card.info strong { color: #3b82f6; }
+.inv-stat-card.primary { border-color: rgba(139, 92, 246, 0.35); background: linear-gradient(180deg, var(--card2), rgba(139, 92, 246, 0.06)); }
+.inv-stat-card.primary strong { color: #7c3aed; }
+.inv-stat-card.success { border-color: rgba(34, 197, 94, 0.35); background: linear-gradient(180deg, var(--card2), rgba(34, 197, 94, 0.06)); }
+.inv-stat-card.success strong { color: #16a34a; }
+.inv-stat-card.warn { border-color: rgba(245, 158, 11, 0.4); background: linear-gradient(180deg, var(--card2), rgba(245, 158, 11, 0.08)); }
+.inv-stat-card.warn strong { color: #d97706; }
+.inv-stat-card.danger { border-color: rgba(239, 68, 68, 0.35); background: linear-gradient(180deg, var(--card2), rgba(239, 68, 68, 0.06)); }
+.inv-stat-card.danger strong { color: #dc2626; }
+
+html:not([data-theme="light"]) .inv-stat-card.info strong { color: #60a5fa; }
+html:not([data-theme="light"]) .inv-stat-card.primary strong { color: #a78bfa; }
+html:not([data-theme="light"]) .inv-stat-card.success strong { color: #4ade80; }
+html:not([data-theme="light"]) .inv-stat-card.warn strong { color: #fbbf24; }
+html:not([data-theme="light"]) .inv-stat-card.danger strong { color: #f87171; }
 
 .inv-form-card {
-  background: rgba(30, 41, 59, 0.45);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+html[data-theme="light"] .inv-form-card {
+  border-color: rgba(59, 130, 246, 0.22);
+  background: #ffffff;
 }
 .inv-form-card h4 { margin: 0 0 12px; font-size: 1rem; }
 .inv-form-grid {
@@ -1774,7 +1786,7 @@ button.bk-save-busy {
 }
 .inv-chip {
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--card2);
   color: var(--text);
   border-radius: 999px;
   padding: 7px 14px;
@@ -1785,16 +1797,24 @@ button.bk-save-busy {
 }
 .inv-chip:hover {
   border-color: rgba(59, 130, 246, 0.55);
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(59, 130, 246, 0.12);
 }
 .inv-chip.active {
-  background: #3b82f6;
-  border-color: #60a5fa;
+  background: #2563eb;
+  border-color: #3b82f6;
   color: #fff;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.22);
 }
 html[data-theme="light"] .inv-chip {
   background: #f8fafc;
+  color: #1e293b;
+}
+html[data-theme="light"] .inv-chip:hover {
+  background: #eff6ff;
+}
+html[data-theme="light"] .inv-chip.active {
+  background: #2563eb;
+  color: #fff;
 }
 
 .inv-filter-chips {
@@ -1831,8 +1851,8 @@ html[data-theme="light"] .inv-chip {
   display: none;
 }
 .inv-table { font-size: 13px; min-width: 980px; }
-.inv-table th { white-space: nowrap; position: sticky; top: 0; background: #0f172a; z-index: 1; }
-html[data-theme="light"] .inv-table th { background: #f1f5f9; }
+.inv-table th { white-space: nowrap; position: sticky; top: 0; background: var(--card2); z-index: 1; }
+html[data-theme="light"] .inv-table th { background: #f1f5f9; color: #334155; }
 .inv-table td:first-child {
   min-width: 160px;
   max-width: 240px;
@@ -1850,23 +1870,31 @@ html[data-theme="light"] .inv-table th { background: #f1f5f9; }
 .inv-badge-ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
 .inv-badge-low { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 .inv-badge-out { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+html[data-theme="light"] .inv-badge-ok { background: rgba(22, 163, 74, 0.12); color: #15803d; }
+html[data-theme="light"] .inv-badge-low { background: rgba(217, 119, 6, 0.12); color: #b45309; }
+html[data-theme="light"] .inv-badge-out { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
 .inv-row-low { background: rgba(245, 158, 11, 0.06); }
 .inv-row-out { background: rgba(239, 68, 68, 0.06); }
+html[data-theme="light"] .inv-row-low { background: rgba(245, 158, 11, 0.08); }
+html[data-theme="light"] .inv-row-out { background: rgba(239, 68, 68, 0.06); }
 .inv-actions { white-space: nowrap; }
 .inv-act-btn {
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--text);
   border-radius: 6px;
   padding: 4px 8px;
   cursor: pointer;
   margin-right: 2px;
 }
 .inv-act-btn.danger {
-  background: rgba(239, 68, 68, 0.22);
-  color: #fecaca;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
 }
-.inv-act-btn:hover { background: rgba(59, 130, 246, 0.35); }
-.inv-act-btn.danger:hover { background: rgba(239, 68, 68, 0.45); color: #fff; }
+html[data-theme="light"] .inv-act-btn.danger { color: #b91c1c; background: #fef2f2; }
+.inv-act-btn:hover { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.45); }
+.inv-act-btn.danger:hover { background: rgba(239, 68, 68, 0.35); color: #fff; }
 
 .khata-act-group {
   display: flex;
