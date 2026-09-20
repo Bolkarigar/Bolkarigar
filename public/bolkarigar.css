@@ -276,9 +276,10 @@
   .stat-card strong { display: block; margin-top: 6px; font-size: 20px; }
   .dashboard-layout {
     display: grid;
-    grid-template-columns: 252px 1fr;
+    grid-template-columns: minmax(220px, 252px) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
+    width: 100%;
   }
   .sidebar {
     position: sticky;
@@ -536,7 +537,26 @@
     height: 0;
     display: none;
   }
-  .panel-area { min-height: 760px; }
+  .panel-area {
+    min-height: 760px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  #bankReconPanel .table-wrap {
+    width: 100%;
+    max-width: 100%;
+  }
+  #bankReconPanel .table-wrap td:nth-child(2) {
+    max-width: min(380px, 42vw);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    font-size: 12px;
+  }
+  #bankReconPanel .live-notice-banner {
+    line-height: 1.45;
+  }
   .panel { display: none; }
   .panel.active { display: block; }
   .panel-header {

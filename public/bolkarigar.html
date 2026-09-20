@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260920invcolor1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260920banklayout1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
@@ -1558,7 +1558,7 @@
         <!-- 🟢 BANK RECONCILIATION -->
         <section class="panel" id="bankReconPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="bank.eyebrow">Banking</p><h3 data-i18n="bank.title">🏦 Bank Reconciliation</h3></div></div>
-          <div class="live-notice-banner"><strong>Matched ✅</strong> = bank line ka amount + date, app ke <strong>Credit Ledger → Udhar Payment</strong> (UPI/Bank/Cheque) se mil gaya. <strong>❌ Pending</strong> = abhi koi payment nahi mili — amount/date check karein. CSV: <strong>Date, Description, Debit, Credit</strong> (date <strong>20/09/2026</strong> ya <strong>2026-09-20</strong>).</div>
+          <div class="live-notice-banner"><strong>❌ Pending</strong> = bank me paisa dikha, lekin app me <em>usi din + ussi amount</em> ki entry nahi mili (Udhar payment ya UPI/Bank bill). Entry add karo ya date/amount check karo — phir tab refresh. <strong>Matched ✅</strong> = mil gayi. CSV: <strong>Date, Description, Debit, Credit</strong>.</div>
           <div class="btn-row" style="margin-bottom:12px;">
             <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
             <span class="helper-text">Upload bank statement CSV</span>

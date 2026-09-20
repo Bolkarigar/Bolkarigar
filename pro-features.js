@@ -616,12 +616,12 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     try {
       const payload = buildBankReconPayload(req.body, req.ownerId);
       const rec = await BankRecon.create(payload);
-      await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
+      await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId: req.ownerId });
       res.json({ success: true, record: rec });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
   app.get('/api/bank-recon', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
-    await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
+    await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId: req.ownerId });
     const records = await BankRecon.find({ userId: req.ownerId }).sort({ date: -1 });
     const bankLedgers = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Bank' });
     res.json({ success: true, records, bankLedgers });
@@ -631,7 +631,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     res.json({ success: true, deleted: result.deletedCount || 0 });
   });
   app.post('/api/bank-recon/auto-match', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
-    const result = await autoMatchBankRecon({ BankRecon, Payment, userId: req.ownerId });
+    const result = await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId: req.ownerId });
     res.json({ success: true, ...result });
   });
   app.patch('/api/bank-recon/:id/match', authenticateToken, ownerMiddleware, requireOwner, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {

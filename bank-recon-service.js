@@ -32,13 +32,22 @@ function buildBankReconPayload(body, userId) {
   };
 }
 
-async function autoMatchBankRecon({ BankRecon, Payment, userId }) {
+function isBankLikePaymentType(paymentType) {
+  return /^(upi|bank|cheque|card|neft|rtgs|imps)$/i.test(String(paymentType || '').trim());
+}
+
+async function autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId }) {
   const uid = String(userId);
   const payments = await Payment.find({
     userId: uid,
     paymentMode: { $in: ['UPI', 'Bank', 'Cheque'] }
   }).lean();
-  const usedPaymentIds = new Set(
+  const sales = SalesHistory
+    ? await SalesHistory.find({ userId: uid, status: { $ne: 'Pending' } }).lean()
+    : [];
+  const bankSales = sales.filter((s) => isBankLikePaymentType(s.paymentType));
+
+  const usedRefIds = new Set(
     (await BankRecon.find({ userId: uid, matched: true, voucherId: { $ne: null } }).select('voucherId').lean())
       .map((r) => String(r.voucherId))
   );
@@ -52,23 +61,35 @@ async function autoMatchBankRecon({ BankRecon, Payment, userId }) {
     const rowDay = dayKeyIST(row.statementDate || row.date);
     if (!rowDay) continue;
 
-    const hit = payments.find((p) => {
-      if (usedPaymentIds.has(String(p._id))) return false;
+    const payHit = payments.find((p) => {
+      if (usedRefIds.has(String(p._id))) return false;
       if (Math.abs(Number(p.amount) - amount) > 0.02) return false;
       if (dayKeyIST(p.date) !== rowDay) return false;
-      if (row.credit > 0 && row.debit > 0) return false;
       return true;
     });
 
-    if (!hit) continue;
+    if (payHit) {
+      const hint = `Udhar payment — ${payHit.customerName}, ₹${Number(payHit.amount).toFixed(2)} (${payHit.paymentMode})`;
+      await BankRecon.updateOne({ _id: row._id }, { matched: true, voucherId: payHit._id, matchHint: hint });
+      usedRefIds.add(String(payHit._id));
+      matchedCount++;
+      continue;
+    }
 
-    const hint = `Udhar payment — ${hit.customerName}, ₹${Number(hit.amount).toFixed(2)} (${hit.paymentMode})`;
-    await BankRecon.updateOne(
-      { _id: row._id },
-      { matched: true, voucherId: hit._id, matchHint: hint }
-    );
-    usedPaymentIds.add(String(hit._id));
-    matchedCount++;
+    const saleHit = bankSales.find((s) => {
+      if (usedRefIds.has(String(s._id))) return false;
+      const amt = Number(s.totalAmount) || 0;
+      if (!amt || Math.abs(amt - amount) > 0.02) return false;
+      if (dayKeyIST(s.date) !== rowDay) return false;
+      return true;
+    });
+
+    if (saleHit) {
+      const hint = `Bill/Sale — ${saleHit.customer || 'Customer'}, ₹${Number(saleHit.totalAmount).toFixed(2)} (${saleHit.paymentType})`;
+      await BankRecon.updateOne({ _id: row._id }, { matched: true, voucherId: saleHit._id, matchHint: hint });
+      usedRefIds.add(String(saleHit._id));
+      matchedCount++;
+    }
   }
 
   return { matchedCount };

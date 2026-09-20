@@ -187,7 +187,8 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
         });
         imported++;
       }
-      const matchResult = await autoMatchBankRecon({ BankRecon, Payment, userId });
+      const SalesHistory = models.SalesHistory;
+      const matchResult = await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId });
 
       res.json({
         success: true,
