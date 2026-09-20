@@ -255,6 +255,10 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         staff,
         staffCount: staff.length,
         staffSlots,
+        staffSlotsBase: subscription.staffSlotsBase,
+        staffSlotPacks: subscription.staffSlotPacks,
+        staffPackSize: subscription.staffPackSize,
+        staffPackPrice: subscription.staffPackPrice,
         staffSlotsRemaining: Math.max(0, staffSlots - staff.length),
         inviteCode: user.staffInviteCode || null,
         inviteRole: user.staffInviteRole || null

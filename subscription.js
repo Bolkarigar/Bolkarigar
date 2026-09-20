@@ -11,6 +11,9 @@ const {
   MONTHLY_DAYS,
   YEARLY_DAYS,
   BK_PLAN_PRICING,
+  computeStaffSlotLimit,
+  STAFF_PACK_SIZE,
+  STAFF_PACK_PRICE_RS,
   getTrialDays
 } = require('./plan-pricing-config');
 
@@ -238,6 +241,7 @@ function buildSubscriptionPayload(ownerUser) {
   const planKey = user.plan || 'pro';
   const planInfo = PLANS[planKey] || PLANS.pro;
   const features = getPlanFeatures(planKey, isActive);
+  const staffLimit = computeStaffSlotLimit(planKey, user.staffSlotPacks);
 
   let daysLeft = 0;
   if (isTrial && trialEndsAt) {
@@ -261,11 +265,15 @@ function buildSubscriptionPayload(ownerUser) {
     trialEndsAt: trialEndsAt ? trialEndsAt.toISOString() : null,
     planExpiresAt: planExpiresAt ? planExpiresAt.toISOString() : null,
     daysLeft,
-    staffSlots: planInfo.staffSlots,
+    staffSlots: staffLimit.staffSlots,
+    staffSlotsBase: staffLimit.staffSlotsBase,
+    staffSlotPacks: staffLimit.staffSlotPacks,
+    staffPackSize: staffLimit.staffPackSize,
+    staffPackPrice: staffLimit.staffPackPrice,
     trialDays: trialDaysForPlan,
     proTrialDays: PRO_TRIAL_DAYS,
     businessTrialDays: BUSINESS_TRIAL_DAYS,
-    canInviteStaff: isActive && planInfo.staffSlots > 0,
+    canInviteStaff: isActive && staffLimit.staffSlots > 0,
     ownerPays: true,
     staffPays: false,
     allowedTabs: features.allowedTabs,
@@ -361,7 +369,7 @@ function setupSubscription({ app, User, authenticateToken }) {
             `Then ₹${BK_PLAN_PRICING.business.priceMonthly}/month or ₹${BK_PLAN_PRICING.business.priceYearly}/year`,
             'Everything in the app',
             'Tally sync + Voice AI + Reports Pro',
-            `Staff (${BK_PLAN_PRICING.business.staffSlots}) + Payroll & Attendance`
+            `Staff (${BK_PLAN_PRICING.business.staffSlots} incl., +25 @ ₹49 each) + Payroll`
           ]
         }
       ]

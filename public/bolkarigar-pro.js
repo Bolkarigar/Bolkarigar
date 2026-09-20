@@ -168,10 +168,18 @@
       if (slotsEl && data.staffSlots != null) {
         const used = data.staffCount ?? (data.staff || []).length;
         const max = data.staffSlots;
-        slotsEl.textContent = max
-          ? `Staff used: ${used} / ${max}${data.staffSlotsRemaining === 0 ? ' — limit full, remove someone to add more.' : ''}`
+        const packs = data.staffSlotPacks || 0;
+        const base = data.staffSlotsBase ?? 25;
+        let line = max
+          ? `Staff used: ${used} / ${max} (${base} included${packs ? ` + ${packs} paid pack${packs > 1 ? 's' : ''}` : ''})`
           : 'Staff invite — Business plan (₹299) required.';
+        if (max && data.staffSlotsRemaining === 0) {
+          line += ' — limit full. Buy +25 staff (₹49) or remove someone.';
+        }
+        slotsEl.textContent = line;
       }
+      const buyBtn = document.getElementById('staffBuyPackBtn');
+      if (buyBtn) buyBtn.style.display = (data.staffSlots > 0) ? '' : 'none';
       staffListRows = data.staff || [];
       if (!staffListRows.length) {
         const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));
@@ -183,6 +191,7 @@
       paintStaffPage();
     } catch (e) { body.innerHTML = `<tr><td colspan="4">${esc(e.message)}</td></tr>`; }
   }
+  window.loadStaff = loadStaff;
 
   // ==================== CONTRACTOR ====================
   async function loadLabour() {
@@ -367,6 +376,16 @@
         showToast(`Invite (${data.inviteRole || role}): ` + data.inviteCode);
         loadStaff();
       } else showToast('❌ ' + (data.error || 'Fail'), 'error');
+    });
+
+    document.getElementById('staffBuyPackBtn')?.addEventListener('click', async () => {
+      const qty = parseInt(document.getElementById('staffPackQty')?.value, 10) || 1;
+      if (typeof window.bkPayStaffSlotPack === 'function') {
+        await window.bkPayStaffSlotPack(qty);
+        loadStaff();
+      } else {
+        showToast('Payment module loading — refresh the page.', 'error');
+      }
     });
 
     // Labour

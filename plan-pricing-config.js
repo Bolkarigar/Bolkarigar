@@ -33,6 +33,33 @@ const BK_PLAN_PRICING = {
   }
 };
 
+/** Business plan — extra staff packs (₹49 each = +25 login slots, stackable) */
+const STAFF_PACK_SIZE = 25;
+const STAFF_PACK_PRICE_RS = 49;
+const STAFF_PACK_AMOUNT_PAISE = STAFF_PACK_PRICE_RS * 100;
+const STAFF_PACK_MAX_QTY = 20;
+
+function computeStaffSlotLimit(planKey, staffSlotPacks) {
+  if (planKey !== 'business') {
+    return {
+      staffSlotsBase: 0,
+      staffSlotPacks: 0,
+      staffSlots: 0,
+      staffPackSize: STAFF_PACK_SIZE,
+      staffPackPrice: STAFF_PACK_PRICE_RS
+    };
+  }
+  const base = BK_PLAN_PRICING.business.staffSlots || 0;
+  const packs = Math.max(0, Number(staffSlotPacks) || 0);
+  return {
+    staffSlotsBase: base,
+    staffSlotPacks: packs,
+    staffSlots: base + packs * STAFF_PACK_SIZE,
+    staffPackSize: STAFF_PACK_SIZE,
+    staffPackPrice: STAFF_PACK_PRICE_RS
+  };
+}
+
 function getPlanAmountPaise(planId, billing) {
   const p = BK_PLAN_PRICING[planId];
   if (!p) return null;
@@ -54,6 +81,11 @@ module.exports = {
   MONTHLY_DAYS,
   YEARLY_DAYS,
   BK_PLAN_PRICING,
+  STAFF_PACK_SIZE,
+  STAFF_PACK_PRICE_RS,
+  STAFF_PACK_AMOUNT_PAISE,
+  STAFF_PACK_MAX_QTY,
+  computeStaffSlotLimit,
   getPlanAmountPaise,
   getPlanDurationDays,
   getTrialDays

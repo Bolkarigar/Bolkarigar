@@ -1478,7 +1478,17 @@
         <section class="panel" id="staffPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="staff.eyebrow">Team Management</p><h3 data-i18n="staff.title">👥 Staff & Cashier Login</h3></div></div>
           <p class="helper-text" data-i18n="staff.hint">Generate invite codes by role — staff cannot choose their own role (professional security).</p>
-          <p class="helper-text" id="staffSlotsLabel">Business plan: up to 25 staff accounts.</p>
+          <p class="helper-text" id="staffSlotsLabel">Business plan: 25 staff included.</p>
+          <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">
+            <button type="button" id="staffBuyPackBtn" class="secondary">➕ Add 25 staff — ₹49</button>
+            <select id="staffPackQty" aria-label="Staff pack quantity" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+              <option value="1">1 pack (+25)</option>
+              <option value="2">2 packs (+50) — ₹98</option>
+              <option value="3">3 packs (+75) — ₹147</option>
+              <option value="4">4 packs (+100) — ₹196</option>
+            </select>
+            <span class="helper-text">Need more than 25? Each extra pack = 25 staff @ ₹49.</span>
+          </div>
           <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
             <select id="inviteRoleSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
               <option value="cashier">Cashier — bill, udhar payment</option>
@@ -2300,10 +2310,10 @@
     });
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
-  <script src="subscription-ui.js?v=20260918ui55"></script>
+  <script src="subscription-ui.js?v=20260920staffpack1"></script>
   <script src="dev-plan-toggle.js?v=20260909r3"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar-pro.js?v=20260920staff25"></script>
+  <script src="bolkarigar-pro.js?v=20260920staffpack1"></script>
   <script src="payroll-ui.js?v=20260920paycalc1"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>

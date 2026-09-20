@@ -246,7 +246,8 @@
         ${sub.planExpiresAt ? `<li>Paid until: ${new Date(sub.planExpiresAt).toLocaleDateString("en-IN")}</li>` : ""}
         <li>Pro after trial: <strong>₹${p.pro?.priceMonthly || 99}/mo</strong> or <strong>₹${p.pro?.priceYearly || 999}/yr</strong></li>
         <li>Business after trial: <strong>₹${p.business?.priceMonthly || 299}/mo</strong> or <strong>₹${p.business?.priceYearly || 2999}/yr</strong></li>
-        <li>Staff slots (Business): <strong>${sub.staffSlots || 0}</strong></li>
+        <li>Staff slots (Business): <strong>${sub.staffSlots || 0}</strong>${sub.staffSlotPacks ? ` (${sub.staffSlotsBase || 25} + ${sub.staffSlotPacks}×25 paid)` : ''}</li>
+        <li>Extra staff pack: <strong>+${sub.staffPackSize || 25} for ₹${sub.staffPackPrice || 49}</strong> — buy from Staff panel</li>
       `;
     }
 
@@ -432,7 +433,88 @@
     }
   });
 
+  async function payStaffSlotPack(quantity) {
+    const qty = Math.min(20, Math.max(1, parseInt(quantity, 10) || 1));
+    if (!getToken()) {
+      window.location.href = "loginpage.html";
+      return;
+    }
+    try {
+      if (typeof showToast === "function") showToast("⌛ Opening payment for extra staff...");
+      const cfgRes = await fetch(`${API_URL}/api/payment/config`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      const cfg = await cfgRes.json().catch(() => ({}));
+      if (!cfgRes.ok || !cfg.configured) {
+        throw new Error(cfg.error || "Online payment is not configured yet.");
+      }
+      if (cfg.testMode && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) {
+        const proceed = confirm("⚠️ Razorpay TEST mode.\n\nContinue test payment for staff pack?");
+        if (!proceed) return;
+      }
+      await loadRazorpayScript();
+      const orderRes = await fetch(`${API_URL}/api/payment/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ orderType: "staff_pack", quantity: qty })
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || "Order create failed");
+
+      const packSize = cfg.staffPack?.packSize || 25;
+      const priceEach = cfg.staffPack?.priceRs || 49;
+      const me = await getAccountPrefill();
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "BolKarigar",
+        description: `+${qty * packSize} staff (${qty}× ₹${priceEach})`,
+        order_id: orderData.orderId,
+        prefill: { email: me.email || "", name: me.username || "" },
+        theme: { color: "#3b82f6" },
+        handler: async function (response) {
+          try {
+            const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(verifyData.error || "Verify failed");
+            if (typeof showToast === "function") showToast("✅ " + verifyData.message);
+            if (typeof refreshPlanStatus === "function") await refreshPlanStatus();
+            if (typeof loadStaff === "function") loadStaff();
+          } catch (err) {
+            if (typeof showToast === "function") showToast("❌ " + err.message, "error");
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            if (typeof showToast === "function") showToast("Payment cancelled.", "info");
+          }
+        }
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      if (typeof showToast === "function") showToast("❌ " + err.message, "error");
+      else alert(err.message);
+    }
+  }
+
   window.buyBolKarigarPlan = buyBolKarigarPlan;
+  window.bkPayStaffSlotPack = payStaffSlotPack;
   window.bkRenderSubscriptionUI = renderSubscriptionUI;
   window.refreshPlanStatus = refreshPlanStatus;
   window.bkGetSelectedBilling = getSelectedBilling;

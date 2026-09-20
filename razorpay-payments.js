@@ -13,7 +13,11 @@ const {
 const {
   BK_PLAN_PRICING,
   getPlanAmountPaise,
-  getPlanDurationDays
+  getPlanDurationDays,
+  STAFF_PACK_SIZE,
+  STAFF_PACK_PRICE_RS,
+  STAFF_PACK_AMOUNT_PAISE,
+  STAFF_PACK_MAX_QTY
 } = require('./plan-pricing-config');
 
 function normalizeRazorpayEnv() {
@@ -66,8 +70,10 @@ async function fetchPaymentStatus(razorpay, paymentId) {
 function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
   const paymentOrderSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    plan: { type: String, enum: ['pro', 'business'], required: true },
+    orderType: { type: String, enum: ['subscription', 'staff_pack'], default: 'subscription' },
+    plan: { type: String, enum: ['pro', 'business'], default: null },
     billing: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
+    staffPacks: { type: Number, default: 0 },
     amountPaise: { type: Number, required: true },
     durationDays: { type: Number, default: 30 },
     currency: { type: String, default: 'INR' },
@@ -111,6 +117,13 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
             amountPaiseMonthly: BK_PLAN_PRICING.business.amountPaiseMonthly,
             amountPaiseYearly: BK_PLAN_PRICING.business.amountPaiseYearly
           }
+        },
+        staffPack: {
+          packSize: STAFF_PACK_SIZE,
+          priceRs: STAFF_PACK_PRICE_RS,
+          amountPaise: STAFF_PACK_AMOUNT_PAISE,
+          maxQuantity: STAFF_PACK_MAX_QTY,
+          label: `+${STAFF_PACK_SIZE} staff — ₹${STAFF_PACK_PRICE_RS} per pack`
         }
       });
     } catch (e) {
@@ -130,26 +143,53 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         return res.status(403).json({ error: 'Only the shop owner can purchase a plan.' });
       }
 
-      const plan = req.body?.plan === 'business' ? 'business' : (req.body?.plan === 'pro' ? 'pro' : null);
-      const billing = req.body?.billing === 'yearly' ? 'yearly' : 'monthly';
-      if (!plan) {
-        return res.status(400).json({ error: 'Invalid plan. Choose pro or business.' });
-      }
-
-      const amountPaise = getPlanAmountPaise(plan, billing);
-      if (!amountPaise) {
-        return res.status(400).json({ error: 'Invalid plan or billing period.' });
-      }
-
-      const durationDays = getPlanDurationDays(billing);
-      const planInfo = PLANS[plan];
-      const billingLabel = billing === 'yearly' ? planInfo.labelYearly || `₹${planInfo.priceYearly}/year` : planInfo.label;
-
       const { keyId } = normalizeRazorpayEnv();
       if (getRazorpayMode() === 'invalid') {
         return res.status(503).json({
           error: 'Razorpay Key ID format is invalid. Live key must start with rzp_live_.'
         });
+      }
+
+      const orderType = req.body?.orderType === 'staff_pack' ? 'staff_pack' : 'subscription';
+      let amountPaise;
+      let durationDays = 0;
+      let plan = null;
+      let billing = 'monthly';
+      let planInfo = null;
+      let billingLabel = '';
+      let staffPacks = 0;
+      let productNote = 'BolKarigar Subscription';
+
+      if (orderType === 'staff_pack') {
+        if (user.plan !== 'business') {
+          return res.status(400).json({ error: 'Extra staff packs are for Business plan (₹299) only.' });
+        }
+        const sub = buildSubscriptionPayload(user);
+        if (!sub.isActive) {
+          return res.status(402).json({ error: 'Active Business plan required before buying extra staff packs.' });
+        }
+        staffPacks = Math.min(
+          STAFF_PACK_MAX_QTY,
+          Math.max(1, parseInt(req.body?.quantity, 10) || 1)
+        );
+        amountPaise = STAFF_PACK_AMOUNT_PAISE * staffPacks;
+        plan = 'business';
+        productNote = 'BolKarigar Staff Pack';
+        billingLabel = `${staffPacks}× +${STAFF_PACK_SIZE} staff (₹${STAFF_PACK_PRICE_RS} each)`;
+        planInfo = PLANS.business;
+      } else {
+        plan = req.body?.plan === 'business' ? 'business' : (req.body?.plan === 'pro' ? 'pro' : null);
+        billing = req.body?.billing === 'yearly' ? 'yearly' : 'monthly';
+        if (!plan) {
+          return res.status(400).json({ error: 'Invalid plan. Choose pro or business.' });
+        }
+        amountPaise = getPlanAmountPaise(plan, billing);
+        if (!amountPaise) {
+          return res.status(400).json({ error: 'Invalid plan or billing period.' });
+        }
+        durationDays = getPlanDurationDays(billing);
+        planInfo = PLANS[plan];
+        billingLabel = billing === 'yearly' ? planInfo.labelYearly || `₹${planInfo.priceYearly}/year` : planInfo.label;
       }
 
       const receipt = `bk_${String(user._id).slice(-8)}_${Date.now()}`;
@@ -160,16 +200,20 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         notes: {
           userId: String(user._id),
           username: user.username,
-          plan,
+          plan: plan || '',
           billing,
-          product: 'BolKarigar Subscription'
+          orderType,
+          staffPacks: String(staffPacks),
+          product: productNote
         }
       });
 
       await PaymentOrder.create({
         userId: user._id,
+        orderType,
         plan,
         billing,
+        staffPacks,
         amountPaise,
         durationDays,
         razorpayOrderId: order.id,
@@ -183,10 +227,12 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         orderId: order.id,
         amount: amountPaise,
         currency: 'INR',
+        orderType,
+        staffPacks,
         plan,
         billing,
         durationDays,
-        planName: planInfo.name,
+        planName: planInfo?.name || 'Staff add-on',
         planLabel: billingLabel
       });
     } catch (e) {
@@ -256,16 +302,26 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       paymentOrder.paidAt = new Date();
       await paymentOrder.save();
 
-      const durationDays = paymentOrder.durationDays || getPlanDurationDays(paymentOrder.billing);
-      activateOwnerPlan(user, paymentOrder.plan, durationDays, { extend: true });
       user.lastPaymentId = razorpay_payment_id;
       user.lastPaymentAt = new Date();
-      await user.save();
 
-      const billingText = paymentOrder.billing === 'yearly' ? '1 year' : '30 days';
+      let successMessage;
+      if (paymentOrder.orderType === 'staff_pack') {
+        const add = paymentOrder.staffPacks || 1;
+        user.staffSlotPacks = (user.staffSlotPacks || 0) + add;
+        await user.save();
+        successMessage = `+${add * STAFF_PACK_SIZE} staff slots added (${add} pack${add > 1 ? 's' : ''} × ₹${STAFF_PACK_PRICE_RS}).`;
+      } else {
+        const durationDays = paymentOrder.durationDays || getPlanDurationDays(paymentOrder.billing);
+        activateOwnerPlan(user, paymentOrder.plan, durationDays, { extend: true });
+        await user.save();
+        const billingText = paymentOrder.billing === 'yearly' ? '1 year' : '30 days';
+        successMessage = `${PLANS[paymentOrder.plan].name} plan activated for ${billingText}!`;
+      }
+
       res.json({
         success: true,
-        message: `${PLANS[paymentOrder.plan].name} plan activated for ${billingText}!`,
+        message: successMessage,
         subscription: buildSubscriptionPayload(user),
         paymentId: razorpay_payment_id
       });

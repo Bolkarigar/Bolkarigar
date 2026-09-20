@@ -307,7 +307,9 @@ const UserSchema = new mongoose.Schema({
   planExpiresAt: { type: Date, default: null },
   trialUsed: { type: Boolean, default: false },
   lastPaymentId: { type: String, default: null },
-  lastPaymentAt: { type: Date, default: null }
+  lastPaymentAt: { type: Date, default: null },
+  /** Extra staff packs bought (₹49 each → +25 staff logins per pack) */
+  staffSlotPacks: { type: Number, default: 0, min: 0 }
 });
 
 const DataSchema = new mongoose.Schema({
