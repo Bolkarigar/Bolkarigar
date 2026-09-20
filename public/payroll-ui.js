@@ -688,11 +688,12 @@
       <p><strong>${esc(data.employee.name)}</strong> — ${esc(data.employee.designation || 'Staff')}</p>
       <p class="helper-text">Today: ${attDate}${isWeeklyOff ? ` · Weekly off (${WEEKDAY_LONG[attDow]})` : ''}</p>
       ${isWeeklyOff
-        ? '<p class="helper-text">Weekly off — attendance mark ki zaroorat nahi.</p>'
-        : `<div class="btn-row" style="margin:14px 0;">
-            <button type="button" id="payrollSelfPresentBtn" class="theme-btn"${presentDone ? ' disabled' : ''}>${presentDone ? '✅ Present (marked)' : '✅ Mark Present'}</button>
-          </div>
-          <p class="helper-text">Status: <strong>${cur ? cur.replace(/_/g, ' ') : 'Not marked yet'}</strong></p>`}
+        ? '<p class="helper-text">Weekly off day — agar aaj kaam par aaye ho toh Present mark karein.</p>'
+        : ''}
+      <div class="btn-row" style="margin:14px 0;">
+        <button type="button" id="payrollSelfPresentBtn" class="theme-btn"${presentDone ? ' disabled' : ''}>${presentDone ? '✅ Present (marked)' : '✅ Mark Present'}</button>
+      </div>
+      <p class="helper-text">Status: <strong>${cur ? cur.replace(/_/g, ' ') : 'Not marked yet'}</strong></p>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;" />
       <p><strong>📄 Meri Salary Slip</strong></p>
       <p class="helper-text">Month select karke slip dekhein ya PDF download karein.</p>
