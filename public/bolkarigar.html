@@ -16,12 +16,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260920banklayout1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260921sidebar1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260918ui55"></script>
+  <script src="i18n.js?v=20260921sidebar1"></script>
   <script>
     window.BK_APP_BUILD = '20260918ui55';
     (function () {
@@ -139,37 +139,47 @@
           <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn btn-close" data-i18n-aria="menu.close" aria-label="Close menu">✕</button>
         </div>
         <div class="sidebar-nav-scroll">
-          <div class="nav-group nav-group-main">
-            <p class="nav-group-label" data-i18n="nav.main">Main</p>
-            <button class="tab-btn active" data-tab="overviewPanel" type="button" data-i18n="nav.overview">🏠 Overview</button>
-            <button class="tab-btn" data-tab="invoicePanel" type="button" data-i18n="nav.invoice">🧾 Invoice</button>
-            <button class="tab-btn" data-tab="purchasePanel" type="button" data-i18n="nav.purchase">📥 Purchase</button>
-            <button class="tab-btn" data-tab="paymentVoucherPanel" type="button">💸 Payment</button>
-            <button class="tab-btn" data-tab="receiptVoucherPanel" type="button">💰 Receipt</button>
-            <button class="tab-btn" data-tab="khataVoucherPanel" type="button" data-i18n="nav.voucher">🧾 New Voucher</button>
-          </div>
-          <div class="nav-group nav-group-business">
-            <p class="nav-group-label" data-i18n="nav.business">Business</p>
-            <button class="tab-btn" data-tab="projectPanel" type="button" data-i18n="nav.projects">📁 Projects</button>
-            <button class="tab-btn" data-tab="inventoryPanel" type="button" data-i18n="nav.inventory">📦 Inventory</button>
-            <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
-            <button class="tab-btn" data-tab="estimatePanel" type="button" data-i18n="nav.estimate">📋 Estimate / Quote</button>
-          </div>
-          <div class="nav-group nav-group-hajri staff-hajri-nav">
-            <p class="nav-group-label" data-i18n="nav.hajri">Attendance</p>
-            <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">💼 Staff Payroll</button>
-            <button class="tab-btn" data-tab="teamMeetingPanel" type="button">📞 Team Meeting</button>
-          </div>
-          <div class="nav-group nav-group-accounting">
-            <p class="nav-group-label" data-i18n="nav.accounting">Accounting</p>
-            <button class="tab-btn" data-tab="modifyPanel" type="button">✏️ Modification</button>
-            <button class="tab-btn" data-tab="ledgerPanel" type="button" data-i18n="nav.udhar">📖 Credit Ledger</button>
-            <button class="tab-btn" data-tab="khataLedgersPanel" type="button" data-i18n="nav.ledgers">📒 Ledgers</button>
-            <button class="tab-btn" data-tab="khataItemsPanel" type="button" data-i18n="nav.stockItems">📦 Stock Items</button>
-            <button class="tab-btn" data-tab="khataDaybookPanel" type="button" data-i18n="nav.daybook">📅 Day Book</button>
-            <button class="tab-btn" data-tab="reportsProPanel" type="button" data-i18n="nav.reports">📈 Reports Pro</button>
-            <button class="tab-btn" data-tab="bankReconPanel" type="button" data-i18n="nav.bankRecon">🏦 Bank Recon</button>
-          </div>
+          <details class="nav-accordion nav-group nav-group-main" open>
+            <summary class="nav-accordion-summary" data-i18n="nav.main">Main</summary>
+            <div class="nav-accordion-body">
+              <button class="tab-btn active" data-tab="overviewPanel" type="button" data-i18n="nav.overview">🏠 Overview</button>
+              <button class="tab-btn" data-tab="invoicePanel" type="button" data-i18n="nav.invoiceSale">🧾 Invoice / Sale</button>
+              <button class="tab-btn" data-tab="purchasePanel" type="button" data-i18n="nav.purchase">📥 Purchase</button>
+              <button class="tab-btn" data-tab="paymentVoucherPanel" type="button">💸 Payment</button>
+              <button class="tab-btn" data-tab="receiptVoucherPanel" type="button">💰 Receipt</button>
+              <button class="tab-btn" data-tab="khataVoucherPanel" type="button" data-i18n="nav.voucher">🧾 New Voucher</button>
+            </div>
+          </details>
+          <details class="nav-accordion nav-group nav-group-accounting">
+            <summary class="nav-accordion-summary" data-i18n="nav.accounting">Accounting</summary>
+            <div class="nav-accordion-body">
+              <button class="tab-btn" data-tab="modifyPanel" type="button">✏️ Modification</button>
+              <button class="tab-btn" data-tab="ledgerPanel" type="button" data-i18n="nav.udhar">📖 Credit Ledger</button>
+              <button class="tab-btn" data-tab="khataLedgersPanel" type="button" data-i18n="nav.ledgers">📒 Ledgers</button>
+              <button class="tab-btn" data-tab="khataItemsPanel" type="button" data-i18n="nav.stockItems">📦 Stock Items</button>
+              <button class="tab-btn" data-tab="khataDaybookPanel" type="button" data-i18n="nav.daybook">📅 Day Book</button>
+              <button class="tab-btn" data-tab="reportsProPanel" type="button" data-i18n="nav.reports">📈 Reports Pro</button>
+              <button class="tab-btn" data-tab="bankReconPanel" type="button" data-i18n="nav.bankRecon">🏦 Bank Recon</button>
+            </div>
+          </details>
+          <details class="nav-accordion nav-group nav-group-business">
+            <summary class="nav-accordion-summary" data-i18n="nav.business">Business</summary>
+            <div class="nav-accordion-body">
+              <button class="tab-btn" data-tab="inventoryPanel" type="button" data-i18n="nav.inventory">📦 Inventory</button>
+              <button class="tab-btn" data-tab="estimatePanel" type="button" data-i18n="nav.estimate">📋 Estimate / Quote</button>
+              <button class="tab-btn" data-tab="projectPanel" type="button" data-i18n="nav.projects">📁 Projects</button>
+              <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
+              <button class="tab-btn" data-tab="companiesPanel" type="button" data-i18n="nav.companies">🏢 Companies</button>
+            </div>
+          </details>
+          <details class="nav-accordion nav-group nav-group-staff staff-hajri-nav">
+            <summary class="nav-accordion-summary" data-i18n="nav.staffManagement">Staff Management</summary>
+            <div class="nav-accordion-body">
+              <button class="tab-btn" data-tab="payrollPanel" type="button" data-i18n="nav.payroll">💼 Staff Payroll</button>
+              <button class="tab-btn" data-tab="teamMeetingPanel" type="button">📞 Team Meeting</button>
+              <button class="tab-btn" data-tab="staffPanel" type="button" data-i18n="nav.staff">👥 Staff</button>
+            </div>
+          </details>
           <div class="nav-group nav-group-tools">
             <p class="nav-group-label" data-i18n="nav.tools">Tools</p>
             <button class="tab-btn" data-tab="galleryPanel" type="button" data-i18n="nav.gallery">🖼️ Gallery</button>
@@ -182,9 +192,7 @@
           </div>
           <div class="nav-group nav-group-settings">
             <p class="nav-group-label" data-i18n="nav.settings">Settings</p>
-            <button class="tab-btn" data-tab="staffPanel" type="button" data-i18n="nav.staff">👥 Staff</button>
             <button class="tab-btn owner-only-plan" data-tab="myPlanPanel" type="button" data-i18n="nav.myPlan">💳 My Plan</button>
-            <button class="tab-btn" data-tab="companiesPanel" type="button" data-i18n="nav.companies">🏢 Companies</button>
             <button class="tab-btn" data-tab="securityPanel" type="button" data-i18n="nav.security">🔐 Security</button>
             <button class="tab-btn" data-tab="helpPanel" type="button" data-i18n="nav.help">❓ Help</button>
             <button id="installAppBtn" class="tab-btn sidebar-install-btn" type="button" data-i18n="nav.install">📱 Install App</button>
@@ -2297,7 +2305,7 @@
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260920bankcsv2"></script>
+  <script src="bolkarigar.js?v=20260921sidebar1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

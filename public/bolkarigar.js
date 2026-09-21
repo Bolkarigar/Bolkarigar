@@ -1834,6 +1834,25 @@ if (document.readyState === "loading") {
   bkUpdateHeroModuleCount();
 }
 
+const BK_NAV_PANEL_GROUP = {
+  overviewPanel: "nav-group-main", invoicePanel: "nav-group-main", purchasePanel: "nav-group-main",
+  paymentVoucherPanel: "nav-group-main", receiptVoucherPanel: "nav-group-main", khataVoucherPanel: "nav-group-main",
+  modifyPanel: "nav-group-accounting", ledgerPanel: "nav-group-accounting", khataLedgersPanel: "nav-group-accounting",
+  khataItemsPanel: "nav-group-accounting", khataDaybookPanel: "nav-group-accounting", reportsProPanel: "nav-group-accounting",
+  bankReconPanel: "nav-group-accounting",
+  inventoryPanel: "nav-group-business", estimatePanel: "nav-group-business", projectPanel: "nav-group-business",
+  contractorPanel: "nav-group-business", companiesPanel: "nav-group-business",
+  payrollPanel: "nav-group-staff", teamMeetingPanel: "nav-group-staff", staffPanel: "nav-group-staff"
+};
+
+function bkExpandNavGroupForPanel(panelId) {
+  const groupClass = BK_NAV_PANEL_GROUP[panelId];
+  if (!groupClass) return;
+  document.querySelectorAll(".nav-accordion.nav-group").forEach((el) => {
+    el.open = el.classList.contains(groupClass);
+  });
+}
+
 function openPanel(id) {
   if (id === "totalSalesPanel") {
     id = "businessRecordsPanel";
@@ -1850,6 +1869,7 @@ function openPanel(id) {
   const wasAlreadyActive = document.querySelector(".panel.active")?.id === id;
   panels.forEach(panel => panel.classList.toggle("active", panel.id === id));
   tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
+  bkExpandNavGroupForPanel(id);
   if (id === "ledgerPanel" && typeof refreshUdharKhata === "function") refreshUdharKhata();
   if (id === "khataVoucherPanel" && typeof window.refreshKhataVoucherPanel === "function") {
     window.refreshKhataVoucherPanel();
