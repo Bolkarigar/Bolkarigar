@@ -1,8 +1,13 @@
 /**
- * BolKarigar — App Lock (Khatabook-style)
+ * BolKarigar — App Lock
  * PIN + Face ID / Fingerprint (WebAuthn platform authenticator)
  */
 (function () {
+  function t(key) {
+    if (typeof window.bkTEng === "function") return window.bkTEng(key);
+    if (typeof window.bkT === "function") return window.bkT(key);
+    return key;
+  }
   const LS_ENABLED = "bk_app_lock_enabled";
   const LS_PIN_HASH = "bk_app_lock_pin_hash";
   const LS_PIN_SALT = "bk_app_lock_pin_salt";
@@ -172,16 +177,16 @@
         pinBuffer = "";
         updateDots();
         const sub = document.getElementById("appLockSubtext");
-        if (sub) sub.textContent = "PIN dobara enter karein / Confirm PIN";
+        if (sub) sub.textContent = t("security.confirmPin");
         return;
       }
       if (setupPinFirst !== pinBuffer) {
         setupPinFirst = "";
         pinBuffer = "";
         updateDots();
-        showError("PIN match nahi hua. Dubara try karein.");
+        showError(t("security.pinMismatch"));
         const sub = document.getElementById("appLockSubtext");
-        if (sub) sub.textContent = "Naya 4-digit PIN set karein";
+        if (sub) sub.textContent = t("security.setupSub");
         return;
       }
       await savePin(pinBuffer);
@@ -200,10 +205,10 @@
         const ok = await verifyPin(pinBuffer);
         pinBuffer = "";
         updateDots();
-        if (!ok) { showError("Galat PIN"); return; }
+        if (!ok) { showError(t("security.wrongPin")); return; }
         setupPinStep = "new";
         const sub = document.getElementById("appLockSubtext");
-        if (sub) sub.textContent = "Naya PIN enter karein";
+        if (sub) sub.textContent = t("security.newPin");
         return;
       }
       if (setupPinStep === "new" && !setupPinFirst) {
@@ -211,7 +216,7 @@
         pinBuffer = "";
         updateDots();
         const sub = document.getElementById("appLockSubtext");
-        if (sub) sub.textContent = "Naya PIN confirm karein";
+        if (sub) sub.textContent = t("security.confirmNewPin");
         return;
       }
       if (setupPinStep === "new") {
@@ -219,7 +224,7 @@
           setupPinFirst = "";
           pinBuffer = "";
           updateDots();
-          showError("PIN match nahi hua");
+          showError(t("security.pinMismatch"));
           return;
         }
         await savePin(pinBuffer);
@@ -237,7 +242,7 @@
     pinBuffer = "";
     updateDots();
     if (!ok) {
-      showError("Galat PIN — dubara try karein");
+      showError(t("security.wrongPinRetry"));
       return;
     }
     setUnlocked(true);
@@ -259,7 +264,7 @@
         return true;
       }
     } catch (err) {
-      if (!silent) showError("Face ID / Fingerprint fail — PIN use karein");
+      if (!silent) showError(t("security.bioFail"));
     }
     return false;
   }
@@ -281,9 +286,7 @@
     if (bioToggle) bioToggle.checked = localStorage.getItem(LS_BIO_ENABLED) === "1";
     const status = document.getElementById("appLockStatusText");
     if (status) {
-      status.textContent = enabled
-        ? "App Lock ON — app khulte hi PIN ya Face ID maangega"
-        : "App Lock OFF — koi PIN nahi lagega";
+      status.textContent = enabled ? t("security.statusOn") : t("security.statusOff");
     }
   }
 
@@ -295,8 +298,8 @@
       overlay.dataset.mode = "setup";
       const title = document.getElementById("appLockTitle");
       const sub = document.getElementById("appLockSubtext");
-      if (title) title.textContent = "App Lock PIN Set Karein";
-      if (sub) sub.textContent = "Naya 4-digit PIN enter karein";
+      if (title) title.textContent = t("security.setupTitle");
+      if (sub) sub.textContent = t("security.setupSub");
     }
     document.getElementById("appLockBiometricBtn")?.classList.add("hidden");
     showOverlay();
@@ -311,8 +314,8 @@
       overlay.dataset.mode = "change";
       const title = document.getElementById("appLockTitle");
       const sub = document.getElementById("appLockSubtext");
-      if (title) title.textContent = "PIN Change Karein";
-      if (sub) sub.textContent = "Purana PIN enter karein";
+      if (title) title.textContent = t("security.changeTitle");
+      if (sub) sub.textContent = t("security.oldPin");
     }
     showOverlay();
   }
@@ -326,7 +329,7 @@
       const title = document.getElementById("appLockTitle");
       const sub = document.getElementById("appLockSubtext");
       if (title) title.textContent = "BolKarigar Locked";
-      if (sub) sub.textContent = "PIN ya Face ID se unlock karein";
+      if (sub) sub.textContent = t("security.unlockSub");
     }
     showOverlay();
   }

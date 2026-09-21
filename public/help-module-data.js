@@ -186,7 +186,7 @@
     {
       id: "securityPanel", panelId: "securityPanel", plans: ["pro"], color: "#64748b",
       title: "🔐 Security (App Lock)",
-      hindi: "PIN se app lock karein — koi aur aapka data na dekhe. PIN change ya lock band kar sakte hain.",
+      hindi: "Lock the app with a PIN so others cannot see your data. Change PIN or turn lock off anytime.",
       english: "Lock app with PIN so others cannot see your data. Change PIN or turn lock off.",
       steps: [
         { en: "Turn ON App Lock and set 4-digit PIN", hi: "App Lock ON karein aur 4-digit PIN set karein", visual: { title: "🔐 App Lock", lines: [{ label: "PIN", value: "••••", animate: true }], action: "Save PIN" } },

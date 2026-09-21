@@ -73,8 +73,23 @@
     'nav.help': '❓ Help',
     'nav.install': '📱 Install App',
     'security.title': '🔐 Security & App Lock',
-    'security.subtitle': 'Khatabook style — app opens only after PIN or Face ID',
+    'security.subtitle': 'Protect your shop data — open the app only after PIN or Face ID',
     'security.appLock': 'App Lock',
+    'security.statusOn': 'App Lock ON — PIN or Face ID required when you open the app',
+    'security.statusOff': 'App Lock OFF — no PIN required',
+    'security.setupTitle': 'Set App Lock PIN',
+    'security.setupSub': 'Enter a new 4-digit PIN',
+    'security.confirmPin': 'Re-enter PIN to confirm',
+    'security.pinMismatch': 'PINs did not match. Try again.',
+    'security.changeTitle': 'Change PIN',
+    'security.oldPin': 'Enter your current PIN',
+    'security.newPin': 'Enter your new PIN',
+    'security.confirmNewPin': 'Confirm your new PIN',
+    'security.wrongPin': 'Incorrect PIN',
+    'security.wrongPinRetry': 'Incorrect PIN — try again',
+    'security.unlockSub': 'Unlock with PIN or Face ID',
+    'security.bioFail': 'Face ID / Fingerprint failed — use your PIN',
+    'security.logoutForgot': 'Logout / Forgot PIN?',
     'security.pinHint': 'Set a 4-digit PIN. App will ask PIN when reopened.',
     'security.changePin': '🔑 Change PIN',
     'security.testLock': '🔒 Test Lock',
@@ -341,8 +356,8 @@
     'nav.security': '🔐 सुरक्षा',
     'nav.help': '❓ सहायता',
     'nav.install': '📱 ऐप इंस्टॉल',
-    'security.title': '🔐 सुरक्षा और ऐप लॉक',
-    'security.subtitle': 'खाताबुक जैसा — ऐप PIN या Face ID के बाद ही खुलेगा',
+    'security.title': '🔐 Security & App Lock',
+    'security.subtitle': 'Protect your shop data — open the app only after PIN or Face ID',
     'security.appLock': 'ऐप लॉक',
     'security.pinHint': '4 अंकों का PIN सेट करें। ऐप दोबारा खोलने पर PIN मांगेगा।',
     'security.changePin': '🔑 PIN बदलें',
@@ -642,6 +657,7 @@
   global.bkSetLang = bkSetLang;
   global.bkToggleLang = bkToggleLang;
   global.bkT = bkT;
+  global.bkTEng = bkTEng;
   global.bkApplyI18n = bkApplyI18n;
   global.bkMountLangToggle = bkMountLangToggle;
   global.bkUpdateLangButton = bkUpdateLangButton;
