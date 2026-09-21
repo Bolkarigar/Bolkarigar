@@ -105,6 +105,31 @@
     document.getElementById("modifyDeleteBtn")?.classList.toggle("hidden", !show);
   }
 
+  let modifyDirectMode = false;
+
+  function setModifyDirectMode(on, typeId, recordTitle) {
+    modifyDirectMode = !!on;
+    document.getElementById("modifyTypeSection")?.classList.toggle("hidden", modifyDirectMode);
+    document.getElementById("modifySearchSection")?.classList.toggle("hidden", modifyDirectMode);
+    const banner = document.getElementById("modifyDirectBanner");
+    if (!banner) return;
+    if (!modifyDirectMode) {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+      return;
+    }
+    const t = MODIFY_TYPES.find((x) => x.id === typeId);
+    const name = recordTitle ? esc(recordTitle) : "";
+    banner.innerHTML = `
+      <div class="modify-direct-head">
+        <p class="modify-direct-title">${esc(t?.icon || "✏️")} Editing ${esc(t?.label || "record")}${name ? `: <strong>${name}</strong>` : ""}</p>
+        <button type="button" class="secondary modify-direct-back" id="modifyDirectBackBtn">← All types</button>
+      </div>
+      <p class="modify-hint" style="margin:0">Change fields below and click Save. Other modules are hidden so you stay focused.</p>`;
+    banner.classList.remove("hidden");
+    document.getElementById("modifyDirectBackBtn")?.addEventListener("click", resetModifyPanel);
+  }
+
   async function refreshAllAfterModifyChange() {
     if (typeof window.refreshKhataPro === "function") await window.refreshKhataPro();
     if (typeof window.refreshUdharKhata === "function") await window.refreshUdharKhata();
@@ -331,9 +356,11 @@
     hideSearchResults();
     const searchEl = document.getElementById("modifySearchInput");
     if (searchEl) searchEl.value = row.title;
+    if (modifyDirectMode) setModifyDirectMode(true, currentType, row.title);
     renderEditForm();
     toggleDeleteBtn(true);
     setStep(3);
+    setStatus("");
   }
 
   function groupOptions(selected) {
@@ -761,6 +788,8 @@
     selectedRecord = null;
     searchResults = [];
     ledgerCache = [];
+    modifyDirectMode = false;
+    setModifyDirectMode(false);
     const searchEl = document.getElementById("modifySearchInput");
     if (searchEl) searchEl.value = "";
     clearDateFilters();
@@ -794,32 +823,60 @@
     window.openModifyPanel(type, id);
   };
 
+  async function openModifyDirect(type, recordId) {
+    currentType = type;
+    selectedRecord = null;
+    searchResults = [];
+    hideSearchResults();
+    document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Loading record…</p>";
+    toggleDeleteBtn(false);
+    setModifyDirectMode(true, type);
+    setStep(3);
+    setStatus("");
+    await loadRecordById(type, recordId);
+  }
+
   window.openModifyPanel = function (type, recordId) {
+    window._bkModifySkipRefresh = true;
     if (typeof openPanel === "function") openPanel("modifyPanel");
-    resetModifyPanel();
-    if (type) {
-      selectType(type);
-      if (recordId) {
-        setTimeout(() => loadRecordById(type, recordId), 300);
-      }
+    window._bkModifySkipRefresh = false;
+
+    if (type && recordId) {
+      void openModifyDirect(type, recordId);
+      return;
     }
+    resetModifyPanel();
+    if (type) selectType(type);
   };
 
   async function loadRecordById(type, id) {
     try {
       if (type === "account") {
+        ledgerCache = [];
         await ensureLedgers();
         const l = ledgerCache.find((x) => String(x._id) === String(id));
         if (l) pickSearchResult({ id: l._id, raw: l, title: l.partyName, meta: "" });
+        else {
+          document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Ledger not found. It may have been deleted.</p>";
+          setStatus("Record not found.", false);
+        }
       } else if (type === "item") {
         const res = await fetch(`${API()}/api/items`, { headers: headers() });
         const data = await res.json();
         const i = (data.items || []).find((x) => String(x._id) === String(id));
         if (i) pickSearchResult({ id: i._id, raw: i, title: i.itemName, meta: "" });
+        else {
+          document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Item not found.</p>";
+          setStatus("Record not found.", false);
+        }
       } else if (type === "invoice") {
         const res = await fetch(`${API()}/api/sales/${id}`, { headers: headers() });
         const data = await res.json();
         if (data.record) pickSearchResult({ id: data.record._id, raw: data.record, title: data.record.customer, meta: "" });
+        else {
+          document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Invoice not found.</p>";
+          setStatus("Record not found.", false);
+        }
       } else {
         const res = await fetch(`${API()}/api/vouchers/${id}`, { headers: headers() });
         const data = await res.json();
@@ -831,9 +888,13 @@
             title: v.partyId?.partyName || "Voucher",
             meta: ""
           });
+        } else {
+          document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Voucher not found.</p>";
+          setStatus("Record not found.", false);
         }
       }
     } catch (err) {
+      document.getElementById("modifyEditArea").innerHTML = `<p class="helper-text">Could not load: ${esc(err.message)}</p>`;
       setStatus("Record load error: " + err.message, false);
     }
   }

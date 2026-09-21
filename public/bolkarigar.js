@@ -1924,7 +1924,7 @@ function openPanel(id) {
   if (id === "receiptVoucherPanel" && typeof window.refreshReceiptVoucherPanel === "function") {
     window.refreshReceiptVoucherPanel();
   }
-  if (id === "modifyPanel" && typeof window.refreshModifyPanel === "function") {
+  if (id === "modifyPanel" && typeof window.refreshModifyPanel === "function" && !window._bkModifySkipRefresh) {
     window.refreshModifyPanel();
   }
   closeMobileSidebar();

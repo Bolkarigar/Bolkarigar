@@ -261,3 +261,28 @@
     padding: 8px 6px;
   }
 }
+
+.modify-direct-banner {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(34, 197, 94, 0.06));
+}
+.modify-direct-banner.hidden { display: none !important; }
+.modify-direct-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.modify-direct-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.modify-direct-back {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 6px 12px;
+}

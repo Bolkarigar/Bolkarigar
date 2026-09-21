@@ -18,7 +18,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <link rel="stylesheet" href="bolkarigar.css?v=20260921tally1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
-  <link rel="stylesheet" href="modify.css?v=20260918ui55">
+  <link rel="stylesheet" href="modify.css?v=20260921modify1">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260921sec1"></script>
@@ -1125,10 +1125,12 @@
             <div class="modify-step" data-step="3">3. Edit / Delete</div>
           </div>
 
-          <div class="modify-panel-card">
+          <div id="modifyTypeSection" class="modify-panel-card">
             <p class="voucher-label" style="margin-bottom:10px;">What do you want to modify?</p>
             <div id="modifyTypeGrid" class="modify-type-grid"></div>
           </div>
+
+          <div id="modifyDirectBanner" class="modify-direct-banner modify-panel-card hidden" role="status"></div>
 
           <div id="modifySearchSection" class="modify-panel-card hidden">
             <p class="voucher-label" style="margin-bottom:8px;">Search records</p>
@@ -2312,8 +2314,8 @@
   <script src="plan-pricing.js?v=20260918ui55"></script>
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
-  <script src="modify-ui.js?v=20260921ledger1"></script>
-  <script src="bolkarigar.js?v=20260921ledger1"></script>
+  <script src="modify-ui.js?v=20260921modify1"></script>
+  <script src="bolkarigar.js?v=20260921modify1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
