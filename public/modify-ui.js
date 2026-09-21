@@ -253,16 +253,16 @@
         rows = ledgerCache
           .filter((l) => {
             const name = (l.partyName || "").toLowerCase();
-            const mob = (l.mobile || "").toLowerCase();
+            const addr = (l.address || l.mobile || "").toLowerCase();
             const gst = (l.gstin || "").toLowerCase();
-            return name.includes(lower) || mob.includes(lower) || gst.includes(lower);
+            return name.includes(lower) || addr.includes(lower) || gst.includes(lower);
           })
           .slice(0, 15)
           .map((l) => ({
             id: l._id,
             raw: l,
             title: l.partyName,
-            meta: [l.ledgerGroup, l.mobile, l.gstin].filter(Boolean).join(" · ")
+            meta: [l.ledgerGroup, l.address || l.mobile, l.gstin].filter(Boolean).join(" · ")
           }));
       } else if (currentType === "item") {
         const res = await fetch(`${API()}/api/items`, { headers: headers() });
@@ -383,8 +383,6 @@
               <input type="text" id="mdfPartyName" value="${esc(r.partyName || "")}" /></label>
             <label><span>Ledger Group</span>
               <select id="mdfLedgerGroup">${groupOptions(r.ledgerGroup)}</select></label>
-            <label><span>Mobile</span>
-              <input type="text" id="mdfMobile" value="${esc(r.mobile || "")}" /></label>
             <label class="modify-span2"><span>GSTIN</span>
               <input type="text" id="mdfGstin" maxlength="15" value="${esc(r.gstin || "")}" /></label>
             <label class="modify-span2"><span>Address</span>
@@ -607,7 +605,6 @@
         body = {
           partyName,
           ledgerGroup: document.getElementById("mdfLedgerGroup")?.value,
-          mobile: document.getElementById("mdfMobile")?.value.trim(),
           gstin: document.getElementById("mdfGstin")?.value.trim(),
           address: document.getElementById("mdfAddress")?.value.trim()
         };

@@ -752,14 +752,14 @@
               <option>Capital</option>
               <option>Fixed Asset</option>
             </select>
-            <input id="ledgerMobileInput" placeholder="Mobile (optional)" />
+            <input id="ledgerAddressInput" placeholder="Address (optional)" autocomplete="street-address" />
             <input id="ledgerGstinInput" placeholder="GSTIN (optional)" />
             <input id="ledgerOpeningInput" type="number" placeholder="Opening Balance" />
           </div>
           <button id="addLedgerBtn" type="button" style="margin-top: 10px;">➕ Add Ledger</button>
           <div class="table-wrap" style="margin-top:12px;">
             <table>
-              <thead><tr><th>Name</th><th>Group</th><th>Mobile</th><th>Udhar / Balance</th><th>Action</th></tr></thead>
+              <thead><tr><th>Name</th><th>Group</th><th>Address</th><th>Udhar / Balance</th><th>Action</th></tr></thead>
               <tbody id="khataLedgersBody"></tbody>
             </table>
           </div>
@@ -2312,8 +2312,8 @@
   <script src="plan-pricing.js?v=20260918ui55"></script>
   <script src="messages-en.js?v=20260918ui55"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
-  <script src="modify-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar.js?v=20260921sidebar1"></script>
+  <script src="modify-ui.js?v=20260921ledger1"></script>
+  <script src="bolkarigar.js?v=20260921ledger1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

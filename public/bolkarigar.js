@@ -832,7 +832,7 @@ function renderLedgerPartySuggest(listEl, matches, onPick) {
     return;
   }
   listEl.innerHTML = matches.map((ledger, i) => {
-    const meta = [ledger.ledgerGroup, ledger.mobile, ledger.gstin].filter(Boolean).join(" · ");
+    const meta = [ledger.ledgerGroup, ledger.address || ledger.mobile, ledger.gstin].filter(Boolean).join(" · ");
     return `<li role="option" data-idx="${i}" tabindex="0">
       ${escapeHtml(ledger.partyName)}
       ${meta ? `<span class="party-meta">${escapeHtml(meta)}</span>` : ""}
@@ -956,7 +956,7 @@ function applyInvoiceLedgerToForm(ledger) {
   const stateEl = document.getElementById("buyerState");
   if (nameEl) nameEl.value = ledger.partyName || "";
   if (gstEl && ledger.gstin) gstEl.value = ledger.gstin;
-  if (addrEl && ledger.address) addrEl.value = ledger.address;
+  if (addrEl) addrEl.value = (ledger.address || ledger.mobile || "").trim();
   if (stateEl && ledger.gstin) {
     const derived = stateFromGstinFrontend(ledger.gstin);
     if (derived) stateEl.value = derived;
@@ -3533,12 +3533,12 @@ async function handleKhataSpeech(raw) {
   openPanel("khataLedgersPanel");
 
   const ledgerNameMatch = raw.match(/(?:ledger|party|naam|name)\s+([a-zA-Z\u0900-\u097F][a-zA-Z\u0900-\u097F\s]{1,40})/i);
-  const mobileMatch = raw.match(/(?:mobile|phone|number)\s+(\d{10})/i);
+  const addressMatch = raw.match(/(?:address|pata|adda)\s+(.+?)(?:\s+(?:gst|opening|amount)|$)/i);
   const amountMatch = raw.match(/(?:amount|raashi|rashi|राशि)\s+(\d+(?:\.\d+)?)/i);
   const openingMatch = raw.match(/(?:opening|shuru)\s+(\d+(?:\.\d+)?)/i);
 
   if (ledgerNameMatch) setField(document.getElementById("ledgerNameInput"), ledgerNameMatch[1].trim());
-  if (mobileMatch) setField(document.getElementById("ledgerMobileInput"), mobileMatch[1]);
+  if (addressMatch) setField(document.getElementById("ledgerAddressInput"), addressMatch[1].trim());
   if (openingMatch) setField(document.getElementById("ledgerOpeningInput"), openingMatch[1]);
   if (amountMatch) setField(document.getElementById("voucherAmountInput"), amountMatch[1]);
 
@@ -6690,7 +6690,7 @@ function getEWayBillDetails() {
       <tr>
         <td>${escapeHtml(l.partyName)}</td>
         <td>${escapeHtml(l.ledgerGroup) || escapeHtml(l.partyType)}</td>
-        <td>${escapeHtml(l.mobile) || "-"}</td>
+        <td>${escapeHtml((l.address || l.mobile || "").trim()) || "-"}</td>
         <td>${formatKhataLedgerBalance(l)}</td>
         <td class="khata-act-group">
           <button type="button" class="khata-act-btn" title="Account edit karo" aria-label="Edit account" onclick="typeof openModifyPanel==='function'&&openModifyPanel('account','${l._id}')">✏️ Edit</button>
@@ -6888,7 +6888,7 @@ function getEWayBillDetails() {
     const payload = {
       partyName,
       ledgerGroup: document.getElementById("ledgerGroupInput").value,
-      mobile: document.getElementById("ledgerMobileInput").value.trim(),
+      address: document.getElementById("ledgerAddressInput").value.trim(),
       gstin: document.getElementById("ledgerGstinInput").value.trim(),
       openingBalance: parseFloat(document.getElementById("ledgerOpeningInput").value) || 0
     };
@@ -6897,7 +6897,7 @@ function getEWayBillDetails() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Save fail hua");
       document.getElementById("ledgerNameInput").value = "";
-      document.getElementById("ledgerMobileInput").value = "";
+      document.getElementById("ledgerAddressInput").value = "";
       document.getElementById("ledgerGstinInput").value = "";
       document.getElementById("ledgerOpeningInput").value = "";
       showToast("✅ Ledger '" + partyName + "' created!");
