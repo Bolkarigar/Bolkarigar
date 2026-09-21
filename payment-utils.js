@@ -32,6 +32,51 @@ function partyRegex(partyName) {
   return new RegExp(`^${escaped}$`, 'i');
 }
 
+function formatDetailQty(qty) {
+  const n = Number(qty);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.abs(n - Math.round(n)) < 0.001 ? String(Math.round(n)) : n.toFixed(2);
+}
+
+/** Parse qty from note/narration e.g. "laptop x2", "kar x1", "Qty: 3" */
+function parseQtyFromText(text) {
+  const t = String(text || '');
+  let m = t.match(/\bx(\d+(?:\.\d+)?)\b/i);
+  if (m) return formatDetailQty(m[1]);
+  m = t.match(/(?:qty|quantity)\s*[:\-]?\s*(\d+(?:\.\d+)?)/i);
+  if (m) return formatDetailQty(m[1]);
+  m = t.match(/\|\s*[^|]*?\sx(\d+(?:\.\d+)?)\b/i);
+  if (m) return formatDetailQty(m[1]);
+  return null;
+}
+
+function voucherItemsTotalQty(voucher) {
+  if (!voucher?.items?.length) return null;
+  let sum = 0;
+  let any = false;
+  for (const it of voucher.items) {
+    const q = Number(it.qty);
+    if (q > 0) {
+      sum += q;
+      any = true;
+    }
+  }
+  return any ? formatDetailQty(sum) : null;
+}
+
+function resolveEventQty({ voucherType, status, qty, product, note, voucher }) {
+  const isPayment = voucherType === 'Payment' || status === 'Received';
+  if (isPayment) return null;
+  const direct = formatDetailQty(qty);
+  if (direct) return direct;
+  const fromItems = voucher ? voucherItemsTotalQty(voucher) : null;
+  if (fromItems) return fromItems;
+  const fromNote = parseQtyFromText(note) || parseQtyFromText(product);
+  if (fromNote) return fromNote;
+  if (voucherType === 'Sale' || voucherType === 'Sales') return '1';
+  return null;
+}
+
 /** Signed net udhar: + = customer owes you, − = you owe customer (refund due). */
 function summarizeDebtorBalance(netRaw) {
   const net = Math.round((Number(netRaw) || 0) * 100) / 100;
@@ -403,6 +448,8 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
   for (const s of sales) {
     const amt = saleRecordAmount(s);
     const credit = isCreditPayment(s.paymentType, s.status);
+    const product = s.product || '';
+    const note = [product, s.invoiceNo ? `#${s.invoiceNo}` : ''].filter(Boolean).join(' — ') || '-';
     events.push({
       date: s.date,
       sortKey: new Date(s.date).getTime(),
@@ -411,7 +458,10 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
       paymentMode: s.paymentType || 'Cash',
       status: credit ? 'Udhar' : 'Paid',
       udharEffect: credit ? amt : 0,
-      note: [s.product, s.invoiceNo ? `#${s.invoiceNo}` : ''].filter(Boolean).join(' — ') || '-'
+      note,
+      product,
+      qty: s.qty,
+      invoiceNo: s.invoiceNo || ''
     });
   }
 
@@ -427,7 +477,8 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
       paymentMode: p.paymentMode || 'Cash',
       status: 'Received',
       udharEffect: -amt,
-      note: p.note || 'Payment received'
+      note: p.note || 'Payment received',
+      qty: null
     });
   }
 
@@ -475,7 +526,10 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
       paymentMode: v.paymentMode || '—',
       status,
       udharEffect,
-      note: displayNote
+      note: displayNote,
+      product: v.note || '',
+      qty: v.qty,
+      voucher: v
     });
   }
 
@@ -484,6 +538,14 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
   let running = openingBalance;
   const history = events.map((e) => {
     running += e.udharEffect;
+    const qtyDisplay = resolveEventQty({
+      voucherType: e.voucherType,
+      status: e.status,
+      qty: e.qty,
+      product: e.product,
+      note: e.note,
+      voucher: e.voucher
+    });
     return {
       date: e.date,
       voucherType: e.voucherType,
@@ -492,7 +554,9 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
       status: e.status,
       udharEffect: e.udharEffect,
       runningBalance: Math.round(running * 100) / 100,
-      note: e.note
+      note: e.note,
+      product: e.product || '',
+      qty: qtyDisplay
     };
   });
 

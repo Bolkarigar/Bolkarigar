@@ -5101,6 +5101,34 @@ async function refreshUdharKhata(localFallback = {}) {
 window.refreshUdharKhata = refreshUdharKhata;
 window.calculateFinancials = calculateFinancials;
 
+function bkFormatDetailQtyNum(qty) {
+  const n = Number(qty);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.abs(n - Math.round(n)) < 0.001 ? String(Math.round(n)) : n.toFixed(2);
+}
+
+function bkParseQtyFromText(text) {
+  const t = String(text || "");
+  let m = t.match(/\bx(\d+(?:\.\d+)?)\b/i);
+  if (m) return bkFormatDetailQtyNum(m[1]);
+  m = t.match(/(?:qty|quantity)\s*[:\-]?\s*(\d+(?:\.\d+)?)/i);
+  if (m) return bkFormatDetailQtyNum(m[1]);
+  m = t.match(/\|\s*[^|]*?\sx(\d+(?:\.\d+)?)\b/i);
+  if (m) return bkFormatDetailQtyNum(m[1]);
+  return null;
+}
+
+function bkCustomerDetailQty(h) {
+  if (h.qty != null && h.qty !== "" && h.qty !== "—") return String(h.qty);
+  const parsed = bkParseQtyFromText(h.note || h.product || h.label || "");
+  if (parsed) return parsed;
+  const vt = String(h.voucherType || "");
+  const st = String(h.status || "");
+  if (vt === "Payment" || st === "Received") return "—";
+  if (vt === "Sale" || vt === "Sales") return "1";
+  return "—";
+}
+
 async function showUdharDetail(customerName) {
   const modal = document.getElementById("udharDetailModal");
   const title = document.getElementById("udharDetailTitle");
@@ -5155,7 +5183,7 @@ async function showUdharDetail(customerName) {
 
           rows.push({
             label: `${new Date(h.date).toLocaleDateString("en-IN")} — ${typeLabel}${h.note && h.note !== "-" ? ` (${h.note})` : ""}`,
-            qty: "—",
+            qty: bkCustomerDetailQty(h),
             amt: isReturn ? 0 : amt,
             paid: isPayment || isCashSale ? amt : (isReturn ? amt : 0),
             pending: effect,
@@ -5184,7 +5212,7 @@ async function showUdharDetail(customerName) {
           totalPaid += paid;
           rows.push({
             label: `${new Date(r.date).toLocaleDateString()} — ${r.product || "Sale"}`,
-            qty: r.qty || 1,
+            qty: bkFormatDetailQtyNum(r.qty) || bkParseQtyFromText(r.product) || "1",
             amt, paid, pending: isCredit ? amt : 0
           });
         });
@@ -5226,7 +5254,7 @@ async function showUdharDetail(customerName) {
       return `
       <tr style="${rowStyle}">
         <td>${escapeHtml(r.label)}</td>
-        <td>${r.qty}</td>
+        <td>${escapeHtml(String(r.qty ?? "—"))}</td>
         <td>${r.amt ? "₹" + r.amt.toFixed(2) : "—"}</td>
         <td>${r.paid ? (r.isReturn ? "−₹" + r.paid.toFixed(2) : "₹" + r.paid.toFixed(2)) : "—"}</td>
         <td>${pendingCell}</td>
