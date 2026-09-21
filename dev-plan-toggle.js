@@ -38,29 +38,9 @@ function setupDevPlanToggle({ app, User, authenticateToken }) {
       const plan = req.body?.plan === 'business' ? 'business' : 'pro';
 
       if (plan === 'pro') {
-        const current = buildSubscriptionPayload(user);
-        if (user.plan === 'pro' && current.isActive && current.isTrial && current.daysLeft > 0) {
-          return res.json({
-            success: true,
-            plan,
-            subscription: current,
-            message: `Already on ${PLANS.pro.name} trial — ${current.daysLeft} days left`
-          });
-        }
         startOwnerTrial(user, 'pro');
       } else {
-        if (user.plan === 'business' && user.subscriptionStatus === 'active') {
-          sanitizePlanExpiry(user);
-          await user.save();
-          const subscription = await getSubscriptionForUser(User, user);
-          return res.json({
-            success: true,
-            plan,
-            subscription,
-            message: `Already on ${PLANS.business.name} — ${subscription.daysLeft} days left`
-          });
-        }
-        activateOwnerPlan(user, plan, MONTHLY_DAYS, { extend: false });
+        activateOwnerPlan(user, 'business', MONTHLY_DAYS, { extend: false });
       }
       await user.save();
 

@@ -1,9 +1,17 @@
 /**
- * Dev UI — Pro ₹99 ↔ Business ₹299 switch (testing only). Baad me hata dena.
+ * Dev UI — Pro ₹99 ↔ Business ₹299 toggle (testing). Baad me hata dena.
  */
 (function () {
   const API = () => window.API_URL || window.location.origin;
   const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
+
+  const PRO_PLAN_TABS = [
+    "overviewPanel", "businessRecordsPanel", "invoicePanel", "purchasePanel", "paymentVoucherPanel", "receiptVoucherPanel",
+    "voicePanel", "inventoryPanel",
+    "ledgerPanel", "khataLedgersPanel", "khataItemsPanel", "khataVoucherPanel", "khataDaybookPanel",
+    "modifyPanel",
+    "galleryPanel", "todoPanel", "businessCardPanel", "securityPanel", "helpPanel", "myPlanPanel"
+  ];
 
   (function readDevPlanUrlFlag() {
     try {
@@ -12,11 +20,14 @@
         localStorage.setItem("bk_force_dev_plan", "1");
         p.delete("bkDevPlan");
         const q = p.toString();
-        const next = window.location.pathname + (q ? "?" + q : "") + window.location.hash;
-        window.history.replaceState({}, "", next);
+        window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
       }
     } catch (_) { /* ignore */ }
   })();
+
+  let wired = false;
+  let syncingToggle = false;
+  let switching = false;
 
   function isLocalHost() {
     const h = location.hostname;
@@ -24,49 +35,90 @@
   }
 
   function isDevPlanForced() {
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-      return false;
-    }
+    if (window.Capacitor?.isNativePlatform?.()) return false;
     if (localStorage.getItem("bk_force_dev_plan") === "1") return true;
     return isLocalHost();
   }
 
-  function updateHighlight(me) {
-    const sub = me?.subscription;
-    const plan = sub?.fullAccess ? "business" : "pro";
-    document.getElementById("devPlanProBtn")?.classList.toggle("active", plan === "pro");
-    document.getElementById("devPlanBusinessBtn")?.classList.toggle("active", plan === "business");
+  function currentPlanSide() {
+    return window._bkAccountInfo?.subscription?.fullAccess ? "business" : "pro";
+  }
+
+  function buildClientSubscription(planId) {
+    const isBiz = planId === "business";
+    const prev = window._bkAccountInfo?.subscription || {};
+    return {
+      ...prev,
+      plan: isBiz ? "business" : "pro",
+      planName: isBiz ? "Business" : "Pro Shop",
+      planLabel: isBiz ? "Business ₹299" : "Pro ₹99",
+      priceMonthly: isBiz ? 299 : 99,
+      subscriptionStatus: isBiz ? "active" : "trial",
+      isActive: true,
+      isTrial: !isBiz,
+      isExpired: false,
+      daysLeft: prev.daysLeft || 30,
+      fullAccess: isBiz,
+      tallySync: isBiz,
+      showInstallApp: true,
+      allowedTabs: isBiz ? null : [...PRO_PLAN_TABS],
+      message: isBiz
+        ? "🧪 Test view: Business ₹299 plan"
+        : "🧪 Test view: Pro ₹99 plan"
+    };
+  }
+
+  function applyPlanToUI(planId, serverSub) {
+    const me = window._bkAccountInfo;
+    if (!me) return;
+    me.subscription = serverSub || buildClientSubscription(planId);
+    if (typeof applyRoleBasedUI === "function") applyRoleBasedUI(me);
+    if (typeof window.bkRenderSubscriptionUI === "function") window.bkRenderSubscriptionUI(me);
+    syncToggleUi();
+  }
+
+  function syncToggleUi() {
+    const sub = window._bkAccountInfo?.subscription;
+    const isBiz = !!sub?.fullAccess;
+    syncingToggle = true;
+    const chk = document.getElementById("bkPlanDevSwitch");
+    if (chk) chk.checked = isBiz;
+    document.querySelectorAll(".bk-plan-test-opt").forEach((el) => {
+      const side = el.getAttribute("data-side");
+      el.classList.toggle("is-active", (side === "biz" && isBiz) || (side === "pro" && !isBiz));
+    });
+    document.getElementById("devPlanProBtn")?.classList.toggle("active", !isBiz);
+    document.getElementById("devPlanBusinessBtn")?.classList.toggle("active", isBiz);
     const label = document.getElementById("devPlanActiveLabel");
     if (label) {
-      const days = sub?.daysLeft;
-      if (plan === "business") {
-        label.textContent = `Ab dikha rahe ho: Business ₹299 — ${days || 30} din (server)`;
-      } else if (sub?.isExpired) {
-        label.textContent = "Ab: plan expired — Pro ₹99 dabayein trial ke liye";
-      } else {
-        label.textContent = `Ab dikha rahe ho: Pro ₹99 — ${days ?? 30} din (server)`;
-      }
+      label.textContent = isBiz
+        ? `Ab test: Business ₹299 (${sub?.daysLeft || 30} din)`
+        : `Ab test: Pro ₹99 (${sub?.daysLeft || 30} din)`;
     }
+    syncingToggle = false;
   }
 
   function showPlanTestChrome(show) {
-    const bar = document.getElementById("devPlanToggleBar");
-    const hdr = document.getElementById("bkPlanTestHdrBtn");
-    if (bar) bar.classList.toggle("hidden", !show);
+    document.getElementById("devPlanToggleBar")?.classList.toggle("hidden", !show);
+    document.getElementById("bkPlanTestToggleWrap")?.classList.toggle("hidden", !show);
     document.body.classList.toggle("has-dev-plan-toggle", !!show);
-    if (hdr) {
-      if (show) hdr.classList.add("hidden");
-      else if (!window._bkAccountInfo?.isStaff && getToken()) hdr.classList.remove("hidden");
-      else hdr.classList.add("hidden");
-    }
   }
 
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Pehle login karein — phir Pro ₹99 / Business ₹299 test kar sakte ho.");
+      alert("Pehle login karein.");
       return;
     }
+    if (switching) return;
+    if (planId === currentPlanSide()) {
+      syncToggleUi();
+      return;
+    }
+
+    switching = true;
+    applyPlanToUI(planId, null);
+
     try {
       const res = await fetch(`${API()}/api/dev/switch-plan`, {
         method: "POST",
@@ -78,88 +130,76 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Plan switch fail");
-
-      if (window._bkAccountInfo) {
-        window._bkAccountInfo.subscription = data.subscription;
-        if (typeof applyRoleBasedUI === "function") applyRoleBasedUI(window._bkAccountInfo);
-      } else if (typeof loadServerData === "function") {
-        await loadServerData();
-      }
-
-      updateHighlight(window._bkAccountInfo);
-      if (typeof showToast === "function") showToast("🧪 " + data.message, "info");
-      if (typeof openPanel === "function") {
-        const cur = document.querySelector(".panel.active")?.id;
-        if (cur) openPanel(cur);
-      }
+      applyPlanToUI(planId, data.subscription);
+      if (typeof showToast === "function") showToast("🧪 " + (data.message || "Plan switched"), "info");
+      const cur = document.querySelector(".panel.active")?.id;
+      if (cur && typeof openPanel === "function") openPanel(cur);
     } catch (err) {
-      const msg = err.message || "Plan switch fail";
-      if (/403|testing|available/i.test(msg)) {
-        if (typeof showToast === "function") {
-          showToast("❌ Render par DEV_PLAN_TOGGLE=true set karein, phir dubara try karein.", "error");
-        }
-      } else if (typeof showToast === "function") showToast("❌ " + msg, "error");
-      else alert(msg);
+      const msg = err.message || "Server switch fail";
+      if (typeof showToast === "function") {
+        showToast(
+          /403|testing|available/i.test(msg)
+            ? "⚠️ UI test mode on — server par DEV_PLAN_TOGGLE=true set karein for save"
+            : "⚠️ UI switched locally — " + msg,
+          "info"
+        );
+      }
+    } finally {
+      switching = false;
     }
   }
 
-  let wired = false;
-
   async function fetchDevToggleEnabled() {
     try {
-      const headers = {};
-      const t = getToken();
-      if (t) headers.Authorization = `Bearer ${t}`;
-      const res = await fetch(`${API()}/api/dev/plan-toggle`, { headers });
+      const res = await fetch(`${API()}/api/dev/plan-toggle`);
       if (!res.ok) return false;
-      const data = await res.json();
-      return !!data.enabled;
+      return !!(await res.json()).enabled;
     } catch (_) {
       return false;
     }
   }
 
-  async function initDevPlanToggle() {
-    const bar = document.getElementById("devPlanToggleBar");
-    if (!bar) return;
+  async function isDevEnabled() {
+    if (isDevPlanForced()) return true;
+    return fetchDevToggleEnabled();
+  }
 
+  async function initDevPlanToggle() {
     const me = window._bkAccountInfo;
     if (me?.isStaff) {
       showPlanTestChrome(false);
       return;
     }
 
-    let enabled = isDevPlanForced();
-    if (!enabled) enabled = await fetchDevToggleEnabled();
-
+    const enabled = await isDevEnabled();
     if (!enabled || !getToken()) {
       showPlanTestChrome(false);
-      if (!me?.isStaff && getToken() && (await fetchDevToggleEnabled())) {
-        document.getElementById("bkPlanTestHdrBtn")?.classList.remove("hidden");
-      }
       return;
     }
 
+    localStorage.setItem("bk_force_dev_plan", "1");
     showPlanTestChrome(true);
-    updateHighlight(window._bkAccountInfo);
+    syncToggleUi();
 
     if (!wired) {
       wired = true;
       document.getElementById("devPlanProBtn")?.addEventListener("click", () => switchDevPlan("pro"));
       document.getElementById("devPlanBusinessBtn")?.addEventListener("click", () => switchDevPlan("business"));
-      document.getElementById("bkPlanTestHdrBtn")?.addEventListener("click", () => {
-        localStorage.setItem("bk_force_dev_plan", "1");
-        initDevPlanToggle();
-        if (typeof showToast === "function") {
-          showToast("🧪 Plan test bar on — Pro ₹99 / Business ₹299 choose karein", "info");
-        }
-        bar.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      document.getElementById("bkPlanDevSwitch")?.addEventListener("change", (e) => {
+        if (syncingToggle) return;
+        switchDevPlan(e.target.checked ? "business" : "pro");
+      });
+      document.querySelectorAll(".bk-plan-test-opt").forEach((el) => {
+        el.addEventListener("click", () => {
+          switchDevPlan(el.getAttribute("data-side") === "biz" ? "business" : "pro");
+        });
       });
     }
   }
 
-  window.bkUpdateDevPlanToggle = updateHighlight;
+  window.bkUpdateDevPlanToggle = syncToggleUi;
   window.bkInitDevPlanToggle = initDevPlanToggle;
+  window.bkSwitchDevPlan = switchDevPlan;
 
   document.addEventListener("DOMContentLoaded", initDevPlanToggle);
 })();

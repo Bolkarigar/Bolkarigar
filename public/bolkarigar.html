@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260921sidebar1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260921plan2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260918ui55">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
@@ -85,7 +85,14 @@
           <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
           <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
           <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.dark">Dark</button>
-          <button type="button" id="bkPlanTestHdrBtn" class="theme-btn owner-only-plan hidden" style="background:#d97706;font-size:12px;padding:8px 10px;" title="Pro ₹99 vs Business ₹299 test">🧪 Plan test</button>
+          <div id="bkPlanTestToggleWrap" class="bk-plan-test-toggle-wrap owner-only-plan hidden" title="Test: Pro ₹99 ↔ Business ₹299">
+            <span class="bk-plan-test-opt" data-side="pro">₹99</span>
+            <label class="bk-billing-toggle bk-plan-dev-toggle">
+              <input type="checkbox" id="bkPlanDevSwitch" aria-label="Business ₹299 plan test">
+              <span class="bk-billing-slider"></span>
+            </label>
+            <span class="bk-plan-test-opt" data-side="biz">₹299</span>
+          </div>
           <button id="logoutBtn" class="theme-btn top-action-logout" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
         </div>
       </div>
@@ -2324,7 +2331,7 @@
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
-  <script src="dev-plan-toggle.js?v=20260921plan1"></script>
+  <script src="dev-plan-toggle.js?v=20260921plan2"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260920bankcsv3"></script>
   <script src="payroll-ui.js?v=20260920paycalc1"></script>
