@@ -5199,22 +5199,6 @@ async function showUdharDetail(customerName) {
       : `📖 ${customerName} — Paid / Clear`;
   }
 
-  const payBtn = document.getElementById("udharDetailPayBtn");
-  if (payBtn) {
-    if (pending < -0.01) {
-      payBtn.textContent = `Refund ₹${Math.abs(pending).toFixed(2)} Due`;
-      payBtn.disabled = true;
-      payBtn.title = "Refund due to customer — New Voucher → Payment";
-    } else {
-      payBtn.disabled = false;
-      payBtn.textContent = "Record Payment";
-      payBtn.title = "";
-      payBtn.onclick = () => {
-        modal.classList.add("hidden");
-        if (typeof window.openUdharPayment === "function") window.openUdharPayment(customerName);
-      };
-    }
-  }
   modal.dataset.customer = customerName;
 }
 window.showUdharDetail = showUdharDetail;
