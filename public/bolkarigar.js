@@ -1039,17 +1039,60 @@ function syncBuyerStateFromGstin() {
   }
 }
 
+function bkInvoiceNoPrefix(companyName) {
+  return (companyName || "INV").split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 4) || "INV";
+}
+
 function getInvoiceNumberPreview() {
   let savedProfile = {};
   try { savedProfile = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}") || {}; } catch (_) {}
-  const companyName = savedProfile.name || "INV";
+  const companyName = savedProfile.name || savedProfile.companyName || "INV";
   const key = "bolkarigar_invoice_counter_" + companyName.replace(/\s+/g, "_");
   const counter = parseInt(localStorage.getItem(key) || "0", 10) + 1;
-  const prefix = companyName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 4) || "INV";
-  const fyStart = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
-  const fyEnd = (fyStart + 1).toString().slice(-2);
-  const fyStartShort = fyStart.toString().slice(-2);
-  return `${counter}/${fyStartShort}-${fyEnd}`;
+  const prefix = bkInvoiceNoPrefix(companyName);
+  const year = new Date().getFullYear().toString().slice(-2);
+  return `${prefix}/${counter}/${year}`;
+}
+
+let _invoiceNoUserEdited = false;
+
+async function peekNextInvoiceNumber() {
+  try {
+    const res = await fetch(`${API_URL}/api/profile`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    if (res.ok) {
+      const profile = await res.json();
+      const companyName = profile.companyName || profile.name || "INV";
+      const counter = (parseInt(profile.invoiceCounter, 10) || 0) + 1;
+      const prefix = bkInvoiceNoPrefix(companyName);
+      const year = new Date().getFullYear().toString().slice(-2);
+      return `${prefix}/${counter}/${year}`;
+    }
+  } catch (e) {
+    console.warn("Invoice number preview:", e);
+  }
+  return getInvoiceNumberPreview();
+}
+
+async function refreshInvoiceDraftNumber(force) {
+  const inp = document.getElementById("invoiceNoDraftInput");
+  if (!inp) return;
+  if (_invoiceNoUserEdited && !force) return;
+  inp.value = "…";
+  inp.disabled = true;
+  try {
+    inp.value = await peekNextInvoiceNumber();
+    _invoiceNoUserEdited = false;
+  } catch (_) {
+    inp.value = getInvoiceNumberPreview();
+  } finally {
+    inp.disabled = false;
+  }
+}
+
+function getInvoiceDraftNumber() {
+  return document.getElementById("invoiceNoDraftInput")?.value?.trim() || "";
 }
 
 function formatVoucherDateChip(raw) {
@@ -1086,7 +1129,6 @@ function setupClickableDateChip(chipId, inputId, onChange) {
 
 function updateBusyVoucherMeta() {
   const dateEl = document.getElementById("busyVchDate");
-  const vchEl = document.getElementById("busyVchNo");
   const saleDesc = document.getElementById("busySaleTypeDesc");
   const itemInfo = document.getElementById("busyItemInfo");
   const gstSelect = document.getElementById("productGst");
@@ -1095,7 +1137,6 @@ function updateBusyVoucherMeta() {
     ensureInvoiceDateDefault();
     dateEl.textContent = formatVoucherDateChip(getInvoiceSelectedDate());
   }
-  if (vchEl) vchEl.textContent = getInvoiceNumberPreview();
 
   const gstRate = isInvoiceGstEnabled() ? parseFloat(gstSelect?.value || "0") : 0;
   const taxMode = getCurrentGstTaxMode();
@@ -1212,6 +1253,7 @@ function refreshInvoicePanel() {
   if (typeof ensureInvoiceDateDefault === "function") ensureInvoiceDateDefault();
   if (typeof loadInvoiceStockItems === "function") loadInvoiceStockItems();
   if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  if (typeof refreshInvoiceDraftNumber === "function") refreshInvoiceDraftNumber(false);
   if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
   renderInvoice();
 }
@@ -1363,7 +1405,10 @@ async function saveInvoiceVoucher() {
     const paymentType = document.getElementById("invoicePaymentType")?.value || "Cash";
     let prof = {};
     try { prof = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || "{}"); } catch { /* */ }
-    const invoiceNo = await getNextInvoiceNumber(prof.name || "INV");
+    let invoiceNo = getInvoiceDraftNumber();
+    if (!_invoiceNoUserEdited || !invoiceNo) {
+      invoiceNo = await getNextInvoiceNumber(prof.name || prof.companyName || "INV");
+    }
     let saved = 0;
 
     for (const item of invoiceLineItems) {
@@ -1405,6 +1450,9 @@ async function saveInvoiceVoucher() {
     if (typeof showToast === "function") showToast(`✅ Invoice saved — ${invoiceNo}`, "success");
     refreshOverviewSalesFromHistory();
     if (typeof refreshUdharKhata === "function") refreshUdharKhata();
+    _invoiceNoUserEdited = false;
+    if (typeof refreshInvoiceDraftNumber === "function") refreshInvoiceDraftNumber(true);
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
     return true;
   } catch (err) {
     console.error("Save invoice error:", err);
@@ -1548,7 +1596,16 @@ window.addEventListener("load", () => {
   if (typeof setupInvoicePartyAutocomplete === "function") setupInvoicePartyAutocomplete();
   if (typeof setupVoucherPartyAutocompletes === "function") setupVoucherPartyAutocompletes();
   ensureInvoiceDateDefault();
-  setupClickableDateChip("busyVchDate", "invoiceDateInput", updateBusyVoucherMeta);
+  document.getElementById("invoiceDateInput")?.addEventListener("change", () => {
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+  });
+  document.getElementById("invoiceDateInput")?.addEventListener("input", () => {
+    if (typeof updateBusyVoucherMeta === "function") updateBusyVoucherMeta();
+  });
+  const invNoInp = document.getElementById("invoiceNoDraftInput");
+  invNoInp?.addEventListener("input", () => { _invoiceNoUserEdited = true; });
+  invNoInp?.addEventListener("change", () => { _invoiceNoUserEdited = true; });
+  if (typeof refreshInvoiceDraftNumber === "function") refreshInvoiceDraftNumber(true);
 });
 
 // ==========================================================================
@@ -5756,7 +5813,10 @@ async function printTallyBill(ev) {
   }
 
   return window.bkWithSaveLock(printBtn, async () => {
-  const invoiceNo = await getNextInvoiceNumber(companyName);
+  let invoiceNo = getInvoiceDraftNumber();
+  if (!_invoiceNoUserEdited || !invoiceNo) {
+    invoiceNo = await getNextInvoiceNumber(companyName);
+  }
 
   if (!invoiceLineItems.length) {
     alert("At least one item is required in the invoice to print.");
@@ -5826,7 +5886,8 @@ async function printThermalBill() {
   const companyName = savedProfile.name || "Shop";
   const customer = document.getElementById("customerName")?.value.trim() || "Customer";
   const grandTotal = document.getElementById("grandTotal")?.textContent || "0.00";
-  const invoiceNo = await getNextInvoiceNumber(companyName);
+  let invoiceNo = getInvoiceDraftNumber();
+  if (!invoiceNo) invoiceNo = await getNextInvoiceNumber(companyName);
   const date = getInvoiceSelectedDate().toLocaleDateString("en-IN");
   let lines = "";
   invoiceLineItems.forEach((item) => {
