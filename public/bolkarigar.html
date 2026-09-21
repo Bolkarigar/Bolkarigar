@@ -85,6 +85,7 @@
           <button id="liveAiToggle" class="theme-btn" type="button" style="background: linear-gradient(135deg,#8b5cf6,#38bdf8);" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
           <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
           <button id="themeToggle" class="theme-btn" type="button" data-i18n="top.dark">Dark</button>
+          <button type="button" id="bkPlanTestHdrBtn" class="theme-btn owner-only-plan hidden" style="background:#d97706;font-size:12px;padding:8px 10px;" title="Pro ₹99 vs Business ₹299 test">🧪 Plan test</button>
           <button id="logoutBtn" class="theme-btn top-action-logout" type="button" style="background: #ef4444; color: white;" data-i18n="top.logout">Logout</button>
         </div>
       </div>
@@ -92,12 +93,12 @@
 
     <!-- DEV: Pro trial / Business plan test bar -->
     <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
-      <span class="dev-plan-toggle-label">🧪 TEST UI</span>
+      <span class="dev-plan-toggle-label">🧪 Plan test (temporary)</span>
       <div class="dev-plan-toggle-actions">
-        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">Pro Trial</button>
+        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">Pro ₹99</button>
         <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">Business ₹299</button>
       </div>
-      <span id="devPlanActiveLabel" class="dev-plan-active-label">Switch after login</span>
+      <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad Pro / Business switch karein</span>
     </div>
   </div>
 
@@ -2323,7 +2324,7 @@
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
-  <script src="dev-plan-toggle.js?v=20260909r3"></script>
+  <script src="dev-plan-toggle.js?v=20260921plan1"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260920bankcsv3"></script>
   <script src="payroll-ui.js?v=20260920paycalc1"></script>

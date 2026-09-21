@@ -1,9 +1,22 @@
 /**
- * Dev UI — Pro trial / Business plan switch (testing only).
+ * Dev UI — Pro ₹99 ↔ Business ₹299 switch (testing only). Baad me hata dena.
  */
 (function () {
   const API = () => window.API_URL || window.location.origin;
   const getToken = () => localStorage.getItem("bk_token") || localStorage.getItem("token") || "";
+
+  (function readDevPlanUrlFlag() {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("bkDevPlan") === "1") {
+        localStorage.setItem("bk_force_dev_plan", "1");
+        p.delete("bkDevPlan");
+        const q = p.toString();
+        const next = window.location.pathname + (q ? "?" + q : "") + window.location.hash;
+        window.history.replaceState({}, "", next);
+      }
+    } catch (_) { /* ignore */ }
+  })();
 
   function isLocalHost() {
     const h = location.hostname;
@@ -14,6 +27,7 @@
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       return false;
     }
+    if (localStorage.getItem("bk_force_dev_plan") === "1") return true;
     return isLocalHost();
   }
 
@@ -26,28 +40,31 @@
     if (label) {
       const days = sub?.daysLeft;
       if (plan === "business") {
-        label.textContent = `Active: Business — ${days || 30} days left`;
+        label.textContent = `Ab dikha rahe ho: Business ₹299 — ${days || 30} din (server)`;
       } else if (sub?.isExpired) {
-        label.textContent = "Active: Pro trial expired — click Pro Trial to reset";
+        label.textContent = "Ab: plan expired — Pro ₹99 dabayein trial ke liye";
       } else {
-        label.textContent = `Active: Pro trial — ${days ?? 30} days left`;
+        label.textContent = `Ab dikha rahe ho: Pro ₹99 — ${days ?? 30} din (server)`;
       }
+    }
+  }
+
+  function showPlanTestChrome(show) {
+    const bar = document.getElementById("devPlanToggleBar");
+    const hdr = document.getElementById("bkPlanTestHdrBtn");
+    if (bar) bar.classList.toggle("hidden", !show);
+    document.body.classList.toggle("has-dev-plan-toggle", !!show);
+    if (hdr) {
+      if (show) hdr.classList.add("hidden");
+      else if (!window._bkAccountInfo?.isStaff && getToken()) hdr.classList.remove("hidden");
+      else hdr.classList.add("hidden");
     }
   }
 
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Please log in first — then you can test Pro trial / Business plan.");
-      return;
-    }
-    const sub = window._bkAccountInfo?.subscription;
-    if (planId === "business" && sub?.fullAccess) {
-      if (typeof showToast === "function") showToast(`Business plan already active — ${sub.daysLeft || 30} days left`, "info");
-      return;
-    }
-    if (planId === "pro" && sub?.plan === "pro" && !sub?.fullAccess) {
-      if (typeof showToast === "function") showToast("Pro Shop trial already active", "info");
+      alert("Pehle login karein — phir Pro ₹99 / Business ₹299 test kar sakte ho.");
       return;
     }
     try {
@@ -71,46 +88,73 @@
 
       updateHighlight(window._bkAccountInfo);
       if (typeof showToast === "function") showToast("🧪 " + data.message, "info");
+      if (typeof openPanel === "function") {
+        const cur = document.querySelector(".panel.active")?.id;
+        if (cur) openPanel(cur);
+      }
     } catch (err) {
-      if (typeof showToast === "function") showToast("❌ " + err.message, "error");
-      else alert(err.message);
+      const msg = err.message || "Plan switch fail";
+      if (/403|testing|available/i.test(msg)) {
+        if (typeof showToast === "function") {
+          showToast("❌ Render par DEV_PLAN_TOGGLE=true set karein, phir dubara try karein.", "error");
+        }
+      } else if (typeof showToast === "function") showToast("❌ " + msg, "error");
+      else alert(msg);
     }
   }
 
   let wired = false;
 
+  async function fetchDevToggleEnabled() {
+    try {
+      const headers = {};
+      const t = getToken();
+      if (t) headers.Authorization = `Bearer ${t}`;
+      const res = await fetch(`${API()}/api/dev/plan-toggle`, { headers });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!data.enabled;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function initDevPlanToggle() {
     const bar = document.getElementById("devPlanToggleBar");
     if (!bar) return;
 
-    let enabled = isDevPlanForced();
-
-    if (!enabled) {
-      try {
-        const res = await fetch(`${API()}/api/dev/plan-toggle`, {
-          headers: { Authorization: `Bearer ${getToken()}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          enabled = !!data.enabled;
-        }
-      } catch (_) { /* ignore */ }
-    }
-
-    if (!enabled) {
-      bar.classList.add("hidden");
-      document.body.classList.remove("has-dev-plan-toggle");
+    const me = window._bkAccountInfo;
+    if (me?.isStaff) {
+      showPlanTestChrome(false);
       return;
     }
 
-    bar.classList.remove("hidden");
-    document.body.classList.add("has-dev-plan-toggle");
+    let enabled = isDevPlanForced();
+    if (!enabled) enabled = await fetchDevToggleEnabled();
+
+    if (!enabled || !getToken()) {
+      showPlanTestChrome(false);
+      if (!me?.isStaff && getToken() && (await fetchDevToggleEnabled())) {
+        document.getElementById("bkPlanTestHdrBtn")?.classList.remove("hidden");
+      }
+      return;
+    }
+
+    showPlanTestChrome(true);
     updateHighlight(window._bkAccountInfo);
 
     if (!wired) {
       wired = true;
       document.getElementById("devPlanProBtn")?.addEventListener("click", () => switchDevPlan("pro"));
       document.getElementById("devPlanBusinessBtn")?.addEventListener("click", () => switchDevPlan("business"));
+      document.getElementById("bkPlanTestHdrBtn")?.addEventListener("click", () => {
+        localStorage.setItem("bk_force_dev_plan", "1");
+        initDevPlanToggle();
+        if (typeof showToast === "function") {
+          showToast("🧪 Plan test bar on — Pro ₹99 / Business ₹299 choose karein", "info");
+        }
+        bar.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
     }
   }
 

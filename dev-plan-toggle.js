@@ -20,7 +20,7 @@ function isDevPlanToggleEnabled() {
 }
 
 function setupDevPlanToggle({ app, User, authenticateToken }) {
-  app.get('/api/dev/plan-toggle', authenticateToken, (req, res) => {
+  app.get('/api/dev/plan-toggle', (req, res) => {
     res.json({ enabled: isDevPlanToggleEnabled() });
   });
 
