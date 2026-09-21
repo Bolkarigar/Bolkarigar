@@ -38,6 +38,48 @@
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
 }
+.modify-type-grid.modify-type-grid--focused {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.modify-type-unit {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.modify-type-grid--focused .modify-type-unit:not(.is-active) {
+  display: none;
+}
+.modify-type-expand {
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 12px 12px 14px;
+  margin: 0 0 10px;
+  background: rgba(34, 197, 94, 0.04);
+}
+.modify-type-expand.hidden {
+  display: none !important;
+}
+.modify-type-unit.is-active .modify-type-card {
+  border-radius: 12px 12px 0 0;
+  border-bottom-color: transparent;
+}
+.modify-search-in-card {
+  margin: 0 0 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+.modify-search-in-card .voucher-label {
+  margin-bottom: 8px;
+}
+.modify-workflow-dock.hidden {
+  display: none !important;
+}
+#modifyEditArea:empty {
+  display: none;
+}
 .modify-type-card {
   border: 1px solid var(--border);
   border-radius: 12px;

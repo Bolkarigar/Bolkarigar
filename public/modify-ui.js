@@ -143,19 +143,64 @@
     if (typeof window.loadInventory === "function") window.loadInventory();
   }
 
+  function dockModifyWorkflow() {
+    const dock = document.getElementById("modifyWorkflowDock");
+    const search = document.getElementById("modifySearchSection");
+    const edit = document.getElementById("modifyEditArea");
+    if (dock && search) dock.appendChild(search);
+    if (dock && edit) dock.appendChild(edit);
+    search?.classList.add("hidden");
+    dock?.classList.add("hidden");
+  }
+
+  function mountModifyWorkflowUnderType(typeId) {
+    const unit = document.querySelector(`.modify-type-unit[data-type="${typeId}"]`);
+    const slot = unit?.querySelector(".modify-type-expand");
+    const search = document.getElementById("modifySearchSection");
+    const edit = document.getElementById("modifyEditArea");
+    const grid = document.getElementById("modifyTypeGrid");
+    if (!slot || !search) return;
+
+    slot.appendChild(search);
+    if (edit) slot.appendChild(edit);
+    search.classList.remove("hidden");
+
+    document.querySelectorAll(".modify-type-unit").forEach((u) => {
+      const active = u.dataset.type === typeId;
+      u.classList.toggle("is-active", active);
+      u.querySelector(".modify-type-card")?.classList.toggle("selected", active);
+      const exp = u.querySelector(".modify-type-expand");
+      if (exp && !active) exp.classList.add("hidden");
+      else if (exp) exp.classList.remove("hidden");
+    });
+    grid?.classList.toggle("modify-type-grid--focused", true);
+  }
+
+  function mountModifyEditAfterBanner() {
+    const banner = document.getElementById("modifyDirectBanner");
+    const edit = document.getElementById("modifyEditArea");
+    if (banner && edit) banner.insertAdjacentElement("afterend", edit);
+  }
+
   function renderTypeCards() {
+    dockModifyWorkflow();
     const grid = document.getElementById("modifyTypeGrid");
     if (!grid) return;
+    grid.classList.remove("modify-type-grid--focused");
     grid.innerHTML = MODIFY_TYPES.map((t) => `
-      <button type="button" class="modify-type-card${currentType === t.id ? " selected" : ""}" data-type="${t.id}">
-        <span class="modify-type-icon">${t.icon}</span>
-        <span class="modify-type-label">${esc(t.label)}</span>
-        <span class="modify-type-desc">${esc(t.desc)}</span>
-      </button>
+      <div class="modify-type-unit${currentType === t.id ? " is-active" : ""}" data-type="${t.id}">
+        <button type="button" class="modify-type-card${currentType === t.id ? " selected" : ""}" data-type="${t.id}">
+          <span class="modify-type-icon">${t.icon}</span>
+          <span class="modify-type-label">${esc(t.label)}</span>
+          <span class="modify-type-desc">${esc(t.desc)}</span>
+        </button>
+        <div class="modify-type-expand${currentType === t.id ? "" : " hidden"}"></div>
+      </div>
     `).join("");
     grid.querySelectorAll(".modify-type-card").forEach((btn) => {
       btn.addEventListener("click", () => selectType(btn.dataset.type));
     });
+    if (currentType) mountModifyWorkflowUnderType(currentType);
   }
 
   function usesDateSearch(typeId) {
@@ -183,21 +228,24 @@
   }
 
   function selectType(typeId) {
+    modifyDirectMode = false;
+    setModifyDirectMode(false);
     currentType = typeId;
     selectedRecord = null;
     searchResults = [];
-    renderTypeCards();
+    if (!document.querySelector(`.modify-type-unit[data-type="${typeId}"]`)) renderTypeCards();
+    else mountModifyWorkflowUnderType(typeId);
     const searchEl = document.getElementById("modifySearchInput");
     if (searchEl) searchEl.value = "";
     clearDateFilters();
     hideSearchResults();
     document.getElementById("modifyEditArea").innerHTML = "";
-    document.getElementById("modifySearchSection")?.classList.remove("hidden");
     updateDateFiltersVisibility(typeId);
     if (searchEl) searchEl.placeholder = getSearchPlaceholder(typeId);
     toggleDeleteBtn(false);
     setStep(2);
     setStatus("");
+    searchEl?.focus();
   }
 
   function getSearchPlaceholder(typeId) {
@@ -795,7 +843,7 @@
     clearDateFilters();
     hideSearchResults();
     document.getElementById("modifyEditArea").innerHTML = "";
-    document.getElementById("modifySearchSection")?.classList.add("hidden");
+    dockModifyWorkflow();
     toggleDeleteBtn(false);
     renderTypeCards();
     setStep(1);
@@ -830,7 +878,9 @@
     hideSearchResults();
     document.getElementById("modifyEditArea").innerHTML = "<p class=\"helper-text\">Loading record…</p>";
     toggleDeleteBtn(false);
+    dockModifyWorkflow();
     setModifyDirectMode(true, type);
+    mountModifyEditAfterBanner();
     setStep(3);
     setStatus("");
     await loadRecordById(type, recordId);
