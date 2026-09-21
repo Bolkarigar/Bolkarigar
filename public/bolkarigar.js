@@ -5218,35 +5218,75 @@ function printUdharDetail() {
   }
   let company = "BolKarigar";
   try {
-    const prof = JSON.parse(localStorage.getItem("company_profile") || localStorage.getItem("business_profile") || "{}");
+    const prof = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || localStorage.getItem("company_profile") || localStorage.getItem("business_profile") || "{}");
     company = prof.companyName || prof.name || company;
   } catch (_) { /* ignore */ }
   const printedAt = new Date().toLocaleString("en-IN");
-  const tableHtml = table.outerHTML;
-  const barHtml = bar ? bar.outerHTML.replace(/class="[^"]*"/, 'class="print-totals"') : "";
-  const w = window.open("", "_blank", "noopener,noreferrer,width=820,height=720");
-  if (!w) {
-    showToast("Please allow pop-ups to print.", "error");
-    return;
+  const tableClone = table.cloneNode(true);
+  tableClone.querySelectorAll("script, style").forEach((el) => el.remove());
+  const tableHtml = tableClone.outerHTML;
+  let barHtml = "";
+  if (bar) {
+    barHtml = `<div class="print-totals">${bar.innerHTML}</div>`;
   }
-  w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(titleText)}</title>
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(titleText)}</title>
 <style>
-  body{font-family:Segoe UI,system-ui,sans-serif;margin:24px;color:#0f172a;}
+  body{font-family:Segoe UI,system-ui,sans-serif;margin:24px;color:#0f172a;background:#fff;}
   h1{font-size:18px;margin:0 0 4px;}
   .meta{font-size:12px;color:#64748b;margin-bottom:16px;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;}
   th{background:#f1f5f9;font-weight:700;}
   .print-totals{margin-top:14px;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;}
-  .print-totals .table-total-row{display:flex;justify-content:space-between;margin:4px 0;}
+  .print-totals .table-total-row{display:flex;justify-content:space-between;margin:4px 0;gap:12px;}
+  .print-totals strong{color:#0f172a!important;}
   @media print{body{margin:12px;}}
-</style></head><body onload="window.print()">
+</style></head><body>
   <h1>${escapeHtml(titleText)}</h1>
   <p class="meta">${escapeHtml(company)} · Printed ${escapeHtml(printedAt)}</p>
   ${tableHtml}
   ${barHtml}
-</body></html>`);
-  w.document.close();
+</body></html>`;
+
+  const openPrintWindow = () => {
+    const w = window.open("", "_blank");
+    if (!w) return null;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    return w;
+  };
+
+  let printWin = openPrintWindow();
+  if (!printWin) {
+    try {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      printWin = window.open(url, "_blank");
+      if (printWin) {
+        setTimeout(() => URL.revokeObjectURL(url), 120000);
+      }
+    } catch (_) { /* fallback failed */ }
+  }
+  if (!printWin) {
+    showToast("Please allow pop-ups to print.", "error");
+    return;
+  }
+  const triggerPrint = () => {
+    try {
+      printWin.focus();
+      printWin.print();
+    } catch (e) {
+      showToast("Could not open print dialog. Use browser menu → Print on the new tab.", "info");
+    }
+  };
+  if (printWin.document?.readyState === "complete") {
+    setTimeout(triggerPrint, 300);
+  } else {
+    printWin.onload = () => setTimeout(triggerPrint, 200);
+    setTimeout(triggerPrint, 800);
+  }
 }
 window.printUdharDetail = printUdharDetail;
 
