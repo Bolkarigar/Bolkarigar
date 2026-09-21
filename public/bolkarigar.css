@@ -2909,6 +2909,12 @@ body.sidebar-open .sidebar-tally-card {
     font-size: 14px;
     min-height: 44px;
   }
+  .top-actions .bk-plan-test-toggle-wrap {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
   .top-actions .staff-mode-banner {
     justify-content: center;
   }

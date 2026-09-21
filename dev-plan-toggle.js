@@ -16,6 +16,8 @@ const {
 function isDevPlanToggleEnabled() {
   if (process.env.DEV_PLAN_TOGGLE === 'true') return true;
   if (process.env.DEV_PLAN_TOGGLE === 'false') return false;
+  // Render deploy: testing toggle on unless explicitly disabled
+  if (process.env.RENDER || process.env.RENDER_EXTERNAL_URL) return true;
   return process.env.NODE_ENV !== 'production';
 }
 

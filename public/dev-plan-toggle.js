@@ -34,6 +34,11 @@
     return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
   }
 
+  function isOwnerTestHost() {
+    const h = (location.hostname || "").toLowerCase();
+    return h === "bolkarigar.onrender.com" || isLocalHost();
+  }
+
   function isDevPlanForced() {
     if (window.Capacitor?.isNativePlatform?.()) return false;
     if (localStorage.getItem("bk_force_dev_plan") === "1") return true;
@@ -161,6 +166,7 @@
 
   async function isDevEnabled() {
     if (isDevPlanForced()) return true;
+    if (isOwnerTestHost()) return true;
     return fetchDevToggleEnabled();
   }
 
@@ -171,14 +177,21 @@
       return;
     }
 
+    if (!getToken()) {
+      showPlanTestChrome(false);
+      return;
+    }
+
     const enabled = await isDevEnabled();
-    if (!enabled || !getToken()) {
+    if (!enabled) {
       showPlanTestChrome(false);
       return;
     }
 
     localStorage.setItem("bk_force_dev_plan", "1");
     showPlanTestChrome(true);
+    const wrap = document.getElementById("bkPlanTestToggleWrap");
+    if (wrap && !me?.isStaff) wrap.style.display = "inline-flex";
     syncToggleUi();
 
     if (!wired) {
