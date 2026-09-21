@@ -37,8 +37,9 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # TEMP: Pro ₹99 / Business ₹299 test bar — baad me "false" kar dena
       - key: DEV_PLAN_TOGGLE
-        value: "false"
+        value: "true"
       - key: GEMINI_API_KEY
         sync: false
       - key: RAZORPAY_KEY_ID
