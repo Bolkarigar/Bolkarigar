@@ -249,7 +249,7 @@
     'inventory.title': 'Smart Inventory Tracker',
     'inventory.hint': 'Stock auto-updates from invoice/voucher — HSN, GST, godown & low-stock alerts.',
     'ledger.eyebrow': 'Accounts Receivable',
-    'ledger.title': '📖 Credit Ledger (Udhar Khata)',
+    'ledger.title': '📖 Credit Ledger',
     'sales.eyebrow': 'Permanent Record',
     'sales.title': '📊 Total Sales History (2 Years Archive)',
     'sales.searchPh': '🔍 Name or Invoice No...',
@@ -568,6 +568,8 @@
 
   function bkNormalizeLang() {
     localStorage.setItem(STORAGE_KEY, 'en');
+    localStorage.setItem('bk_voice_lang', 'en-IN');
+    localStorage.setItem('bk_help_lang', 'en');
     return 'en';
   }
 

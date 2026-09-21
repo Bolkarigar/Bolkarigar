@@ -39,7 +39,7 @@ function bkFormatDebtorNet(netRaw) {
     return { net: 0, refundDue: 0, udharDue: 0, clear: true, status: "clear", label: "Paid / Clear", badgeClass: "khata-badge-clear" };
   }
   if (net > 0) {
-    return { net, refundDue: 0, udharDue: net, clear: false, status: "udhar", label: `₹${net.toFixed(2)} Udhar`, badgeClass: "khata-badge-udhar" };
+    return { net, refundDue: 0, udharDue: net, clear: false, status: "udhar", label: `₹${net.toFixed(2)} Credit`, badgeClass: "khata-badge-udhar" };
   }
   const refund = Math.abs(net);
   return {
@@ -1101,7 +1101,7 @@ function updateBusyVoucherMeta() {
   const taxMode = getCurrentGstTaxMode();
   if (saleDesc) {
     if (!isInvoiceGstEnabled()) {
-      saleDesc.textContent = "GST OFF — items bina tax ke add honge.";
+      saleDesc.textContent = "GST OFF — items will be added without tax.";
     } else {
       const taxLabel = taxMode.isIntraState ? "CGST + SGST" : "IGST";
       saleDesc.textContent = `${taxLabel} @ ${gstRate}% (company state se auto).`;
@@ -1782,7 +1782,7 @@ function startWatchdog() {
   watchdogInterval = setInterval(() => {
     if (voiceOn && !isRestarting && !voiceRecPausedForTts && !voiceProcessingLock &&
         Date.now() - lastActivityTime > 8000) {
-      setStatus("Mic dobara start ki ja rahi hai...");
+      setStatus("Restarting microphone...");
       lastActivityTime = Date.now();
       restartRecognition(50);
     }
@@ -2102,7 +2102,7 @@ function parseCommands(raw) {
       return true;
     }
     openPanel("todoPanel");
-    showCommand("Todo List open ki ja rahi hai.");
+    showCommand("Opening Todo List.");
     return true;
   }
 
@@ -2113,7 +2113,7 @@ function parseCommands(raw) {
     text.includes("start voice") || text.includes("वॉइस") || text.includes("वॉइस एआई") ||
     text.includes("वॉइस पैनल") || text.includes("माइक") || text.includes("स्पीच")
   ) {
-    return openPanelByVoice("voicePanel", "Voice AI Panel open kiya ja raha hai.");
+    return openPanelByVoice("voicePanel", "Opening Voice AI panel.");
   }
   
   if (
@@ -2126,7 +2126,7 @@ function parseCommands(raw) {
     text.includes("तस्वीर") || text.includes("तस्वीरें")
   ) {
     openPanel("galleryPanel");
-    showCommand("Gallery open ki ja rahi hai.");
+    showCommand("Opening Gallery.");
     return true;
   }
   
@@ -2140,7 +2140,7 @@ function parseCommands(raw) {
     text.includes("बिल बनाओ") || text.includes("रसीद") || text.includes("पेमेंट bill")
   ) {
     openPanel("invoicePanel");
-    showCommand("Invoice Panel open kiya ja raha hai.");
+    showCommand("Opening Invoice panel.");
     return true;
   }
 
@@ -2150,7 +2150,7 @@ function parseCommands(raw) {
     text.includes("कुल बिक्री") || text.includes("सेल्स") || text.includes("sales report")
   ) {
     openPanel("totalSalesPanel");
-    showCommand("Overview — Total Sales open ho gayi.", { speak: true });
+    showCommand("Opening Total Sales.", { speak: true });
     return true;
   }
   
@@ -2164,7 +2164,7 @@ function parseCommands(raw) {
     text.includes("साइट") || text.includes("नया प्रोजेक्ट")
   ) {
     openPanel("projectPanel");
-    showCommand("Projects Panel open kiya ja raha hai.");
+    showCommand("Opening Projects panel.");
     return true;
   }
   
@@ -2175,7 +2175,7 @@ function parseCommands(raw) {
     text.includes("क्यूआर") || text.includes("क्यू आर टूल")
   ) {
     openPanel("qrPanel");
-    showCommand("QR Tool open kiya ja raha hai.");
+    showCommand("Opening QR Tool.");
     return true;
   }
   
@@ -2190,7 +2190,7 @@ function parseCommands(raw) {
     text.includes("मुख्य स्क्रीन") || text.includes("डैशबोर्ड") || text.includes("डैश बोर्ड")
   ) {
     openPanel("overviewPanel");
-    showCommand("Overview Panel open kiya ja raha hai.");
+    showCommand("Opening Overview.");
     return true;
   }
   
@@ -2204,7 +2204,7 @@ function parseCommands(raw) {
     text.includes("मेमो") || text.includes("लिखो")
   ) {
     openPanel("notesPanel");
-    showCommand("Notes Panel open kiya ja rahi hai.");
+    showCommand("Opening Notes panel.");
     return true;
   }
   
@@ -2218,7 +2218,7 @@ function parseCommands(raw) {
     text.includes("कैलकुलेशन")
   ) {
     openPanel("calcPanel");
-    showCommand("Calculator Panel open kiya ja raha hai.");
+    showCommand("Opening Calculator.");
     return true;
   }
   
@@ -2234,7 +2234,7 @@ function parseCommands(raw) {
     text.includes("प्रिव्यू") || text.includes("मीडिया सर्च")
   ) {
     openPanel("mediaPanel");
-    showCommand("Media Panel open kiya ja raha hai.");
+    showCommand("Opening Media panel.");
     return true;
   }
   
@@ -2243,7 +2243,7 @@ function parseCommands(raw) {
     text.includes("लाइट मोड") || text.includes("डार्क मोड ऑफ")
   ) {
     setTheme("light");
-    showCommand("Light mode on kiya ja raha hai.");
+    showCommand("Turning on light mode.");
     return true;
   }
 
@@ -2252,7 +2252,7 @@ function parseCommands(raw) {
     text.includes("डार्क मोड") || text.includes("डार्क")
   ) {
     setTheme("dark");
-    showCommand("Dark mode on kiya ja raha hai.");
+    showCommand("Turning on dark mode.");
     return true;
   }
 
@@ -2271,10 +2271,10 @@ function parseCommands(raw) {
   ) {
     if (text.includes("pro") || text.includes("प्रो") || text.includes("tally style") || text.includes("ledger master")) {
       openPanel("khataLedgersPanel");
-      showCommand("Ledgers open ho gaye.");
+      showCommand("Ledgers opened.");
     } else {
       openPanel("ledgerPanel");
-      showCommand("Udhar Khata open ho gaya.");
+      showCommand("Credit Ledger opened.");
     }
     return true;
   }
@@ -2284,7 +2284,7 @@ function parseCommands(raw) {
     text.includes("स्टॉक") || text.includes("saman")
   ) {
     openPanel("inventoryPanel");
-    showCommand("Inventory panel open ho gaya.");
+    showCommand("Inventory panel opened.");
     return true;
   }
 
@@ -2294,7 +2294,7 @@ function parseCommands(raw) {
     text.includes("कुल बिक्री") || text.includes("सेल्स") || text.includes("sales report")
   ) {
     openPanel("totalSalesPanel");
-    showCommand("Overview — Total Sales open ho gayi.", { speak: true });
+    showCommand("Opening Total Sales.", { speak: true });
     return true;
   }
 
@@ -2303,7 +2303,7 @@ function parseCommands(raw) {
     text.includes("मदद") || text.includes("गाइड")
   ) {
     openPanel("helpPanel");
-    showCommand("Help & Guide open ho gaya.");
+    showCommand("Help & Guide opened.");
     return true;
   }
 
@@ -2311,31 +2311,31 @@ function parseCommands(raw) {
     text.includes("ledgers") || text.includes("ledger master") || text.includes("खाता प्रो")
   ) {
     openPanel("khataLedgersPanel");
-    showCommand("Ledgers open ho gaye.");
+    showCommand("Ledgers opened.");
     return true;
   }
 
   if (text.includes("day book") || text.includes("डे बुक")) {
     openPanel("khataDaybookPanel");
-    showCommand("Day Book open ho gaya.");
+    showCommand("Day Book opened.");
     return true;
   }
 
   if (text.includes("modification") || text.includes("modify") || text.includes("edit account") || text.includes("संशोधन") || text.includes("बदलाव")) {
     openPanel("modifyPanel");
-    showCommand("Modification Center open ho gaya.");
+    showCommand("Modification Center opened.");
     return true;
   }
 
   if (text.includes("new voucher") || text.includes("voucher entry")) {
     openPanel("khataVoucherPanel");
-    showCommand("New Voucher open ho gaya.");
+    showCommand("New Voucher opened.");
     return true;
   }
 
   if (text.includes("stock items") || text.includes("stock item")) {
     openPanel("khataItemsPanel");
-    showCommand("Stock Items open ho gaye.");
+    showCommand("Stock Items opened.");
     return true;
   }
 
@@ -2351,7 +2351,7 @@ function parseCommands(raw) {
     } else if (tallyRadio) {
       tallyRadio.checked = true;
       toggleTallyBtn(true);
-      showCommand("Tally Prime mode ON. Ab Sync to Tally button dikhega.");
+      showCommand("Tally Prime mode ON. Sync to Tally is now available.");
     }
     return true;
   }
@@ -2362,21 +2362,21 @@ function parseCommands(raw) {
     const vehicleMatch = raw.match(/(?:vehicle|gadi number|गाड़ी नंबर)\s+([a-zA-Z0-9]+)/i);
     if (ewayMatch && document.getElementById("ewayBillNo")) setField(document.getElementById("ewayBillNo"), ewayMatch[1].toUpperCase());
     if (vehicleMatch && document.getElementById("vehicleNo")) setField(document.getElementById("vehicleNo"), vehicleMatch[1].toUpperCase());
-    showCommand("E-Way Bill details update ho gayi.");
+    showCommand("E-Way Bill details updated.");
     return true;
   }
 
   if (text.includes("payroll") || text.includes("hajri") || text.includes("salary") || text.includes("वेतन") || text.includes("हाजरी")) {
-    return openPanelByVoice("payrollPanel", "Staff Payroll aur Hajri khol di.");
+    return openPanelByVoice("payrollPanel", "Opened Staff Payroll & Attendance.");
   }
   if (text.includes("contractor") || text.includes("mazdoor") || text.includes("ठेकेदार") || text.includes("मजदूर")) {
-    return openPanelByVoice("contractorPanel", "Contractor panel khol diya.");
+    return openPanelByVoice("contractorPanel", "Opened Contractor panel.");
   }
   if (text.includes("reports") || text.includes("gstr") || text.includes("रिपोर्ट")) {
     return openPanelByVoice("reportsProPanel", "Reports Pro khol di.");
   }
   if (text.includes("bank recon") || text.includes("bank reconciliation") || text.includes("बैंक मिलान")) {
-    return openPanelByVoice("bankReconPanel", "Bank Reconciliation khol di.");
+    return openPanelByVoice("bankReconPanel", "Opening Bank Reconciliation.");
   }
   if (text.includes("staff panel") || text.includes("staff invite") || text.includes("कर्मचारी")) {
     return openPanelByVoice("staffPanel", "Staff panel khol diya.");
@@ -2470,7 +2470,7 @@ async function saveActiveProjectFromVoice() {
   const nameEl = document.getElementById("projectName");
   const nameVal = nameEl?.value?.trim();
   if (!nameVal) {
-    showCommand("Pehle project naam bolo ya form me naam likho.", { speak: true });
+    showCommand("Say the project name or type it in the form first.", { speak: true });
     return false;
   }
   if (!document.getElementById("projectCustomer")?.value?.trim()) {
@@ -2478,8 +2478,8 @@ async function saveActiveProjectFromVoice() {
   }
   const success = await executeProjectAdd();
   const msg = success
-    ? `Project save ho gaya: ${nameVal}.`
-    : "Project save nahi hua. Internet check karein ya dubara try karein.";
+    ? `Project saved: ${nameVal}.`
+    : "Could not save project. Check your connection or try again.";
   showCommand(msg, { speak: true });
   return success;
 }
@@ -2543,15 +2543,15 @@ async function handleProjectSpeech(raw, preParsed) {
       }
       const success = await executeProjectAdd();
       const msg = success
-        ? `Project save ho gaya. ${data.name || nameVal}, budget ${data.budget || document.getElementById("projectBudget")?.value || "0"} rupaye.`
-        : "Project save nahi hua. Dubara try karein.";
+        ? `Project saved. ${data.name || nameVal}, budget ₹${data.budget || document.getElementById("projectBudget")?.value || "0"}.`
+        : "Could not save project. Please try again.";
       showCommand(msg, { speak: true });
     } else {
-      showCommand("Project ka naam bolo, jaise naam Aman rakho.", { speak: true });
+      showCommand("Say the project name, e.g. name Aman.", { speak: true });
     }
   } else if (hasNewFieldData) {
     showCommand(
-      `Samjha: ${parts.join(", ")}. Add karo boliye save ke liye.`,
+      `Got it: ${parts.join(", ")}. Say 'add' to save.`,
       { speak: true }
     );
   }
@@ -2580,13 +2580,13 @@ async function saveActiveExpenseFromVoice() {
     setField(titleEl, vendorVal + " Bill");
   }
   if (!amountVal) {
-    showCommand("Expense add karne ke liye amount bhi bolo.", { speak: true });
+    showCommand("Say the amount to add an expense.", { speak: true });
     return false;
   }
   const success = await executeExpenseAdd();
   const msg = success
-    ? `Expense save ho gaya: ${document.getElementById("expenseTitle")?.value || vendorVal || "Expense"}, ₹${amountVal}.`
-    : "Expense save nahi hua. Internet check karein ya dubara try karein.";
+    ? `Expense saved: ${document.getElementById("expenseTitle")?.value || vendorVal || "Expense"}, ₹${amountVal}.`
+    : "Could not save expense. Check your connection or try again.";
   showCommand(msg, { speak: true });
   return success;
 }
@@ -2617,12 +2617,12 @@ async function handleExpenseSpeech(raw, preParsed) {
     setField(document.getElementById("expenseTitle"), titleVal);
     if (amountVal) {
       const success = await executeExpenseAdd();
-      if (success) showCommand("Expense save ho gaya. " + summary, { speak: true });
+      if (success) showCommand("Expense saved. " + summary, { speak: true });
     } else {
-      showCommand("Expense add karne ke liye amount bhi bolo.", { speak: true });
+      showCommand("Say the amount to add an expense.", { speak: true });
     }
   } else {
-    showCommand("Expense form bhara: " + summary + ". Bolo 'add karo' save karne ke liye.", { speak: true });
+    showCommand("Expense form filled: " + summary + ". Say 'add' to save.", { speak: true });
   }
   return true;
 }
@@ -2771,7 +2771,7 @@ function handleCalculatorSpeech(raw, precomputedExpr) {
 
   if (isClearCommand(text)) {
     if (display) display.value = "";
-    showCommand("Calculator clear kar diya.");
+    showCommand("Calculator cleared.");
     return true;
   }
 
@@ -2783,12 +2783,12 @@ function handleCalculatorSpeech(raw, precomputedExpr) {
 
   if (isEqualCommand(text)) {
     document.getElementById("calcEquals")?.click();
-    showCommand("Calculate kiya: " + (display ? display.value : ""));
+    showCommand("Calculated: " + (display ? display.value : ""));
     return true;
   }
 
   if (cleanExpr) {
-    showCommand("Calculator mein daala: " + cleanExpr + ". Bolo 'equal' result ke liye.");
+    showCommand("Entered in calculator: " + cleanExpr + ". Say 'equal' for the result.");
     return true;
   }
 
@@ -2873,12 +2873,12 @@ async function handleInvoiceSpeech(raw) {
   if (isAddCommand(text)) {
     if (productName?.value.trim() && productPrice?.value) {
       const success = await executeInvoiceAdd();
-      if (success) showCommand("Invoice item add ho gaya. " + summary);
+      if (success) showCommand("Invoice line added. " + summary);
     } else {
-      showCommand("Item add karne ke liye product naam aur price bolo.");
+      showCommand("Say product name and price to add a line.");
     }
   } else {
-    showCommand("Invoice form bhara: " + summary + ". Bolo 'add karo' item jodne ke liye.");
+    showCommand("Invoice form filled: " + summary + ". Say 'add' to add the line.");
   }
   return true;
 }
@@ -2902,7 +2902,7 @@ function handleTodoSpeech(raw) {
     value = normalize(t).replace(/\btask\b|टास्क|\btodo\b|टूडू|\badd\b|\bsave\b|जोड़ो|सेव|\bkaro\b|करो/g, " ").trim();
   }
   if (!value) {
-    showCommand("Task ka naam bhi bolo, jaise 'task cement mangwana add karo'.");
+    showCommand("Say the task name, e.g. task order cement add.");
     return true;
   }
 
@@ -2911,7 +2911,7 @@ function handleTodoSpeech(raw) {
     openPanel("todoPanel");
     todoInputEl.value = value;
     document.getElementById("addTodoBtn")?.click();
-    showCommand(`Task add ho gaya: "${value}"`);
+    showCommand(`Task added: "${value}"`);
   }
   return true;
 }
@@ -2926,7 +2926,7 @@ function handleQrSpeech(raw) {
     value = normalize(t).replace(/\bqr\b|क्यू आर|क्यूआर|\bcode\b|\bgenerate\b|\badd\b|बनाओ|जोड़ो|\bka\b|\bkaro\b|करो/g, " ").trim();
   }
   if (!value) {
-    showCommand("QR mein daalne ke liye text ya link bhi bolo.");
+    showCommand("Say the text or link for the QR code.");
     return true;
   }
   setField(document.getElementById("qrInput"), value);
@@ -2953,7 +2953,7 @@ function handleNoteSpeech(raw) {
       setField(notesInput, existing ? existing + ". " + value : value);
       showCommand("Note likh diya: " + value);
     } else {
-      showCommand("Note mein kya likhna hai, wo bhi bolo.");
+      showCommand("Say what to write in the note.");
     }
     return true;
   }
@@ -3004,7 +3004,7 @@ function handleConverterSpeech(raw) {
   }
   found.sort((a, b) => a.idx - b.idx);
   if (!found.length) {
-    showCommand("Convert karne ke liye unit bhi bolo, jaise 'meter' ya 'kilogram'.");
+    showCommand("Say the unit to convert, e.g. meter or kilogram.");
     return true;
   }
   const fromInfo = found[0];
@@ -3017,7 +3017,7 @@ function handleConverterSpeech(raw) {
   if (value && document.getElementById("unitInput")) document.getElementById("unitInput").value = value;
 
   document.getElementById("convertBtn")?.click();
-  showCommand("Convert kar diya: " + (document.getElementById("convertResult")?.textContent || ""));
+  showCommand("Converted: " + (document.getElementById("convertResult")?.textContent || ""));
   return true;
 }
 
@@ -3038,7 +3038,7 @@ function handleGallerySpeech(raw) {
   else if (/\bfirst\b|पहला/.test(text)) idx = 0;
 
   thumbs[idx].click();
-  showCommand("Photo " + (idx + 1) + " dikha rahe hain.");
+  showCommand("Showing photo " + (idx + 1) + ".");
   return true;
 }
 
@@ -3236,7 +3236,7 @@ async function applyVoiceSearch(query, opts) {
   }
   const input = getActiveSearchInput(forcePanel || activeId);
   if (!input) {
-    showCommand("Search box nahi mila. Pehle Total Sales, Inventory ya Media panel kholo.", { speak: true });
+    showCommand("Search box not found. Open Total Sales, Inventory, or Media first.", { speak: true });
     return false;
   }
 
@@ -3266,7 +3266,7 @@ window.bkVoiceSearch = applyVoiceSearch;
 async function handleSearchSpeech(raw) {
   const parsed = parseSearchQuery(raw);
   if (!parsed) {
-    showCommand("Kya search karna hai? Jaise: laxmi search karo, ya naam Vikrant search kero.", { speak: true });
+    showCommand("What should I search? e.g. search Laxmi, or search name Vikrant.", { speak: true });
     return true;
   }
   const panelId = /total\s*sale|टोटल|बिक्री|sales\s+history/i.test(normalize(raw))
@@ -3282,35 +3282,35 @@ function clearActivePanelForm() {
 
   if (activeId === "calcPanel") {
     if (document.getElementById("calcDisplay")) document.getElementById("calcDisplay").value = "";
-    showCommand("Calculator clear kar diya.");
+    showCommand("Calculator cleared.");
     return;
   }
   if (activeId === "projectPanel") {
     ["projectName", "projectCustomer", "projectSite", "projectBudget", "projectNote"].forEach(id => setField(document.getElementById(id), ""));
     if (document.getElementById("projectStatus")) document.getElementById("projectStatus").value = "planning";
     ["expenseTitle", "expenseVendor", "expenseAmount", "expenseProjectLink"].forEach(id => setField(document.getElementById(id), ""));
-    showCommand("Project aur expense form clear kar diya.");
+    showCommand("Project and expense forms cleared.");
     return;
   }
   if (activeId === "invoicePanel") {
     ["customerName", "productName", "productPrice", "productQty"].forEach(id => setField(document.getElementById(id), ""));
-    showCommand("Invoice form clear kar diya.");
+    showCommand("Invoice form cleared.");
     return;
   }
   if (activeId === "notesPanel") {
     setField(document.getElementById("notesInput"), "");
-    showCommand("Notes clear kar diye.");
+    showCommand("Notes cleared.");
     return;
   }
   if (activeId === "qrPanel") {
     setField(document.getElementById("qrInput"), "");
     if (document.getElementById("qrCodeBox")) document.getElementById("qrCodeBox").innerHTML = "";
-    showCommand("QR field clear kar diya.");
+    showCommand("QR field cleared.");
     return;
   }
   if (activeId === "todoPanel") {
     setField(document.getElementById("todoInput"), "");
-    showCommand("Todo input clear kar diya.");
+    showCommand("Todo input cleared.");
     return;
   }
   if (activeId === "voicePanel") {
@@ -3320,7 +3320,7 @@ function clearActivePanelForm() {
   if (activeId === "converterPanel") {
     setField(document.getElementById("unitInput"), "");
     if (document.getElementById("convertResult")) document.getElementById("convertResult").textContent = "Converted value will appear here.";
-    showCommand("Converter clear kar diya.");
+    showCommand("Converter cleared.");
     return;
   }
   if (activeId === "totalSalesPanel" || activeId === "overviewPanel") {
@@ -3336,10 +3336,10 @@ function clearActivePanelForm() {
   if (activeId === "mediaPanel") {
     setField(document.getElementById("searchInput"), "");
     document.querySelectorAll("#searchList li").forEach(item => item.style.display = "block");
-    showCommand("Media search clear kar diya.");
+    showCommand("Media search cleared.");
     return;
   }
-  showCommand("Is panel mein clear karne ke liye kuch nahi hai.");
+  showCommand("Nothing to clear on this panel.");
 }
 
 // Text-to-speech — saaf Hindi jawab (voice ON par)
@@ -3362,7 +3362,7 @@ function speakText(text, forceShort, onDone) {
     if (typeof window._bkPauseVoiceForTts === "function") window._bkPauseVoiceForTts();
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(msg);
-    utter.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
+    utter.lang = localStorage.getItem("bk_voice_lang") || "en-IN";
     utter.rate = 1.02;
     const finish = () => {
       if (typeof window._bkResumeVoiceAfterTts === "function") window._bkResumeVoiceAfterTts();
@@ -3371,8 +3371,8 @@ function speakText(text, forceShort, onDone) {
     utter.onend = finish;
     utter.onerror = finish;
     const voices = window.speechSynthesis.getVoices();
-    const hindiVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("hi"));
-    if (hindiVoice) utter.voice = hindiVoice;
+    const enVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+    if (enVoice) utter.voice = enVoice;
     window.speechSynthesis.speak(utter);
   } catch (e) {
     onDone?.();
@@ -3387,13 +3387,13 @@ window.speakText = speakText;
 // { keywords: [...], answer: "..." } object list me daal do.
 // -------------------------------------------------------------------
 const APP_FEATURES_OVERVIEW =
-  'BolKarigar me yeh sab hai: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Notes, Media, Help & Guide. Kisi feature ke baare me detail poochhiye!';
+  'BolKarigar includes: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Credit Ledger, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Notes, Media, and Help & Guide. Ask for details on any feature.';
 
 const TODO_MODULE_ANSWER =
-  'Todo List me yeh sab kar sakte ho: (1) Naya kaam add karna — Todo tab me likh kar Add dabao, ya bol kar "todo cement mangwana add karo", (2) Task delete karna — list me Delete button, (3) Saari list clear karna — Clear All button, (4) Sidebar se Todo tab khol kar apne tasks dekhna. Har task save hota hai aur refresh ke baad bhi rehta hai.';
+  'In Todo: (1) Add a task — type in the Todo tab and click Add, or say e.g. "todo order cement add", (2) Delete a task — Delete on the row, (3) Clear all — Clear All, (4) Open Todo from the sidebar to view tasks. Tasks are saved and persist after refresh.';
 
 const ACCOUNTING_MODULE_ANSWER =
-  'Accounting me yeh sab hai: (1) Ledgers — party/customer ledger add (Sundry Debtor/Creditor, GSTIN, opening balance), (2) Stock Items — saman, rate aur stock manage, (3) New Voucher — Sales, Purchase, Receipt, Payment, Journal entry, (4) Day Book — din ki saari entries dekhna. Invoice sale par auto ledger entry bhi ban sakti hai aur Tally Prime me sync bhi hota hai.';
+  'Accounting includes: (1) Ledgers — add party ledgers (Sundry Debtor/Creditor, GSTIN, opening balance), (2) Stock Items — manage items, rates and stock, (3) New Voucher — Sales, Purchase, Receipt, Payment, Journal, (4) Day Book — view daily entries. Sales can post to ledgers automatically and sync to Tally Prime.';
 
 function isInformationalQuestion(text) {
   const norm = normalizeFaqText(text);
@@ -3431,65 +3431,67 @@ function matchModuleFaq(rawText) {
 
 const APP_FAQ = [
   { keywords: ["tum kaun", "who are you", "aap kaun", "tumhara naam", "your name", "kya ho tum", "what are you"],
-    answer: "Main BolKarigar AI hoon — is app ka apna assistant. Main aapke sawalon ke jawab de sakta hoon aur app ke andar kaam bhi kar sakta hoon, jaise todo add karna ya invoice banana." },
+    answer: "I am BolKarigar AI — your in-app assistant. I can answer questions and help with tasks like adding todos or creating invoices." },
   { keywords: ["kya kya kar sakte", "kya kar sakte ho", "features", "help", "madad", "kya kaam", "kya kaam kar sakte", "kya kaam kar sakti", "what can you do", "poori list", "kya kya kaam", "ker skte", "kya kya ker", "kar skte", "kya kya kr skte", "ho skta", "ho sakta", "ho skte", "iss app", "is app", "app m kya", "app me kya", "kitne model", "kitne module"],
     answer: APP_FEATURES_OVERVIEW },
   { keywords: ["free hai", "paisa lagega", "cost kitni", "kitna paisa", "paid hai kya", "is this free", "billing lagegi"],
-    answer: "Bilkul free hai! Main app ke andar hi (browser me) chalta hoon, koi internet ya paid API ki zaroorat nahi — isliye koi cost nahi lagta." },
+    answer: "The assistant runs in your browser. Plan pricing is shown under My Plan after your free trial." },
   { keywords: ["namaste", "hello", "hi", "hey", "kaise ho", "kese ho", "kaisa hai", "kya haal", "good morning", "good evening"],
-    answer: "Namaste! Bataiye, kya madad kar sakta hoon? App ke bare me poochh sakte ho ya seedha koi kaam bol sakte ho." },
+    answer: "Hello! How can I help? Ask about the app or tell me what to do." },
   { keywords: ["thanks", "thank you", "shukriya", "dhanyawad"],
-    answer: "Koi baat nahi! Aur kuch madad chahiye ho to bataiye." },
+    answer: "You're welcome! Let me know if you need anything else." },
   { keywords: ["bolkarigar kya hai", "yeh app kya hai", "app kis liye", "what is this app", "app ke bare me batao", "kya hai iss app", "kya hai is app", "app m kya", "app me kya", "kya kya hai iss app", "kya kya hai is app"],
-    answer: "BolKarigar ek Hindi voice-first business app hai — chhote dukandaron aur contractors ke liye. Isme aap invoice banana, project/kharcha track karna, todo list, udhar khata, inventory, aur bahut kuch bol kar ya type karke kar sakte ho." },
+    answer: "BolKarigar is a voice-friendly business app for shops and contractors — invoices, projects, expenses, credit ledger, inventory, and more by voice or keyboard." },
   { keywords: ["logout kaise", "log out kaise", "sign out"],
-    answer: "Header me upar right side 'Logout' button dabao — aap seedha login page pe chale jaoge." },
+    answer: "Click Logout in the top-right header to return to the login page." },
   { keywords: ["password bhool", "forgot password", "password reset"],
-    answer: "Login page pe 'Forgot Password' link se apna password reset kar sakte ho." },
+    answer: "On the login page, use Forgot Password to reset your password." },
   { keywords: ["voice kaise", "voice kaam", "how does voice", "voice on kaise", "voice off kaise"],
-    answer: "Header me 'Voice: OFF' button dabao — yeh continuous voice mode ON kar deta hai, phir aap bol kar commands de sakte ho jaise 'open gallery' ya 'open invoice'." },
+    answer: "Click Voice: OFF in the header to turn continuous voice mode on, then say commands like open gallery or open invoice." },
   { keywords: ["dark mode", "light mode", "theme kaise"],
-    answer: "Header me 'Light'/'Dark' button se theme badal sakte ho, ya bol do 'dark mode on' ya 'dark mode off'." },
+    answer: "Use the Light/Dark button in the header, or say dark mode on or dark mode off." },
   { keywords: ["todo kaise", "task kaise", "how to todo", "todo add kaise", "todo m kya", "todo me kya", "todo kya kya", "todo kam kese", "todo kese", "task kese"],
     answer: TODO_MODULE_ANSWER },
   { keywords: ["project kaise", "how to project", "project add kaise", "naya project"],
-    answer: "'Projects' tab me Project Name, Customer, Budget aur Note bhar ke add kar sakte ho. Ya bol do jaise 'project Mandir work customer Aslam budget 50000'." },
+    answer: "In Projects, fill Project Name, Customer, Budget and Note, then Add Project — or say e.g. project Mandir work customer Aslam budget 50000." },
   { keywords: ["expense kaise", "kharcha kaise", "how to expense"],
-    answer: "Expense add karne ke liye 'Projects' tab ke 'Quick Expense Entry' me Title, Vendor aur Amount bharo. Ya bol do jaise 'vendor Sharma Timber amount 4200'." },
+    answer: "In Projects → Quick Expense Entry, enter Title, Vendor and Amount — or say e.g. vendor Sharma Timber amount 4200." },
   { keywords: ["invoice kaise", "bill kaise", "invoice banaye", "invoice banao kaise", "how to invoice", "bill banaye", "invoice bnaye", "invoice kese"],
-    answer: "Invoice banane ke liye 'Invoice' tab kholo, phir Customer Name, Product, Price aur Quantity bharo aur 'Add Item' dabao. Aap mujhse bhi bol sakte ho, jaise 'customer Ramesh product plywood price 2500 quantity 2'." },
+    answer: "Open Invoice, enter Customer, Product, Price and Quantity, then Add Item — or say e.g. customer Ramesh product plywood price 2500 quantity 2." },
   { keywords: ["gst", "gst kya", "gst rate", "what is gst"],
-    answer: "Invoice banate waqt aap GST rate (jaise 5%, 12%, 18%) dropdown se select kar sakte ho — app automatically GST amount aur total calculate kar deta hai." },
+    answer: "Select a GST rate (5%, 12%, 18%, etc.) on the invoice — tax and total are calculated automatically." },
   { keywords: ["invoice download", "bill download", "invoice pdf"],
-    answer: "Invoice table ke upar 'Download' button hai — usse invoice download/print kar sakte ho." },
+    answer: "Use Download above the invoice table to print or save as PDF." },
   { keywords: ["whatsapp share", "whatsapp pe bhejo", "whatsapp invoice"],
-    answer: "'WhatsApp Share' button dabao — invoice seedha WhatsApp ke through customer ko bhej sakte ho." },
+    answer: "Click WhatsApp Share to send the invoice to your customer." },
   { keywords: ["eway bill", "e way bill", "vehicle number", "transport details"],
-    answer: "Invoice panel me 'E-Way Bill & Transport Details' section hai (optional) — jahan E-Way Bill number, vehicle number aur distance bhar sakte ho." },
+    answer: "Optional E-Way Bill & Transport Details on the invoice — E-Way number, vehicle and distance." },
   { keywords: ["accounting mode", "tally prime kya", "bolkarigar khata kya"],
-    answer: "Invoice panel me 'Accounting Mode' choose kar sakte ho — 'BolKarigar Khata' (in-house) ya 'Tally Prime' (aapke Tally software se sync hota hai)." },
+    answer: "Choose Accounting Mode on the invoice — BolKarigar Khata (in-house) or Tally Prime (sync with Tally)." },
   { keywords: ["business profile", "company profile", "profile save", "firm ka naam", "gstin kaise dalu"],
-    answer: "'Business Profile Settings' me apni Company Name, GSTIN, Phone, Address bhar ke 'Save Business Profile' dabao — ek baar save hone ke baad Invoice Generator unlock ho jayega." },
+    answer: "In Business Profile, enter Company Name, GSTIN, Phone and Address, then Save — this unlocks the invoice generator." },
   { keywords: ["udhar khata", "udhar kaise", "khata kya", "credit customer"],
-    answer: "'Udhar Khata' tab me aap customers ka udhar (credit) track kar sakte ho — kis customer ne kitna udhar liya hai." },
+    answer: "Credit Ledger tracks customer credit — who owes how much." },
   { keywords: ["inventory kya", "stock kaise"],
-    answer: "'Inventory' tab me Vyapar jaisa Smart Inventory Tracker hai — HSN, GST%, purchase/sale rate, godown, batch, low-stock alert, stock in/out adjust. Invoice se stock auto kam hota hai." },
+    answer: "Inventory is a smart stock tracker — HSN, GST%, rates, godown, batch, low-stock alerts; sales reduce stock automatically." },
   { keywords: ["gallery kya", "gallery kaise"],
-    answer: "'Gallery' tab me aap apne kaam ki photos store aur dekh sakte ho." },
+    answer: "Gallery stores and displays your work photos." },
   { keywords: ["qr", "qr code", "qr tool"],
-    answer: "'QR Tool' tab me text ya link daal ke uska QR code bana sakte ho." },
+    answer: "QR Tool builds a QR code from text or a link." },
   { keywords: ["calculator", "calculate kaise"],
-    answer: "'Calculator' tab me normal calculator hai, ya bol kar bhi calculation kar sakte ho jaise '25 plus 30'." },
+    answer: "Use the Calculator tab, or say e.g. 25 plus 30." },
   { keywords: ["notes kaise", "note kaise"],
-    answer: "'Notes' tab me apne notes likh sakte ho aur 'Download notes' se save bhi kar sakte ho." },
+    answer: "Write notes in the Notes tab and download them if needed." },
   { keywords: ["tally", "tally sync", "tally prime"],
-    answer: "Tally Prime se sync karne ke liye sidebar me diya gaya 'Tally Sync Agent' (.exe) download karke apne PC pe chalao, phir Invoice panel me 'Tally Prime' mode select karke sync kar sakte ho." },
+    answer: "Download Tally Sync Agent from the sidebar, run it on your PC, select Tally Prime mode on the invoice, then sync." },
   { keywords: ["profit loss", "financial summary", "report kaise", "kamai dikaho"],
-    answer: "'Overview' panel me AI Accountant cards ke through aapko total sales, expenses aur profit ka summary dikhta hai." },
+    answer: "Overview shows total sales, expenses and profit in the dashboard cards." },
   { keywords: ["ledger m kya", "ledger me kya", "accounting m kya", "accounting me kya", "voucher kaise", "day book kya", "khata pro m kya", "khata pro me kya"],
     answer: ACCOUNTING_MODULE_ANSWER },
   { keywords: ["help panel", "guide kaha", "manual kaha"],
-    answer: "Sidebar me '❓ Help & Guide' tab hai — wahan har module ki poori jaankari mil jayegi." }
+    answer: "Open ❓ Help & Guide in the sidebar for module-by-module instructions." },
+  { keywords: ["bye", "alvida", "phir milenge", "chalta hoon", "goodbye"],
+    answer: "Goodbye! Tap the AI button whenever you need help — I am here." }
 ];
 
 function looksLikeKhataCommand(text) {
@@ -3570,7 +3572,7 @@ async function handleKhataSpeech(raw) {
       showCommand("Item save karne ki koshish ki.");
     }
   } else {
-    showCommand("Accounting form bhara. 'Add karo' bol kar save karein.");
+    showCommand("Accounting form filled. Say add to save.");
   }
   return true;
 }
@@ -3588,7 +3590,7 @@ async function handleInventorySpeech(raw) {
     document.getElementById("invSaveBtn")?.click();
     showCommand("Inventory me item add karne ki koshish ki.");
   } else {
-    showCommand("Inventory form bhara. 'Add karo' bol kar save karein.");
+    showCommand("Inventory form filled. Say add to save.");
   }
   return true;
 }
@@ -3807,7 +3809,7 @@ async function handleSpeech(rawText) {
 
       // Step C: Fallback (Offline FAQ) agar API down ho ya internet na ho
       const faqAnswer = matchAppFaq(raw);
-      const reply = faqAnswer || "Samjha nahi. Try karein: invoice kholo, ya Ram ne laptop 25000 ka bill banao.";
+      const reply = faqAnswer || "I did not understand. Try: open invoice, or create a bill for Ram laptop 25000.";
       showCommand(reply, { speak: true });
       if (document.getElementById("aiReplyBox")) {
         document.getElementById("aiReplyBox").innerText = reply;
@@ -3817,7 +3819,7 @@ async function handleSpeech(rawText) {
 
   } catch (err) {
     console.error("handleSpeech error:", err);
-    showCommand("Kuch dikkat aayi, dobara try karo.");
+    showCommand("Something went wrong. Please try again.");
   } finally {
     if (voiceCommandSucceeded) {
       lastVoiceHandled = { key: dedupeKey, at: Date.now() };
@@ -3826,13 +3828,14 @@ async function handleSpeech(rawText) {
   }
 }
 function setStatus(msg) {
+  if (typeof window.bkEnMsg === "function") msg = window.bkEnMsg(msg);
   if (voiceStatus) voiceStatus.textContent = msg;
 }
 
 function createRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    setStatus("Speech recognition supported nahi hai.");
+    setStatus("Speech recognition is not supported in this browser.");
     if (voiceToggle) voiceToggle.disabled = true;
     if (startVoiceBtn) startVoiceBtn.disabled = true;
     return null;
@@ -3875,8 +3878,8 @@ function createRecognition() {
       voiceUtteranceBuffer += (voiceUtteranceBuffer ? " " : "") + finalText.trim();
       if (voiceTranscript) voiceTranscript.value = voiceUtteranceBuffer;
       const hint = document.getElementById("voiceBufferHint");
-      if (hint) hint.textContent = "Sun raha hoon… poora boliye, " + (VOICE_FLUSH_MS / 1000) + " sec rukne par process hoga";
-      setStatus("Sun raha hoon: " + voiceUtteranceBuffer.slice(0, 70) + (voiceUtteranceBuffer.length > 70 ? "…" : ""));
+      if (hint) hint.textContent = "Listening… speak fully, " + (VOICE_FLUSH_MS / 1000) + " s pause to process";
+      setStatus("Listening: " + voiceUtteranceBuffer.slice(0, 70) + (voiceUtteranceBuffer.length > 70 ? "…" : ""));
       clearTimeout(voiceUtteranceFlushTimer);
       voiceUtteranceFlushTimer = setTimeout(flushVoiceBuffer, VOICE_FLUSH_MS);
     } else if (interim.trim()) {
@@ -3885,7 +3888,7 @@ function createRecognition() {
       if (calcPanelActive && cleanExpr && document.getElementById("calcDisplay")) {
         document.getElementById("calcDisplay").value = cleanExpr;
       }
-      setStatus("Sun raha hoon: " + interim.trim().slice(0, 60) + (interim.length > 60 ? "…" : ""));
+      setStatus("Listening: " + interim.trim().slice(0, 60) + (interim.length > 60 ? "…" : ""));
     }
   };
 
@@ -3900,14 +3903,14 @@ function createRecognition() {
         voiceToggle.classList.remove("voice-active");
       }
       if (startVoiceBtn) startVoiceBtn.textContent = "Start Listening";
-      setStatus("Mic band ho gaya (" + event.error + "). Browser mein mic permission check karo.");
+      setStatus("Microphone stopped (" + event.error + "). Check microphone permission in your browser.");
       return;
     }
 
     const quiet = event.error === "no-speech" || event.error === "aborted";
     if (!quiet) {
       consecutiveFailures++;
-      setStatus("Voice error: " + event.error + " — dobara try ho raha hai...");
+      setStatus("Voice error: " + event.error + " — retrying...");
     }
     if (voiceOn && !voiceRecPausedForTts && !voiceProcessingLock) {
       restartRecognition(quiet ? 200 : undefined);
@@ -3942,7 +3945,7 @@ function startVoice() {
     voiceToggle.classList.add("voice-active");
   }
   if (startVoiceBtn) startVoiceBtn.textContent = "Listening...";
-  setStatus("Voice ON — poora sentence ek saath boliye, 1.5 sec rukne par kaam hoga.");
+  setStatus("Voice ON — speak a full sentence; processing starts after a 1.5 s pause.");
   consecutiveFailures = 0;
   isRestarting = false;
   try {
@@ -4064,7 +4067,7 @@ function renderGalleryThumbs(photos) {
     img.crossOrigin = 'anonymous';
     img.loading = 'lazy';
     img.onerror = function () {
-      this.alt = 'Photo load nahi hui — internet check karein';
+      this.alt = 'Photo failed to load — check your connection';
       this.style.opacity = '0.5';
     };
     img.alt = photo.caption || "Product photo";
@@ -4333,11 +4336,11 @@ function blockDuplicateSession() {
   document.body.innerHTML = `
     <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
       <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
-      <p style="margin-top:10px; color:#aaa;">BolKarigar dashboard pehle se kisi aur tab me khula hai.</p>
-      <p style="color:#666; font-size:14px;">Neeche <strong>Yahan Continue Karein</strong> dabayein — purana tab auto band ho jayega.</p>
-      <button onclick="window.location.href='bolkarigar.html?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Yahan Continue Karein</button>
-      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 My Plan Kholo</button>
-      <button onclick="window.location.reload()" style="margin-top:10px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Dubara Try Karein</button>
+      <p style="margin-top:10px; color:#aaa;">BolKarigar is already open in another tab.</p>
+      <p style="color:#666; font-size:14px;">Click <strong>Continue here</strong> below — the other tab will close automatically.</p>
+      <button onclick="window.location.href='bolkarigar.html?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Continue here</button>
+      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 Open My Plan</button>
+      <button onclick="window.location.reload()" style="margin-top:10px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Try again</button>
     </div>
   `;
   if (recognition) { try { recognition.stop(); } catch (e) {} }
@@ -4410,7 +4413,7 @@ function triggerWhatsAppShare() {
   const currentCust = (document.getElementById("customerName")?.value || "").trim();
 
   if (!currentCust) {
-    showCommand("WhatsApp share ke liye Invoice form me Customer Name bharein!");
+    showCommand("Enter Customer Name on the invoice form before WhatsApp share.");
     alert("Please enter the customer name first!");
     return;
   }
@@ -4534,16 +4537,16 @@ async function ensureTallyHttpBeforeSync() {
   const status = await checkTallyHttpStatus();
   if (status.httpReady) return true;
   if (status.canTrySync || status.portOpen) {
-    const warn = status.message || "Port 9000 open — sync try ho raha hai. Company Day Book mein khuli honi chahiye.";
+    const warn = status.message || "Port 9000 open — trying sync. Company must be open in Tally Day Book.";
     if (typeof showToast === "function") showToast(warn, "info");
     return true;
   }
   const steps = (status.steps || []).map((s, i) => `${i + 1}. ${s}`).join("\n");
   const msg =
-    "⚠️ Tally port 9000 band hai — sync nahi ho sakta.\n\n" +
+    "⚠️ Tally port 9000 is closed — sync is not available.\n\n" +
     (status.message || "") +
     (steps ? `\n\n${steps}` : "") +
-    "\n\nTally mein F1 → Connectivity → Both + ODBC Yes, Port 9000. Company select karein. Phir Sync Tally.";
+    "\n\nIn Tally: F1 → Connectivity → Both + ODBC Yes, Port 9000. Select company, then Sync Tally.";
   if (typeof showToast === "function") showToast(msg, "error");
   else alert(msg);
   openTallyAgentSidebar();
@@ -4590,8 +4593,8 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
   if (tallyBtn && tallyBtn.disabled) {
     const st = window._bkTallyHttpStatus || {};
     const msg = st.agentConnected
-      ? "Tally HTTP abhi ready nahi. F1 → Connectivity → Client/Server → HTTP Server = Yes, Port 9000. Test green hone par Sync enable hoga. Abhi BolKarigar Khata use karein."
-      : "Agent offline hai. Connect Agent.bat chalao, ya BolKarigar Khata se bill save karein.";
+      ? "Tally HTTP is not ready. F1 → Connectivity → Client/Server → HTTP Server = Yes, Port 9000. Sync enables when Test is green. Use BolKarigar Khata for now."
+      : "Agent is offline. Run Connect Agent.bat, or save bills with BolKarigar Khata.";
     if (typeof showToast === "function") showToast(msg, "error");
     else alert(msg);
     openTallyAgentSidebar({ scroll: true });
@@ -4638,7 +4641,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
         if (ver && !ver.includes("http4") && !ver.includes("http5")) {
           openTallyAgentSidebar({ scroll: true });
           const oldAgentMsg =
-            "Purana Agent chal raha hai (" + ver + "). Sidebar se naya Agent vhttp5 download karein, purana band karke dubara Connect Agent chalao.";
+            "Old Agent is running (" + ver + "). Download Agent vhttp5 from the sidebar, stop the old one, and run Connect Agent again.";
           if (typeof showToast === "function") showToast(oldAgentMsg, "error");
           else alert(oldAgentMsg);
           return false;
@@ -4974,7 +4977,7 @@ async function refreshUdharKhata(localFallback = {}) {
       if (pending < -0.01) {
         payBtn.textContent = "Refund Due";
         payBtn.disabled = true;
-        payBtn.title = `Customer ko ₹${Math.abs(pending).toFixed(2)} wapas dena hai — Payment voucher se refund karein`;
+        payBtn.title = `Refund ₹${Math.abs(pending).toFixed(2)} to customer — use a Payment voucher`;
         payBtn.style.cssText = "padding:4px 8px;font-size:12px;border-radius:4px;background:#0ea5e9;color:#fff;border:none;cursor:not-allowed;opacity:.85;";
       } else {
         payBtn.textContent = "Pay";
@@ -5148,7 +5151,7 @@ async function showUdharDetail(customerName) {
   }
 
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="5" style="text-align:center;">Koi transaction nahi mila.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;">No transactions found.</td></tr>`;
     window.bkSetTableAmountTotal(body, { hide: true });
   } else {
     body.innerHTML = rows.map((r) => {
@@ -5201,7 +5204,7 @@ async function showUdharDetail(customerName) {
     if (pending < -0.01) {
       payBtn.textContent = `Refund ₹${Math.abs(pending).toFixed(2)} Due`;
       payBtn.disabled = true;
-      payBtn.title = "Customer ko paisa wapas dena hai — New Voucher → Payment se refund karein";
+      payBtn.title = "Refund due to customer — New Voucher → Payment";
     } else {
       payBtn.disabled = false;
       payBtn.textContent = "Record Payment";
@@ -5215,6 +5218,53 @@ async function showUdharDetail(customerName) {
   modal.dataset.customer = customerName;
 }
 window.showUdharDetail = showUdharDetail;
+
+function printUdharDetail() {
+  const modal = document.getElementById("udharDetailModal");
+  if (!modal || modal.classList.contains("hidden")) {
+    showToast("Open a customer detail view first.", "info");
+    return;
+  }
+  const titleText = document.getElementById("udharDetailTitle")?.textContent?.replace(/^📖\s*/, "") || "Customer Detail";
+  const table = modal.querySelector("#udharDetailBody")?.closest("table");
+  const bar = modal.querySelector(".table-amount-total-bar:not(.hidden)");
+  if (!table) {
+    showToast("Nothing to print.", "info");
+    return;
+  }
+  let company = "BolKarigar";
+  try {
+    const prof = JSON.parse(localStorage.getItem("company_profile") || localStorage.getItem("business_profile") || "{}");
+    company = prof.companyName || prof.name || company;
+  } catch (_) { /* ignore */ }
+  const printedAt = new Date().toLocaleString("en-IN");
+  const tableHtml = table.outerHTML;
+  const barHtml = bar ? bar.outerHTML.replace(/class="[^"]*"/, 'class="print-totals"') : "";
+  const w = window.open("", "_blank", "noopener,noreferrer,width=820,height=720");
+  if (!w) {
+    showToast("Please allow pop-ups to print.", "error");
+    return;
+  }
+  w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(titleText)}</title>
+<style>
+  body{font-family:Segoe UI,system-ui,sans-serif;margin:24px;color:#0f172a;}
+  h1{font-size:18px;margin:0 0 4px;}
+  .meta{font-size:12px;color:#64748b;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;}
+  th{background:#f1f5f9;font-weight:700;}
+  .print-totals{margin-top:14px;padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;}
+  .print-totals .table-total-row{display:flex;justify-content:space-between;margin:4px 0;}
+  @media print{body{margin:12px;}}
+</style></head><body onload="window.print()">
+  <h1>${escapeHtml(titleText)}</h1>
+  <p class="meta">${escapeHtml(company)} · Printed ${escapeHtml(printedAt)}</p>
+  ${tableHtml}
+  ${barHtml}
+</body></html>`);
+  w.document.close();
+}
+window.printUdharDetail = printUdharDetail;
 
 function setupUdharLedgerClicks() {
   const ledgerBody = document.getElementById("ledgerBody");
@@ -5252,6 +5302,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.id === "businessProfileModal") e.target.classList.add("hidden");
   });
 
+  document.getElementById("udharDetailPrintBtn")?.addEventListener("click", () => {
+    if (typeof printUdharDetail === "function") printUdharDetail();
+  });
   document.getElementById("closeUdharDetailBtn")?.addEventListener("click", () => {
     document.getElementById("udharDetailModal")?.classList.add("hidden");
   });
@@ -6150,6 +6203,7 @@ function getEWayBillDetails() {
   }
 
   function addBubble(text, kind) {
+    if (typeof window.bkEnMsg === "function") text = window.bkEnMsg(text);
     const div = document.createElement("div");
     div.className = "live-ai-msg " + (kind === "user" ? "live-ai-msg-user" : kind === "action" ? "live-ai-msg-action" : "live-ai-msg-bot");
     div.textContent = text;
@@ -6198,7 +6252,7 @@ function getEWayBillDetails() {
     liveMicBuffer = "";
     clearTimeout(liveMicFlushTimer);
     updateModelBadge();
-    addBubble("Chat clear ho gaya. Hindi / English me boliye — kya madad chahiye?", "bot");
+    addBubble("Chat cleared. How can I help you?", "bot");
   });
 
   document.getElementById("liveAiSuggestions")?.addEventListener("click", (e) => {
@@ -6210,9 +6264,9 @@ function getEWayBillDetails() {
   liveBtn?.addEventListener("click", () => {
     liveConvMode = !liveConvMode;
     liveBtn.classList.toggle("active", liveConvMode);
-    liveBtn.title = liveConvMode ? "Live mode ON — mic auto chalega" : "Live conversation ON karo";
+    liveBtn.title = liveConvMode ? "Live mode ON — mic auto chalega" : "Turn on live conversation";
     if (liveConvMode) {
-      addBubble("🎙️ Live mode ON — Hindi ya English me boliye, rukne ke baad main jawab dunga.", "bot");
+      addBubble("🎙️ Live mode ON — speak in English or Hindi; I will reply after you pause.", "bot");
       startLiveMic();
     } else {
       aiRecognition?.stop();
@@ -6221,79 +6275,13 @@ function getEWayBillDetails() {
     }
   });
 
-  // -------------------------------------------------------------------
-  // Offline FAQ — direct keyword matching for common questions.
-  // Jab Gemini API down ho tab bhi yeh basic sawalon ke jawab dega.
-  // -------------------------------------------------------------------
-  const LIVE_FAQ = [
-    { keywords: ["namaste", "hello", "hi", "hey", "kaise ho", "kese ho", "kaisa hai", "kya haal", "good morning", "good evening", "hlo", "helo", "hii"],
-      answer: "Namaste! Bataiye, kya madad kar sakta hoon? App ke bare me poochh sakte ho ya seedha koi kaam bol sakte ho." },
-    { keywords: ["thanks", "thank you", "shukriya", "dhanyawad", "thanku"],
-      answer: "Koi baat nahi! Aur kuch madad chahiye ho to bataiye." },
-    { keywords: ["bye", "alvida", "phir milenge", "chalta hoon", "goodbye"],
-      answer: "Theek hai, jab bhi zaroorat ho, AI button dabana — main yahin hoon!" },
-    { keywords: ["tum kaun", "who are you", "aap kaun", "tumhara naam", "your name", "kya ho tum", "what are you", "aap kon", "kaun ho"],
-      answer: "Main BolKarigar AI hoon — is app ka apna assistant. Main aapke sawalon ke jawab de sakta hoon aur app ke andar kaam bhi kar sakta hoon." },
-  { keywords: ["kya kya kar sakte", "kya kar sakte ho", "features", "help", "madad", "kya kaam", "what can you do", "kya kya kaam", "ker skte", "kar skte", "kya kr skte", "kya kya smjte", "kya smjte", "kya jante", "kya kya jante", "app k bare m kya jante", "app k bare m kya pta", "app k baare m kya jaante", "kya jaante ho", "ho skta", "ho sakta", "ho skte", "ho sakte", "iss app m", "is app me", "app me kya", "kitne model", "kitne module", "modules"],
-    answer: APP_FEATURES_OVERVIEW },
-    { keywords: ["free hai", "paisa lagega", "cost kitni", "kitna paisa", "paid hai kya", "is this free", "billing lagegi", "free", "cost"],
-      answer: "Bilkul free hai! Main app ke andar hi browser me chalta hoon, koi internet ya paid API ki zaroorat nahi — isliye koi cost nahi lagta." },
-    { keywords: ["bolkarigar kya hai", "yeh app kya hai", "app kis liye", "what is this app", "app ke bare me batao", "kya hai iss app", "kya hai is app", "app m kya", "app me kya", "kya kya hai iss app", "kya kya hai is app"],
-      answer: "BolKarigar ek Hindi voice-first business app hai — chhote dukandaron aur contractors ke liye. Isme aap invoice banana, project aur kharcha track karna, todo list, udhar khata, inventory, aur bahut kuch bol kar ya type karke kar sakte ho." },
-    { keywords: ["invoice kaise", "bill kaise", "invoice banaye", "invoice banao", "how to invoice", "bill banaye", "invoice bnaye", "invoice kese", "invoice kese bnaye", "invoice kese banaye", "invoice bnao", "bill bnao"],
-      answer: "Invoice banane ke liye Invoice tab kholo, phir Customer Name, Product, Price aur Quantity bharo aur Add Item dabao. Aap mujhse bhi bol sakte ho, jaise 'customer Ramesh product plywood price 2500 quantity 2'." },
-    { keywords: ["project kaise", "how to project", "project add kaise", "naya project", "project kese", "project kese add kre"],
-      answer: "Projects tab me Project Name, Customer, Budget aur Note bhar ke Add Project dabao. Ya bol do jaise 'project Mandir work customer Aslam budget 50000'." },
-    { keywords: ["expense kaise", "kharcha kaise", "how to expense", "expense kese", "kharcha kese"],
-      answer: "Expense add karne ke liye Projects tab ke Quick Expense Entry me Title, Vendor aur Amount bharo. Ya bol do jaise 'vendor Sharma Timber amount 4200'." },
-    { keywords: ["todo kaise", "task kaise", "how to todo", "todo add kaise", "todo kese", "task kese", "todo m kya", "todo me kya", "todo kya kya", "todo kam kese"],
-      answer: TODO_MODULE_ANSWER },
-    { keywords: ["gst", "gst kya", "gst rate", "what is gst", "gst kya hai"],
-      answer: "Invoice banate waqt aap GST rate 5%, 12%, 18% ya 28% dropdown se select kar sakte ho — app automatically GST amount aur total calculate kar deta hai." },
-    { keywords: ["whatsapp share", "whatsapp pe bhejo", "whatsapp invoice", "whatsapp bill"],
-      answer: "WhatsApp Share button dabao — invoice seedha WhatsApp ke through customer ko bhej sakte ho." },
-    { keywords: ["tally", "tally sync", "tally prime", "tally kya", "tally kaise"],
-      answer: "Tally Prime se sync karne ke liye sidebar me diya gaya Tally Sync Agent .exe download karke apne PC pe chalao, phir Invoice panel me Tally Prime mode select karke Sync to Tally dabao." },
-    { keywords: ["udhar khata", "udhar kaise", "khata kya", "credit customer", "udhar kya", "udhar kya hai"],
-      answer: "Udhar Khata tab me aap customers ka udhar (credit) track kar sakte ho — kis customer ne kitna udhar liya hai." },
-    { keywords: ["inventory kya", "stock kaise", "inventory", "stock"],
-      answer: "Inventory tab me aap apna stock aur saman track kar sakte ho." },
-    { keywords: ["qr", "qr code", "qr tool", "qr kya"],
-      answer: "QR Tool tab me text ya link daal ke uska QR code bana sakte ho." },
-    { keywords: ["calculator", "calculate kaise", "calc"],
-      answer: "Calculator tab me normal calculator hai, ya bol kar bhi calculation kar sakte ho jaise '25 plus 30'." },
-    { keywords: ["notes kaise", "note kaise", "notes", "note"],
-      answer: "Notes tab me apne notes likh sakte ho aur Download notes se save bhi kar sakte ho." },
-    { keywords: ["dark mode", "light mode", "theme kaise", "dark", "light"],
-      answer: "Header me Light/Dark button se theme badal sakte ho, ya bol do 'dark mode on' ya 'dark mode off'." },
-    { keywords: ["voice kaise", "voice kaam", "how does voice", "voice on kaise", "voice off kaise"],
-      answer: "Header me Voice OFF button dabao — yeh continuous voice mode ON kar deta hai, phir aap bol kar commands de sakte ho." },
-    { keywords: ["gallery kya", "gallery kaise", "gallery"],
-      answer: "Gallery tab me aap apne kaam ki photos store aur dekh sakte ho." },
-    { keywords: ["logout kaise", "log out kaise", "sign out", "logout"],
-      answer: "Header me upar right side Logout button dabao — aap seedha login page pe chale jaoge." },
-    { keywords: ["password bhool", "forgot password", "password reset", "password bhool gya", "password bhool gaye"],
-      answer: "Login page pe Forgot Password link se apna password reset kar sakte ho." },
-    { keywords: ["business profile", "company profile", "profile save", "firm ka naam", "gstin kaise dalu", "profile"],
-      answer: "Business Profile Settings me apni Company Name, GSTIN, Phone, Address bhar ke Save Business Profile dabao — ek baar save hone ke baad Invoice Generator unlock ho jayega." },
-    { keywords: ["eway bill", "e way bill", "vehicle number", "transport details"],
-      answer: "Invoice panel me E-Way Bill aur Transport Details section hai (optional) — jahan E-Way Bill number, vehicle number aur distance bhar sakte ho." },
-    { keywords: ["profit loss", "financial summary", "report kaise", "kamai dikhao", "profit", "loss", "financial"],
-      answer: "Overview panel me AI Accountant cards ke through aapko total sales, expenses aur profit ka summary dikhta hai." },
-    { keywords: ["help panel", "guide kaha", "manual kaha", "help", "guide"],
-      answer: "Sidebar me Help and Guide tab hai — wahan har module ki poori jaankari mil jayegi." },
-    { keywords: ["accounting mode", "tally prime kya", "bolkarigar khata kya"],
-      answer: "Invoice panel me Accounting Mode choose kar sakte ho — BolKarigar Khata (in-house) ya Tally Prime (aapke Tally software se sync hota hai)." },
-    { keywords: ["todo m kya", "todo me kya", "todo kya kya", "todo kam kese", "todo kaam", "todo list kya", "todo ker skte", "todo kar sakte", "todo kese kaam"],
-      answer: TODO_MODULE_ANSWER },
-    { keywords: ["ledger m kya", "ledger me kya", "accounting m kya", "accounting me kya", "voucher kaise", "day book kya"],
-      answer: ACCOUNTING_MODULE_ANSWER }
-  ];
+  // Offline FAQ — uses APP_FAQ (English answers).
+  const LIVE_FAQ = APP_FAQ;
 
   function matchLiveFaq(rawText) {
     const moduleFaq = matchModuleFaq(rawText);
     if (moduleFaq) return moduleFaq;
-    const smart = matchFaqSmart(rawText, LIVE_FAQ);
+    const smart = matchFaqSmart(rawText, APP_FAQ);
     if (smart) return smart;
     const norm = normalizeFaqText(rawText);
     if (/kya|kaise|what|how|batao|help|feature|app|bolkarigar|ho skt|ho sak|kitne|model/.test(norm)) {
@@ -6372,7 +6360,7 @@ function getEWayBillDetails() {
         openPanel("invoicePanel");
         const ok = await window.bkVoiceController.fillAndAddInvoice(rawText);
         if (ok) {
-          finishBotReply(voiceResult?.textContent || prev || "Invoice update ho gaya.", "action");
+          finishBotReply(voiceResult?.textContent || prev || "Invoice updated.", "action");
           return;
         }
       }
@@ -6487,7 +6475,7 @@ function getEWayBillDetails() {
     }
     aiRecognition = createAiRecognition();
     if (!aiRecognition) {
-      addBubble("⚠️ Is browser me voice input support nahi hai. Chrome / Edge try karein.", "bot");
+      addBubble("⚠️ Voice input is not supported in this browser. Try Chrome or Edge.", "bot");
       return;
     }
     aiListening = true;
@@ -6523,7 +6511,7 @@ function getEWayBillDetails() {
     aiRecognition.onerror = (ev) => {
       const quiet = ev.error === "no-speech" || ev.error === "aborted";
       if (!quiet && ev.error !== "not-allowed") {
-        addBubble("Mic error: " + ev.error + " — dubara try karein.", "bot");
+        addBubble("Mic error: " + ev.error + " — please try again.", "bot");
       }
       aiListening = false;
       micBtn.classList.remove("listening");
@@ -6683,7 +6671,7 @@ function getEWayBillDetails() {
   function renderKhataLedgersTable(body) {
     const rows = getKhataPageSlice("ledgers");
     if (!khataPag.ledgers.data.length) {
-      body.innerHTML = `<tr><td colspan='5'>Koi ledger nahi bana abhi.</td></tr>`;
+      body.innerHTML = `<tr><td colspan='5'>No ledgers yet.</td></tr>`;
       return;
     }
     body.innerHTML = rows.map(l => `
@@ -6693,10 +6681,10 @@ function getEWayBillDetails() {
         <td>${escapeHtml((l.address || l.mobile || "").trim()) || "-"}</td>
         <td>${formatKhataLedgerBalance(l)}</td>
         <td class="khata-act-group">
-          <button type="button" class="khata-act-btn" title="Account edit karo" aria-label="Edit account" onclick="typeof openModifyPanel==='function'&&openModifyPanel('account','${l._id}')">✏️ Edit</button>
+          <button type="button" class="khata-act-btn" title="Edit account" aria-label="Edit account" onclick="typeof openModifyPanel==='function'&&openModifyPanel('account','${l._id}')">✏️ Edit</button>
           <button type="button" class="khata-act-btn" title="Ledger Statement dekho — saari transactions / खाता विवरण" aria-label="View ledger statement" onclick="viewKhataLedgerStatement('${l._id}')">📄 Statement</button>
-          <button type="button" class="khata-act-btn" title="Tally Prime me sync karo / टैली में भेजें" aria-label="Sync to Tally" onclick="syncKhataLedgerToTally('${l._id}')">📊 Tally</button>
-          <button type="button" class="khata-act-btn danger" title="Ledger delete karo / हटाएं" aria-label="Delete ledger" onclick="deleteKhataLedger('${l._id}')">🗑️ Delete</button>
+          <button type="button" class="khata-act-btn" title="Sync to Tally Prime" aria-label="Sync to Tally" onclick="syncKhataLedgerToTally('${l._id}')">📊 Tally</button>
+          <button type="button" class="khata-act-btn danger" title="Delete ledger" aria-label="Delete ledger" onclick="deleteKhataLedger('${l._id}')">🗑️ Delete</button>
         </td>
       </tr>`).join("");
   }
@@ -6704,7 +6692,7 @@ function getEWayBillDetails() {
   function renderKhataItemsTable(body) {
     const rows = getKhataPageSlice("items");
     if (!khataPag.items.data.length) {
-      body.innerHTML = `<tr><td colspan='6'>Koi item nahi bana abhi.</td></tr>`;
+      body.innerHTML = `<tr><td colspan='6'>No items yet.</td></tr>`;
       return;
     }
     body.innerHTML = rows.map(i => `
@@ -6715,14 +6703,14 @@ function getEWayBillDetails() {
         <td>₹${i.sellingPrice}</td>
         <td>${i.stockQty}</td>
         <td><button type="button" class="khata-act-btn" title="Item edit" onclick="typeof openModifyPanel==='function'&&openModifyPanel('item','${i._id}')">✏️</button>
-          <button type="button" class="khata-act-btn danger" title="Item delete karo" aria-label="Delete item" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
+          <button type="button" class="khata-act-btn danger" title="Delete item" aria-label="Delete item" onclick="deleteKhataItem('${i._id}')">🗑️</button></td>
       </tr>`).join("");
   }
 
   function renderKhataDaybookTable(body) {
     const rows = getKhataPageSlice("daybook");
     if (!khataPag.daybook.data.length) {
-      body.innerHTML = `<tr><td colspan='6'>Abhi koi voucher nahi bana.</td></tr>`;
+      body.innerHTML = `<tr><td colspan='6'>No vouchers yet.</td></tr>`;
       window.bkSetTableAmountTotal(body, { hide: true });
       return;
     }
@@ -6829,7 +6817,7 @@ function getEWayBillDetails() {
         }
       }
       if (!data.history?.length) {
-        body.innerHTML = `<tr><td colspan='7' style="text-align:center;">Abhi koi transaction nahi. Sirf opening balance hai.</td></tr>`;
+        body.innerHTML = `<tr><td colspan='7' style="text-align:center;">No transactions yet — opening balance only.</td></tr>`;
         return;
       }
       if (data.isDebtorStatement) {
@@ -8253,8 +8241,8 @@ function getEWayBillDetails() {
 
       if (!data.records.length) {
         const emptyMsg = currentSearch || currentFromDate || currentToDate
-          ? "Is filter me koi record nahi mila."
-          : "Abhi koi sale record nahi hai.";
+          ? "No records match this filter."
+          : "No sales records yet.";
         body.innerHTML = `<tr><td colspan='9' style='text-align:center;'>${emptyMsg}</td></tr>`;
         window.bkSetTableAmountTotal(body, { hide: true });
       } else {
@@ -8796,7 +8784,7 @@ function getEWayBillDetails() {
         Total Billed: ${fmtMoney(billed)}${returnsNote} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
         ${pendingLabel}
         ${dateNote}
-        <br><span style="color:#94a3b8;font-size:12px;">Click "View Customer Detail" for full transaction list.</span>`;
+        <br><span class="overview-customer-hint" style="font-size:12px;">Click <strong>View Customer Detail</strong> for the full transaction list, or use <strong>Print</strong> in the detail window.</span>`;
     } catch (err) {
       box.textContent = "Could not load summary: " + err.message;
     }
@@ -9206,7 +9194,7 @@ async function refreshTallyAgentStatus() {
           message: http.message || ""
         };
         if (http.agentVersion && !String(http.agentVersion).includes('http4') && !String(http.agentVersion).includes('http5')) {
-          detail = `⚠️ Purana Agent chal raha hai (${http.agentVersion}). Sidebar se naya Agent vhttp5 download karein.`;
+          detail = `⚠️ Old Agent running (${http.agentVersion}). Download Agent vhttp5 from the sidebar.`;
           pillKind = "warn";
           pillText = "Update Agent vhttp5";
           chipLabel = "🟡 Old agent";
@@ -9217,7 +9205,7 @@ async function refreshTallyAgentStatus() {
           chipLabel = "🟢 Tally ready";
         } else if (http.canTrySync || http.portOpen) {
           detail = http.companyRequired
-            ? "🟡 Port 9000 open — company Tally mein load karein (Day Book), phir Sync Tally dabao."
+            ? "🟡 Port 9000 open — open company in Tally Day Book, then tap Sync Tally."
             : "🟡 Port 9000 open — Sync Tally try kar sakte ho (company Day Book mein khuli ho).";
           pillKind = "warn";
           pillText = "Port open — try Sync";
@@ -9329,7 +9317,7 @@ document.getElementById("testTallyHttpBtn")?.addEventListener("click", async () 
   const status = await checkTallyHttpStatus();
   if (btn) btn.textContent = "🔌 Test Tally HTTP (port 9000)";
   if (status.httpReady) {
-    const okMsg = "✅ Tally HTTP port 9000 ON — ab Sync Tally dabao!";
+    const okMsg = "✅ Tally HTTP port 9000 is ON — click Sync to Tally now.";
     if (typeof showToast === "function") showToast(okMsg, "success");
     else alert(okMsg);
   } else if (status.canTrySync || status.portOpen) {

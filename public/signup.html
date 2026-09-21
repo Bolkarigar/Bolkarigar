@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -264,7 +264,7 @@
         });
         const result = await response.json();
 
-        if (!response.ok) throw new Error(result.error || "Signup fail ho gaya");
+        if (!response.ok) throw new Error(result.error || "Signup failed");
 
         successEl.textContent = result.message + " Opening app...";
         successEl.style.display = "block";

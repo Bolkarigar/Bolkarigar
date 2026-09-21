@@ -141,7 +141,7 @@
     const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));
     const pageRows = pag.slice(staffListRows);
     if (!staffListRows.length) {
-      body.innerHTML = '<tr><td colspan="4">Koi staff nahi — invite code se add karein.</td></tr>';
+      body.innerHTML = '<tr><td colspan="4">No staff yet — add using an invite code.</td></tr>';
       return;
     }
     body.innerHTML = pageRows.map(s =>
@@ -162,7 +162,7 @@
     if (!body) return;
     try {
       const data = await apiGet('/api/staff/list');
-      if (codeEl) codeEl.textContent = data.inviteCode || 'Generate karein';
+      if (codeEl) codeEl.textContent = data.inviteCode || 'Generate';
       if (roleEl) roleEl.textContent = data.inviteRole ? `(${data.inviteRole})` : '';
       const slotsEl = document.getElementById('staffSlotsLabel');
       if (slotsEl && data.staffSlots != null) {
@@ -184,7 +184,7 @@
       if (!staffListRows.length) {
         const pag = window.bkStaffPaginator || (window.bkStaffPaginator = window.bkCreatePaginator('staffList', paintStaffPage));
         pag.slice([]);
-        body.innerHTML = '<tr><td colspan="4">Koi staff nahi — invite code se add karein.</td></tr>';
+        body.innerHTML = '<tr><td colspan="4">No staff yet — add using an invite code.</td></tr>';
         return;
       }
       if (window.bkStaffPaginator) window.bkStaffPaginator.reset();
@@ -241,21 +241,21 @@
       const y = d && !Number.isNaN(d.getTime()) ? d.getFullYear() : 0;
       const dateStr = d && y >= 1990 && y <= 2100 ? d.toLocaleDateString('en-IN') : '—';
       const matchCell = r.matched
-        ? `✅ <span class="helper-text">${esc(r.matchHint || 'App payment se match')}</span>`
+        ? `✅ <span class="helper-text">${esc(r.matchHint || 'Matched in app')}</span>`
         : '❌ Pending';
       return `<tr><td>${dateStr}</td><td>${esc(r.description)}</td><td>${formatBankMoney(r.debit)}</td><td>${formatBankMoney(r.credit)}</td><td>${matchCell}</td></tr>`;
-    }).join('') || '<tr><td colspan="5">No bank entries — statement add karein.</td></tr>';
+    }).join('') || '<tr><td colspan="5">No bank entries — upload a statement.</td></tr>';
   }
 
   async function clearBankReconEntries() {
-    if (!confirm('Saari bank statement entries delete ho jayengi. Continue?')) return;
+    if (!confirm('Delete all bank statement entries? This cannot be undone.')) return;
     const res = await apiDelete('/api/bank-recon/all');
     if (res.error) {
       showToast('❌ ' + res.error, 'error');
       return;
     }
     loadBankRecon();
-    showToast('✅ Bank entries saaf ho gayi — dubara sahi CSV upload karein.');
+    showToast('✅ Bank entries cleared — upload the correct CSV again.');
   }
 
   // ==================== COMPANIES ====================
@@ -295,7 +295,7 @@
         <td>${c.isActive ? '✅ Active' : '—'}</td>
         <td class="co-actions-cell">${activeBtn} <button type="button" class="delete-co-btn">Delete</button></td>
       </tr>`;
-    }).join('') || '<tr><td colspan="8">Ek company add karein — fields Business Profile jaisi hain.</td></tr>';
+    }).join('') || '<tr><td colspan="8">Add a company — same fields as Business Profile.</td></tr>';
 
     body.querySelectorAll('tr[data-id]').forEach(row => {
       const id = row.getAttribute('data-id');
@@ -303,7 +303,7 @@
       row.querySelector('.activate-co-btn:not(.co-active-btn)')?.addEventListener('click', async () => {
         const res = await apiPost('/api/companies/' + id + '/activate', {});
         if (res.success) {
-          showToast('✅ Active company — Business Profile update ho gaya.');
+          showToast('✅ Active company — Business Profile updated.');
           loadCompanies();
           refreshProfileAfterCompanyChange();
         } else showToast('❌ ' + (res.error || 'Switch fail'), 'error');

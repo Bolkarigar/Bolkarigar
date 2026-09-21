@@ -99,13 +99,13 @@
       if (!("speechSynthesis" in window)) { done(); return; }
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(msg);
-      utter.lang = localStorage.getItem("bk_voice_lang") || "hi-IN";
+      utter.lang = localStorage.getItem("bk_voice_lang") || "en-IN";
       utter.rate = 1.02;
       utter.onend = done;
       utter.onerror = done;
       const voices = window.speechSynthesis.getVoices();
-      const hindi = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("hi"));
-      if (hindi) utter.voice = hindi;
+      const en = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("en"));
+      if (en) utter.voice = en;
       window.speechSynthesis.speak(utter);
     } catch (e) {
       done();
@@ -138,7 +138,7 @@
 
   function openTab(panelId, msg, speak) {
     if (!canOpenTab(panelId)) {
-      notify("Yeh feature aapke plan ya role me allowed nahi hai.", speak === true);
+      notify("This feature is not allowed on your plan or role.", speak === true);
       return false;
     }
     if (typeof openPanel === "function") openPanel(panelId);
@@ -383,7 +383,7 @@
     if (!parsed) return false;
     const panel = resolveSearchNavPanel(raw) || "totalSalesPanel";
     if (!canOpenTab(panel)) {
-      notify("Yeh feature aapke plan me allowed nahi hai.", true);
+      notify("This feature is not allowed on your plan.", true);
       return true;
     }
     const q = parsed.clear ? "" : parsed.query;
@@ -395,7 +395,7 @@
     if (typeof window.bkParseSearchQuery !== "function" || typeof window.bkVoiceSearch !== "function") return false;
     const parsed = window.bkParseSearchQuery(raw);
     if (!parsed) {
-      notify("Kya search karna hai? Jaise: laxmi search karo.", true);
+      notify("What should I search? e.g. search Laxmi.", true);
       return true;
     }
     let panelId = resolveSearchNavPanel(raw);
@@ -669,14 +669,14 @@
       if (ok && typeof renderInvoice === "function") renderInvoice();
       notify(
         ok
-          ? `Bill add ho gaya — ${data.customer || "Customer"}, ${data.product}, ₹${data.price}. Neeche invoice list me dekho.`
-          : "Bill add nahi hua. Product aur price check karein.",
+          ? `Bill added — ${data.customer || "Customer"}, ${data.product}, ₹${data.price}. See the invoice list below.`
+          : "Bill was not added. Check product and price.",
         true
       );
       return true;
     }
 
-    notify(`Invoice bhara: ${data.customer || "-"}, ${data.product || "-"}, ₹${data.price || "-"}, Address: ${data.address || "-"}, Pin: ${data.pin || "-"}. Add karo boliye save ke liye.`, true);
+    notify(`Invoice filled: ${data.customer || "-"}, ${data.product || "-"}, ₹${data.price || "-"}, Address: ${data.address || "-"}, Pin: ${data.pin || "-"}. Say 'add' to save.`, true);
     return true;
   }
 
@@ -790,7 +790,7 @@
     if (!looksLikeTodoAddUtterance(raw)) return false;
     const task = extractTodoTask(raw);
     if (!task || task.length < 2) {
-      notify("Todo me kya likhna hai bolo — jaise 'todo kal cement lana add karo'.", true);
+      notify("Say what to add to Todo — e.g. todo order cement tomorrow add.", true);
       return true;
     }
     openTab("todoPanel", null, false);
@@ -802,9 +802,9 @@
     const t = norm(cleanUtterance(raw));
     if (isAdd(t) || /\b(likho|add|jodo|करो|जोड़|save|kero|karo)\b/.test(t)) {
       document.getElementById("addTodoBtn")?.click();
-      notify(`Todo add ho gaya: ${task}`, true);
+      notify(`Todo added: ${task}`, true);
     } else {
-      notify(`Todo likha: ${task}. Save ke liye 'add karo' boliye.`, true);
+      notify(`Todo draft: ${task}. Say 'add' to save.`, true);
     }
     return true;
   }
@@ -851,7 +851,7 @@
       const data = await res.json().catch(() => ({}));
       const reply = data?.reply;
       if (!reply) {
-        if (res.status === 403) notify("Login check karein ya My Plan se Pro activate karein.", true);
+        if (res.status === 403) notify("Check login or activate Pro from My Plan.", true);
         return false;
       }
       if (typeof window.bkPushChatHistory === "function") {
@@ -892,7 +892,7 @@
     }
     if (activePanel === "todoPanel") {
       document.getElementById("addTodoBtn")?.click();
-      notify("Todo add ho gaya.", true);
+      notify("Todo added.", true);
       return true;
     }
     return false;
@@ -909,7 +909,7 @@
     }
     if (/voice\s*on|mic\s*on|सुनो|सुनना\s*शुरू/i.test(cleaned)) {
       if (typeof startVoice === "function") startVoice();
-      notify("Voice chalu. Poora sentence ek saath boliye.", true);
+      notify("Voice on. Speak a full sentence at a time.", true);
       return true;
     }
 

@@ -112,7 +112,7 @@
   async function switchDevPlan(plan) {
     const planId = plan === "business" ? "business" : "pro";
     if (!getToken()) {
-      alert("Pehle login karein.");
+      alert("Please log in first.");
       return;
     }
     if (switching) return;
@@ -144,7 +144,7 @@
       if (typeof showToast === "function") {
         showToast(
           /403|testing|available/i.test(msg)
-            ? "⚠️ UI test mode on — server par DEV_PLAN_TOGGLE=true set karein for save"
+            ? "⚠️ UI test mode on — set DEV_PLAN_TOGGLE=true on the server to persist plan switches"
             : "⚠️ UI switched locally — " + msg,
           "info"
         );

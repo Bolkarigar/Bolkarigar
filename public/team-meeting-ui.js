@@ -240,7 +240,7 @@
     const audioOnly = res.meeting.callType === 'audio';
     const mediaOk = await requestMediaAccess(!audioOnly);
     if (!mediaOk) {
-      toast('Mic/camera allow karein — address bar 🔒 → Site settings → Allow microphone & camera', 'error');
+      toast('Allow microphone and camera — address bar 🔒 → Site settings → Allow microphone & camera', 'error');
     }
 
     jitsiApi = new window.JitsiMeetExternalAPI(domain, {

@@ -17,7 +17,7 @@
   }
 
   function getHelpLang() {
-    return localStorage.getItem("bk_help_lang") || "both";
+    return localStorage.getItem("bk_help_lang") || "en";
   }
 
   function applyHelpLang(mode) {
@@ -68,8 +68,7 @@
       <div class="help-demo-box" data-mod-id="${esc(mod.id)}">
         <div class="help-demo-screen">${stepsHtml}</div>
         <div class="help-demo-caption">
-          <p class="help-cap-en">${esc(first.en)}</p>
-          <p class="help-cap-hi">${esc(first.hi)}</p>
+          <p class="help-cap-en">${esc(first.en || first.hi)}</p>
         </div>
         <div class="help-demo-dots">
           ${mod.steps.map((_, i) => `<span class="help-dot${i === 0 ? " active" : ""}" data-dot="${i}"></span>`).join("")}
@@ -97,10 +96,8 @@
     const meta = stepStore.get(box.dataset.modId) || [];
 
     const capEn = box.querySelector(".help-cap-en");
-    const capHi = box.querySelector(".help-cap-hi");
     if (meta[safeIdx]) {
-      if (capEn) capEn.textContent = meta[safeIdx].en || "";
-      if (capHi) capHi.textContent = meta[safeIdx].hi || "";
+      if (capEn) capEn.textContent = meta[safeIdx].en || meta[safeIdx].hi || "";
     }
     box.dataset.currentStep = String(safeIdx);
   }

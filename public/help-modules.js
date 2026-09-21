@@ -94,8 +94,7 @@
           </div>
           ${demoHtml}
           <div class="card-text">
-            <div class="help-text-block help-text-en"><strong>English:</strong> ${escapeHtml(mod.english || "")}</div>
-            <div class="help-text-block help-text-hi"><strong>हिंदी:</strong> ${escapeHtml(mod.hindi || mod.english || "")}</div>
+            <div class="help-text-block help-text-en">${escapeHtml(mod.english || mod.hindi || "")}</div>
             ${buildStepsList(mod)}
           </div>
         </div>`;
@@ -112,7 +111,7 @@
       window.initHelpDemos(container);
     }
     if (typeof window.applyHelpLang === "function") {
-      window.applyHelpLang(localStorage.getItem("bk_help_lang") || "both");
+      window.applyHelpLang(localStorage.getItem("bk_help_lang") || "en");
     }
   }
 

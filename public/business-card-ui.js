@@ -1360,7 +1360,7 @@
     try {
       await new Promise((r) => setTimeout(r, 120));
       const el = document.querySelector("#bcExportHost .bc-card-export");
-      if (!el) throw new Error("Card render nahi hua");
+      if (!el) throw new Error("Card failed to render");
       const canvas = await window.html2canvas(el, {
         scale: 2,
         useCORS: true,

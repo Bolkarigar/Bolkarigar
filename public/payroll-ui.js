@@ -693,7 +693,7 @@
       <p><strong>${esc(data.employee.name)}</strong> — ${esc(data.employee.designation || 'Staff')}</p>
       <p class="helper-text">Today: ${attDate}${isWeeklyOff ? ` · Weekly off (${WEEKDAY_LONG[attDow]})` : ''}</p>
       ${isWeeklyOff
-        ? '<p class="helper-text">Weekly off day — agar aaj kaam par aaye ho toh Present mark karein.</p>'
+        ? '<p class="helper-text">Weekly off day — if you worked today, mark Present.</p>'
         : ''}
       <div class="btn-row" style="margin:14px 0;">
         <button type="button" id="payrollSelfPresentBtn" class="theme-btn"${presentDone ? ' disabled' : ''}>${presentDone ? '✅ Present (marked)' : '✅ Mark Present'}</button>
@@ -701,7 +701,7 @@
       <p class="helper-text">Status: <strong>${cur ? cur.replace(/_/g, ' ') : 'Not marked yet'}</strong></p>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;" />
       <p><strong>📄 Meri Salary Slip</strong></p>
-      <p class="helper-text">Month select karke slip dekhein ya PDF download karein.</p>
+      <p class="helper-text">Select a month to view the slip or download PDF.</p>
       <div class="btn-row payroll-self-slip-pick" style="align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;">
         <select id="payrollSelfMonth">${monthSelectOptions(selMonth)}</select>
         <input id="payrollSelfYear" type="number" min="2020" max="2100" value="${selYear}" style="width:100px;" aria-label="Year" />

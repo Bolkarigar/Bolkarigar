@@ -90,6 +90,7 @@
     "Photo delete karne mein dikkat aayi.": "There was a problem deleting the photo.",
     "Party/Ledger naam zaroori hai.": "Party/Ledger name is required.",
     "Is ledger ka transaction history hai, delete nahi kar sakte.": "This ledger has transaction history and cannot be deleted.",
+    "Koi transaction nahi mila.": "No transactions found.",
     "Item nahi mila.": "Item not found.",
     "Qty change zaroori hai (+ stock in, - stock out).": "Quantity change is required (+ stock in, - stock out).",
     "Voucher type galat hai.": "Invalid voucher type.",

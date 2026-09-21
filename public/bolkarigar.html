@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
@@ -16,14 +16,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260921pro1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260921cust1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260921sec1"></script>
+  <script src="i18n.js?v=20260921en2"></script>
   <script>
-    window.BK_APP_BUILD = '20260918ui55';
+    window.BK_APP_BUILD = '20260921cust1';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -64,7 +64,7 @@
           <img src="icons/icon-192.png" alt="" class="brand-mark-img" width="44" height="44" decoding="async">
         </div>
         <div class="brand-text">
-          <p class="eyebrow" data-i18n="app.eyebrow">Hindi Voice-First Contractor Tool</p>
+          <p class="eyebrow" data-i18n="app.eyebrow">Voice-First Contractor Tool</p>
           <h1 class="brand-title-main">BolKarigar</h1>
           <p class="brand-title-sub" data-i18n="app.subtitle">AI Dashboard</p>
         </div>
@@ -105,7 +105,7 @@
         <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">Pro ₹99</button>
         <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">Business ₹299</button>
       </div>
-      <span id="devPlanActiveLabel" class="dev-plan-active-label">Login ke baad Pro / Business switch karein</span>
+      <span id="devPlanActiveLabel" class="dev-plan-active-label">After login, switch Pro / Business plans</span>
     </div>
   </div>
 
@@ -504,7 +504,7 @@
               <div class="overview-customer-search grid-2">
                 <input type="text" id="ovCustomerSearch" list="ovCustomerList" placeholder="Customer / party name..." autocomplete="off" />
                 <datalist id="ovCustomerList"></datalist>
-                <button type="button" id="ovCustomerViewBtn">View Customer Detail</button>
+                <button type="button" id="ovCustomerViewBtn" class="bk-apply-filter-btn">View Customer Detail</button>
               </div>
               <div id="ovCustomerQuickSummary" class="overview-customer-summary hidden"></div>
             </div>
@@ -695,7 +695,7 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow" data-i18n="ledger.eyebrow">Accounts Receivable</p>
-              <h3 data-i18n="ledger.title">📖 Udhar Khata (Customer Ledger)</h3>
+              <h3 data-i18n="ledger.title">📖 Credit Ledger</h3>
             </div>
           </div>
           <div class="table-wrap" style="margin-top: 15px;">
@@ -705,7 +705,7 @@
                   <th>Customer Name</th>
                   <th>Total Billed</th>
                   <th>Received</th>
-                  <th>Pending Udhar</th>
+                  <th>Pending Credit</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -759,7 +759,7 @@
           <button id="addLedgerBtn" type="button" style="margin-top: 10px;">➕ Add Ledger</button>
           <div class="table-wrap" style="margin-top:12px;">
             <table>
-              <thead><tr><th>Name</th><th>Group</th><th>Address</th><th>Udhar / Balance</th><th>Action</th></tr></thead>
+              <thead><tr><th>Name</th><th>Group</th><th>Address</th><th>Credit / Balance</th><th>Action</th></tr></thead>
               <tbody id="khataLedgersBody"></tbody>
             </table>
           </div>
@@ -1272,7 +1272,7 @@
               <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;align-items:center;gap:10px;">
                 <select id="estPaymentType">
                   <option value="Cash">Cash</option>
-                  <option value="Credit">Credit (Udhar)</option>
+                  <option value="Credit">Credit sale</option>
                   <option value="UPI">UPI</option>
                   <option value="Bank">Bank</option>
                 </select>
@@ -1510,8 +1510,8 @@
           </div>
           <div class="btn-row" style="flex-wrap:wrap;gap:10px;align-items:center;">
             <select id="inviteRoleSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
-              <option value="cashier">Cashier — bill, udhar payment</option>
-              <option value="manager">Manager — reports, khata, tally</option>
+              <option value="cashier">Cashier — billing and credit payments</option>
+              <option value="manager">Manager — reports, ledger, Tally</option>
               <option value="staff">Staff — billing and view only</option>
             </select>
             <button id="generateInviteBtn" type="button">🔑 Generate Invite Code</button>
@@ -1577,7 +1577,7 @@
         <!-- 🟢 BANK RECONCILIATION -->
         <section class="panel" id="bankReconPanel">
           <div class="panel-header"><div><p class="eyebrow" data-i18n="bank.eyebrow">Banking</p><h3 data-i18n="bank.title">🏦 Bank Reconciliation</h3></div></div>
-          <div class="live-notice-banner"><strong>❌ Pending</strong> = bank me paisa dikha, lekin app me <em>usi din + ussi amount</em> ki entry nahi mili (Udhar payment ya UPI/Bank bill). Entry add karo ya date/amount check karo — phir tab refresh. <strong>Matched ✅</strong> = mil gayi. CSV: <strong>Date, Description, Debit, Credit</strong>.</div>
+          <div class="live-notice-banner"><strong>❌ Pending</strong> = the bank shows money, but no matching entry on the <em>same day with the same amount</em> in the app (credit payment or UPI/bank receipt). Add the entry or fix date/amount, then refresh. <strong>Matched ✅</strong> = found. CSV columns: <strong>Date, Description, Debit, Credit</strong>.</div>
           <div class="btn-row" style="margin-bottom:12px;">
             <input type="file" id="bankCsvInput" accept=".csv,text/csv" style="max-width:280px;" />
             <span class="helper-text">Upload bank statement CSV</span>
@@ -1590,7 +1590,7 @@
           </div>
           <div class="btn-row" style="margin-top: 10px;">
             <button id="addBankEntryBtn" type="button">➕ Add Bank Statement Entry</button>
-            <button id="clearBankReconBtn" type="button" class="btn-secondary">🗑️ Galat import saaf karein</button>
+            <button id="clearBankReconBtn" type="button" class="btn-secondary">🗑️ Clear bad import</button>
           </div>
           <div class="table-wrap" style="margin-top:12px;"><table><thead><tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Matched</th></tr></thead><tbody id="bankReconBody"></tbody></table></div>
         </section>
@@ -2041,7 +2041,7 @@
           <h4 id="bcPremiumOnlyTitle" class="bc-premium-only-title hidden">👑 Luxury Cards — 30 Premium Designs (₹299 Plan)</h4>
           <p id="bcSwitchFreeLink" class="bc-switch-free-link">
             Pro cards &nbsp;·&nbsp;
-            <button type="button" id="bcSwitchToFreeBtn">Pro cards dekhein (18)</button>
+            <button type="button" id="bcSwitchToFreeBtn">View Pro cards (18)</button>
           </p>
           <div class="bc-tier-tabs">
             <button type="button" class="bc-tier-tab active" data-tier="free" data-i18n="businessCard.freeTab">⭐ Pro Plan — 18 Cards</button>
@@ -2149,12 +2149,7 @@
 
   <div class="help-tour-header mini-card">
     <h4>📺 Animated App Guide — demo for every module</h4>
-    <p>Each card shows a short auto-play demo, step by step. Hindi and English instructions are below each module. Click the demo area to go to the next step.</p>
-    <div class="help-lang-toggle">
-      <button type="button" class="help-lang-btn active" data-help-lang="both">🌐 Both (HI + EN)</button>
-      <button type="button" class="help-lang-btn" data-help-lang="en">English</button>
-      <button type="button" class="help-lang-btn" data-help-lang="hi">हिंदी</button>
-    </div>
+    <p>Each card shows a short auto-play demo, step by step. English instructions are below each module. Click the demo area to go to the next step.</p>
   </div>
 
   <div id="helpModulesList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
@@ -2221,9 +2216,12 @@
   <!-- Udhar Detail View Modal -->
   <div id="udharDetailModal" class="modal-overlay hidden">
     <div class="modal-box" style="max-width:720px;width:95%;text-align:left;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
         <h3 id="udharDetailTitle" style="margin:0;font-size:18px;">📖 Customer Detail</h3>
-        <button type="button" id="closeUdharDetailBtn" class="secondary btn-close" style="padding:6px 12px;">✕ Close</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" id="udharDetailPrintBtn" class="secondary" style="padding:6px 14px;font-weight:600;">🖨️ Print</button>
+          <button type="button" id="closeUdharDetailBtn" class="secondary btn-close" style="padding:6px 12px;">✕ Close</button>
+        </div>
       </div>
       <div class="table-wrap" style="max-height:50vh;overflow:auto;">
         <table>
@@ -2308,15 +2306,15 @@
   </div>
 
   <script src="responsive-ui.js?v=20260827r2"></script>
-  <script src="help-module-data.js?v=20260919noconv1"></script>
-  <script src="help-demo.js?v=20260918ui55"></script>
-  <script src="help-modules.js?v=20260919noconv1"></script>
-  <script src="voice-controller.js?v=20260909v1"></script>
+  <script src="help-module-data.js?v=20260921en2"></script>
+  <script src="help-demo.js?v=20260921en2"></script>
+  <script src="help-modules.js?v=20260921en2"></script>
+  <script src="voice-controller.js?v=20260921en2"></script>
   <script src="plan-pricing.js?v=20260918ui55"></script>
-  <script src="messages-en.js?v=20260918ui55"></script>
+  <script src="messages-en.js?v=20260921en2"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260921modify2"></script>
-  <script src="bolkarigar.js?v=20260921modify1"></script>
+  <script src="bolkarigar.js?v=20260921cust1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2334,17 +2332,17 @@
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
-  <script src="dev-plan-toggle.js?v=20260921plan3"></script>
+  <script src="dev-plan-toggle.js?v=20260921en2"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar-pro.js?v=20260920bankcsv3"></script>
-  <script src="payroll-ui.js?v=20260920paycalc1"></script>
+  <script src="bolkarigar-pro.js?v=20260921en3"></script>
+  <script src="payroll-ui.js?v=20260921en2"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
-  <script src="team-meeting-ui.js?v=20260919meet1"></script>
+  <script src="team-meeting-ui.js?v=20260921en2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>
   <script src="team-gallery-ui.js?v=20260918gal1"></script>
   <script src="live-features-ui.js?v=20260920bankcsv2"></script>
-  <script src="business-card-ui.js?v=20260918bc5"></script>
+  <script src="business-card-ui.js?v=20260921en2"></script>
   <script src="app-lock.js?v=20260921sec1"></script>
   <script src="form-enter-nav.js?v=20260918ui55"></script>
 
