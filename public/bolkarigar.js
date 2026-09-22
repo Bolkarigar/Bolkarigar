@@ -246,7 +246,7 @@ function bkCanAccessTab(me, tabId) {
   // Overview detail pages (Total Sales, Purchase, etc.) — same access as Overview
   if (tabId === "businessRecordsPanel") return bkCanAccessTab(me, "overviewPanel");
   // Staff Meri Hajri — Pro/Business active plan par; allowedTabs se pehle check karo
-  if (tabId === "estimatePanel") {
+  if (tabId === "estimatePanel" || tabId === "businessMailPanel") {
     if (me?.isStaff) return false;
     return !!sub?.fullAccess;
   }
@@ -1897,7 +1897,8 @@ const BK_NAV_PANEL_GROUP = {
   modifyPanel: "nav-group-accounting", ledgerPanel: "nav-group-accounting", khataLedgersPanel: "nav-group-accounting",
   khataItemsPanel: "nav-group-accounting", khataDaybookPanel: "nav-group-accounting", reportsProPanel: "nav-group-accounting",
   bankReconPanel: "nav-group-accounting",
-  inventoryPanel: "nav-group-business", estimatePanel: "nav-group-business", projectPanel: "nav-group-business",
+  inventoryPanel: "nav-group-business", estimatePanel: "nav-group-business", businessMailPanel: "nav-group-business",
+  projectPanel: "nav-group-business",
   contractorPanel: "nav-group-business", companiesPanel: "nav-group-business",
   payrollPanel: "nav-group-staff", teamMeetingPanel: "nav-group-staff", staffPanel: "nav-group-staff"
 };
@@ -1939,6 +1940,9 @@ function openPanel(id) {
   }
   if (id === "estimatePanel" && typeof window.BolKarigarEstimates?.loadEstimatePanel === "function") {
     window.BolKarigarEstimates.loadEstimatePanel();
+  }
+  if (id === "businessMailPanel" && typeof window.BolKarigarBusinessMail?.loadBusinessMailPanel === "function") {
+    window.BolKarigarBusinessMail.loadBusinessMailPanel();
   }
   if (id === "teamMeetingPanel" && typeof window.BolKarigarMeetings?.loadTeamMeetingPanel === "function") {
     window.BolKarigarMeetings.loadTeamMeetingPanel();

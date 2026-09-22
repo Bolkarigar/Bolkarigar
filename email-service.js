@@ -216,7 +216,7 @@ async function verifyEmailTransport() {
   return { ok: false, provider: 'smtp', error: lastErr?.message || 'verify_failed' };
 }
 
-async function sendViaSmtp({ to, subject, text, html }) {
+async function sendViaSmtp({ to, subject, text, html, replyTo }) {
   if (isRenderHost() && !process.env.ALLOW_RENDER_SMTP) {
     throw new Error('Render free plan blocks SMTP ports 465/587. Add BREVO_API_KEY or RESEND_API_KEY.');
   }
@@ -232,6 +232,7 @@ async function sendViaSmtp({ to, subject, text, html }) {
           from: mail.from,
           to,
           subject,
+          replyTo: replyTo && String(replyTo).includes('@') ? replyTo : undefined,
           text,
           html: html || undefined
         }),
@@ -247,22 +248,24 @@ async function sendViaSmtp({ to, subject, text, html }) {
   throw lastErr || new Error('SMTP send failed on all transports.');
 }
 
-async function sendViaResend({ to, subject, text, html }) {
+async function sendViaResend({ to, subject, text, html, replyTo }) {
   const fetch = require('node-fetch');
   const from = process.env.RESEND_FROM || 'BolKarigar <onboarding@resend.dev>';
+  const body = {
+    from,
+    to: [to],
+    subject,
+    text,
+    html: html || undefined
+  };
+  if (replyTo && String(replyTo).includes('@')) body.reply_to = String(replyTo).trim();
   const res = await withTimeout(fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      text,
-      html: html || undefined
-    })
+    body: JSON.stringify(body)
   }), 20000, 'Resend API');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -270,17 +273,26 @@ async function sendViaResend({ to, subject, text, html }) {
   }
 }
 
-async function sendViaBrevo({ to, subject, text, html }) {
+async function sendViaBrevo({ to, subject, text, html, replyTo, senderName, senderEmail }) {
   const apiKey = getBrevoApiKey();
   if (!apiKey) {
     throw new Error('BREVO_API_KEY galat hai — SMTP key (xsmtpsib) mat use karein. API key (xkeysib) chahiye.');
   }
 
-  const fromEmail = String(
-    process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || ''
-  ).trim().toLowerCase();
-  const fromName = process.env.SMTP_FROM_NAME || 'BolKarigar';
+  const fromEmail = String(senderEmail || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim().toLowerCase();
+  const fromName = senderName || process.env.SMTP_FROM_NAME || 'BolKarigar';
   if (!fromEmail) throw new Error('Set BREVO_FROM_EMAIL or SMTP_USER');
+
+  const payload = {
+    sender: { name: fromName, email: fromEmail },
+    to: [{ email: to }],
+    subject,
+    textContent: text,
+    htmlContent: html || undefined
+  };
+  if (replyTo && String(replyTo).includes('@')) {
+    payload.replyTo = { email: String(replyTo).trim().toLowerCase(), name: fromName };
+  }
 
   const fetch = require('node-fetch');
   const res = await withTimeout(fetch('https://api.brevo.com/v3/smtp/email', {
@@ -290,13 +302,7 @@ async function sendViaBrevo({ to, subject, text, html }) {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify({
-      sender: { name: fromName, email: fromEmail },
-      to: [{ email: to }],
-      subject,
-      textContent: text,
-      htmlContent: html || undefined
-    })
+    body: JSON.stringify(payload)
   }), 20000, 'Brevo API');
 
   if (!res.ok) {
@@ -326,6 +332,53 @@ function buildOtpEmail(otp) {
       <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Agar aapne request nahi ki, is email ko ignore karein.</p>
     </div>`;
   return { subject, text, html };
+}
+
+function wrapBusinessEmailHtml({ shopName, bodyHtml, footerLine }) {
+  const shop = shopName || 'BolKarigar';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Segoe UI,system-ui,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <tr><td style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 24px;color:#fff;">
+      <div style="font-size:18px;font-weight:700;">${shop}</div>
+      <div style="font-size:12px;opacity:.9;margin-top:4px;">Business communication</div>
+    </td></tr>
+    <tr><td style="padding:24px;color:#0f172a;font-size:15px;line-height:1.55;">${bodyHtml}</td></tr>
+    <tr><td style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+      ${footerLine || 'Sent via BolKarigar Business Mail. Please reply to this email for a direct response.'}
+    </td></tr>
+  </table></body></html>`;
+}
+
+async function sendBusinessEmail({ to, subject, text, html, replyTo, senderName, bcc }) {
+  const errors = [];
+  const htmlBody = html || (text ? `<p style="white-space:pre-wrap">${String(text).replace(/</g, '&lt;')}</p>` : '');
+  const payload = { to, subject, text: text || htmlBody.replace(/<[^>]+>/g, ' '), html: htmlBody, replyTo };
+
+  if (getBrevoApiKey()) {
+    try {
+      await sendViaBrevo({ ...payload, senderName });
+      return { sent: true, provider: 'brevo' };
+    } catch (err) {
+      errors.push(`Brevo: ${err.message}`);
+    }
+  }
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await sendViaResend(payload);
+      return { sent: true, provider: 'resend' };
+    } catch (err) {
+      errors.push(`Resend: ${err.message}`);
+    }
+  }
+  if (getSmtpConfig()) {
+    try {
+      await sendViaSmtp(payload);
+      return { sent: true, provider: 'smtp' };
+    } catch (err) {
+      errors.push(`SMTP: ${err.message}`);
+    }
+  }
+  return { sent: false, provider: null, error: errors.join(' | ') || 'Email not configured on server.' };
 }
 
 async function sendPasswordResetOtp(email, otp) {
@@ -391,5 +444,7 @@ module.exports = {
   isRenderHost,
   verifyEmailTransport,
   createMailTransporter,
-  sendPasswordResetOtp
+  sendPasswordResetOtp,
+  sendBusinessEmail,
+  wrapBusinessEmailHtml
 };

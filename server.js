@@ -22,6 +22,7 @@ const { callChatAI, sanitizeHistory } = require('./chat-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
 const { setupEstimateFeatures } = require('./estimate-features.js');
+const { setupBusinessMailFeatures } = require('./business-mail-features.js');
 const { setupTeamMeetingFeatures } = require('./team-meeting-features.js');
 const { setupTeamTodoFeatures } = require('./team-todo-features.js');
 const { setupTeamGalleryFeatures } = require('./team-gallery-features.js');
@@ -360,7 +361,8 @@ const businessProfileSchema = new mongoose.Schema({
   agentToken: { type: String, default: null },
   invoiceCounter: { type: Number, default: 0 },
   estimateCounter: { type: Number, default: 0 },
-  payrollViewerRole: { type: String, enum: ['manager', 'cashier'], default: 'manager' }
+  payrollViewerRole: { type: String, enum: ['manager', 'cashier'], default: 'manager' },
+  businessEmail: { type: String, default: '' }
 });
 
 // 🟢 Real Gallery — user ki apni uploaded photos (pehle sirf fake random
@@ -3345,6 +3347,11 @@ payrollHelpers = setupPayrollFeatures({
 setupEstimateFeatures({
   app, mongoose, authenticateToken, rbac, requireBusinessPlan,
   models: { BusinessProfile, SalesHistory }
+});
+
+setupBusinessMailFeatures({
+  app, mongoose, authenticateToken, requireBusinessPlan,
+  models: { User, BusinessProfile }
 });
 
 setupTeamMeetingFeatures({

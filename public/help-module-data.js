@@ -247,6 +247,18 @@
       ]
     },
     {
+      id: "businessMailPanel", panelId: "businessMailPanel", plans: ["business"], hideForStaff: true, color: "#0ea5e9",
+      title: "✉️ Business Mail",
+      hindi: "Send professional emails (payment reminder, invoice, quote) from your shop name. Track Sent mail and log customer replies in Inbox.",
+      english: "Send professional emails (payment reminder, invoice, quote) from your shop name. Track Sent mail and log customer replies in Inbox.",
+      steps: [
+        { en: "Set Reply-to email — where customers answer you", hi: "Set Reply-to email — where customers answer you", visual: { title: "✉️ Settings", lines: [{ label: "Reply", value: "shop@gmail.com", animate: true }] } },
+        { en: "Pick template, customer name and their email → Send", hi: "Pick template, customer name and their email → Send", visual: { title: "📤 Send", action: "Payment reminder" } },
+        { en: "Sent tab — full history of outbound mail", hi: "Sent tab — full history of outbound mail", visual: { title: "📂 Sent", lines: [{ label: "Status", value: "Delivered" }] } },
+        { en: "Inbox — log replies when customer emails your shop", hi: "Inbox — log replies when customer emails your shop", visual: { title: "📥 Inbox", action: "Log customer reply" } }
+      ]
+    },
+    {
       id: "estimatePanel", panelId: "estimatePanel", plans: ["business"], hideForStaff: true, color: "#059669",
       title: "📋 Quotation / Estimate",
       hindi: "Build PDF estimates before work starts; when the client accepts, convert to a tax invoice in one click.",

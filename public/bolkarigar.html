@@ -23,7 +23,7 @@
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260921en2"></script>
   <script>
-    window.BK_APP_BUILD = '20260921inv2';
+    window.BK_APP_BUILD = '20260922mail1';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -175,6 +175,7 @@
             <div class="nav-accordion-body">
               <button class="tab-btn" data-tab="inventoryPanel" type="button" data-i18n="nav.inventory">📦 Inventory</button>
               <button class="tab-btn" data-tab="estimatePanel" type="button" data-i18n="nav.estimate">📋 Estimate / Quote</button>
+              <button class="tab-btn" data-tab="businessMailPanel" type="button" data-i18n="nav.businessMail">✉️ Business Mail</button>
               <button class="tab-btn" data-tab="projectPanel" type="button" data-i18n="nav.projects">📁 Projects</button>
               <button class="tab-btn" data-tab="contractorPanel" type="button" data-i18n="nav.contractor">👷 Contractor</button>
               <button class="tab-btn" data-tab="companiesPanel" type="button" data-i18n="nav.companies">🏢 Companies</button>
@@ -1319,6 +1320,125 @@
           </div>
         </section>
 
+        <!-- 🟢 BUSINESS MAIL — Send & track customer email (Business ₹299) -->
+        <section class="panel" id="businessMailPanel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Business Plan — ₹299</p>
+              <h3 data-i18n="mail.title">✉️ Business Mail</h3>
+            </div>
+          </div>
+          <p class="helper-text" data-i18n="mail.hint">Send payment reminders, invoices and quotes from your shop name. Track sent mail and log customer replies — all in one place.</p>
+
+          <div id="bmNoAccess" class="hidden payroll-no-access">
+            <p>⚠️ Business Mail is on the <strong>Business plan (₹299)</strong> only. Upgrade from My Plan.</p>
+          </div>
+
+          <div id="bmMainContent">
+            <div id="bmStatusBanner" class="bm-status-banner bm-status-warn"></div>
+
+            <div class="bm-settings-row">
+              <label class="bm-settings-label">
+                <span data-i18n="mail.replyEmail">Reply-to email (customers reply here)</span>
+                <input id="bmReplyEmail" type="email" placeholder="you@yourshop.com" autocomplete="email" />
+              </label>
+              <button type="button" id="bmSaveReplyBtn" class="secondary">Save</button>
+            </div>
+
+            <div class="btn-row bm-subtabs" style="margin:14px 0;flex-wrap:wrap;">
+              <button type="button" class="bm-subtab-btn active" data-bm-sub="compose">✏️ Compose</button>
+              <button type="button" class="bm-subtab-btn" data-bm-sub="sent">📤 Sent</button>
+              <button type="button" class="bm-subtab-btn" data-bm-sub="inbox">📥 Inbox</button>
+            </div>
+
+            <div class="bm-subpanel active" id="bmSub_compose">
+              <div class="bm-compose-card">
+                <div class="grid-2">
+                  <label>
+                    <span class="bm-field-label">Template</span>
+                    <select id="bmTemplate">
+                      <option value="payment_reminder">Payment reminder</option>
+                      <option value="invoice_sent">Invoice / sale follow-up</option>
+                      <option value="quotation">Quotation / estimate</option>
+                      <option value="thank_you">Thank you</option>
+                      <option value="custom">Custom message</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="bm-field-label">Customer name</span>
+                    <input id="bmPartyName" list="bmPartyList" placeholder="Party / client name" />
+                    <datalist id="bmPartyList"></datalist>
+                  </label>
+                  <label class="grid-span-2">
+                    <span class="bm-field-label">To (email) *</span>
+                    <input id="bmTo" type="email" placeholder="customer@email.com" autocomplete="off" />
+                  </label>
+                </div>
+                <div id="bmExtraFields" class="grid-2" style="margin-top:10px;">
+                  <label>
+                    <span class="bm-field-label">Pending amount (optional)</span>
+                    <input id="bmAmount" placeholder="e.g. ₹12,500" />
+                  </label>
+                  <label>
+                    <span class="bm-field-label">Invoice no. (optional)</span>
+                    <input id="bmInvoiceNo" placeholder="INV/001" />
+                  </label>
+                </div>
+                <label style="display:block;margin-top:10px;">
+                  <span class="bm-field-label">Subject</span>
+                  <input id="bmSubject" placeholder="Email subject" />
+                </label>
+                <label style="display:block;margin-top:10px;">
+                  <span class="bm-field-label">Message</span>
+                  <textarea id="bmBody" rows="8" placeholder="Your message to the customer…"></textarea>
+                </label>
+                <div class="btn-row" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+                  <button type="button" id="bmSendBtn">📤 Send Email</button>
+                  <button type="button" id="bmRefreshTpl" class="secondary">↻ Refresh template text</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bm-subpanel" id="bmSub_sent">
+              <div id="bmSentList" class="bm-msg-list"></div>
+            </div>
+
+            <div class="bm-subpanel" id="bmSub_inbox">
+              <p class="helper-text">When a customer replies to your shop email, copy their message here so your team sees it in BolKarigar.</p>
+              <div class="bm-compose-card" style="margin-bottom:16px;">
+                <div class="grid-2">
+                  <label>
+                    <span class="bm-field-label">From (customer email)</span>
+                    <input id="bmInFrom" type="email" placeholder="customer@email.com" />
+                  </label>
+                  <label>
+                    <span class="bm-field-label">Customer name</span>
+                    <input id="bmInParty" placeholder="Optional" />
+                  </label>
+                  <label class="grid-span-2">
+                    <span class="bm-field-label">Subject</span>
+                    <input id="bmInSubject" placeholder="Re: Payment reminder" />
+                  </label>
+                </div>
+                <label style="display:block;margin-top:10px;">
+                  <span class="bm-field-label">Their message *</span>
+                  <textarea id="bmInBody" rows="5" placeholder="Paste or type what the customer wrote…"></textarea>
+                </label>
+                <button type="button" id="bmLogInboundBtn" style="margin-top:10px;">📥 Log customer reply</button>
+              </div>
+              <div id="bmInboxList" class="bm-msg-list"></div>
+            </div>
+
+            <div id="bmDetailBox" class="bm-detail-box hidden">
+              <button type="button" id="bmDetailClose" class="bm-detail-close" aria-label="Close">✕</button>
+              <h4 id="bmDetailSubject"></h4>
+              <p id="bmDetailMeta" class="bm-msg-meta"></p>
+              <p id="bmDetailErr" class="bm-detail-err hidden"></p>
+              <pre id="bmDetailBody" class="bm-detail-body"></pre>
+            </div>
+          </div>
+        </section>
+
         <!-- 🟢 PAYROLL — Employee Hajri & Monthly Salary (Business ₹299) -->
         <section class="panel" id="payrollPanel">
           <div class="panel-header">
@@ -2313,7 +2433,7 @@
   <script src="messages-en.js?v=20260921en2"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260921modify2"></script>
-  <script src="bolkarigar.js?v=20260921inv2"></script>
+  <script src="bolkarigar.js?v=20260922mail1"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2336,6 +2456,7 @@
   <script src="bolkarigar-pro.js?v=20260921en3"></script>
   <script src="payroll-ui.js?v=20260921en2"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
+  <script src="business-mail-ui.js?v=20260922mail1"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
   <script src="team-meeting-ui.js?v=20260921en2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>
