@@ -9,7 +9,7 @@
 
   const EN = {
     'app.eyebrow': 'Voice-First Contractor Tool',
-    'app.subtitle': 'AI Dashboard',
+    'app.subtitle': 'Accounts Orbit',
     'top.liveTime': 'Live time',
     'top.voiceOff': 'Voice: OFF',
     'top.voiceOn': 'Voice: ON',
@@ -297,7 +297,7 @@
 
   const HI = {
     'app.eyebrow': 'हिंदी वॉइस-फर्स्ट ठेकेदार टूल',
-    'app.subtitle': 'AI डैशबोर्ड',
+    'app.subtitle': 'Accounts Orbit',
     'top.liveTime': 'लाइव समय',
     'top.voiceOff': 'वॉइस: बंद',
     'top.voiceOn': 'वॉइस: चालू',
