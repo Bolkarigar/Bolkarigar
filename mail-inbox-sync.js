@@ -56,41 +56,45 @@ async function hostResolves(host) {
   }
 }
 
-async function guessImapHosts(email, preferredHost) {
-  const domain = String(email || '').split('@')[1] || '';
-  const hosts = [];
-  if (preferredHost) hosts.push(preferredHost);
-  const wellKnown = {
-    'gmail.com': ['imap.gmail.com'],
-    'googlemail.com': ['imap.gmail.com'],
-    'outlook.com': ['outlook.office365.com'],
-    'hotmail.com': ['outlook.office365.com'],
-    'live.com': ['outlook.office365.com'],
-    'yahoo.com': ['imap.mail.yahoo.com'],
-    'rediffmail.com': ['imap.rediffmail.com'],
-    'infernix.com': ['dx.infernix.net', 'infernix.com'],
-    'infernix.net': ['dx.infernix.net']
-  };
-  if (wellKnown[domain]) hosts.push(...wellKnown[domain]);
-  if (domain) {
-    try {
-      const mx = await dns.resolveMx(domain);
-      mx.sort((a, b) => a.priority - b.priority);
-      for (const rec of mx.slice(0, 3)) {
-        const ex = String(rec.exchange || '').replace(/\.$/, '').toLowerCase();
-        if (ex) hosts.push(ex);
-      }
-    } catch {
-      /* MX optional */
-    }
-    hosts.push(`imap.${domain}`, `mail.${domain}`, domain);
+function errText(e) {
+  if (!e) return 'unknown error';
+  const parts = [e.message];
+  if (Array.isArray(e.errors)) {
+    for (const x of e.errors) if (x?.message) parts.push(x.message);
   }
-  const unique = [...new Set(hosts.filter(Boolean))];
+  if (e.cause?.message) parts.push(e.cause.message);
+  return [...new Set(parts.filter(Boolean))].join(' — ');
+}
+
+function normalizeImapHost(email, preferredHost) {
+  const domain = String(email || '').split('@')[1] || '';
+  const pref = String(preferredHost || '').trim().toLowerCase();
+  if (domain === 'infernix.com' || domain === 'infernix.net' || /infernix/.test(pref)) {
+    return 'dx.infernix.net';
+  }
+  if (pref && !/aspmx|google\.com$/.test(pref)) return pref;
+  const wellKnown = {
+    'gmail.com': 'imap.gmail.com',
+    'googlemail.com': 'imap.gmail.com',
+    'outlook.com': 'outlook.office365.com',
+    'hotmail.com': 'outlook.office365.com',
+    'live.com': 'outlook.office365.com',
+    'yahoo.com': 'imap.mail.yahoo.com'
+  };
+  return wellKnown[domain] || '';
+}
+
+async function guessImapHosts(email, preferredHost) {
+  const locked = normalizeImapHost(email, preferredHost);
+  if (locked) return [locked];
+  const domain = String(email || '').split('@')[1] || '';
+  const candidates = [preferredHost, `imap.${domain}`, `mail.${domain}`].filter(Boolean);
   const live = [];
-  for (const h of unique) {
+  for (const h of [...new Set(candidates)]) {
+    if (/aspmx|google\.com$/.test(h)) continue;
     if (await hostResolves(h)) live.push(h);
   }
-  return live.length ? live : unique;
+  return live;
 }
 
 function addrList(list) {
@@ -108,6 +112,7 @@ function firstEmail(list) {
 }
 
 async function tryConnect(host, port, user, pass) {
+  try { dns.setDefaultResultOrder('ipv4first'); } catch { /* node < 17 */ }
   const { ImapFlow } = require('imapflow');
   const client = new ImapFlow({
     host,
@@ -115,9 +120,10 @@ async function tryConnect(host, port, user, pass) {
     secure: true,
     auth: { user, pass },
     logger: false,
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 20000
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 25000,
+    tls: { servername: host, minVersion: 'TLSv1.2' }
   });
   await client.connect();
   return client;
@@ -131,7 +137,7 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   let lastErr = 'Could not reach the mailbox IMAP server.';
   let lastRank = 0;
   const rank = (msg) => {
-    if (/auth|login|invalid|credentials/i.test(msg)) return 3;
+    if (/auth|login|invalid|credentials|command failed/i.test(msg)) return 3;
     if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg)) return 1;
     return 2;
   };
@@ -140,7 +146,7 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
       const client = await tryConnect(host, preferredPort || 993, email, pass);
       return { client, host, port: preferredPort || 993 };
     } catch (e) {
-      const msg = e && e.message ? e.message : String(e);
+      const msg = errText(e);
       const r = rank(msg);
       if (r >= lastRank) {
         lastRank = r;
@@ -149,8 +155,8 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
     }
   }
   throw new Error(
-    /auth|login|invalid|credentials/i.test(lastErr)
-      ? `Login failed for ${email}. Password check karo (eye icon se dekho). Gmail/Workspace ho to App Password use karo.`
+    /auth|login|invalid|credentials|command failed/i.test(lastErr)
+      ? `Login failed for ${email} on ${hosts[0]}. Password galat ho sakta hai — eye icon se check karo.`
       : `Inbox connect failed (${lastErr}). IMAP host ${hosts[0]} try karo.`
   );
 }

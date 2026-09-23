@@ -273,8 +273,14 @@
     const inp = document.getElementById('bmReplyEmail');
     if (inp && data.replyEmail) inp.value = data.replyEmail;
     const hostInp = document.getElementById('bmImapHost');
-    if (hostInp && !hostInp.value) {
-      hostInp.value = data.imapHost || guessHostFromEmail(data.replyEmail);
+    if (hostInp) {
+      const guessed = guessHostFromEmail(data.replyEmail);
+      const cur = (hostInp.value || data.imapHost || '').trim().toLowerCase();
+      if (!cur || cur === 'mail.infernix.com' || cur === 'imap.infernix.com' || cur === 'infernix.com') {
+        hostInp.value = guessed || 'dx.infernix.net';
+      } else if (!hostInp.value && data.imapHost) {
+        hostInp.value = data.imapHost;
+      }
     }
     renderStatusBanner();
   }
@@ -321,7 +327,12 @@
       btn.disabled = true;
       btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
     }
-    const host = document.getElementById('bmImapHost')?.value.trim() || '';
+    const hostRaw = document.getElementById('bmImapHost')?.value.trim() || '';
+    const host = /infernix/.test(hostRaw) ? 'dx.infernix.net' : hostRaw;
+    if (host !== hostRaw) {
+      const hostInp = document.getElementById('bmImapHost');
+      if (hostInp) hostInp.value = host;
+    }
     const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass, imapHost: host });
     if (btn) {
       btn.disabled = false;
