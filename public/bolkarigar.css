@@ -49,8 +49,8 @@
     --topbar-bg: #1e3a5f;
     --topbar-fg: #f8fafc;
     --topbar-muted: #cbd5e1;
-    --bg: #e8ecf3;
-    --bg2: #f4f6fa;
+    --bg: #e4eaf3;
+    --bg2: #eef2f8;
     --card: #ffffff;
     --card2: #ffffff;
     --text: #0f172a;
@@ -5428,4 +5428,111 @@ html[data-theme="light"] .bm-compose-card {
 }
 @media (min-width: 640px) {
   .grid-span-2 { grid-column: span 1; }
+}
+
+/* —— Header-match polish: navy + orbit blue so page header jaisa official lage —— */
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 10% -8%, rgba(59, 130, 246, 0.10), transparent 38%),
+    radial-gradient(circle at 92% 108%, rgba(99, 102, 241, 0.08), transparent 42%),
+    linear-gradient(180deg, #eef2f8, #e4eaf3);
+}
+html[data-theme="light"] .sidebar {
+  background:
+    linear-gradient(90deg, #3b82f6, #6366f1) top / 100% 3px no-repeat,
+    #ffffff;
+  border-color: rgba(30, 58, 95, 0.10);
+  box-shadow: 0 10px 28px rgba(21, 34, 56, 0.06);
+}
+html[data-theme="light"] .panel-area {
+  border-color: rgba(30, 58, 95, 0.10);
+  box-shadow: 0 10px 28px rgba(21, 34, 56, 0.05);
+}
+html[data-theme="light"] .panel-header h3 {
+  color: #152238;
+}
+html[data-theme="light"] .panel-header .eyebrow,
+html[data-theme="light"] .panel-header .helper-text:first-child {
+  color: #3b82f6;
+  letter-spacing: 0.1em;
+}
+html[data-theme="light"] .tab-btn.active {
+  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+  border-color: rgba(59, 130, 246, 0.32);
+  color: #1e3a5f;
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+html[data-theme="light"] .nav-accordion[open] .nav-accordion-summary {
+  color: #1d4ed8;
+  background: #f8fafc;
+}
+html[data-theme="light"] .subscription-banner,
+html[data-theme="light"] .subscription-banner.staff {
+  background: #152238;
+  color: #e2e8f0;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+html[data-theme="light"] .subscription-banner.trial {
+  background: #0f2a24;
+  color: #bbf7d0;
+  border-bottom-color: rgba(52, 211, 153, 0.25);
+}
+html[data-theme="light"] .subscription-banner-btn {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f8fafc;
+  border-radius: 999px;
+}
+html[data-theme="light"] .modify-panel-card,
+html[data-theme="light"] .overview-section-card {
+  background: #ffffff;
+  border-color: rgba(30, 58, 95, 0.10);
+  box-shadow: 0 8px 20px rgba(21, 34, 56, 0.04);
+}
+html[data-theme="light"] .voucher-label {
+  color: #1e3a5f;
+}
+html[data-theme="light"] .overview-stat-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-color: rgba(30, 58, 95, 0.10);
+  padding-left: 16px;
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+html[data-theme="light"] .overview-stat-card.stat-expense,
+html[data-theme="light"] .overview-stat-card.stat-payment {
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+html[data-theme="light"] .overview-stat-card.stat-sales,
+html[data-theme="light"] .overview-stat-card.stat-cash,
+html[data-theme="light"] .overview-stat-card.stat-receipt {
+  box-shadow: inset 3px 0 0 #047857;
+}
+html[data-theme="light"] .overview-stat-card.stat-udhar,
+html[data-theme="light"] .overview-stat-card.stat-credit,
+html[data-theme="light"] .overview-stat-card.stat-purchase {
+  box-shadow: inset 3px 0 0 #d97706;
+}
+html[data-theme="light"] .overview-stat-icon,
+html[data-theme="light"] .modify-type-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eef4ff;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+html[data-theme="light"] .modify-type-card {
+  background: #ffffff;
+  border-color: rgba(30, 58, 95, 0.10);
+}
+html[data-theme="light"] .modify-type-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: #f8fbff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(30, 58, 95, 0.08);
+}
+.sidebar-brand-icon.brand-mark-svg {
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
