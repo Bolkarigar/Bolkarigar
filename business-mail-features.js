@@ -205,6 +205,19 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
     }
   });
 
+  app.delete('/api/business-mail/messages/:id', authenticateToken, biz, async (req, res) => {
+    try {
+      const doc = await BusinessMail.findOneAndDelete({
+        _id: req.params.id,
+        userId: req.dataUserId
+      });
+      if (!doc) return res.status(404).json({ error: 'Message not found.' });
+      res.json({ success: true, deletedId: String(doc._id) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post('/api/business-mail/log-inbound', authenticateToken, biz, async (req, res) => {
     try {
       const from = String(req.body.from || '').trim();

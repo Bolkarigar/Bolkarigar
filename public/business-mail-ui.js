@@ -9,6 +9,8 @@
   let mailStatus = null;
   let messagesCache = [];
   let composeTemplate = 'custom';
+  let sentPager = null;
+  let inboxPager = null;
 
   function esc(s) {
     const d = document.createElement('div');
@@ -43,6 +45,10 @@
   }
   async function apiPut(path, body) {
     const r = await fetch(`${API()}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body || {}) });
+    return parseApiResponse(r);
+  }
+  async function apiDelete(path) {
+    const r = await fetch(`${API()}${path}`, { method: 'DELETE', headers: headers() });
     return parseApiResponse(r);
   }
 
@@ -132,16 +138,19 @@
   }
 
   function renderMessageList(folder) {
-    const list = document.getElementById(folder === 'sent' ? 'bmSentList' : 'bmInboxList');
+    const isSent = folder === 'sent';
+    const list = document.getElementById(isSent ? 'bmSentList' : 'bmInboxList');
     if (!list) return;
     const rows = messagesCache.filter((m) =>
-      folder === 'sent' ? m.direction === 'outbound' : m.direction === 'inbound'
+      isSent ? m.direction === 'outbound' : m.direction === 'inbound'
     );
-    if (!rows.length) {
-      list.innerHTML = `<p class="bm-empty">${folder === 'sent' ? 'No sent emails yet. Compose your first message.' : 'No customer replies logged yet. Use “Log customer reply” when someone emails you.'}</p>`;
+    const pager = isSent ? sentPager : inboxPager;
+    const pageRows = pager ? pager.slice(rows) : rows;
+    if (!pageRows.length) {
+      list.innerHTML = `<p class="bm-empty">${isSent ? 'No sent emails yet. Compose your first message.' : 'No customer replies logged yet. Use “Log customer reply” when someone emails you.'}</p>`;
       return;
     }
-    list.innerHTML = rows.map((m) => {
+    list.innerHTML = pageRows.map((m) => {
       const dirLabel = m.direction === 'outbound' ? 'Sent' : 'Received';
       const status = m.status === 'failed' ? `<span class="bm-badge bm-badge-fail">Failed</span>` : '';
       const preview = (m.bodyText || '').slice(0, 120);
@@ -149,7 +158,10 @@
         <article class="bm-msg-card" data-id="${esc(m._id)}" tabindex="0">
           <div class="bm-msg-head">
             <span class="bm-msg-subject">${esc(m.subject || '(No subject)')}</span>
-            ${status}
+            <span class="bm-msg-head-right">
+              ${status}
+              <button type="button" class="bm-msg-del" data-id="${esc(m._id)}" aria-label="Delete message" title="Delete">🗑️</button>
+            </span>
           </div>
           <div class="bm-msg-meta">
             <span>${dirLabel} · ${esc(m.partyName || m.to || m.from || '')}</span>
@@ -161,6 +173,29 @@
     list.querySelectorAll('.bm-msg-card').forEach((card) => {
       card.addEventListener('click', () => showMessageDetail(card.dataset.id));
     });
+    list.querySelectorAll('.bm-msg-del').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteMessage(btn.dataset.id);
+      });
+    });
+  }
+
+  async function deleteMessage(id) {
+    const m = messagesCache.find((x) => String(x._id) === String(id));
+    if (!m) return;
+    if (!confirm(`Delete "${m.subject || '(No subject)'}"? This cannot be undone.`)) return;
+    const data = await apiDelete(`/api/business-mail/messages/${id}`);
+    if (!data.success) {
+      toast(data.error || 'Delete failed', 'error');
+      return;
+    }
+    messagesCache = messagesCache.filter((x) => String(x._id) !== String(id));
+    const detail = document.getElementById('bmDetailBox');
+    if (detail && detail.dataset.id === String(id)) detail.classList.add('hidden');
+    renderMessageList('sent');
+    renderMessageList('inbox');
+    toast('Message deleted', 'success');
   }
 
   function showMessageDetail(id) {
@@ -168,6 +203,7 @@
     const box = document.getElementById('bmDetailBox');
     if (!m || !box) return;
     box.classList.remove('hidden');
+    box.dataset.id = String(m._id);
     document.getElementById('bmDetailSubject').textContent = m.subject || '(No subject)';
     document.getElementById('bmDetailMeta').textContent =
       `${m.direction === 'outbound' ? 'To' : 'From'}: ${m.direction === 'outbound' ? m.to : m.from} · ${fmtDate(m.createdAt)}`;
@@ -296,6 +332,10 @@
   }
 
   function bindEvents() {
+    if (typeof window.bkCreatePaginator === 'function') {
+      sentPager = window.bkCreatePaginator('bmSent', () => renderMessageList('sent'));
+      inboxPager = window.bkCreatePaginator('bmInbox', () => renderMessageList('inbox'));
+    }
     document.querySelectorAll('.bm-subtab-btn').forEach((btn) => {
       btn.addEventListener('click', () => setSubtab(btn.dataset.bmSub));
     });
