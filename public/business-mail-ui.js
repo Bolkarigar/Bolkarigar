@@ -272,7 +272,19 @@
     mailStatus = data;
     const inp = document.getElementById('bmReplyEmail');
     if (inp && data.replyEmail) inp.value = data.replyEmail;
+    const hostInp = document.getElementById('bmImapHost');
+    if (hostInp && !hostInp.value) {
+      hostInp.value = data.imapHost || guessHostFromEmail(data.replyEmail);
+    }
     renderStatusBanner();
+  }
+
+  function guessHostFromEmail(email) {
+    const domain = String(email || '').split('@')[1] || '';
+    if (domain === 'infernix.com' || domain === 'infernix.net') return 'dx.infernix.net';
+    if (/gmail|googlemail/.test(domain)) return 'imap.gmail.com';
+    if (/outlook|hotmail|live/.test(domain)) return 'outlook.office365.com';
+    return domain ? `mail.${domain}` : '';
   }
 
   async function loadPartySuggestions() {
@@ -309,7 +321,8 @@
       btn.disabled = true;
       btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
     }
-    const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass });
+    const host = document.getElementById('bmImapHost')?.value.trim() || '';
+    const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass, imapHost: host });
     if (btn) {
       btn.disabled = false;
       btn.textContent = old;
@@ -435,6 +448,24 @@
     document.getElementById('bmSaveReplyBtn')?.addEventListener('click', saveReplyEmail);
     document.getElementById('bmConnectInboxBtn')?.addEventListener('click', () => syncInbox(true));
     document.getElementById('bmSyncInboxBtn')?.addEventListener('click', () => syncInbox(false));
+    document.getElementById('bmImapPassToggle')?.addEventListener('click', () => {
+      const inp = document.getElementById('bmImapPass');
+      const btn = document.getElementById('bmImapPassToggle');
+      if (!inp || !btn) return;
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+    });
+    document.getElementById('bmReplyEmail')?.addEventListener('blur', () => {
+      const hostInp = document.getElementById('bmImapHost');
+      if (!hostInp || hostInp.dataset.userEdited) return;
+      hostInp.value = guessHostFromEmail(document.getElementById('bmReplyEmail')?.value);
+    });
+    document.getElementById('bmImapHost')?.addEventListener('input', (e) => {
+      e.target.dataset.userEdited = '1';
+    });
     document.getElementById('bmSendBtn')?.addEventListener('click', sendMail);
     document.getElementById('bmLogInboundBtn')?.addEventListener('click', logInbound);
     document.getElementById('bmDetailClose')?.addEventListener('click', () => {

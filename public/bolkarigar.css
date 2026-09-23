@@ -5439,6 +5439,30 @@ html[data-theme="light"] .bm-compose-card {
   font-weight: 600;
   color: var(--accent2, #1d4ed8);
 }
+.bm-pass-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.bm-pass-wrap input {
+  width: 100%;
+  padding-right: 42px;
+}
+.bm-pass-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 4px 8px !important;
+  min-width: 0;
+  line-height: 1;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--muted);
+}
 
 /* —— Header-match polish: navy + orbit blue so page header jaisa official lage —— */
 html[data-theme="light"] body {

@@ -47,6 +47,15 @@ function envFallbackFor(email) {
   return null;
 }
 
+async function hostResolves(host) {
+  try {
+    await dns.lookup(host);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function guessImapHosts(email, preferredHost) {
   const domain = String(email || '').split('@')[1] || '';
   const hosts = [];
@@ -58,7 +67,9 @@ async function guessImapHosts(email, preferredHost) {
     'hotmail.com': ['outlook.office365.com'],
     'live.com': ['outlook.office365.com'],
     'yahoo.com': ['imap.mail.yahoo.com'],
-    'rediffmail.com': ['imap.rediffmail.com']
+    'rediffmail.com': ['imap.rediffmail.com'],
+    'infernix.com': ['dx.infernix.net', 'infernix.com'],
+    'infernix.net': ['dx.infernix.net']
   };
   if (wellKnown[domain]) hosts.push(...wellKnown[domain]);
   if (domain) {
@@ -67,19 +78,19 @@ async function guessImapHosts(email, preferredHost) {
       mx.sort((a, b) => a.priority - b.priority);
       for (const rec of mx.slice(0, 3)) {
         const ex = String(rec.exchange || '').replace(/\.$/, '').toLowerCase();
-        if (!ex) continue;
-        hosts.push(ex);
-        const root = ex.split('.').slice(-2).join('.');
-        if (root) {
-          hosts.push(`imap.${root}`, `mail.${root}`);
-        }
+        if (ex) hosts.push(ex);
       }
     } catch {
       /* MX optional */
     }
-    hosts.push(`imap.${domain}`, `mail.${domain}`);
+    hosts.push(`imap.${domain}`, `mail.${domain}`, domain);
   }
-  return [...new Set(hosts.filter(Boolean))];
+  const unique = [...new Set(hosts.filter(Boolean))];
+  const live = [];
+  for (const h of unique) {
+    if (await hostResolves(h)) live.push(h);
+  }
+  return live.length ? live : unique;
 }
 
 function addrList(list) {
@@ -114,19 +125,33 @@ async function tryConnect(host, port, user, pass) {
 
 async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   const hosts = await guessImapHosts(email, preferredHost);
+  if (!hosts.length) {
+    throw new Error('IMAP host nahi mila. Host box mein dx.infernix.net likho.');
+  }
   let lastErr = 'Could not reach the mailbox IMAP server.';
-  for (const host of hosts.slice(0, 6)) {
+  let lastRank = 0;
+  const rank = (msg) => {
+    if (/auth|login|invalid|credentials/i.test(msg)) return 3;
+    if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg)) return 1;
+    return 2;
+  };
+  for (const host of hosts.slice(0, 4)) {
     try {
       const client = await tryConnect(host, preferredPort || 993, email, pass);
       return { client, host, port: preferredPort || 993 };
     } catch (e) {
-      lastErr = e && e.message ? e.message : String(e);
+      const msg = e && e.message ? e.message : String(e);
+      const r = rank(msg);
+      if (r >= lastRank) {
+        lastRank = r;
+        lastErr = `${host}: ${msg}`;
+      }
     }
   }
   throw new Error(
     /auth|login|invalid|credentials/i.test(lastErr)
-      ? `Login failed for ${email}. Use that mailbox password (Gmail/Workspace: App Password).`
-      : `Inbox connect failed (${lastErr}). Ask the host for IMAP hostname, or set IMAP_HOST.`
+      ? `Login failed for ${email}. Password check karo (eye icon se dekho). Gmail/Workspace ho to App Password use karo.`
+      : `Inbox connect failed (${lastErr}). IMAP host ${hosts[0]} try karo.`
   );
 }
 
