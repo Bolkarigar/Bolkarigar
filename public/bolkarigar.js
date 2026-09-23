@@ -35,7 +35,8 @@ window.bkVoucherTypeLabel = bkVoucherTypeLabel;
 /**
  * + = udhar, − = refund due to customer, ~0 = clear.
  * `label` shopkeeper-friendly hai (Udhar Khata panel), `drCrLabel` accounting
- * notation hai — debtor ka baaki paisa Dr hota hai, advance/refund Cr.
+ * notation hai — debtor ka baaki paisa Dr hota hai, advance/refund Cr. Dr/Cr
+ * hi direction bata deta hai, is liye drCrLabel par minus sign nahi lagta.
  */
 function bkFormatDebtorNet(netRaw) {
   const net = Math.round((Number(netRaw) || 0) * 100) / 100;
@@ -53,7 +54,7 @@ function bkFormatDebtorNet(netRaw) {
     clear: false,
     status: "refund",
     label: `−₹${refund.toFixed(2)} Refund Due`,
-    drCrLabel: `−₹${refund.toFixed(2)} Cr`,
+    drCrLabel: `₹${refund.toFixed(2)} Cr`,
     badgeClass: "khata-badge-refund"
   };
 }
@@ -6930,10 +6931,9 @@ function getEWayBillDetails() {
         if (data.isDebtorStatement) {
           const net = Number(data.netBalance ?? data.pendingUdhar ?? data.currentBalance ?? 0) || 0;
           const fmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(net) : { drCrLabel: "Paid / Clear", clear: true };
-          const netText = net < -0.01 ? `−₹${Math.abs(net).toFixed(2)}` : `₹${net.toFixed(2)}`;
           meta.textContent = fmt.clear
             ? `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ₹0.00 | Paid / Clear`
-            : `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ${netText} | ${fmt.drCrLabel}`;
+            : `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ${fmt.drCrLabel}`;
         } else {
           meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
         }
