@@ -32,14 +32,18 @@ function bkVoucherTypeLabel(type) {
 }
 window.bkVoucherTypeLabel = bkVoucherTypeLabel;
 
-/** + = udhar, − = refund due to customer, ~0 = clear */
+/**
+ * + = udhar, − = refund due to customer, ~0 = clear.
+ * `label` shopkeeper-friendly hai (Udhar Khata panel), `drCrLabel` accounting
+ * notation hai — debtor ka baaki paisa Dr hota hai, advance/refund Cr.
+ */
 function bkFormatDebtorNet(netRaw) {
   const net = Math.round((Number(netRaw) || 0) * 100) / 100;
   if (Math.abs(net) <= 0.01) {
-    return { net: 0, refundDue: 0, udharDue: 0, clear: true, status: "clear", label: "Paid / Clear", badgeClass: "khata-badge-clear" };
+    return { net: 0, refundDue: 0, udharDue: 0, clear: true, status: "clear", label: "Paid / Clear", drCrLabel: "Paid / Clear", badgeClass: "khata-badge-clear" };
   }
   if (net > 0) {
-    return { net, refundDue: 0, udharDue: net, clear: false, status: "udhar", label: `₹${net.toFixed(2)} Credit`, badgeClass: "khata-badge-udhar" };
+    return { net, refundDue: 0, udharDue: net, clear: false, status: "udhar", label: `₹${net.toFixed(2)} Credit`, drCrLabel: `₹${net.toFixed(2)} Dr`, badgeClass: "khata-badge-udhar" };
   }
   const refund = Math.abs(net);
   return {
@@ -49,6 +53,7 @@ function bkFormatDebtorNet(netRaw) {
     clear: false,
     status: "refund",
     label: `−₹${refund.toFixed(2)} Refund Due`,
+    drCrLabel: `−₹${refund.toFixed(2)} Cr`,
     badgeClass: "khata-badge-refund"
   };
 }
@@ -6775,11 +6780,11 @@ function getEWayBillDetails() {
     if (isDebtor) {
       const fmt = typeof bkFormatDebtorNet === "function"
         ? bkFormatDebtorNet(l.netBalance ?? l.pendingUdhar ?? l.currentBalance ?? 0)
-        : { clear: true, label: "Paid / Clear", badgeClass: "khata-badge-clear" };
+        : { clear: true, drCrLabel: "Paid / Clear", badgeClass: "khata-badge-clear" };
       if (fmt.clear || l.udharClear) {
         return `<span class="khata-badge-clear">Paid / Clear</span>`;
       }
-      return `<span class="${fmt.badgeClass}">${escapeHtml(fmt.label)}</span>`;
+      return `<span class="${fmt.badgeClass}" title="${escapeHtml(fmt.label)}">${escapeHtml(fmt.drCrLabel)}</span>`;
     }
     const bal = Number(l.currentBalance) || 0;
     return `<span class="${bal >= 0 ? "khata-badge-debit" : "khata-badge-credit"}">₹${Math.abs(bal).toFixed(2)} ${bal >= 0 ? "Dr" : "Cr"}</span>`;
@@ -6924,11 +6929,11 @@ function getEWayBillDetails() {
       if (meta) {
         if (data.isDebtorStatement) {
           const net = Number(data.netBalance ?? data.pendingUdhar ?? data.currentBalance ?? 0) || 0;
-          const fmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(net) : { label: "Paid / Clear", clear: true };
+          const fmt = typeof bkFormatDebtorNet === "function" ? bkFormatDebtorNet(net) : { drCrLabel: "Paid / Clear", clear: true };
           const netText = net < -0.01 ? `−₹${Math.abs(net).toFixed(2)}` : `₹${net.toFixed(2)}`;
           meta.textContent = fmt.clear
             ? `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ₹0.00 | Paid / Clear`
-            : `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ${netText} | ${fmt.label}`;
+            : `Opening: ₹${Number(data.openingBalance || 0).toFixed(2)} | Net Balance: ${netText} | ${fmt.drCrLabel}`;
         } else {
           meta.textContent = `Opening Balance: ₹${Number(data.openingBalance || 0).toFixed(2)} | Current Balance: ₹${Number(data.currentBalance || 0).toFixed(2)}`;
         }
