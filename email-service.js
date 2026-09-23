@@ -309,6 +309,21 @@ async function sendViaBrevo({ to, subject, text, html, replyTo, senderName, send
     const body = await res.text().catch(() => '');
     throw new Error(`Brevo API error ${res.status}: ${body}`);
   }
+  const okBody = await res.json().catch(() => ({}));
+  return { messageId: okBody.messageId || '' };
+}
+
+/** Sender address Brevo/Resend use karega — diagnostics ke liye. */
+function getBusinessSenderEmail() {
+  if (getBrevoApiKey()) {
+    return String(process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim().toLowerCase();
+  }
+  if (process.env.RESEND_API_KEY) {
+    const from = String(process.env.RESEND_FROM || 'onboarding@resend.dev');
+    const m = from.match(/<([^>]+)>/);
+    return (m ? m[1] : from).trim().toLowerCase();
+  }
+  return String(process.env.SMTP_USER || '').trim().toLowerCase();
 }
 
 function buildOtpEmail(otp) {
@@ -356,8 +371,8 @@ async function sendBusinessEmail({ to, subject, text, html, replyTo, senderName,
 
   if (getBrevoApiKey()) {
     try {
-      await sendViaBrevo({ ...payload, senderName });
-      return { sent: true, provider: 'brevo' };
+      const out = await sendViaBrevo({ ...payload, senderName });
+      return { sent: true, provider: 'brevo', messageId: out?.messageId || '' };
     } catch (err) {
       errors.push(`Brevo: ${err.message}`);
     }
@@ -446,5 +461,6 @@ module.exports = {
   createMailTransporter,
   sendPasswordResetOtp,
   sendBusinessEmail,
-  wrapBusinessEmailHtml
+  wrapBusinessEmailHtml,
+  getBusinessSenderEmail
 };

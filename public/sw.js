@@ -1,5 +1,5 @@
 /* BolKarigar SW — network-first taaki purani files cache na ho */
-const CACHE = 'bolkarigar-v51';
+const CACHE = 'bolkarigar-v52';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

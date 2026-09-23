@@ -2,7 +2,12 @@
  * BolKarigar Business Mail — send + inbox (Business ₹299 plan)
  */
 const crypto = require('crypto');
-const { sendBusinessEmail, wrapBusinessEmailHtml, isEmailConfigured } = require('./email-service');
+const {
+  sendBusinessEmail,
+  wrapBusinessEmailHtml,
+  isEmailConfigured,
+  getBusinessSenderEmail
+} = require('./email-service');
 
 const MAIL_TEMPLATES = {
   payment_reminder: {
@@ -59,6 +64,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
     templateId: String,
     status: { type: String, enum: ['sent', 'failed', 'received', 'logged'], default: 'sent' },
     provider: String,
+    providerMessageId: String,
     error: String,
     createdAt: { type: Date, default: Date.now, index: true }
   });
@@ -84,11 +90,17 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
   app.get('/api/business-mail/status', authenticateToken, biz, async (req, res) => {
     try {
       const ctx = await shopContext(req.dataUserId);
+      const senderEmail = getBusinessSenderEmail();
+      // Free mailbox domains (gmail/yahoo/outlook) as sender fail DMARC when relayed
+      // through Brevo — inbox providers then drop or spam-folder the mail.
+      const freeSenderDomain = /@(gmail|googlemail|yahoo|outlook|hotmail|live|rediffmail)\./i.test(senderEmail);
       res.json({
         success: true,
         emailConfigured: isEmailConfigured(),
         replyEmail: ctx.replyEmail,
         shopName: ctx.shopName,
+        senderEmail,
+        freeSenderDomain,
         templates: Object.keys(MAIL_TEMPLATES)
       });
     } catch (e) {
@@ -193,13 +205,19 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         templateId,
         status: result.sent ? 'sent' : 'failed',
         provider: result.provider,
+        providerMessageId: result.messageId || '',
         error: result.error || ''
       });
 
       if (!result.sent) {
         return res.status(502).json({ success: false, error: result.error || 'Send failed', message: doc });
       }
-      res.json({ success: true, message: doc, provider: result.provider });
+      res.json({
+        success: true,
+        message: doc,
+        provider: result.provider,
+        messageId: result.messageId || ''
+      });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }

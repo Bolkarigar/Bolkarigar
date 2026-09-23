@@ -131,10 +131,22 @@
     if (!el || !mailStatus) return;
     const ok = mailStatus.emailConfigured;
     const reply = mailStatus.replyEmail || '(not set — add below)';
-    el.className = `bm-status-banner ${ok ? 'bm-status-ok' : 'bm-status-warn'}`;
-    el.innerHTML = ok
-      ? `<strong>✉️ Ready to send.</strong> Customer replies should go to <code>${esc(reply)}</code>. Log replies under <em>Inbox</em>.`
-      : `<strong>⚠️ Email not configured on server.</strong> Ask support to set <code>BREVO_API_KEY</code> on Render (same as password reset). You can still save inbound notes.`;
+    if (!ok) {
+      el.className = 'bm-status-banner bm-status-warn';
+      el.innerHTML = '<strong>⚠️ Email not configured on server.</strong> Set <code>BREVO_API_KEY</code> on Render (same key as password-reset OTP). You can still log inbound replies.';
+      return;
+    }
+    const sender = mailStatus.senderEmail || '(server default)';
+    const lines = [
+      `<strong>✉️ Ready to send.</strong> Mail goes out from <code>${esc(sender)}</code>; replies come back to <code>${esc(reply)}</code>.`
+    ];
+    if (mailStatus.freeSenderDomain) {
+      lines.push(
+        `<span class="bm-status-sub">⚠️ Sender is a free mailbox (<code>${esc(sender)}</code>). Gmail and Outlook usually push such mail to <strong>Spam</strong>. Ask the customer to check Spam, and for reliable delivery verify your own domain in Brevo and set <code>BREVO_FROM_EMAIL</code> to it.</span>`
+      );
+    }
+    el.className = `bm-status-banner ${mailStatus.freeSenderDomain ? 'bm-status-warn' : 'bm-status-ok'}`;
+    el.innerHTML = lines.join('');
   }
 
   function renderMessageList(folder) {
@@ -208,6 +220,17 @@
     document.getElementById('bmDetailMeta').textContent =
       `${m.direction === 'outbound' ? 'To' : 'From'}: ${m.direction === 'outbound' ? m.to : m.from} · ${fmtDate(m.createdAt)}`;
     document.getElementById('bmDetailBody').textContent = m.bodyText || '';
+    const delivery = document.getElementById('bmDetailDelivery');
+    if (delivery) {
+      if (m.direction === 'outbound' && m.status === 'sent') {
+        delivery.textContent = m.providerMessageId
+          ? `Accepted by ${m.provider || 'provider'} · ID ${m.providerMessageId}`
+          : `Accepted by ${m.provider || 'provider'}`;
+        delivery.classList.remove('hidden');
+      } else {
+        delivery.classList.add('hidden');
+      }
+    }
     if (m.status === 'failed' && m.error) {
       document.getElementById('bmDetailErr').textContent = m.error;
       document.getElementById('bmDetailErr').classList.remove('hidden');
@@ -302,7 +325,12 @@
       if (data.message) await loadMessages();
       return;
     }
-    toast('Email sent successfully', 'success');
+    toast(
+      mailStatus?.freeSenderDomain
+        ? 'Email sent. Tell the customer to check Spam too — sender domain is unverified.'
+        : 'Email sent successfully',
+      'success'
+    );
     document.getElementById('bmBody')?.removeAttribute('data-user-edited');
     await loadMessages();
     setSubtab('sent');
