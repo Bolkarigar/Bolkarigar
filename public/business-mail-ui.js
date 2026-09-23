@@ -97,6 +97,18 @@
     return map[id] || '';
   }
 
+  function templateSubject(id) {
+    const shop = mailStatus?.shopName || 'Your business';
+    const titles = {
+      payment_reminder: `Payment reminder — ${shop}`,
+      invoice_sent: `Invoice from ${shop}`,
+      quotation: `Quotation — ${shop}`,
+      thank_you: `Thank you — ${shop}`,
+      custom: ''
+    };
+    return titles[id] || '';
+  }
+
   function onTemplateChange() {
     const sel = document.getElementById('bmTemplate');
     const id = sel?.value || 'custom';
@@ -107,23 +119,8 @@
     if (extra) {
       extra.style.display = id === 'payment_reminder' || id === 'invoice_sent' ? '' : 'none';
     }
-    if (id === 'custom') {
-      if (subj) subj.disabled = false;
-      return;
-    }
-    if (subj) {
-      subj.disabled = true;
-      const titles = {
-        payment_reminder: `Payment reminder — ${mailStatus?.shopName || 'Your business'}`,
-        invoice_sent: `Invoice from ${mailStatus?.shopName || 'Your business'}`,
-        quotation: `Quotation — ${mailStatus?.shopName || 'Your business'}`,
-        thank_you: `Thank you — ${mailStatus?.shopName || 'Your business'}`
-      };
-      subj.value = titles[id] || '';
-    }
-    if (body && !body.dataset.userEdited) {
-      body.value = templatePreviewText(id);
-    }
+    if (subj && !subj.dataset.userEdited) subj.value = templateSubject(id);
+    if (body && !body.dataset.userEdited) body.value = templatePreviewText(id);
   }
 
   function renderStatusBanner() {
@@ -332,6 +329,8 @@
       'success'
     );
     document.getElementById('bmBody')?.removeAttribute('data-user-edited');
+    document.getElementById('bmSubject')?.removeAttribute('data-user-edited');
+    onTemplateChange();
     await loadMessages();
     setSubtab('sent');
   }
@@ -368,15 +367,17 @@
       btn.addEventListener('click', () => setSubtab(btn.dataset.bmSub));
     });
     document.getElementById('bmTemplate')?.addEventListener('change', onTemplateChange);
-    document.getElementById('bmBody')?.addEventListener('input', (e) => {
-      e.target.dataset.userEdited = '1';
+    ['bmBody', 'bmSubject'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('input', (e) => {
+        e.target.dataset.userEdited = '1';
+      });
     });
     document.getElementById('bmRefreshTpl')?.addEventListener('click', () => {
       const body = document.getElementById('bmBody');
-      if (body) {
-        delete body.dataset.userEdited;
-        body.value = templatePreviewText(composeTemplate);
-      }
+      const subj = document.getElementById('bmSubject');
+      if (body) delete body.dataset.userEdited;
+      if (subj) delete subj.dataset.userEdited;
+      onTemplateChange();
     });
     document.getElementById('bmSaveReplyBtn')?.addEventListener('click', saveReplyEmail);
     document.getElementById('bmSendBtn')?.addEventListener('click', sendMail);
