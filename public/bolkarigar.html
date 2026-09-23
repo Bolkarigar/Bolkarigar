@@ -16,14 +16,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260923ui1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260923ui2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260923brand1"></script>
   <script>
-    window.BK_APP_BUILD = '20260923ui1';
+    window.BK_APP_BUILD = '20260923mail5';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -1360,11 +1360,20 @@
 
             <div class="bm-settings-row">
               <label class="bm-settings-label">
-                <span data-i18n="mail.replyEmail">Reply-to email (customers reply here)</span>
+                <span data-i18n="mail.replyEmail">Owner email (inbox + reply-to)</span>
                 <input id="bmReplyEmail" type="email" placeholder="you@yourshop.com" autocomplete="email" />
               </label>
               <button type="button" id="bmSaveReplyBtn" class="secondary">Save</button>
             </div>
+            <div class="bm-settings-row">
+              <label class="bm-settings-label">
+                <span>Inbox password (same mailbox — Gmail/Workspace: App Password)</span>
+                <input id="bmImapPass" type="password" placeholder="Mailbox password" autocomplete="new-password" />
+              </label>
+              <button type="button" id="bmConnectInboxBtn" class="secondary">Connect inbox</button>
+              <button type="button" id="bmSyncInboxBtn" class="secondary">↻ Refresh inbox</button>
+            </div>
+            <p id="bmImapStatus" class="helper-text"></p>
 
             <div class="btn-row bm-subtabs" style="margin:14px 0;flex-wrap:wrap;">
               <button type="button" class="bm-subtab-btn active" data-bm-sub="compose">✏️ Compose</button>
@@ -1441,8 +1450,10 @@
             </div>
 
             <div class="bm-subpanel" id="bmSub_inbox">
-              <p class="helper-text">When a customer replies to your shop email, copy their message here so your team sees it in Accounts Orbit.</p>
-              <div class="bm-compose-card" style="margin-bottom:16px;">
+              <p class="helper-text">Inbox shows mail from the owner email saved above. Connect once, then Refresh.</p>
+              <details class="bm-manual-log">
+                <summary>Or log a reply manually</summary>
+              <div class="bm-compose-card" style="margin-bottom:16px;margin-top:10px;">
                 <div class="grid-2">
                   <label>
                     <span class="bm-field-label">From (customer email)</span>
@@ -1463,6 +1474,7 @@
                 </label>
                 <button type="button" id="bmLogInboundBtn" style="margin-top:10px;">📥 Log customer reply</button>
               </div>
+              </details>
               <div id="bmInboxList" class="bm-msg-list"></div>
               <div class="panel-pagination-bar">
                 <div class="khata-pagination-left">
@@ -2510,7 +2522,7 @@
   <script src="bolkarigar-pro.js?v=20260921en3"></script>
   <script src="payroll-ui.js?v=20260921en2"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
-  <script src="business-mail-ui.js?v=20260923mail4"></script>
+  <script src="business-mail-ui.js?v=20260923mail5"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
   <script src="team-meeting-ui.js?v=20260921en2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>

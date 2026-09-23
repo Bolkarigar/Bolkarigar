@@ -5429,6 +5429,16 @@ html[data-theme="light"] .bm-compose-card {
 @media (min-width: 640px) {
   .grid-span-2 { grid-column: span 1; }
 }
+.bm-manual-log {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.bm-manual-log summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent2, #1d4ed8);
+}
 
 /* —— Header-match polish: navy + orbit blue so page header jaisa official lage —— */
 html[data-theme="light"] body {

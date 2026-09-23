@@ -362,7 +362,11 @@ const businessProfileSchema = new mongoose.Schema({
   invoiceCounter: { type: Number, default: 0 },
   estimateCounter: { type: Number, default: 0 },
   payrollViewerRole: { type: String, enum: ['manager', 'cashier'], default: 'manager' },
-  businessEmail: { type: String, default: '' }
+  businessEmail: { type: String, default: '' },
+  imapHost: { type: String, default: '' },
+  imapPort: { type: Number, default: 993 },
+  imapPassEnc: { type: String, default: '' },
+  imapLastSyncAt: { type: Date, default: null }
 });
 
 // 🟢 Real Gallery — user ki apni uploaded photos (pehle sirf fake random

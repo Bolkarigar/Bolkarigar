@@ -144,6 +144,22 @@
     }
     el.className = `bm-status-banner ${mailStatus.freeSenderDomain ? 'bm-status-warn' : 'bm-status-ok'}`;
     el.innerHTML = lines.join('');
+    renderImapStatus();
+  }
+
+  function renderImapStatus() {
+    const el = document.getElementById('bmImapStatus');
+    if (!el || !mailStatus) return;
+    if (!mailStatus.replyEmail) {
+      el.textContent = 'Inbox ke liye pehle owner email save karo.';
+      return;
+    }
+    if (mailStatus.imapConnected) {
+      const when = mailStatus.imapLastSyncAt ? ` Last sync: ${fmtDate(mailStatus.imapLastSyncAt)}.` : '';
+      el.textContent = `Inbox connected to ${mailStatus.replyEmail}${mailStatus.imapHost ? ` via ${mailStatus.imapHost}` : ''}.${when}`;
+      return;
+    }
+    el.textContent = `${mailStatus.replyEmail} ki mails dikhane ke liye mailbox password daal ke Connect inbox dabao.`;
   }
 
   function renderMessageList(folder) {
@@ -156,7 +172,7 @@
     const pager = isSent ? sentPager : inboxPager;
     const pageRows = pager ? pager.slice(rows) : rows;
     if (!pageRows.length) {
-      list.innerHTML = `<p class="bm-empty">${isSent ? 'No sent emails yet. Compose your first message.' : 'No customer replies logged yet. Use “Log customer reply” when someone emails you.'}</p>`;
+      list.innerHTML = `<p class="bm-empty">${isSent ? 'No sent emails yet. Compose your first message.' : 'Is mailbox se abhi koi inbound mail nahi mili. Connect inbox / Refresh try karo.'}</p>`;
       return;
     }
     list.innerHTML = pageRows.map((m) => {
@@ -277,8 +293,45 @@
       toast(data.error || 'Save failed', 'error');
       return;
     }
-    toast('Business reply email saved', 'success');
+    toast('Owner email saved', 'success');
     await refreshStatus();
+  }
+
+  async function syncInbox(connectFirst) {
+    const pass = document.getElementById('bmImapPass')?.value.trim() || '';
+    if (connectFirst && !pass && !mailStatus?.imapConnected) {
+      toast('Mailbox password daalo, phir Connect inbox', 'error');
+      return;
+    }
+    const btn = document.getElementById(connectFirst ? 'bmConnectInboxBtn' : 'bmSyncInboxBtn');
+    const old = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
+    }
+    const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass });
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = old;
+    }
+    if (!data.success) {
+      toast(data.error || 'Inbox sync failed', 'error');
+      return;
+    }
+    const passInp = document.getElementById('bmImapPass');
+    if (passInp) passInp.value = '';
+    if (Array.isArray(data.messages)) messagesCache = data.messages;
+    else await loadMessages();
+    renderMessageList('sent');
+    renderMessageList('inbox');
+    await refreshStatus();
+    toast(
+      data.pulled
+        ? `Inbox ready — ${data.pulled} mail mili, ${data.added || 0} nayi save hui`
+        : 'Mailbox connected, inbox empty',
+      'success'
+    );
+    setSubtab('inbox');
   }
 
   async function sendMail() {
@@ -380,6 +433,8 @@
       onTemplateChange();
     });
     document.getElementById('bmSaveReplyBtn')?.addEventListener('click', saveReplyEmail);
+    document.getElementById('bmConnectInboxBtn')?.addEventListener('click', () => syncInbox(true));
+    document.getElementById('bmSyncInboxBtn')?.addEventListener('click', () => syncInbox(false));
     document.getElementById('bmSendBtn')?.addEventListener('click', sendMail);
     document.getElementById('bmLogInboundBtn')?.addEventListener('click', logInbound);
     document.getElementById('bmDetailClose')?.addEventListener('click', () => {
@@ -398,7 +453,9 @@
   function loadBusinessMailPanel() {
     applyAccessUI();
     if (!hasAccess()) return;
-    refreshStatus();
+    refreshStatus().then(() => {
+      if (mailStatus?.imapConnected) syncInbox(false);
+    });
     loadMessages();
     loadPartySuggestions();
     onTemplateChange();

@@ -8,6 +8,12 @@ const {
   isEmailConfigured,
   getBusinessSenderEmail
 } = require('./email-service');
+const {
+  encryptSecret,
+  decryptSecret,
+  envFallbackFor,
+  fetchMailboxEmails
+} = require('./mail-inbox-sync');
 
 const MAIL_TEMPLATES = {
   payment_reminder: {
@@ -94,6 +100,8 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       // Free mailbox domains (gmail/yahoo/outlook) as sender fail DMARC when relayed
       // through Brevo — inbox providers then drop or spam-folder the mail.
       const freeSenderDomain = /@(gmail|googlemail|yahoo|outlook|hotmail|live|rediffmail)\./i.test(senderEmail);
+      const profile = await BusinessProfile.findOne({ userId: req.dataUserId }).select('imapPassEnc imapHost imapLastSyncAt');
+      const envFb = envFallbackFor(ctx.replyEmail);
       res.json({
         success: true,
         emailConfigured: isEmailConfigured(),
@@ -101,6 +109,9 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         shopName: ctx.shopName,
         senderEmail,
         freeSenderDomain,
+        imapConnected: !!(profile?.imapPassEnc || envFb),
+        imapHost: profile?.imapHost || envFb?.host || '',
+        imapLastSyncAt: profile?.imapLastSyncAt || null,
         templates: Object.keys(MAIL_TEMPLATES)
       });
     } catch (e) {
@@ -114,12 +125,27 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       if (businessEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessEmail)) {
         return res.status(400).json({ error: 'Enter a valid business email address.' });
       }
+      const $set = { businessEmail: businessEmail || undefined };
+      const imapPass = String(req.body.imapPass || req.body.imapPassword || '').trim();
+      const imapHost = String(req.body.imapHost || '').trim();
+      if (imapHost) $set.imapHost = imapHost;
+      if (req.body.disconnectImap) {
+        $set.imapPassEnc = '';
+        $set.imapHost = '';
+        $set.imapLastSyncAt = null;
+      } else if (imapPass) {
+        $set.imapPassEnc = encryptSecret(imapPass);
+      }
       const profile = await BusinessProfile.findOneAndUpdate(
         { userId: req.dataUserId },
-        { $set: { businessEmail: businessEmail || undefined } },
+        { $set },
         { new: true, upsert: true }
       );
-      res.json({ success: true, businessEmail: profile.businessEmail || '' });
+      res.json({
+        success: true,
+        businessEmail: profile.businessEmail || '',
+        imapConnected: !!profile.imapPassEnc
+      });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -220,6 +246,116 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       });
     } catch (e) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  function resolveImapAuth(profile, replyEmail, overridePass) {
+    const email = String(replyEmail || '').trim().toLowerCase();
+    if (!email) return null;
+    if (overridePass) {
+      return {
+        email,
+        pass: overridePass,
+        host: profile?.imapHost || '',
+        port: profile?.imapPort || 993
+      };
+    }
+    if (profile?.imapPassEnc) {
+      return {
+        email,
+        pass: decryptSecret(profile.imapPassEnc),
+        host: profile.imapHost || '',
+        port: profile.imapPort || 993
+      };
+    }
+    const envFb = envFallbackFor(email);
+    if (envFb?.pass) {
+      return { email, pass: envFb.pass, host: envFb.host || '', port: envFb.port || 993 };
+    }
+    return null;
+  }
+
+  async function upsertSyncedMessages(userId, rows) {
+    let added = 0;
+    for (const row of rows) {
+      const existing = await BusinessMail.findOne({
+        userId,
+        $or: [
+          { providerMessageId: row.providerMessageId },
+          ...(row.messageId ? [{ providerMessageId: row.messageId }] : [])
+        ]
+      });
+      if (existing) continue;
+      await BusinessMail.create({
+        userId,
+        threadId: row.messageId || crypto.randomUUID(),
+        direction: row.folderHint === 'outbound' ? 'outbound' : 'inbound',
+        from: row.from,
+        to: row.to,
+        partyName: '',
+        subject: row.subject,
+        bodyText: row.bodyText,
+        status: row.folderHint === 'outbound' ? 'sent' : 'received',
+        provider: 'imap',
+        providerMessageId: row.providerMessageId,
+        createdAt: row.date || new Date()
+      });
+      added += 1;
+    }
+    return added;
+  }
+
+  app.post('/api/business-mail/sync-inbox', authenticateToken, biz, async (req, res) => {
+    try {
+      const ctx = await shopContext(req.dataUserId);
+      if (!ctx.replyEmail) {
+        return res.status(400).json({ error: 'Pehle Reply-to email save karo — usi mailbox ki mails Inbox mein aayengi.' });
+      }
+      const profile = await BusinessProfile.findOne({ userId: req.dataUserId });
+      const overridePass = String(req.body.imapPass || req.body.imapPassword || '').trim();
+      const auth = resolveImapAuth(profile, ctx.replyEmail, overridePass);
+      if (!auth) {
+        return res.status(400).json({
+          error: 'Inbox connect nahi hai. Selected email ka mailbox password (ya Gmail App Password) daal ke Connect Inbox dabao.'
+        });
+      }
+      const fetched = await fetchMailboxEmails({
+        email: auth.email,
+        pass: auth.pass,
+        host: String(req.body.imapHost || auth.host || '').trim(),
+        port: auth.port,
+        limit: 40
+      });
+      if (overridePass) {
+        await BusinessProfile.findOneAndUpdate(
+          { userId: req.dataUserId },
+          {
+            $set: {
+              imapPassEnc: encryptSecret(overridePass),
+              imapHost: fetched.host,
+              imapPort: fetched.port,
+              imapLastSyncAt: new Date()
+            }
+          },
+          { upsert: true }
+        );
+      } else {
+        await BusinessProfile.findOneAndUpdate(
+          { userId: req.dataUserId },
+          { $set: { imapHost: fetched.host, imapPort: fetched.port, imapLastSyncAt: new Date() } }
+        );
+      }
+      const added = await upsertSyncedMessages(req.dataUserId, fetched.messages);
+      const rows = await BusinessMail.find({ userId: req.dataUserId }).sort({ createdAt: -1 }).limit(100);
+      res.json({
+        success: true,
+        added,
+        pulled: fetched.messages.length,
+        imapHost: fetched.host,
+        messages: rows
+      });
+    } catch (e) {
+      res.status(502).json({ error: e.message || 'Inbox sync failed' });
     }
   });
 
