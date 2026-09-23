@@ -6939,8 +6939,9 @@ function getEWayBillDetails() {
       }
       if (data.isDebtorStatement) {
         body.innerHTML = data.history.map(v => {
-          const statusClass = v.status === "Udhar" ? "khata-badge-udhar"
-            : (v.status === "Paid" ? "khata-badge-clear"
+          const statusClass = (v.status === "Udhar" || v.status === "Cash Given" || v.status === "Debit Note")
+            ? "khata-badge-udhar"
+            : (v.status === "Paid" || v.status === "Received" ? "khata-badge-clear"
               : (v.status === "Returned" ? "khata-badge-return"
                 : (Number(v.runningBalance) < -0.01 ? "khata-badge-refund" : "khata-badge-neutral")));
           return `

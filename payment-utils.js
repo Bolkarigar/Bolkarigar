@@ -77,6 +77,49 @@ function resolveEventQty({ voucherType, status, qty, product, note, voucher }) {
   return null;
 }
 
+/**
+ * How each voucher type moves a Sundry Debtor balance. Mirrors the double-entry
+ * deltas in server.js getVoucherLedgerDeltas(): `party` applies when the ledger is
+ * the voucher's party, `secondary` when it is the other side of a Journal/Contra.
+ */
+const DEBTOR_VOUCHER_RULES = {
+  Sales: { party: 1, status: 'Udhar' },
+  'Debit Note': { party: 1, status: 'Debit Note' },
+  Payment: { party: 1, status: 'Cash Given' },
+  Receipt: { party: -1, status: 'Received' },
+  'Credit Note': { party: -1, status: 'Returned' },
+  Purchase: { party: -1, status: 'Returned' },
+  Journal: { party: 1, secondary: -1, status: 'Journal' },
+  Contra: { party: -1, secondary: 1, status: 'Contra' }
+};
+
+/**
+ * Signed udhar effect of one voucher on a debtor ledger.
+ * + = customer owes more, − = customer owes less.
+ */
+function debtorVoucherUdharEffect(voucher, ledgerId) {
+  const amt = Number(voucher?.amount) || 0;
+  const rule = DEBTOR_VOUCHER_RULES[voucher?.voucherType];
+  if (!rule || amt <= 0) return { effect: 0, status: 'Accounting' };
+
+  const onParty = voucher.partyId && String(voucher.partyId) === String(ledgerId);
+  const sign = onParty ? rule.party : (rule.secondary || 0);
+  if (!sign) return { effect: 0, status: 'Accounting' };
+
+  if (voucher.voucherType === 'Sales') {
+    const credit = isCreditPayment(voucher.paymentMode, null);
+    return { effect: credit ? amt : 0, status: credit ? 'Udhar' : 'Paid' };
+  }
+  return { effect: sign * amt, status: rule.status };
+}
+
+/** Vouchers already represented by a SalesHistory / Payment row must not double-count. */
+function debtorVoucherIsDuplicate(voucher, sales) {
+  if (voucher.voucherType === 'Receipt' && voucher.linkedPaymentId) return true;
+  if (voucher.voucherType === 'Sales' && salesVoucherDuplicate(sales, voucher)) return true;
+  return false;
+}
+
 /** Signed net udhar: + = customer owes you, − = you owe customer (refund due). */
 function summarizeDebtorBalance(netRaw) {
   const net = Math.round((Number(netRaw) || 0) * 100) / 100;
@@ -136,37 +179,13 @@ async function reconcileDebtorLedger(userId, ledger, models) {
     balance -= Number(p.amount) || 0;
   }
 
-  const receipts = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Receipt' });
-  for (const r of receipts) {
-    // Receipt auto-created from /api/payments already counted via Payment row
-    if (r.linkedPaymentId) continue;
-    balance -= Number(r.amount) || 0;
-  }
-
-  const salesVouchers = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Sales' });
-  for (const v of salesVouchers) {
-    if (!isCreditPayment(v.paymentMode, null)) continue;
-    const dup = sales.some((s) =>
-      Math.abs(saleRecordAmount(s) - (Number(v.amount) || 0)) < 0.02
-      && sameCalendarDay(s.date, v.date)
-    );
-    if (!dup) balance += Number(v.amount) || 0;
-  }
-
-  const creditNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Credit Note' });
-  for (const cn of creditNotes) {
-    balance -= Number(cn.amount) || 0;
-  }
-
-  // Purchase bill on Sundry Debtor = shopkeeper often records customer return here by mistake
-  const customerReturns = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Purchase' });
-  for (const pr of customerReturns) {
-    balance -= Number(pr.amount) || 0;
-  }
-
-  const debitNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Debit Note' });
-  for (const dn of debitNotes) {
-    balance += Number(dn.amount) || 0;
+  const vouchers = await Voucher.find({
+    userId,
+    $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
+  });
+  for (const v of vouchers) {
+    if (debtorVoucherIsDuplicate(v, sales)) continue;
+    balance += debtorVoucherUdharEffect(v, ledger._id).effect;
   }
 
   return Math.round(balance * 100) / 100;
@@ -210,13 +229,21 @@ async function getDebtorUdharSummary(userId, ledger, models) {
   }
 
   if (Voucher) {
-    const creditNotes = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Credit Note' });
-    for (const cn of creditNotes) {
-      returns += Number(cn.amount) || 0;
-    }
-    const purchaseReturns = await Voucher.find({ userId, partyId: ledger._id, voucherType: 'Purchase' });
-    for (const pr of purchaseReturns) {
-      returns += Number(pr.amount) || 0;
+    const vouchers = await Voucher.find({
+      userId,
+      $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
+    });
+    for (const v of vouchers) {
+      if (debtorVoucherIsDuplicate(v, sales)) continue;
+      const { effect } = debtorVoucherUdharEffect(v, ledger._id);
+      if (effect > 0) {
+        // Credit sale voucher or cash handed to the customer — both raise the bill
+        billed += effect;
+      } else if (effect < 0) {
+        const isGoodsReturn = v.voucherType === 'Credit Note' || v.voucherType === 'Purchase';
+        if (isGoodsReturn) returns += -effect;
+        else paid += -effect;
+      }
     }
   }
 
@@ -489,29 +516,9 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
   for (const v of vouchers) {
     const amt = Number(v.amount) || 0;
     if (amt <= 0) continue;
+    if (debtorVoucherIsDuplicate(v, sales)) continue;
 
-    if (v.voucherType === 'Sales' && salesVoucherDuplicate(sales, v)) continue;
-    if (v.voucherType === 'Receipt' && v.linkedPaymentId) continue;
-
-    let udharEffect = 0;
-    let status = 'Accounting';
-    if (v.voucherType === 'Sales') {
-      const credit = isCreditPayment(v.paymentMode, null);
-      udharEffect = credit ? amt : 0;
-      status = credit ? 'Udhar' : 'Paid';
-    } else if (v.voucherType === 'Receipt') {
-      udharEffect = -amt;
-      status = 'Received';
-    } else if (v.voucherType === 'Credit Note') {
-      udharEffect = -amt;
-      status = 'Returned';
-    } else if (v.voucherType === 'Purchase') {
-      udharEffect = -amt;
-      status = 'Returned';
-    } else if (v.voucherType === 'Debit Note') {
-      udharEffect = amt;
-      status = 'Debit Note';
-    }
+    const { effect: udharEffect, status } = debtorVoucherUdharEffect(v, ledger._id);
 
     const displayType = v.voucherType === 'Purchase' ? 'Credit Note' : v.voucherType;
     const displayNote = v.voucherType === 'Purchase'
@@ -581,6 +588,8 @@ module.exports = {
   isCreditPayment,
   saleRecordAmount,
   summarizeDebtorBalance,
+  debtorVoucherUdharEffect,
+  debtorVoucherIsDuplicate,
   reconcileDebtorLedger,
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,
