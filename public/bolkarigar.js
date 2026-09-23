@@ -9392,8 +9392,14 @@ async function downloadAgentConnectBat() {
     "title Accounts Orbit Agent vhttp5 - Keep Open",
     "chcp 65001 >nul",
     "cd /d \"%~dp0\"",
-    "if not exist BolKarigarTallyAgent.exe if not exist BolKarigarTallyAgent.js (",
-    "  echo ERROR: BolKarigarTallyAgent.exe not found in this folder!",
+    // Purane download ka naam BolKarigarTallyAgent tha — dono naam support karo.
+    "set \"AGENT_CMD=\"",
+    "if exist AccountsOrbitTallyAgent.exe set \"AGENT_CMD=AccountsOrbitTallyAgent.exe\"",
+    "if not defined AGENT_CMD if exist BolKarigarTallyAgent.exe set \"AGENT_CMD=BolKarigarTallyAgent.exe\"",
+    "if not defined AGENT_CMD if exist AccountsOrbitTallyAgent.js set \"AGENT_CMD=node AccountsOrbitTallyAgent.js\"",
+    "if not defined AGENT_CMD if exist BolKarigarTallyAgent.js set \"AGENT_CMD=node BolKarigarTallyAgent.js\"",
+    "if not defined AGENT_CMD (",
+    "  echo ERROR: AccountsOrbitTallyAgent.exe not found in this folder!",
     "  echo Download vhttp4 .exe from Accounts Orbit sidebar and put in same folder.",
     "  pause",
     "  exit /b 1",
@@ -9412,12 +9418,7 @@ async function downloadAgentConnectBat() {
     "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
     "echo ==========================================",
     "echo.",
-    "if exist BolKarigarTallyAgent.exe (",
-    "  BolKarigarTallyAgent.exe",
-    ") else (",
-    "  echo Running latest agent via Node.js...",
-    "  node BolKarigarTallyAgent.js",
-    ")",
+    "%AGENT_CMD%",
     "echo.",
     "echo Agent closed. Double-click this file again to reconnect.",
     "pause"
@@ -9425,7 +9426,7 @@ async function downloadAgentConnectBat() {
   const blob = new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "Accounts Orbit-Connect-Agent.bat";
+  a.download = "AccountsOrbit-Connect-Agent.bat";
   a.click();
   URL.revokeObjectURL(a.href);
   openTallyAgentSidebar();
