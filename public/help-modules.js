@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Help panel with animated demos (Hindi + English)
+ * Accounts Orbit — Help panel with animated demos (Hindi + English)
  */
 (function () {
   const ALL_MODULES = () => [

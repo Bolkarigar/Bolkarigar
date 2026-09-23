@@ -459,7 +459,7 @@ async function loadServerData(opts = {}) {
           if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
         });
       }
-      console.log('[BolKarigar] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
+      console.log('[Accounts Orbit] Account:', me.username, '| Sales:', me.salesCount, '| Invoices:', me.invoicesCount);
       if (!silent) {
         if (me.isStaff) showToast(`${me.roleLabel || me.role} login — invited by owner, no separate plan needed`, "info");
         else if (me.subscription?.isTrial) {
@@ -2414,7 +2414,7 @@ function parseCommands(raw) {
     const inbuiltRadio = document.querySelector('input[name="accMode"][value="inbuilt"]');
     if (text.includes("inbuilt") || text.includes("bolkarigar") || text.includes("in house")) {
       if (inbuiltRadio) { inbuiltRadio.checked = true; toggleTallyBtn(false); }
-      showCommand("BolKarigar Khata (in-house) mode ON.");
+      showCommand("Accounts Orbit Khata (in-house) mode ON.");
     } else if (tallyRadio) {
       tallyRadio.checked = true;
       toggleTallyBtn(true);
@@ -3454,7 +3454,7 @@ window.speakText = speakText;
 // { keywords: [...], answer: "..." } object list me daal do.
 // -------------------------------------------------------------------
 const APP_FEATURES_OVERVIEW =
-  'BolKarigar includes: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Credit Ledger, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Notes, Media, and Help & Guide. Ask for details on any feature.';
+  'Accounts Orbit includes: Overview (sales/expense/profit), Voice AI, Invoice/GST bill, WhatsApp share, Tally sync, Projects, Expenses, Inventory, Credit Ledger, Ledgers, Stock Items, Voucher, Day Book, Total Sales, Gallery, Todo, QR Tool, Calculator, Notes, Media, and Help & Guide. Ask for details on any feature.';
 
 const TODO_MODULE_ANSWER =
   'In Todo: (1) Add a task — type in the Todo tab and click Add, or say e.g. "todo order cement add", (2) Delete a task — Delete on the row, (3) Clear all — Clear All, (4) Open Todo from the sidebar to view tasks. Tasks are saved and persist after refresh.';
@@ -3498,7 +3498,7 @@ function matchModuleFaq(rawText) {
 
 const APP_FAQ = [
   { keywords: ["tum kaun", "who are you", "aap kaun", "tumhara naam", "your name", "kya ho tum", "what are you"],
-    answer: "I am BolKarigar AI — your in-app assistant. I can answer questions and help with tasks like adding todos or creating invoices." },
+    answer: "I am Accounts Orbit AI — your in-app assistant. I can answer questions and help with tasks like adding todos or creating invoices." },
   { keywords: ["kya kya kar sakte", "kya kar sakte ho", "features", "help", "madad", "kya kaam", "kya kaam kar sakte", "kya kaam kar sakti", "what can you do", "poori list", "kya kya kaam", "ker skte", "kya kya ker", "kar skte", "kya kya kr skte", "ho skta", "ho sakta", "ho skte", "iss app", "is app", "app m kya", "app me kya", "kitne model", "kitne module"],
     answer: APP_FEATURES_OVERVIEW },
   { keywords: ["free hai", "paisa lagega", "cost kitni", "kitna paisa", "paid hai kya", "is this free", "billing lagegi"],
@@ -3508,7 +3508,7 @@ const APP_FAQ = [
   { keywords: ["thanks", "thank you", "shukriya", "dhanyawad"],
     answer: "You're welcome! Let me know if you need anything else." },
   { keywords: ["bolkarigar kya hai", "yeh app kya hai", "app kis liye", "what is this app", "app ke bare me batao", "kya hai iss app", "kya hai is app", "app m kya", "app me kya", "kya kya hai iss app", "kya kya hai is app"],
-    answer: "BolKarigar is a voice-friendly business app for shops and contractors — invoices, projects, expenses, credit ledger, inventory, and more by voice or keyboard." },
+    answer: "Accounts Orbit is a voice-friendly business app for shops and contractors — invoices, projects, expenses, credit ledger, inventory, and more by voice or keyboard." },
   { keywords: ["logout kaise", "log out kaise", "sign out"],
     answer: "Click Logout in the top-right header to return to the login page." },
   { keywords: ["password bhool", "forgot password", "password reset"],
@@ -3534,7 +3534,7 @@ const APP_FAQ = [
   { keywords: ["eway bill", "e way bill", "vehicle number", "transport details"],
     answer: "Optional E-Way Bill & Transport Details on the invoice — E-Way number, vehicle and distance." },
   { keywords: ["accounting mode", "tally prime kya", "bolkarigar khata kya"],
-    answer: "Choose Accounting Mode on the invoice — BolKarigar Khata (in-house) or Tally Prime (sync with Tally)." },
+    answer: "Choose Accounting Mode on the invoice — Accounts Orbit Khata (in-house) or Tally Prime (sync with Tally)." },
   { keywords: ["business profile", "company profile", "profile save", "firm ka naam", "gstin kaise dalu"],
     answer: "In Business Profile, enter Company Name, GSTIN, Phone and Address, then Save — this unlocks the invoice generator." },
   { keywords: ["udhar khata", "udhar kaise", "khata kya", "credit customer"],
@@ -4403,7 +4403,7 @@ function blockDuplicateSession() {
   document.body.innerHTML = `
     <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
       <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
-      <p style="margin-top:10px; color:#aaa;">BolKarigar is already open in another tab.</p>
+      <p style="margin-top:10px; color:#aaa;">Accounts Orbit is already open in another tab.</p>
       <p style="color:#666; font-size:14px;">Click <strong>Continue here</strong> below — the other tab will close automatically.</p>
       <button onclick="window.location.href='bolkarigar.html?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Continue here</button>
       <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 Open My Plan</button>
@@ -4416,8 +4416,8 @@ function blockDuplicateSession() {
 function handlePlanPaymentRequest(plan) {
   if (typeof openPanel === 'function') openPanel('myPlanPanel');
   const startPayment = () => {
-    if (typeof window.buyBolKarigarPlan === 'function' && (plan === 'pro' || plan === 'business')) {
-      window.buyBolKarigarPlan(plan);
+    if (typeof window.buyAOPlan === 'function' && (plan === 'pro' || plan === 'business')) {
+      window.buyAOPlan(plan);
     }
   };
   if (window._bkAccountInfo || !getToken()) startPayment();
@@ -4551,7 +4551,7 @@ function triggerWhatsAppShare() {
   textMsg += "```\n";
 
   if (prof.upiId) textMsg += `UPI: ${prof.upiId}\n`;
-  textMsg += `\nBolKarigar se bheja gaya bill.\nDhanyavaad!`;
+  textMsg += `\nAccounts Orbit se bheja gaya bill.\nDhanyavaad!`;
 
   const encodedMsg = encodeURIComponent(textMsg);
   window.open(`https://api.whatsapp.com/send?text=${encodedMsg}`, '_blank');
@@ -4634,7 +4634,7 @@ async function checkTallyAgentReady() {
     if (data.canSync) return { canSync: true, agentConnected: data.agentConnected, localSetup: data.localSetup };
     return {
       canSync: false,
-      reason: "Agent window is closed. Double-click BolKarigar-Connect-Agent.bat again (token already saved — no need to paste again)."
+      reason: "Agent window is closed. Double-click Accounts Orbit-Connect-Agent.bat again (token already saved — no need to paste again)."
     };
   } catch (e) {
     return { canSync: false, reason: "Network error while checking Desktop Agent." };
@@ -4660,8 +4660,8 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
   if (tallyBtn && tallyBtn.disabled) {
     const st = window._bkTallyHttpStatus || {};
     const msg = st.agentConnected
-      ? "Tally HTTP is not ready. F1 → Connectivity → Client/Server → HTTP Server = Yes, Port 9000. Sync enables when Test is green. Use BolKarigar Khata for now."
-      : "Agent is offline. Run Connect Agent.bat, or save bills with BolKarigar Khata.";
+      ? "Tally HTTP is not ready. F1 → Connectivity → Client/Server → HTTP Server = Yes, Port 9000. Sync enables when Test is green. Use Accounts Orbit Khata for now."
+      : "Agent is offline. Run Connect Agent.bat, or save bills with Accounts Orbit Khata.";
     if (typeof showToast === "function") showToast(msg, "error");
     else alert(msg);
     openTallyAgentSidebar({ scroll: true });
@@ -4685,7 +4685,7 @@ async function sendInvoiceToTally(customer, product, price, qty, gstRate, custom
       openTallyAgentSidebar({ scroll: true });
       const msg =
         "Agent window is not running.\n\n" +
-        "Token is already saved — just double-click BolKarigar-Connect-Agent.bat again.\n" +
+        "Token is already saved — just double-click Accounts Orbit-Connect-Agent.bat again.\n" +
         "No need to paste token again.\n\n" +
         "Then Sync Tally for Aman / any customer.";
       if (typeof showToast === "function") showToast(msg, "error");
@@ -5311,7 +5311,7 @@ function printUdharDetail() {
     showToast("Nothing to print.", "info");
     return;
   }
-  let company = "BolKarigar";
+  let company = "Accounts Orbit";
   try {
     const prof = JSON.parse(localStorage.getItem("bolkarigar_company_profile") || localStorage.getItem("company_profile") || localStorage.getItem("business_profile") || "{}");
     company = prof.companyName || prof.name || company;
@@ -5710,7 +5710,7 @@ function bkRenderBusyTaxInvoiceHtml(p) {
   body { margin: 0; padding: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #000; background: #fff; }
   .busy-wrap { position: relative; max-width: 210mm; margin: 0 auto; border: 1px solid #000; padding: 8px 10px 12px; }
   .busy-wrap::before {
-    content: "BolKarigar"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    content: "Accounts Orbit"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 52px; font-weight: 700; color: rgba(0,0,0,0.04); transform: rotate(-32deg); pointer-events: none; z-index: 0;
   }
   .busy-wrap > * { position: relative; z-index: 1; }
@@ -5946,7 +5946,7 @@ async function printThermalBill() {
     <table>${lines || '<tr><td>Item</td><td></td><td class="r">₹'+grandTotal+'</td></tr>'}</table><hr>
     <div class="r"><strong>TOTAL: ₹${grandTotal}</strong></div>
     ${upi ? `<div class="c"><div id="tq"></div><small>UPI: ${upi}</small></div>` : ''}
-    <div class="c"><small>BolKarigar</small></div></body></html>`);
+    <div class="c"><small>Accounts Orbit</small></div></body></html>`);
   w.document.close();
 }
 window.printThermalBill = printThermalBill;
@@ -6275,7 +6275,7 @@ function getEWayBillDetails() {
 // ==========================================================================
 
 // ==========================================================================
-// 🟢 LIVE AI — BolKarigar Smart AI Assistant — START
+// 🟢 LIVE AI — Accounts Orbit Smart AI Assistant — START
 // Yeh Block header ke "🤖 AI Assistant" button se chat window kholta hai.
 // Sawaal direct Gemini API ko bheje jaate hain — app commands nahi, sirf
 // baatcheet/sawal. Isliye handleSpeech() se bypass karta hai aur direct
@@ -6661,7 +6661,7 @@ function getEWayBillDetails() {
   });
 })();
 // ==========================================================================
-// 🟢 LIVE AI — BolKarigar Smart AI Assistant — END
+// 🟢 LIVE AI — Accounts Orbit Smart AI Assistant — END
 // ==========================================================================
 
 // ==========================================================================
@@ -9142,7 +9142,7 @@ function updateTallySyncButtonState() {
     tallyBtn.title = "Run Connect Agent.bat first — Sync enables when HTTP test is green.";
     if (gate) {
       gate.className = "tally-http-gate";
-      gate.innerHTML = "🔴 <strong>Agent offline.</strong> Sidebar → Connect Agent. Daily work can run on <strong>BolKarigar Khata</strong>.";
+      gate.innerHTML = "🔴 <strong>Agent offline.</strong> Sidebar → Connect Agent. Daily work can run on <strong>Accounts Orbit Khata</strong>.";
     }
     return;
   }
@@ -9389,12 +9389,12 @@ async function downloadAgentConnectBat() {
   const backendUrl = (API_URL || window.location.origin).replace(/\/+$/, "");
   const lines = [
     "@echo off",
-    "title BolKarigar Agent vhttp5 - Keep Open",
+    "title Accounts Orbit Agent vhttp5 - Keep Open",
     "chcp 65001 >nul",
     "cd /d \"%~dp0\"",
     "if not exist BolKarigarTallyAgent.exe if not exist BolKarigarTallyAgent.js (",
     "  echo ERROR: BolKarigarTallyAgent.exe not found in this folder!",
-    "  echo Download vhttp4 .exe from BolKarigar sidebar and put in same folder.",
+    "  echo Download vhttp4 .exe from Accounts Orbit sidebar and put in same folder.",
     "  pause",
     "  exit /b 1",
     ")",
@@ -9407,7 +9407,7 @@ async function downloadAgentConnectBat() {
     ") > agent-config.json",
     "echo.",
     "echo ==========================================",
-    "echo  BolKarigar Agent vhttp5 - UNLIMITED BILLS",
+    "echo  Accounts Orbit Agent vhttp5 - UNLIMITED BILLS",
     "echo  Minimize this window - DO NOT CLOSE",
     "echo  Vikrant, Aman, sab bills - Sync Tally dabao",
     "echo ==========================================",
@@ -9425,7 +9425,7 @@ async function downloadAgentConnectBat() {
   const blob = new Blob([lines.join("\r\n")], { type: "application/octet-stream" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "BolKarigar-Connect-Agent.bat";
+  a.download = "Accounts Orbit-Connect-Agent.bat";
   a.click();
   URL.revokeObjectURL(a.href);
   openTallyAgentSidebar();

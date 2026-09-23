@@ -1,5 +1,5 @@
 /**
- * BolKarigar — password reset emails
+ * Accounts Orbit — password reset emails
  * Production (Render free): SMTP ports 25/465/587 BLOCKED — use Resend or Brevo (HTTPS).
  * Local / paid Render: Gmail SMTP still works.
  */
@@ -40,7 +40,7 @@ function getSmtpConfig() {
     transport.requireTLS = true;
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || 'BolKarigar';
+  const fromName = process.env.SMTP_FROM_NAME || 'Accounts Orbit';
   let from = String(process.env.SMTP_FROM || '').trim();
   if (!from || (isGmail && !from.includes(user))) {
     from = `"${fromName}" <${user}>`;
@@ -250,7 +250,7 @@ async function sendViaSmtp({ to, subject, text, html, replyTo }) {
 
 async function sendViaResend({ to, subject, text, html, replyTo }) {
   const fetch = require('node-fetch');
-  const from = process.env.RESEND_FROM || 'BolKarigar <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM || 'Accounts Orbit <onboarding@resend.dev>';
   const body = {
     from,
     to: [to],
@@ -280,7 +280,7 @@ async function sendViaBrevo({ to, subject, text, html, replyTo, senderName, send
   }
 
   const fromEmail = String(senderEmail || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim().toLowerCase();
-  const fromName = senderName || process.env.SMTP_FROM_NAME || 'BolKarigar';
+  const fromName = senderName || process.env.SMTP_FROM_NAME || 'Accounts Orbit';
   if (!fromEmail) throw new Error('Set BREVO_FROM_EMAIL or SMTP_USER');
 
   const payload = {
@@ -327,7 +327,7 @@ function getBusinessSenderEmail() {
 }
 
 function buildOtpEmail(otp) {
-  const subject = 'BolKarigar — Password Reset OTP';
+  const subject = 'Accounts Orbit — Password Reset OTP';
   const text = [
     'Namaste,',
     '',
@@ -336,11 +336,11 @@ function buildOtpEmail(otp) {
     'Yeh OTP 10 minute ke liye valid hai.',
     'Agar aapne yeh request nahi ki, is email ko ignore karein.',
     '',
-    '— BolKarigar Team'
+    '— Accounts Orbit Team'
   ].join('\n');
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-      <h2 style="color:#2563eb;margin:0 0 12px;">BolKarigar Password Reset</h2>
+      <h2 style="color:#2563eb;margin:0 0 12px;">Accounts Orbit Password Reset</h2>
       <p style="color:#334155;line-height:1.5;">Aapka 6-digit OTP:</p>
       <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
       <p style="color:#64748b;font-size:14px;">Yeh OTP <strong>10 minute</strong> ke liye valid hai.</p>
@@ -350,7 +350,7 @@ function buildOtpEmail(otp) {
 }
 
 function wrapBusinessEmailHtml({ shopName, bodyHtml, footerLine }) {
-  const shop = shopName || 'BolKarigar';
+  const shop = shopName || 'Accounts Orbit';
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Segoe UI,system-ui,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
     <tr><td style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:20px 24px;color:#fff;">
@@ -359,7 +359,7 @@ function wrapBusinessEmailHtml({ shopName, bodyHtml, footerLine }) {
     </td></tr>
     <tr><td style="padding:24px;color:#0f172a;font-size:15px;line-height:1.55;">${bodyHtml}</td></tr>
     <tr><td style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
-      ${footerLine || 'Sent via BolKarigar Business Mail. Please reply to this email for a direct response.'}
+      ${footerLine || 'Sent via Accounts Orbit Business Mail. Please reply to this email for a direct response.'}
     </td></tr>
   </table></body></html>`;
 }

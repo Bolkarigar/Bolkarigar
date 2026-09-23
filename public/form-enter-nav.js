@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Enter key moves focus to next field (Tally / Busy style).
+ * Accounts Orbit — Enter key moves focus to next field (Tally / Busy style).
  * Works across panels, modals, and forms. Loaded last so autocomplete handlers run first.
  */
 (function () {

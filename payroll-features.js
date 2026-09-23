@@ -1,5 +1,5 @@
 /**
- * BolKarigar Payroll — Employee attendance & monthly salary (Business ₹299)
+ * Accounts Orbit Payroll — Employee attendance & monthly salary (Business ₹299)
  * Shop/office staff: fixed monthly salary, half-day, paid/unpaid leave, advances.
  */
 const ATTENDANCE_STATUSES = ['present', 'absent', 'half_day', 'paid_leave', 'unpaid_leave'];
@@ -668,7 +668,7 @@ function setupPayrollFeatures({ app, mongoose, authenticateToken, models, rbac, 
     });
   });
 
-  console.log('✓ BolKarigar Payroll loaded (Employee Hajri & Salary — Business plan)');
+  console.log('✓ Accounts Orbit Payroll loaded (Employee Hajri & Salary — Business plan)');
   return { buildPayrollContext, ensureStaffEmployeeRecord, PayrollEmployee, PayrollAttendance, PayrollAdvance, calcMonthlySalary, STATUS_LABELS, WEEKDAY_NAMES };
 }
 

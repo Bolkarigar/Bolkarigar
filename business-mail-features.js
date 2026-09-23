@@ -1,5 +1,5 @@
 /**
- * BolKarigar Business Mail — send + inbox (Business ₹299 plan)
+ * Accounts Orbit Business Mail — send + inbox (Business ₹299 plan)
  */
 const crypto = require('crypto');
 const {
@@ -178,7 +178,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         shopName: ctx.shopName,
         bodyHtml,
         footerLine: ctx.replyEmail
-          ? `Replies go to ${ctx.replyEmail}. You can also log customer replies inside BolKarigar → Business Mail → Inbox.`
+          ? `Replies go to ${ctx.replyEmail}. You can also log customer replies inside Accounts Orbit → Business Mail → Inbox.`
           : undefined
       });
 
@@ -196,7 +196,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         userId: req.dataUserId,
         threadId,
         direction: 'outbound',
-        from: ctx.replyEmail || process.env.BREVO_FROM_EMAIL || 'BolKarigar',
+        from: ctx.replyEmail || process.env.BREVO_FROM_EMAIL || 'Accounts Orbit',
         to,
         partyName,
         subject,

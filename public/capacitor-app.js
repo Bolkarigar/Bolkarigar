@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Android/iOS native shell helpers (Capacitor).
+ * Accounts Orbit — Android/iOS native shell helpers (Capacitor).
  * Sirf app (APK) mein chalega; browser mein skip ho jata hai.
  */
 (function () {

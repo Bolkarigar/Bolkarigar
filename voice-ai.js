@@ -18,7 +18,7 @@ const GEMINI_MODELS = [
 const OPENAI_MODELS = ['gpt-4o-mini', 'gpt-4o'];
 
 function buildVoicePrompt(text) {
-  return `You are BolKarigar voice parser for Indian shop owners. Extract command from Hindi/Hinglish speech.
+  return `You are Accounts Orbit voice parser for Indian shop owners. Extract command from Hindi/Hinglish speech.
 Return ONLY valid JSON (no markdown).
 Input: "${String(text).replace(/"/g, '\\"').slice(0, 500)}"
 Schema: ${VOICE_PARSE_SCHEMA}

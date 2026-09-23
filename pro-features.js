@@ -1,5 +1,5 @@
 /**
- * BolKarigar Pro — Professional features module
+ * Accounts Orbit Pro — Professional features module
  * Staff login, GSTR reports, P&L, Balance Sheet, Tally import,
  * Contractor tools, Bank reconciliation, Udhar payments, Multi-company
  */
@@ -520,7 +520,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ===================== TALLY IMPORT (Tally → BolKarigar) =====================
+  // ===================== TALLY IMPORT (Tally → Accounts Orbit) =====================
   app.post('/api/tally/import-ledgers', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
     try {
       const company = await resolveTallyCompanyName(req.ownerId, req);
@@ -549,7 +549,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const taxable = (price || 0) * (qty || 1);
       const gst = taxable * ((gstRate || 0) / 100);
       const payload = {
-        version: '1.0.1118', generator: 'BolKarigar',
+        version: '1.0.1118', generator: 'Accounts Orbit',
         docNo: ewayBillNo || 'DRAFT-' + Date.now(),
         docDate: new Date().toISOString().split('T')[0],
         fromGstin: profile?.gstin || '', fromTrdName: profile?.companyName || '',
@@ -722,7 +722,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     res.json({ success: true, groups: LEDGER_GROUPS_FULL });
   });
 
-  console.log('✓ BolKarigar Pro features loaded (Staff, GSTR, Reports, Tally Import, Contractor, Bank Recon)');
+  console.log('✓ Accounts Orbit Pro features loaded (Staff, GSTR, Reports, Tally Import, Contractor, Bank Recon)');
   return { LEDGER_GROUPS_FULL, Payment, LabourAttendance, RABill, MaterialSlip, BankRecon, Company };
 }
 

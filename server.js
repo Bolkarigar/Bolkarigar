@@ -1487,7 +1487,7 @@ function buildVoucherInnerXml(vchType, date, partyLedger, narration, ledgerEntri
         <EFFECTIVEDATE>${date}</EFFECTIVEDATE>
         <VOUCHERTYPENAME>${vchType}</VOUCHERTYPENAME>
         ${partyLedger ? `<PARTYLEDGERNAME>${tallyXmlEscape(partyLedger)}</PARTYLEDGERNAME><PARTYNAME>${tallyXmlEscape(partyLedger)}</PARTYNAME>` : ''}
-        <NARRATION>${tallyXmlEscape(narration || 'BolKarigar sync')}</NARRATION>
+        <NARRATION>${tallyXmlEscape(narration || 'Accounts Orbit sync')}</NARRATION>
         <VCHSTATUSISUNDELETED>Yes</VCHSTATUSISUNDELETED>
         ${extraFields}
         ${ledgerEntriesXml}
@@ -1581,8 +1581,8 @@ function buildTallyJournalVoucherXml({ customer, product, price, qty, totalAmoun
   const party = partyLedger || sanitizeTallyLedgerName(customer);
   const grandTotal = Number(totalAmount) || (Number(price) * Number(qty));
   const narration = partyLedger === 'Cash'
-    ? `BolKarigar [${customer}]: ${product} x${qty} @ Rs.${price}`
-    : `BolKarigar: ${product} x${qty} @ Rs.${price}`;
+    ? `Accounts Orbit [${customer}]: ${product} x${qty} @ Rs.${price}`
+    : `Accounts Orbit: ${product} x${qty} @ Rs.${price}`;
   const inner = buildVoucherInnerXml('Journal', tallyDate, party, narration, twoLineEntries(party, salesLedgerName || 'Sales Account', grandTotal));
   return wrapTallyImportXml('Vouchers', companyName, inner);
 }
@@ -1591,8 +1591,8 @@ function buildTallySimpleSalesVoucherXml({ customer, product, price, qty, totalA
   const party = partyLedger || sanitizeTallyLedgerName(customer);
   const grandTotal = Number(totalAmount) || (Number(price) * Number(qty));
   const narration = partyLedger === 'Cash'
-    ? `BolKarigar [${customer}]: ${product} x${qty} @ Rs.${price}`
-    : `${product} x${qty} @ Rs.${price} (BolKarigar)`;
+    ? `Accounts Orbit [${customer}]: ${product} x${qty} @ Rs.${price}`
+    : `${product} x${qty} @ Rs.${price} (Accounts Orbit)`;
   const inner = buildVoucherInnerXml('Sales', tallyDate, party, narration, twoLineEntries(party, salesLedgerName, grandTotal));
   return wrapTallyImportXml('Vouchers', companyName, inner);
 }
@@ -1712,7 +1712,7 @@ function buildTallySalesVoucherXml({ customer, product, price, qty, gstRate, gst
     }
   }
 
-  const narration = `${product} x${qty} @ Rs.${price} (BolKarigar)${interState ? ' [Inter-State IGST]' : ''}${ewayBillNo ? ' | E-Way: ' + ewayBillNo : ''}${vehicleNo ? ' | Vehicle: ' + vehicleNo : ''}`;
+  const narration = `${product} x${qty} @ Rs.${price} (Accounts Orbit)${interState ? ' [Inter-State IGST]' : ''}${ewayBillNo ? ' | E-Way: ' + ewayBillNo : ''}${vehicleNo ? ' | Vehicle: ' + vehicleNo : ''}`;
   const extraFields = '<PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW><ISINVOICE>Yes</ISINVOICE>';
   const inner = buildVoucherInnerXml('Sales', voucherDate, cust, narration, ledgerEntries, extraFields);
   return wrapTallyImportXml('Vouchers', companyName, inner);
@@ -1811,7 +1811,7 @@ const TALLY_HTTP_SETUP_STEPS = [
   'STEP 2: Same screen par alag line: Enable HTTP Server = Yes (ODBC ke neeche) + Port 9000',
   'STEP 3: Agar HTTP line na dikhe → F1 → Advanced Configuration → HTTP Server = Yes',
   'STEP 4: Gateway se company select karein → Tally restart',
-  'STEP 5: BolKarigar → Test Tally HTTP — green aaye tab Sync Tally',
+  'STEP 5: Accounts Orbit → Test Tally HTTP — green aaye tab Sync Tally',
   'EDU note: Day Book mein voucher 1st / 2nd / last date par dikhega'
 ];
 
@@ -1998,7 +1998,7 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requi
   const agentConnected = connectedAgents.has(userId);
   if (!agentConnected && !isLikelyLocalSetup(req)) {
     return res.status(400).json({
-      error: 'No Desktop Agent connected. Start BolKarigar Desktop Agent on the PC where Tally runs (sidebar → Tally Sync Agent → download .exe, paste token). Then try Sync again.'
+      error: 'No Desktop Agent connected. Start Accounts Orbit Desktop Agent on the PC where Tally runs (sidebar → Tally Sync Agent → download .exe, paste token). Then try Sync again.'
     });
   }
   if (agentConnected) {
@@ -2091,8 +2091,8 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requi
       // record safe hai — silently fake success mat do.
       return res.status(502).json({
         error: agentConnected
-          ? `Desktop Agent could not process the voucher (${tallyErr.message}). Confirm Tally Prime is open on that PC and Settings → Connectivity → HTTP Server is ON (port 9000). Your invoice is saved in BolKarigar Khata.`
-          : `Could not connect to Tally (${tallyErr.message}). Confirm Tally Prime is open and Settings → Connectivity → HTTP Server is ON (Both/Server), port 9000. Your invoice is saved in BolKarigar Khata.`
+          ? `Desktop Agent could not process the voucher (${tallyErr.message}). Confirm Tally Prime is open on that PC and Settings → Connectivity → HTTP Server is ON (port 9000). Your invoice is saved in Accounts Orbit Khata.`
+          : `Could not connect to Tally (${tallyErr.message}). Confirm Tally Prime is open and Settings → Connectivity → HTTP Server is ON (Both/Server), port 9000. Your invoice is saved in Accounts Orbit Khata.`
       });
     }
   } catch (err) {
@@ -3446,7 +3446,7 @@ agentWss.on('connection', async (ws, req) => {
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
     logger.info(`[Desktop Agent] Connected — user ${userId} (${profile.companyName || 'company'})`);
-    ws.send(JSON.stringify({ type: 'connected', message: 'BolKarigar Desktop Agent connected!' }));
+    ws.send(JSON.stringify({ type: 'connected', message: 'Accounts Orbit Desktop Agent connected!' }));
 
     ws.on('message', (raw) => {
       let msg;
@@ -3552,7 +3552,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Server Listen
 server.listen(PORT, () => {
-  logger.info(`🚀 BolKarigar Core Engine Running on http://localhost:${PORT}`);
+  logger.info(`🚀 Accounts Orbit Core Engine Running on http://localhost:${PORT}`);
   logger.info(`📌 SERVER CODE VERSION: pricing-pro-99-999-business-299-2999`);
   logger.info(`💰 Plans: Pro=${PLANS.pro.label}, Business=${PLANS.business.label} (${PLANS.business.price * 100} paise Razorpay)`);
   verifyEmailTransport().then((status) => {

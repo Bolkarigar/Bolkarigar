@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "BolKarigar AI",
-  "short_name": "BolKarigar",
+  "name": "Accounts Orbit AI",
+  "short_name": "Accounts Orbit",
   "description": "Hindi voice-first business app for shopkeepers and contractors",
   "start_url": "/bolkarigar.html",
   "scope": "/",

@@ -1,5 +1,5 @@
 /**
- * BolKarigar — mobile responsive helpers
+ * Accounts Orbit — mobile responsive helpers
  * Tables ko phone par card layout mein badalta hai (scroll ki jagah)
  */
 (function () {

@@ -1,5 +1,5 @@
 /**
- * BolKarigar — GSP API client (MasterGST / WhiteBooks compatible scaffold)
+ * Accounts Orbit — GSP API client (MasterGST / WhiteBooks compatible scaffold)
  * Production me .env me credentials daalo; tab tak sandbox disabled rahega.
  */
 const fetch = require('node-fetch');

@@ -1,5 +1,5 @@
 /**
- * BolKarigar Live Chat — GPT-4o + Gemini with conversation memory
+ * Accounts Orbit Live Chat — GPT-4o + Gemini with conversation memory
  */
 const fetch = require('node-fetch');
 const { GoogleGenerativeAI } = require('@google/generative-ai');

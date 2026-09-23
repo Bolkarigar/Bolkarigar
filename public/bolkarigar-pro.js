@@ -1,5 +1,5 @@
 /**
- * BolKarigar Pro — Frontend for professional features
+ * Accounts Orbit Pro — Frontend for professional features
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
@@ -553,7 +553,7 @@
       } else if (isAndroid) {
         alert('Browser menu → "Install app" or "Add to Home screen"');
       } else {
-        alert('Install on laptop/desktop:\n\nChrome / Edge: Click the ⊕ or "Install" icon in the address bar\n\nOr menu (⋮) → "Install BolKarigar" / "Apps" → "Install this site as an app"');
+        alert('Install on laptop/desktop:\n\nChrome / Edge: Click the ⊕ or "Install" icon in the address bar\n\nOr menu (⋮) → "Install Accounts Orbit" / "Apps" → "Install this site as an app"');
       }
     });
   });

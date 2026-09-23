@@ -1,5 +1,5 @@
 /**
- * BolKarigar Team Todos — owner/manager sends tasks to all staff or selected members.
+ * Accounts Orbit Team Todos — owner/manager sends tasks to all staff or selected members.
  */
 function setupTeamTodoFeatures({ app, mongoose, authenticateToken, models, rbac }) {
   const { User } = models;
@@ -144,7 +144,7 @@ function setupTeamTodoFeatures({ app, mongoose, authenticateToken, models, rbac 
     res.json({ success: true, message: 'Team todo removed.' });
   });
 
-  console.log('✓ BolKarigar Team Todos loaded');
+  console.log('✓ Accounts Orbit Team Todos loaded');
   return { TeamTodo };
 }
 

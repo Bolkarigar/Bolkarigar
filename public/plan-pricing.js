@@ -1,4 +1,4 @@
-/** BolKarigar — plan prices shown in UI (keep in sync with plan-pricing-config.js) */
+/** Accounts Orbit — plan prices shown in UI (keep in sync with plan-pricing-config.js) */
 (function () {
   const PRO_TRIAL_DAYS = 30;
   const BUSINESS_TRIAL_DAYS = 15;

@@ -1,5 +1,5 @@
 /**
- * BolKarigar — team alerts (meeting / todo / gallery) with sound + browser notification
+ * Accounts Orbit — team alerts (meeting / todo / gallery) with sound + browser notification
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
@@ -163,7 +163,7 @@
         }
       }
     });
-    pushBrowserNotification(`BolKarigar ${label}`, m.title, `meet-${m.id}`, () => {
+    pushBrowserNotification(`Accounts Orbit ${label}`, m.title, `meet-${m.id}`, () => {
       if (typeof window.openPanel === 'function') window.openPanel('teamMeetingPanel');
     });
   }
@@ -181,7 +181,7 @@
         if (window.BolKarigarTeamTodos?.loadTeamTodos) window.BolKarigarTeamTodos.loadTeamTodos();
       }
     });
-    pushBrowserNotification('BolKarigar — Team todo', t.text, `todo-${t.id}`, () => {
+    pushBrowserNotification('Accounts Orbit — Team todo', t.text, `todo-${t.id}`, () => {
       if (typeof window.openPanel === 'function') window.openPanel('todoPanel');
     });
   }
@@ -200,7 +200,7 @@
         if (window.BolKarigarTeamGallery?.loadTeamGallery) window.BolKarigarTeamGallery.loadTeamGallery();
       }
     });
-    pushBrowserNotification('BolKarigar — Gallery', note, `gal-${s.id}`, () => {
+    pushBrowserNotification('Accounts Orbit — Gallery', note, `gal-${s.id}`, () => {
       if (typeof window.openPanel === 'function') window.openPanel('galleryPanel');
     });
   }

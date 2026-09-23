@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Business Card Maker (Khatabook-style)
+ * Accounts Orbit — Business Card Maker (Khatabook-style)
  * 18 Pro + 30 Business luxury designs | Form editor | Download | WhatsApp Share
  */
 (function () {
@@ -762,7 +762,7 @@
             `)}
           </div>
           <div style="grid-row:1">${renderCenteredQR(data, a, 108)}</div>
-          ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:3px;color:${a};opacity:0.75;text-transform:uppercase;white-space:nowrap;font-weight:700">Bolkarigar</div>`)}
+          ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:3px;color:${a};opacity:0.75;text-transform:uppercase;white-space:nowrap;font-weight:700">Accounts Orbit</div>`)}
           ${foilBar}
         </div>
       </div>
@@ -1382,7 +1382,7 @@
       const a = document.createElement("a");
       const biz = getFormData().businessName || "business";
       a.href = url;
-      a.download = `BolKarigar-Card-${biz.replace(/\s+/g, "-")}.png`;
+      a.download = `Accounts Orbit-Card-${biz.replace(/\s+/g, "-")}.png`;
       a.click();
       URL.revokeObjectURL(url);
       saveData(getFormData());
@@ -1464,7 +1464,7 @@
     });
 
     document.getElementById("bcUpgradeBtn")?.addEventListener("click", () => {
-      if (typeof buyBolKarigarPlan === "function") buyBolKarigarPlan("business");
+      if (typeof buyAOPlan === "function") buyAOPlan("business");
       else if (typeof openPanel === "function") openPanel("myPlanPanel");
     });
 

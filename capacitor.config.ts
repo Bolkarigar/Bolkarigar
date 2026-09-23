@@ -4,7 +4,7 @@ const LIVE_API = 'https://bolkarigar.onrender.com';
 
 const config: CapacitorConfig = {
   appId: 'com.bolkarigar.app',
-  appName: 'BolKarigar',
+  appName: 'Accounts Orbit',
   webDir: 'public',
   // Local files load from APK; API calls go to LIVE_API via public/native-config.js
   android: {

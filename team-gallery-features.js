@@ -1,5 +1,5 @@
 /**
- * BolKarigar Team Gallery — owner shares product photos with all or selected staff.
+ * Accounts Orbit Team Gallery — owner shares product photos with all or selected staff.
  */
 function setupTeamGalleryFeatures({ app, mongoose, authenticateToken, models, rbac }) {
   const { User, Photo } = models;
@@ -132,7 +132,7 @@ function setupTeamGalleryFeatures({ app, mongoose, authenticateToken, models, rb
     return shares.some((s) => isAssignedToUser(s, viewerUserId));
   }
 
-  console.log('✓ BolKarigar Team Gallery loaded');
+  console.log('✓ Accounts Orbit Team Gallery loaded');
   return { GalleryShare, staffCanViewPhoto };
 }
 

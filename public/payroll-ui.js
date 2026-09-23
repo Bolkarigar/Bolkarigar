@@ -1,5 +1,5 @@
 /**
- * BolKarigar Payroll UI — Employee Hajri & Monthly Salary (Business ₹299)
+ * Accounts Orbit Payroll UI — Employee Hajri & Monthly Salary (Business ₹299)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
@@ -178,7 +178,7 @@
       `Gross Earned: ₹${s.grossSalary.toFixed(2)}`,
       `Advance: ₹${s.totalAdvances.toFixed(2)}`,
       `*Net Pay: ₹${s.netPayable.toFixed(2)}*`,
-      '— BolKarigar App'
+      '— Accounts Orbit App'
     ].join('\n');
   }
 

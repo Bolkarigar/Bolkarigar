@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Animated help demos (Hindi + English step captions)
+ * Accounts Orbit — Animated help demos (Hindi + English step captions)
  */
 (function () {
   const timers = new Map();

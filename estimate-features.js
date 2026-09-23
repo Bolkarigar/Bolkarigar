@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Quotation / Estimate (Kaccha Bill) — Business ₹299
+ * Accounts Orbit — Quotation / Estimate (Kaccha Bill) — Business ₹299
  * Save estimates, PDF on client, 1-click convert to tax invoice (sales history).
  */
 const ESTIMATE_STATUSES = ['draft', 'sent', 'accepted', 'converted', 'rejected'];

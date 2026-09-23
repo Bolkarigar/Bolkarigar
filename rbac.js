@@ -1,5 +1,5 @@
 /**
- * BolKarigar RBAC — role-based permissions (owner / manager / cashier / staff)
+ * Accounts Orbit RBAC — role-based permissions (owner / manager / cashier / staff)
  */
 
 const PERMISSIONS = {

@@ -1,5 +1,5 @@
 // ==================================================================================
-// BolKarigar Tally Sync — Desktop Agent
+// Accounts Orbit Tally Sync — Desktop Agent
 // ==================================================================================
 
 const WebSocket = require('ws');
@@ -37,7 +37,7 @@ const TALLY_HTTP_CONTENT_TYPES = ['UTF-8', 'text/xml; charset=UTF-8', 'text/XML'
 const TALLY_HTTP_HELP =
   'Tally HTTP Server OFF. ODBC ON is NOT enough. F1 → Settings → Advanced Configuration → HTTP Server = Yes (port 9000). Also Connectivity → acts as Both. Restart Tally, select company, then Sync.';
 const TALLY_ODBC_ONLY_HELP =
-  'Port 9000 par sirf ODBC ON hai — BolKarigar ko HTTP Server chahiye (XML). F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes. ODBC screen alag hai!';
+  'Port 9000 par sirf ODBC ON hai — Accounts Orbit ko HTTP Server chahiye (XML). F1 → Settings → Advanced Configuration → Enable HTTP Server = Yes. ODBC screen alag hai!';
 
 let lastTallyLaunchAt = 0;
 const TALLY_LAUNCH_COOLDOWN_MS = 3 * 60 * 1000;
@@ -91,7 +91,7 @@ function printHttpServerSteps(extra) {
   console.log('\n══════════════════════════════════════════════════');
   console.log('  ⚠️  ODBC ON ≠ HTTP ON');
   console.log('  Aapki screen mein sirf "Enable ODBC = Yes" dikh raha hai.');
-  console.log('  BolKarigar ko alag se "Enable HTTP Server = Yes" chahiye.');
+  console.log('  Accounts Orbit ko alag se "Enable HTTP Server = Yes" chahiye.');
   if (extra) console.log(`  ${extra}`);
   console.log('');
   console.log('  METHOD 1 — Connectivity screen (same screen, neeche scroll):');
@@ -108,7 +108,7 @@ function printHttpServerSteps(extra) {
   console.log('');
   console.log('  STEP C — Company + restart (ZAROORI):');
   console.log('    Gateway → company select karein (Lokansh Ltd) → Tally band karke dubara kholo');
-  console.log('    BolKarigar → Test Tally HTTP → Sync Tally');
+  console.log('    Accounts Orbit → Test Tally HTTP → Sync Tally');
   console.log('  EDU note: voucher Day Book mein 1st / 2nd / last date par dikhega.');
   console.log('══════════════════════════════════════════════════\n');
 }
@@ -512,17 +512,17 @@ async function ensureConfig() {
     return saveConfig(config);
   }
 
-  console.log('\n=== BolKarigar Desktop Agent — First-time Setup ===\n');
+  console.log('\n=== Accounts Orbit Desktop Agent — First-time Setup ===\n');
   console.log(`Config folder: ${getConfigDir()}`);
-  console.log('Easier way: In BolKarigar sidebar click "Connect Agent.bat" — token saves automatically.\n');
+  console.log('Easier way: In Accounts Orbit sidebar click "Connect Agent.bat" — token saves automatically.\n');
 
   const backendUrl = args.backendUrl
     || (await askQuestion(`Server URL [Enter = ${DEFAULT_BACKEND}]: `)) || DEFAULT_BACKEND;
   const agentToken = args.agentToken
-    || cleanToken(await askQuestion('Paste Pairing Token from BolKarigar sidebar: '));
+    || cleanToken(await askQuestion('Paste Pairing Token from Accounts Orbit sidebar: '));
 
   if (!agentToken) {
-    console.error('Token is required. Copy it from BolKarigar → Tally Sync Agent → Copy.');
+    console.error('Token is required. Copy it from Accounts Orbit → Tally Sync Agent → Copy.');
     process.exit(1);
   }
 
@@ -680,7 +680,7 @@ function connect(config) {
         if (!responseText && lastSyncErr) {
           try {
             const tallyRes = await fetchWithTimeout(tallyLocalUrl, {
-              method: 'POST',
+          method: 'POST',
               headers: { 'Content-Type': 'UTF-8', Connection: 'close' },
               body: msg.xml
             }, 60000);
@@ -702,9 +702,9 @@ function connect(config) {
           console.log('↩ Trying next format...');
         }
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'sync_result',
-            requestId: msg.requestId,
+        ws.send(JSON.stringify({
+          type: 'sync_result',
+          requestId: msg.requestId,
             ok: true,
             responseText,
             tallyOk,
@@ -714,12 +714,12 @@ function connect(config) {
       } catch (err) {
         console.error(`❌ Sync failed: ${err.message}`);
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'sync_result',
-            requestId: msg.requestId,
-            ok: false,
+        ws.send(JSON.stringify({
+          type: 'sync_result',
+          requestId: msg.requestId,
+          ok: false,
             error: err.message
-          }));
+        }));
         }
       } finally {
         syncInProgress = false;
@@ -735,7 +735,7 @@ function connect(config) {
       process.exit(1);
     }
     if (code === 4003) {
-      console.error('\n❌ Invalid pairing token. In BolKarigar: Copy token again → run Connect Agent.bat\n');
+      console.error('\n❌ Invalid pairing token. In Accounts Orbit: Copy token again → run Connect Agent.bat\n');
       process.exit(1);
     }
     if (code === 4009) {
@@ -754,7 +754,7 @@ function connect(config) {
 }
 
 (async () => {
-  console.log(`=== BolKarigar Tally Sync Agent v${AGENT_VERSION} ===\n`);
+  console.log(`=== Accounts Orbit Tally Sync Agent v${AGENT_VERSION} ===\n`);
   const config = await ensureConfig();
   connect(config);
 })();

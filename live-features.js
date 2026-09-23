@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Live-ready feature routes (daily summary, backup, alerts, CSV import)
+ * Accounts Orbit — Live-ready feature routes (daily summary, backup, alerts, CSV import)
  */
 const { parseBankCsvRows } = require('./bank-csv-utils');
 const { autoMatchBankRecon } = require('./bank-recon-service');
@@ -93,7 +93,7 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
       ]);
       const payload = {
         exportedAt: new Date().toISOString(),
-        generator: 'BolKarigar',
+        generator: 'Accounts Orbit',
         profile,
         todos: userData?.todos || [],
         projects: userData?.projects || [],

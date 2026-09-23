@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Live feature UI (daily summary, alerts, backup, onboarding, bank CSV)
+ * Accounts Orbit — Live feature UI (daily summary, alerts, backup, onboarding, bank CSV)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));

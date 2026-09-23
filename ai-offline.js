@@ -1,13 +1,13 @@
 /**
- * Offline AI knowledge for BolKarigar — Gemini fail hone par bhi jawab de sake.
+ * Offline AI knowledge for Accounts Orbit — Gemini fail hone par bhi jawab de sake.
  */
 
 const APP_FEATURES_OVERVIEW =
-  'BolKarigar ek Hindi voice-first business app hai. Isme yeh sab hai: Overview dashboard (sales/expense/profit), Voice AI se poora control, Invoice/GST bill banana aur download, WhatsApp share, Tally Prime sync, Project aur Expense tracking, Inventory/Stock, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales report, Gallery, Todo list, QR Tool, Calculator, Notes, Media scanner, Business Profile settings, aur Help & Guide. Kisi bhi feature ke baare me detail me poochhiye!';
+  'Accounts Orbit ek Hindi voice-first business app hai. Isme yeh sab hai: Overview dashboard (sales/expense/profit), Voice AI se poora control, Invoice/GST bill banana aur download, WhatsApp share, Tally Prime sync, Project aur Expense tracking, Inventory/Stock, Udhar Khata, Ledgers, Stock Items, Voucher, Day Book, Total Sales report, Gallery, Todo list, QR Tool, Calculator, Notes, Media scanner, Business Profile settings, aur Help & Guide. Kisi bhi feature ke baare me detail me poochhiye!';
 
 const OFFLINE_FAQ = [
-  { keywords: ['namaste', 'hello', 'hi', 'hey', 'kaise ho', 'good morning'], answer: 'Namaste! Main BolKarigar AI hoon. App ke baare me kuch bhi poochhiye — invoice, project, khata, tally, voice commands, sab bata sakta hoon.' },
-  { keywords: ['tum kaun', 'aap kaun', 'who are you', 'kya ho tum', 'your name'], answer: 'Main BolKarigar AI hoon — is app ka smart assistant. Main app ke har feature ke baare me guide kar sakta hoon aur kuch commands bhi chala sakta hoon.' },
+  { keywords: ['namaste', 'hello', 'hi', 'hey', 'kaise ho', 'good morning'], answer: 'Namaste! Main Accounts Orbit AI hoon. App ke baare me kuch bhi poochhiye — invoice, project, khata, tally, voice commands, sab bata sakta hoon.' },
+  { keywords: ['tum kaun', 'aap kaun', 'who are you', 'kya ho tum', 'your name'], answer: 'Main Accounts Orbit AI hoon — is app ka smart assistant. Main app ke har feature ke baare me guide kar sakta hoon aur kuch commands bhi chala sakta hoon.' },
   { keywords: ['kya kya', 'ho skta', 'ho sakta', 'ho skte', 'features', 'modules', 'kitne model', 'kya kaam', 'kar sakte', 'ker skte', 'kr skte', 'what can', 'app me kya', 'app m kya', 'iss app', 'is app'], answer: APP_FEATURES_OVERVIEW },
   { keywords: ['bolkarigar kya', 'app kya hai', 'app kis liye', 'what is this'], answer: APP_FEATURES_OVERVIEW },
   { keywords: ['invoice', 'bill banaye', 'bill banao', 'invoice kaise', 'invoice kese'], answer: 'Invoice tab kholo, pehle Business Profile save karo. Phir Customer, Product, Price, Qty aur GST rate bharo, Add Item dabao. Download se bill print karo, WhatsApp Share se customer ko bhejo, Tally mode me Sync to Tally bhi kar sakte ho.' },
@@ -26,7 +26,7 @@ const OFFLINE_FAQ = [
   { keywords: ['dark mode', 'light mode', 'theme'], answer: 'Header me Light/Dark button se theme badlo, ya bolo dark mode on.' },
   { keywords: ['logout', 'password', 'login'], answer: 'Logout header me right side hai. Password bhool gaye to login page par Forgot Password use karo.' },
   { keywords: ['help', 'guide', 'manual'], answer: 'Sidebar me Help & Guide tab kholo — har module ki poori Hindi+English guide hai.' },
-  { keywords: ['free', 'cost', 'paisa', 'paid'], answer: 'BolKarigar app use karna free hai. Sirf Gemini AI chat ke liye optional API key chahiye (Google AI Studio se free).' },
+  { keywords: ['free', 'cost', 'paisa', 'paid'], answer: 'Accounts Orbit app use karna free hai. Sirf Gemini AI chat ke liye optional API key chahiye (Google AI Studio se free).' },
   { keywords: ['whatsapp'], answer: 'Invoice banane ke baad WhatsApp Share button se bill customer ko bhejo.' },
   { keywords: ['eway', 'e way', 'vehicle'], answer: 'Invoice panel me E-Way Bill section me bill number, vehicle number aur distance bhar sakte ho (optional).' },
   { keywords: ['overview', 'profit', 'sales', 'expense', 'report'], answer: 'Overview tab me Total Sales, Total Expense, Net Profit/Loss aur Udhar summary cards dikhte hain — auto calculate hota hai invoices aur expenses se.' }
@@ -83,7 +83,7 @@ function scoreFaqMatch(text, keywords) {
 
 function getOfflineAiReply(message) {
   const text = String(message || '').trim();
-  if (!text) return 'Kuch poochhiye — main BolKarigar app ke baare me sab bata sakta hoon.';
+  if (!text) return 'Kuch poochhiye — main Accounts Orbit app ke baare me sab bata sakta hoon.';
 
   const moduleFaq = matchModuleFaq(text);
   if (moduleFaq) return moduleFaq;
@@ -105,7 +105,7 @@ function getOfflineAiReply(message) {
     return APP_FEATURES_OVERVIEW;
   }
 
-  return 'Main BolKarigar app ke features ke baare me madad kar sakta hoon. Try karein: "invoice kaise banaye", "tally sync kaise kare", "app me kya kya hai", ya "voice commands kya hain".';
+  return 'Main Accounts Orbit app ke features ke baare me madad kar sakta hoon. Try karein: "invoice kaise banaye", "tally sync kaise kare", "app me kya kya hai", ya "voice commands kya hain".';
 }
 
 function isValidGeminiApiKey(key) {

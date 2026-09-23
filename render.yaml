@@ -1,4 +1,4 @@
-# Render Blueprint — BolKarigar
+# Render Blueprint — Accounts Orbit
 # Dashboard: Environment → add SMTP keys (Forgot Password OTP ke liye ZAROORI)
 services:
   - type: web
@@ -16,9 +16,9 @@ services:
       - key: SMTP_SECURE
         value: "true"
       - key: SMTP_FROM
-        value: "BolKarigar <vkverma3185@gmail.com>"
+        value: "Accounts Orbit <vkverma3185@gmail.com>"
       - key: SMTP_FROM_NAME
-        value: BolKarigar
+        value: Accounts Orbit
       # Secret — Render Dashboard me manually set karein:
       - key: SMTP_USER
         sync: false

@@ -1,7 +1,7 @@
 {
   "name": "bolkarigar-tally-agent",
   "version": "1.0.0",
-  "description": "BolKarigar Desktop Agent — Tally Prime ko cloud app se connect karta hai",
+  "description": "Accounts Orbit Desktop Agent — Tally Prime ko cloud app se connect karta hai",
   "main": "BolKarigarTallyAgent.js",
   "scripts": {
     "start": "node BolKarigarTallyAgent.js",

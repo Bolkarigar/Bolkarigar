@@ -170,7 +170,7 @@
       btn.dataset.bkWired = "1";
       btn.addEventListener("click", () => {
         const billing = btn.dataset.bkBilling || getSelectedBilling();
-        buyBolKarigarPlan(btn.dataset.bkPlan, billing);
+        buyAOPlan(btn.dataset.bkPlan, billing);
       });
     });
     wireBillingToggles();
@@ -291,7 +291,7 @@
     return {};
   }
 
-  async function buyBolKarigarPlan(plan, billing) {
+  async function buyAOPlan(plan, billing) {
     const planId = plan === "business" ? "business" : "pro";
     const bill = billing === "yearly" ? "yearly" : "monthly";
     const p = pricing()[planId] || {};
@@ -361,7 +361,7 @@
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "BolKarigar",
+        name: "Accounts Orbit",
         description: `${orderData.planName} — ${planLabel} (${periodLabel})`,
         order_id: orderData.orderId,
         prefill: {
@@ -471,7 +471,7 @@
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "BolKarigar",
+        name: "Accounts Orbit",
         description: `+${qty * packSize} staff (${qty}× ₹${priceEach})`,
         order_id: orderData.orderId,
         prefill: { email: me.email || "", name: me.username || "" },
@@ -513,7 +513,7 @@
     }
   }
 
-  window.buyBolKarigarPlan = buyBolKarigarPlan;
+  window.buyAOPlan = buyAOPlan;
   window.bkPayStaffSlotPack = payStaffSlotPack;
   window.bkRenderSubscriptionUI = renderSubscriptionUI;
   window.refreshPlanStatus = refreshPlanStatus;

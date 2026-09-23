@@ -1,4 +1,4 @@
-# BolKarigar — release obfuscation (R8)
+# Accounts Orbit — release obfuscation (R8)
 
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable

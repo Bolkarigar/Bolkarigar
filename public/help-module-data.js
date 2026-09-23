@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Help module catalog (Hindi + English + animated demo steps)
+ * Accounts Orbit — Help module catalog (Hindi + English + animated demo steps)
  */
 (function () {
   const PRO_MODULES = [
@@ -393,10 +393,10 @@
     {
       id: "tallySync", panelId: null, plans: ["business"], color: "#16a34a",
       title: "🔗 Tally Sync (Optional)",
-      hindi: "Use BolKarigar Khata daily. Optional Tally sync needs Desktop Agent and Tally HTTP on port 9000.",
-      english: "Use BolKarigar Khata daily. Optional Tally sync needs Desktop Agent and Tally HTTP on port 9000.",
+      hindi: "Use Accounts Orbit Khata daily. Optional Tally sync needs Desktop Agent and Tally HTTP on port 9000.",
+      english: "Use Accounts Orbit Khata daily. Optional Tally sync needs Desktop Agent and Tally HTTP on port 9000.",
       steps: [
-        { en: "Install BolKarigar Desktop Agent on PC", hi: "Install BolKarigar Desktop Agent on PC", visual: { title: "💻 Agent", action: "Download Agent" } },
+        { en: "Install Accounts Orbit Desktop Agent on PC", hi: "Install Accounts Orbit Desktop Agent on PC", visual: { title: "💻 Agent", action: "Download Agent" } },
         { en: "Tally: F1 → Settings → HTTP Server ON, Port 9000", hi: "Tally: F1 → Settings → HTTP Server ON, Port 9000", visual: { title: "⚙️ Tally", list: ["Client/Server mode", "Port 9000", "Company open in Tally"] } },
         { en: "Test connection — green tick", hi: "Test connection — green tick", visual: { title: "🔗 Test", action: "Test Tally Connection" } },
         { en: "Sync vouchers to Tally when needed", hi: "Sync vouchers to Tally when needed", visual: { title: "✅ Sync", action: "Sync to Tally" } }

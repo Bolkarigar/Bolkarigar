@@ -1,5 +1,5 @@
 /**
- * BolKarigar Team Meeting UI — in-app voice/video (embedded room)
+ * Accounts Orbit Team Meeting UI — in-app voice/video (embedded room)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));
@@ -90,7 +90,7 @@
     }
     const m = live[0];
     banner.classList.remove('hidden');
-    banner.innerHTML = `<strong>🔴 Meeting ready:</strong> ${esc(m.title)} — tap <strong>Join</strong> below to enter the call inside BolKarigar.`;
+    banner.innerHTML = `<strong>🔴 Meeting ready:</strong> ${esc(m.title)} — tap <strong>Join</strong> below to enter the call inside Accounts Orbit.`;
   }
 
   function paintMeetingsList(meetings, canHost) {
@@ -129,7 +129,7 @@
     });
     list.querySelectorAll('.meet-wa-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const text = encodeURIComponent(`BolKarigar meeting: ${btn.dataset.title}\nOpen app → Team Meeting → Join\nOr link: ${btn.dataset.url}`);
+        const text = encodeURIComponent(`Accounts Orbit meeting: ${btn.dataset.title}\nOpen app → Team Meeting → Join\nOr link: ${btn.dataset.url}`);
         window.open(`https://wa.me/?text=${text}`, '_blank');
       });
     });
@@ -233,7 +233,7 @@
 
     closeMeetingRoom();
     activeMeetingId = meetingId;
-    if (titleEl) titleEl.textContent = res.meeting.title || 'BolKarigar Meeting';
+    if (titleEl) titleEl.textContent = res.meeting.title || 'Accounts Orbit Meeting';
 
     modal.classList.remove('hidden');
     const { domain, roomName, displayName, isModerator, startWithVideoMuted, subject } = res.jitsi;
@@ -255,7 +255,7 @@
         prejoinPageEnabled: true,
         enableWelcomePage: false,
         disableDeepLinking: true,
-        subject: subject || 'BolKarigar Meeting',
+        subject: subject || 'Accounts Orbit Meeting',
         constraints: {
           video: audioOnly ? false : { height: { ideal: 720, max: 720, min: 180 } }
         }
@@ -263,8 +263,8 @@
       interfaceConfigOverwrite: {
         MOBILE_APP_PROMO: false,
         SHOW_JITSI_WATERMARK: false,
-        APP_NAME: 'BolKarigar',
-        NATIVE_APP_NAME: 'BolKarigar'
+        APP_NAME: 'Accounts Orbit',
+        NATIVE_APP_NAME: 'Accounts Orbit'
       }
     });
 
@@ -279,7 +279,7 @@
       loadTeamMeetingPanel();
     });
 
-    toast('✅ Call opened inside BolKarigar — allow mic/camera when browser asks', 'success');
+    toast('✅ Call opened inside Accounts Orbit — allow mic/camera when browser asks', 'success');
   }
 
   function startMeetPolling() {

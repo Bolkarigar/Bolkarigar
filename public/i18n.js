@@ -1,5 +1,5 @@
 /**
- * BolKarigar — English UI only (labels, menus, hints).
+ * Accounts Orbit — English UI only (labels, menus, hints).
  * Voice commands may still accept Hindi speech input.
  */
 (function (global) {
@@ -193,7 +193,7 @@
     'common.delete': 'Delete',
     'common.close': 'Close',
     'common.copy': 'Copy',
-    'login.title': 'BolKarigar AI',
+    'login.title': 'Accounts Orbit AI',
     'login.subtitle': 'Sign in to your account',
     'login.username': 'Username',
     'login.password': 'Password',
@@ -466,7 +466,7 @@
     'common.delete': 'हटाएं',
     'common.close': 'बंद करें',
     'common.copy': 'कॉपी',
-    'login.title': 'BolKarigar AI',
+    'login.title': 'Accounts Orbit AI',
     'login.subtitle': 'अपने अकाउंट में लॉगिन करें',
     'login.username': 'यूज़रनेम',
     'login.password': 'पासवर्ड',

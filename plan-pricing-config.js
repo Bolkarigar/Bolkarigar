@@ -1,5 +1,5 @@
 /**
- * BolKarigar — single source for plan prices & trials (server + can mirror in public/plan-pricing.js)
+ * Accounts Orbit — single source for plan prices & trials (server + can mirror in public/plan-pricing.js)
  */
 const PRO_TRIAL_DAYS = 30;
 const BUSINESS_TRIAL_DAYS = 15;

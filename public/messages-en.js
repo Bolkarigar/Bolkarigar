@@ -179,7 +179,7 @@
     [/Scan fail hua\. Manually details bhar lein\.?/gi, "Scan failed. Please enter details manually."],
     [/HTTP ready hone par Sync enable hoga\.?/gi, "Sync enables when HTTP is ready."],
     [/Pehle Connect Agent\.bat chalao — phir HTTP test green hone par Sync enable hoga\.?/gi, "Run Connect Agent.bat first — Sync enables when HTTP test is green."],
-    [/Roz ka kaam <strong>BolKarigar Khata<\/strong> se chala sakte ho\.?/gi, "Daily work can run on <strong>BolKarigar Khata</strong>."],
+    [/Roz ka kaam <strong>Accounts Orbit Khata<\/strong> se chala sakte ho\.?/gi, "Daily work can run on <strong>Accounts Orbit Khata</strong>."],
     [/Invoice Tally Prime mein bhejo/gi, "Send invoice to Tally Prime"],
     [/Port 9000 open — company Day Book mein khuli ho to try karein/gi, "Port 9000 open — try if company is open in Day Book"],
     [/Sync try kar sakte ho\. Best: Test Tally HTTP green karein\.?/gi, "You can try Sync. Best: make Test Tally HTTP green first."],

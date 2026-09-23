@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Razorpay subscription payments (owner only).
+ * Accounts Orbit — Razorpay subscription payments (owner only).
  * Pro: ₹99/month or ₹999/year | Business: ₹299/month or ₹2999/year
  */
 
@@ -158,7 +158,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
       let planInfo = null;
       let billingLabel = '';
       let staffPacks = 0;
-      let productNote = 'BolKarigar Subscription';
+      let productNote = 'Accounts Orbit Subscription';
 
       if (orderType === 'staff_pack') {
         if (user.plan !== 'business') {
@@ -174,7 +174,7 @@ function setupRazorpayPayments({ app, mongoose, User, authenticateToken }) {
         );
         amountPaise = STAFF_PACK_AMOUNT_PAISE * staffPacks;
         plan = 'business';
-        productNote = 'BolKarigar Staff Pack';
+        productNote = 'Accounts Orbit Staff Pack';
         billingLabel = `${staffPacks}× +${STAFF_PACK_SIZE} staff (₹${STAFF_PACK_PRICE_RS} each)`;
         planInfo = PLANS.business;
       } else {

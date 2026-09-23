@@ -1,5 +1,5 @@
 /**
- * BolKarigar — App Lock
+ * Accounts Orbit — App Lock
  * PIN + Face ID / Fingerprint (WebAuthn platform authenticator)
  */
 (function () {
@@ -71,8 +71,8 @@
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: "BolKarigar", id: window.location.hostname || "localhost" },
-        user: { id: userId, name: "bolkarigar@local", displayName: "BolKarigar User" },
+        rp: { name: "Accounts Orbit", id: window.location.hostname || "localhost" },
+        user: { id: userId, name: "bolkarigar@local", displayName: "Accounts Orbit User" },
         pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
         authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "discouraged" },
         timeout: 60000,
@@ -328,7 +328,7 @@
       overlay.dataset.mode = "unlock";
       const title = document.getElementById("appLockTitle");
       const sub = document.getElementById("appLockSubtext");
-      if (title) title.textContent = "BolKarigar Locked";
+      if (title) title.textContent = "Accounts Orbit Locked";
       if (sub) sub.textContent = t("security.unlockSub");
     }
     showOverlay();

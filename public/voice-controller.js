@@ -1,5 +1,5 @@
 /**
- * BolKarigar Voice Engine v4 — Hindi/Hinglish, bol ke jawab + kaam dono
+ * Accounts Orbit Voice Engine v4 — Hindi/Hinglish, bol ke jawab + kaam dono
  * Har module navigation, FAQ jawab, invoice/todo + AI fallback
  */
 (function () {

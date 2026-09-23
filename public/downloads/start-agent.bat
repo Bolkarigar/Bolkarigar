@@ -1,5 +1,5 @@
 @echo off
-title BolKarigar Tally Sync Agent
+title Accounts Orbit Tally Sync Agent
 cd /d "%~dp0"
 if exist BolKarigarTallyAgent.exe (
   BolKarigarTallyAgent.exe

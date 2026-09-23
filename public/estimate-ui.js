@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Quotation / Estimate Builder UI (Business ₹299)
+ * Accounts Orbit — Quotation / Estimate Builder UI (Business ₹299)
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));

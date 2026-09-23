@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Owner subscription trials & paid plans.
+ * Accounts Orbit — Owner subscription trials & paid plans.
  * Pro: 30-day free trial → ₹99/month or ₹999/year
  * Business: 15-day free trial → ₹299/month or ₹2999/year
  * Staff never pays — linked to owner's plan via invite code.

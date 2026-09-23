@@ -1,5 +1,5 @@
 /**
- * BolKarigar Team Meetings — owner/manager schedules voice or video calls with staff.
+ * Accounts Orbit Team Meetings — owner/manager schedules voice or video calls with staff.
  * Join via in-app link (secure room slug + join code).
  */
 const crypto = require('crypto');
@@ -70,7 +70,7 @@ function setupTeamMeetingFeatures({ app, mongoose, authenticateToken, models, rb
   }
 
   function jitsiRoomName(meeting) {
-    return `Bolkarigar_${String(meeting.ownerId).slice(-8)}_${meeting.roomSlug}`;
+    return `AccountsOrbit_${String(meeting.ownerId).slice(-8)}_${meeting.roomSlug}`;
   }
 
   function buildJoinPath(meeting) {
@@ -178,7 +178,7 @@ function setupTeamMeetingFeatures({ app, mongoose, authenticateToken, models, rb
       await meeting.save();
     }
 
-    let companyName = 'BolKarigar Team';
+    let companyName = 'Accounts Orbit Team';
     const profile = await BusinessProfile.findOne({ userId: req.ownerId });
     if (profile?.companyName) companyName = profile.companyName;
 
@@ -210,7 +210,7 @@ function setupTeamMeetingFeatures({ app, mongoose, authenticateToken, models, rb
     res.json({ success: true, message: 'Meeting ended.' });
   });
 
-  console.log('✓ BolKarigar Team Meetings loaded');
+  console.log('✓ Accounts Orbit Team Meetings loaded');
   return { TeamMeeting };
 }
 

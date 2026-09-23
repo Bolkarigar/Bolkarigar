@@ -11,7 +11,7 @@
 //      jo already .env mein configured hai)
 //   5. Temp files turant delete kar deta hai
 //
-// Result: har din tumhare inbox mein "BolKarigar Backup — <date>" email
+// Result: har din tumhare inbox mein "Accounts Orbit Backup — <date>" email
 // aayega ek zip attachment ke saath. Wahi tumhara safe backup hai.
 //
 // Manual run (testing ke liye):
@@ -67,7 +67,7 @@ async function sendBackupEmail(zipPath, zipSizeBytes, docCount, collectionCount)
   await mail.transporter.sendMail({
     from: mail.from,
     to: toEmail,
-    subject: `BolKarigar Backup — ${new Date().toLocaleDateString('en-IN')}`,
+    subject: `Accounts Orbit Backup — ${new Date().toLocaleDateString('en-IN')}`,
     text: `Automated daily backup.\n\nCollections: ${collectionCount}\nTotal documents: ${docCount}\nZip size: ${sizeMB} MB\n\nIse kisi safe jagah save karke rakho (Google Drive folder banake use dedicated rakho, taaki daily emails mein khoye na).`,
     attachments: [{ filename: path.basename(zipPath), path: zipPath }]
   });

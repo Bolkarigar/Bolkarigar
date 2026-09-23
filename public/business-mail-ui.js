@@ -1,5 +1,5 @@
 /**
- * BolKarigar — Business Mail (Business ₹299): send + track customer emails
+ * Accounts Orbit — Business Mail (Business ₹299): send + track customer emails
  */
 (function () {
   const API = () => (typeof window.bkGetApiUrl === 'function' ? window.bkGetApiUrl() : (window.API_URL || ''));

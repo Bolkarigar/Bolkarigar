@@ -4,7 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <!-- BolKarigar — larger B mark for app icon -->
+  <!-- Accounts Orbit — larger B mark for app icon -->
   <path
       android:fillColor="#FFFFFF"
       android:pathData="M28,22h26c16,0 28,10 28,24c0,9 -4,16 -11,20c9,4 15,12 15,24c0,16 -13,26 -32,26H28V22zM46,38H40v22h8c7,0 12,-4 12,-11c0,-7 -5,-11 -14,-11zM46,68H40v22h10c9,0 15,-5 15,-12c0,-6 -5,-10 -15,-10z"/>
