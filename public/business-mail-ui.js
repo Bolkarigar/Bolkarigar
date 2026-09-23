@@ -159,6 +159,10 @@
       el.textContent = `Inbox connected to ${mailStatus.replyEmail}${mailStatus.imapHost ? ` via ${mailStatus.imapHost}` : ''}.${when}`;
       return;
     }
+    if (/@(gmail|googlemail)\./i.test(mailStatus.replyEmail || '')) {
+      el.textContent = 'Gmail login password yahan nahi chalega. Google → Security → App passwords se 16-letter App Password banao, phir Connect inbox.';
+      return;
+    }
     el.textContent = `${mailStatus.replyEmail} ki mails dikhane ke liye mailbox password daal ke Connect inbox dabao.`;
   }
 

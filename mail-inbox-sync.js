@@ -129,11 +129,23 @@ async function tryConnect(host, port, user, pass) {
   return client;
 }
 
+function isGmailAddress(email) {
+  return /@(gmail|googlemail)\./i.test(String(email || ''));
+}
+
+function loginFailMessage(email, host) {
+  if (isGmailAddress(email)) {
+    return `Gmail ka login password IMAP pe kaam nahi karta — yeh Google ki rule hai, password galat nahi. Google Account → Security → 2-Step Verification → App passwords → Mail/Other se 16-letter App Password banao aur wahi yahan paste karo. Gmail → Settings → Forwarding and POP/IMAP mein IMAP ON rakho.`;
+  }
+  return `Login failed for ${email} on ${host}. Mailbox password check karo (eye icon).`;
+}
+
 async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   const hosts = await guessImapHosts(email, preferredHost);
   if (!hosts.length) {
-    throw new Error('IMAP host nahi mila. Host box mein dx.infernix.net likho.');
+    throw new Error('IMAP host nahi mila. Host box mein sahi IMAP host likho.');
   }
+  const cleanPass = String(pass || '').replace(/\s+/g, '');
   let lastErr = 'Could not reach the mailbox IMAP server.';
   let lastRank = 0;
   const rank = (msg) => {
@@ -141,22 +153,28 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
     if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg)) return 1;
     return 2;
   };
+  const tryPasswords = [cleanPass];
+  const envFb = envFallbackFor(email);
+  if (envFb?.pass && envFb.pass !== cleanPass) tryPasswords.push(envFb.pass);
+
   for (const host of hosts.slice(0, 4)) {
-    try {
-      const client = await tryConnect(host, preferredPort || 993, email, pass);
-      return { client, host, port: preferredPort || 993 };
-    } catch (e) {
-      const msg = errText(e);
-      const r = rank(msg);
-      if (r >= lastRank) {
-        lastRank = r;
-        lastErr = `${host}: ${msg}`;
+    for (const pwd of tryPasswords) {
+      try {
+        const client = await tryConnect(host, preferredPort || 993, email, pwd);
+        return { client, host, port: preferredPort || 993 };
+      } catch (e) {
+        const msg = errText(e);
+        const r = rank(msg);
+        if (r >= lastRank) {
+          lastRank = r;
+          lastErr = `${host}: ${msg}`;
+        }
       }
     }
   }
   throw new Error(
     /auth|login|invalid|credentials|command failed/i.test(lastErr)
-      ? `Login failed for ${email} on ${hosts[0]}. Password galat ho sakta hai — eye icon se check karo.`
+      ? loginFailMessage(email, hosts[0])
       : `Inbox connect failed (${lastErr}). IMAP host ${hosts[0]} try karo.`
   );
 }
