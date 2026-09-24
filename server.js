@@ -125,7 +125,11 @@ app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : (process.env.NODE_ENV === 'production'
-      ? ['https://bolkarigar.onrender.com']
+      ? [
+          'https://bolkarigar.onrender.com',
+          'https://accountsorbit.com',
+          'https://www.accountsorbit.com'
+        ]
       : true)
 }));
 
@@ -874,7 +878,7 @@ async function findUserForPasswordReset(input) {
 
 app.post('/api/auth/forgot-password', async (req, res) => {
   const notSent = {
-    message: 'No account found. Use the exact email or username from Sign Up on bolkarigar.onrender.com (localhost account will not work here).',
+    message: 'No account found. Use the exact email or username from Sign Up on the live site (localhost account will not work here).',
     emailDelivered: false
   };
   const ipKey = `forgot-ip:${req.ip}`;
