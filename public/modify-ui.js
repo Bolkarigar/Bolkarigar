@@ -606,6 +606,12 @@
       setupModifyPartyAutocomplete();
       if (isPurchase) wireModifyAutoTotal("mdfPurQty", "mdfPurRate", "mdfPurGst", "mdfVchAmount");
     }
+    if (typeof window.aoAttachNameSuggest === "function") {
+      window.aoAttachNameSuggest("mdfPartyName", "party");
+      window.aoAttachNameSuggest("mdfCustomer", "party");
+      window.aoAttachNameSuggest("mdfItemName", "item");
+      window.aoAttachNameSuggest("mdfProduct", "item");
+    }
   }
 
   function setupModifyPartyAutocomplete() {

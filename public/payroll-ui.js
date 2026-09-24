@@ -429,6 +429,7 @@
   }
 
   let payrollEmployees = [];
+  window.aoGetEmployees = () => payrollEmployees;
 
   function paintPayrollEmployees() {
     const body = document.getElementById('payrollEmployeeBody');

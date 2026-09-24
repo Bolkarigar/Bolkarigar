@@ -3920,6 +3920,35 @@ body.app-lock-active { overflow: hidden; }
   color: var(--muted);
   margin-top: 2px;
 }
+.ao-suggest-wrap {
+  position: relative;
+  min-width: 0;
+  overflow: visible;
+}
+.overview-customer-search {
+  overflow: visible;
+}
+.ao-suggest-float {
+  position: fixed !important;
+  max-height: 260px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+.inv-item-entry .ao-suggest-wrap,
+.inv-item-entry .ao-item-suggest {
+  flex: 2 1 180px;
+  min-width: 140px;
+}
+.inv-item-entry .ao-suggest-wrap input,
+.inv-item-entry .ao-item-suggest input {
+  width: 100%;
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+.grid-2 > .ao-suggest-wrap,
+.inv-field .ao-suggest-wrap,
+.modify-form-grid .ao-suggest-wrap {
+  width: 100%;
+}
 .inv-full-span { grid-column: 1 / -1; }
 .gst-toggle-wrap {
   display: inline-flex;

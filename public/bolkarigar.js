@@ -812,19 +812,49 @@ async function loadInvoiceLedgers() {
 
 function filterInvoiceLedgers(query, ledgerFilter) {
   const q = String(query || "").trim().toLowerCase();
-  if (!q || !invoiceLedgerCache.length) return [];
+  if (!invoiceLedgerCache.length) return [];
   const starts = [];
   const contains = [];
   invoiceLedgerCache.forEach(ledger => {
     if (ledgerFilter && !ledgerFilter(ledger)) return;
     const name = String(ledger.partyName || "").trim();
     if (!name) return;
+    if (!q) {
+      starts.push(ledger);
+      return;
+    }
     const lower = name.toLowerCase();
     if (lower.startsWith(q)) starts.push(ledger);
     else if (lower.includes(q)) contains.push(ledger);
   });
   return [...starts, ...contains].slice(0, 12);
 }
+
+window.aoGetLedgers = () => invoiceLedgerCache;
+window.aoEnsureLedgers = async function () {
+  if (!invoiceLedgerCache.length && typeof loadInvoiceLedgers === "function") {
+    await loadInvoiceLedgers();
+  }
+  return invoiceLedgerCache;
+};
+window.aoGetItems = () => {
+  const map = new Map();
+  const add = (list) => {
+    (list || []).forEach((item) => {
+      const key = String(item.itemName || "").trim().toLowerCase();
+      if (key && !map.has(key)) map.set(key, item);
+    });
+  };
+  add(invoiceStockItemsCache);
+  add(window.purchaseStockItemsCache);
+  return [...map.values()];
+};
+window.aoEnsureItems = async function () {
+  if (!invoiceStockItemsCache.length && typeof loadInvoiceStockItems === "function") {
+    await loadInvoiceStockItems();
+  }
+  return window.aoGetItems();
+};
 
 function hideLedgerPartySuggest(suggestId) {
   const list = document.getElementById(suggestId);
@@ -1023,6 +1053,7 @@ function findInvoiceStockItem(name) {
   return invoiceStockItemsCache.find(i => String(i.itemName || "").trim().toLowerCase() === q) || null;
 }
 
+window.applyStockItemToInvoiceFields = applyStockItemToInvoiceFields;
 function applyStockItemToInvoiceFields(name) {
   const match = findInvoiceStockItem(name);
   if (!match) return false;
@@ -7754,6 +7785,7 @@ function getEWayBillDetails() {
     return purchaseStockItemsCache.find(i => String(i.itemName || "").trim().toLowerCase() === q) || null;
   }
 
+  window.applyPurchaseStockItemToFields = applyPurchaseStockItemToFields;
   function applyPurchaseStockItemToFields(name) {
     const match = findPurchaseStockItem(name);
     const hiddenId = document.getElementById("pvItemInput");
@@ -7984,6 +8016,7 @@ function getEWayBillDetails() {
       if (ledData.success) invoiceLedgerCache = ledData.ledgers || [];
       if (itemData.success) {
         purchaseStockItemsCache = itemData.items || [];
+        window.purchaseStockItemsCache = purchaseStockItemsCache;
         const dl = document.getElementById("pvStockList");
         if (dl) {
           dl.innerHTML = purchaseStockItemsCache.map(i =>
@@ -8845,15 +8878,8 @@ function getEWayBillDetails() {
   }
 
   async function loadCustomerList() {
-    const dl = document.getElementById("ovCustomerList");
-    if (!dl) return;
     try {
-      const res = await fetch(`${API_URL}/api/ledgers`, { headers: { Authorization: `Bearer ${getToken()}` } });
-      const data = await res.json();
-      if (!data.success) return;
-      dl.innerHTML = (data.ledgers || [])
-        .map((l) => `<option value="${escapeHtml(l.partyName)}"></option>`)
-        .join("");
+      if (typeof loadInvoiceLedgers === "function") await loadInvoiceLedgers();
     } catch (_) { /* optional */ }
   }
 

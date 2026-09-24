@@ -16,14 +16,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260924mail8">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260924suggest2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260923brand1"></script>
   <script>
-    window.BK_APP_BUILD = '20260924mail8';
+    window.BK_APP_BUILD = '20260924suggest2';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -528,8 +528,7 @@
               </div>
               <p id="ovCustomerDateFilterLabel" class="helper-text sales-date-filter-label hidden"></p>
               <div class="overview-customer-search grid-2">
-                <input type="text" id="ovCustomerSearch" list="ovCustomerList" placeholder="Customer / party name..." autocomplete="off" />
-                <datalist id="ovCustomerList"></datalist>
+                <input type="text" id="ovCustomerSearch" placeholder="Customer / party name..." autocomplete="off" />
                 <button type="button" id="ovCustomerViewBtn" class="bk-apply-filter-btn">View Customer Detail</button>
               </div>
               <div id="ovCustomerQuickSummary" class="overview-customer-summary hidden"></div>
@@ -1857,8 +1856,10 @@
 
     <div class="inv-item-entry">
       <span class="inv-entry-label">Item Entry</span>
-      <input type="text" id="productName" list="invoiceStockList" placeholder="Item name * (search from stock)" autocomplete="off" />
-      <datalist id="invoiceStockList"></datalist>
+      <div class="inv-party-autocomplete ao-suggest-wrap ao-item-suggest">
+        <input type="text" id="productName" placeholder="Item name * (search from stock)" autocomplete="off" />
+        <ul id="invoiceItemSuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+      </div>
       <input type="text" id="productHsn" class="inv-field-hsn" placeholder="HSN/SAC" title="Auto from stock item" />
       <input type="number" id="productQty" class="inv-field-qty" placeholder="Qty" min="1" step="1" value="1" />
       <span id="productUnitTag" class="inv-unit-tag">Pcs</span>
@@ -1963,8 +1964,10 @@
 
     <div class="inv-item-entry purchase-item-entry">
       <span class="inv-entry-label">Item Entry</span>
-      <input type="text" id="pvItemNameInput" list="pvStockList" placeholder="Item name * (type or pick from stock)" autocomplete="off" />
-      <datalist id="pvStockList"></datalist>
+      <div class="inv-party-autocomplete ao-suggest-wrap ao-item-suggest">
+        <input type="text" id="pvItemNameInput" placeholder="Item name * (type or pick from stock)" autocomplete="off" />
+        <ul id="pvItemSuggest" class="inv-party-suggest hidden" role="listbox"></ul>
+      </div>
       <input type="hidden" id="pvItemInput" value="" />
       <input type="text" id="pvHsnDisplay" class="inv-field-hsn" placeholder="HSN/SAC" title="Auto from stock — you can edit" />
       <input id="pvQtyInput" type="number" class="inv-field-qty" min="0" step="0.01" placeholder="Qty" value="1" />
@@ -2533,8 +2536,9 @@
   <script src="plan-pricing.js?v=20260918ui55"></script>
   <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
-  <script src="modify-ui.js?v=20260921modify2"></script>
-  <script src="bolkarigar.js?v=20260924mail8"></script>
+  <script src="modify-ui.js?v=20260924suggest1"></script>
+  <script src="bolkarigar.js?v=20260924suggest2"></script>
+  <script src="name-item-suggest.js?v=20260924suggest2"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2555,7 +2559,7 @@
   <script src="dev-plan-toggle.js?v=20260921en2"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260921en3"></script>
-  <script src="payroll-ui.js?v=20260921en2"></script>
+  <script src="payroll-ui.js?v=20260924suggest1"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
   <script src="business-mail-ui.js?v=20260924mail8"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
