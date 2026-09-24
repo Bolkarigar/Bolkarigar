@@ -280,6 +280,9 @@ function loginFailMessage(email, host) {
   if (isGmailAddress(email)) {
     return `Gmail ka login password IMAP pe kaam nahi karta — yeh Google ki rule hai, password galat nahi. Google Account → Security → 2-Step Verification → App passwords → Mail/Other se 16-letter App Password banao aur wahi yahan paste karo. Gmail → Settings → Forwarding and POP/IMAP mein IMAP ON rakho.`;
   }
+  if (isInfernixEmail(email)) {
+    return `Infernix (${email}) host theek hai (dx.infernix.net) — server ne password reject kiya. Gmail App Password yahan nahi chalega. Infernix webmail pe yahi email + yahi mailbox password se login karke dekho. Webmail na khule to password reset karo; webmail khule aur yahan na chale to Infernix panel mein IMAP ON karo.`;
+  }
   return `Login failed for ${email} on ${host}. Mailbox password check karo (eye icon).`;
 }
 
@@ -298,34 +301,41 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   if (!hosts.length) {
     throw new Error('IMAP host nahi mila. Host box mein sahi IMAP host likho.');
   }
-  const cleanPass = String(pass || '').replace(/\s+/g, '');
+  const rawPass = String(pass || '').trim();
+  const compactPass = rawPass.replace(/\s+/g, '');
   let lastErr = 'Could not reach the mailbox IMAP server.';
   let lastRank = 0;
   const rank = (msg) => {
-    if (/auth|login|invalid|credentials|command failed/i.test(msg)) return 3;
+    if (/AUTHENTICATIONFAILED|auth|login|invalid|credentials|command failed/i.test(msg)) return 3;
     if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg)) return 1;
     return 2;
   };
-  const tryPasswords = [cleanPass];
+  const tryPasswords = [...new Set([rawPass, compactPass].filter(Boolean))];
   const envFb = envFallbackFor(email);
-  if (envFb?.pass && envFb.pass !== cleanPass) tryPasswords.push(envFb.pass);
+  if (envFb?.pass && !tryPasswords.includes(envFb.pass)) tryPasswords.push(envFb.pass);
+  const localUser = String(email || '').split('@')[0] || '';
+  const tryUsers = isInfernixEmail(email)
+    ? [...new Set([email, localUser])]
+    : [email];
 
   const ports = isInfernixEmail(email)
-    ? [...new Set([preferredPort || 993, 993, 143])]
+    ? [...new Set([preferredPort || 993, 993])]
     : [preferredPort || 993];
 
   for (const host of hosts.slice(0, 4)) {
     for (const port of ports) {
-      for (const pwd of tryPasswords) {
-        try {
-          const client = await tryConnect(host, port, email, pwd);
-          return { client, host, port };
-        } catch (e) {
-          const msg = errText(e);
-          const r = rank(msg);
-          if (r >= lastRank) {
-            lastRank = r;
-            lastErr = `${host}:${port} ${msg}`;
+      for (const user of tryUsers) {
+        for (const pwd of tryPasswords) {
+          try {
+            const client = await tryConnect(host, port, user, pwd);
+            return { client, host, port };
+          } catch (e) {
+            const msg = errText(e);
+            const r = rank(msg);
+            if (r >= lastRank) {
+              lastRank = r;
+              lastErr = `${host}:${port} ${msg}`;
+            }
           }
         }
       }

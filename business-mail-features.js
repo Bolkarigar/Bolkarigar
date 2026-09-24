@@ -283,7 +283,8 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         port: profile?.imapPort || 993
       };
     }
-    if (profile?.imapPassEnc) {
+    const savedFor = String(profile?.imapUser || '').trim().toLowerCase();
+    if (profile?.imapPassEnc && (!savedFor || savedFor === email)) {
       return {
         email,
         pass: decryptSecret(profile.imapPassEnc),
@@ -370,6 +371,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
           {
             $set: {
               imapPassEnc: encryptSecret(overridePass),
+              imapUser: auth.email,
               imapHost: fetched.host,
               imapPort: fetched.port,
               imapLastSyncAt: new Date()

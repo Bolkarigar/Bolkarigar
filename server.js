@@ -366,6 +366,7 @@ const businessProfileSchema = new mongoose.Schema({
   imapHost: { type: String, default: '' },
   imapPort: { type: Number, default: 993 },
   imapPassEnc: { type: String, default: '' },
+  imapUser: { type: String, default: '' },
   imapLastSyncAt: { type: Date, default: null }
 });
 
