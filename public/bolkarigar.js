@@ -8886,25 +8886,22 @@ function getEWayBillDetails() {
 
   async function showCustomerQuickSummary(name) {
     const box = document.getElementById("ovCustomerQuickSummary");
-    if (!box || !name) return;
+    const q = String(name || "").trim();
+    if (!box || q.length < 2) return;
     box.classList.remove("hidden");
     box.innerHTML = "Loading customer summary...";
-    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = setTimeout(() => ctrl?.abort(), 12000);
     try {
       const hdrs = { Authorization: `Bearer ${getToken()}` };
-      const req = { headers: hdrs };
-      if (ctrl) req.signal = ctrl.signal;
       const st = voucherDates.Customer || { from: "", to: "" };
       let billed = 0;
       let paid = 0;
       let pending = 0;
       let returnsNote = "";
 
-      const ledRes = await fetch(`${API_URL}/api/ledgers`, req);
+      const ledRes = await fetch(`${API_URL}/api/ledgers`, { headers: hdrs });
       const ledData = await ledRes.json();
       const ledger = (ledData.ledgers || []).find(
-        (l) => String(l.partyName || "").trim().toLowerCase() === String(name || "").trim().toLowerCase()
+        (l) => String(l.partyName || "").trim().toLowerCase() === q.toLowerCase()
       );
       if (ledger?.ledgerGroup === "Sundry Debtor") {
         billed = Number(ledger.billedAmount ?? ledger.grossBilled ?? 0) || 0;
@@ -8913,12 +8910,12 @@ function getEWayBillDetails() {
         if (ledger.returns > 0) returnsNote = ` &nbsp;|&nbsp; Returns: ${fmtMoney(ledger.returns)}`;
         if (pending < -0.01) returnsNote += ` &nbsp;|&nbsp; <span style="color:#0ea5e9">Refund Due: ${fmtMoney(Math.abs(pending))}</span>`;
       } else {
-        const salesParams = new URLSearchParams({ search: name, limit: "100" });
+        const salesParams = new URLSearchParams({ search: q, limit: "100" });
         if (st.from) salesParams.set("fromDate", st.from);
         if (st.to) salesParams.set("toDate", st.to);
         const [salesRes, payRes] = await Promise.all([
-          fetch(`${API_URL}/api/sales?${salesParams.toString()}`, req),
-          fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, req)
+          fetch(`${API_URL}/api/sales?${salesParams.toString()}`, { headers: hdrs }),
+          fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(q)}`, { headers: hdrs })
         ]);
         const salesData = await salesRes.json();
         const payData = await payRes.json();
@@ -8939,17 +8936,13 @@ function getEWayBillDetails() {
       const pendingLabel = pending < -0.01
         ? `<span style="color:#0ea5e9">Refund Due: ${fmtMoney(Math.abs(pending))} (−${fmtMoney(Math.abs(pending))})</span>`
         : `<span style="color:${pending > 0.01 ? "#f59e0b" : "#22c55e"}">Net Udhar: ${fmtMoney(pending)}</span>`;
-      box.innerHTML = `<strong>${escapeHtml(name)}</strong><br>
+      box.innerHTML = `<strong>${escapeHtml(q)}</strong><br>
         Total Billed: ${fmtMoney(billed)}${returnsNote} &nbsp;|&nbsp; Paid: ${fmtMoney(paid)} &nbsp;|&nbsp;
         ${pendingLabel}
         ${dateNote}
         <br><span class="overview-customer-hint" style="font-size:12px;">Click <strong>View Customer Detail</strong> for the full transaction list, or use <strong>Print</strong> in the detail window.</span>`;
     } catch (err) {
-      box.textContent = err.name === "AbortError"
-        ? "Summary is taking too long. Pick the full name from the list, then tap View Customer Detail."
-        : "Could not load summary: " + err.message;
-    } finally {
-      clearTimeout(timer);
+      box.textContent = "Could not load summary. Pick the full customer name from the list.";
     }
   }
   window.bkShowCustomerQuickSummary = showCustomerQuickSummary;

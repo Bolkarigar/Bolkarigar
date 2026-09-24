@@ -123,6 +123,9 @@
 
     switching = true;
     applyPlanToUI(planId, null);
+    if (typeof showToast === "function") {
+      showToast(planId === "business" ? "Test plan: Business ₹299" : "Test plan: Pro ₹99", "success");
+    }
 
     try {
       const res = await fetch(`${API()}/api/dev/switch-plan`, {
@@ -133,22 +136,10 @@
         },
         body: JSON.stringify({ plan: planId })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Plan switch fail");
-      applyPlanToUI(planId, data.subscription);
-      if (typeof showToast === "function") showToast("🧪 " + (data.message || "Plan switched"), "info");
-      const cur = document.querySelector(".panel.active")?.id;
-      if (cur && typeof openPanel === "function") openPanel(cur);
-    } catch (err) {
-      const msg = err.message || "Server switch fail";
-      if (typeof showToast === "function") {
-        showToast(
-          /403|testing|available/i.test(msg)
-            ? "⚠️ UI test mode on — set DEV_PLAN_TOGGLE=true on the server to persist plan switches"
-            : "⚠️ UI switched locally — " + msg,
-          "info"
-        );
-      }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.subscription) applyPlanToUI(planId, data.subscription);
+    } catch (_) {
+      /* local test switch already applied */
     } finally {
       switching = false;
     }
