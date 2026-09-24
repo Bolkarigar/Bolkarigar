@@ -312,6 +312,27 @@ html.ao-phone .ao-phone-more-actions button {
 html.ao-phone #appToast {
   bottom: calc(var(--ao-phone-bar) + 16px + env(safe-area-inset-bottom));
 }
+html.ao-phone .ao-phone-table-search,
+html.ao-phone .panel-search-input,
+html.ao-phone .modify-search-input,
+html.ao-phone #searchInput,
+html.ao-phone #invSearch {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid #c5d0de;
+  background: #fff;
+  font-size: 16px !important;
+}
+html[data-theme="dark"].ao-phone .ao-phone-table-search,
+html[data-theme="dark"].ao-phone .panel-search-input,
+html[data-theme="dark"].ao-phone .modify-search-input {
+  background: #1e293b;
+  border-color: rgba(255,255,255,.14);
+}
 
 @media (min-width: 821px) {
   html.ao-phone:not(.capacitor-native) .ao-phone-tabbar,

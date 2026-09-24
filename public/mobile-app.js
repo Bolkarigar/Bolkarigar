@@ -106,10 +106,70 @@
     });
   }
 
+  function skipTableWrap(wrap) {
+    if (!wrap || wrap.classList.contains("inv-tax-table-wrap")) return true;
+    if (wrap.closest(".inv-tax-footer")) return true;
+    var tb = wrap.querySelector("tbody");
+    if (!tb) return true;
+    return /^(invoiceBody|pvItemsBody|busyTaxSummaryBody|pvTaxSummaryBody|pvTaxBody)$/.test(tb.id || "");
+  }
+
+  function hasNearbySearch(wrap) {
+    if (wrap.previousElementSibling && wrap.previousElementSibling.classList.contains("ao-phone-table-search")) return true;
+    var parent = wrap.parentElement;
+    if (!parent) return false;
+    var kids = Array.prototype.slice.call(parent.children);
+    var idx = kids.indexOf(wrap);
+    for (var i = Math.max(0, idx - 3); i < idx; i++) {
+      var node = kids[i];
+      if (!node) continue;
+      if (node.matches && node.matches("input.panel-search-input, input[type='search'], .modify-search-wrap, .overview-rec-pane-toolbar, .ao-phone-table-search")) return true;
+      if (node.querySelector && node.querySelector("input.panel-search-input, input[type='search'], .ao-phone-table-search, #modifySearchInput")) return true;
+    }
+    return false;
+  }
+
+  function filterTableRows(wrap, query) {
+    var q = String(query || "").trim().toLowerCase();
+    wrap.querySelectorAll("tbody tr").forEach(function (tr) {
+      var empty = tr.querySelector("td[colspan]");
+      if (empty) {
+        tr.style.display = q ? "none" : "";
+        return;
+      }
+      var text = (tr.textContent || "").replace(/\s+/g, " ").toLowerCase();
+      tr.style.display = !q || text.indexOf(q) !== -1 ? "" : "none";
+    });
+  }
+
+  function ensureTableSearch() {
+    if (!wantsPhone()) return;
+    document.querySelectorAll(".table-wrap").forEach(function (wrap) {
+      if (skipTableWrap(wrap) || hasNearbySearch(wrap)) return;
+      var input = document.createElement("input");
+      input.type = "search";
+      input.className = "ao-phone-table-search";
+      input.placeholder = "Search name, item, bill...";
+      input.setAttribute("autocomplete", "off");
+      input.addEventListener("input", function () {
+        filterTableRows(wrap, input.value);
+      });
+      wrap.parentNode.insertBefore(input, wrap);
+      var tbody = wrap.querySelector("tbody");
+      if (tbody && wrap.dataset.aoSearchObs !== "1") {
+        wrap.dataset.aoSearchObs = "1";
+        new MutationObserver(function () {
+          filterTableRows(wrap, input.value);
+        }).observe(tbody, { childList: true });
+      }
+    });
+  }
+
   window.aoPhoneOnPanel = function (id) {
     if (!wantsPhone()) return;
     setActiveTab(id);
     closeMore();
+    setTimeout(ensureTableSearch, 50);
   };
 
   applyMode();
@@ -117,9 +177,18 @@
     document.addEventListener("DOMContentLoaded", function () {
       applyMode();
       bindBar();
+      ensureTableSearch();
     });
   } else {
     bindBar();
+    ensureTableSearch();
   }
   window.matchMedia(MQ).addEventListener("change", applyMode);
+  if (typeof window.enhanceMobileTables === "function") {
+    var _enhance = window.enhanceMobileTables;
+    window.enhanceMobileTables = function (root) {
+      _enhance(root);
+      ensureTableSearch();
+    };
+  }
 })();
