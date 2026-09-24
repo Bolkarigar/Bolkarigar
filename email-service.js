@@ -40,7 +40,9 @@ function getSmtpConfig() {
     transport.requireTLS = true;
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || 'Accounts Orbit';
+  const fromName = /bolkarigar/i.test(String(process.env.SMTP_FROM_NAME || ''))
+    ? 'Accounts Orbit'
+    : (process.env.SMTP_FROM_NAME || 'Accounts Orbit');
   let from = String(process.env.SMTP_FROM || '').trim();
   if (!from || (isGmail && !from.includes(user))) {
     from = `"${fromName}" <${user}>`;
@@ -280,7 +282,10 @@ async function sendViaBrevo({ to, subject, text, html, replyTo, senderName, send
   }
 
   const fromEmail = String(senderEmail || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim().toLowerCase();
-  const fromName = senderName || process.env.SMTP_FROM_NAME || 'Accounts Orbit';
+  const envFrom = String(process.env.SMTP_FROM_NAME || '');
+  const fromName = senderName && !/bolkarigar/i.test(senderName)
+    ? senderName
+    : (/bolkarigar/i.test(envFrom) ? 'Accounts Orbit' : (envFrom || 'Accounts Orbit'));
   if (!fromEmail) throw new Error('Set BREVO_FROM_EMAIL or SMTP_USER');
 
   const payload = {

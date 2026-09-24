@@ -74,7 +74,7 @@ function setupTeamMeetingFeatures({ app, mongoose, authenticateToken, models, rb
   }
 
   function buildJoinPath(meeting) {
-    return `bolkarigar.html?meetJoin=${meeting._id}&code=${meeting.joinCode}`;
+    return `/dashboard?meetJoin=${meeting._id}&code=${meeting.joinCode}`;
   }
 
   app.get('/api/meetings/staff', authenticateToken, biz, ownerMiddleware, requireMeetingAccess, async (req, res) => {

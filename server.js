@@ -131,12 +131,20 @@ app.use(cors({
 
 // Browser cache band — purani sidebar/JS files na dikhein
 app.use((req, res, next) => {
-  if (/\.(html|js|css)$/.test(req.path) || req.path === '/' || req.path.endsWith('.html')) {
+  if (/\.(html|js|css)$/.test(req.path) || req.path === '/' || req.path === '/dashboard' || req.path.endsWith('.html')) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
   }
   next();
+});
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'bolkarigar.html'));
+});
+app.get(['/bolkarigar.html', '/BolKarigar.html'], (req, res) => {
+  const q = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(302, `/dashboard${q}`);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -3385,7 +3393,7 @@ setupDevPlanToggle({ app, User, authenticateToken });
 
 // Explicit HTML routes (static ke baad bhi safe fallback)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpage.html')));
-['/loginpage.html', '/signup.html', '/pricing.html', '/bolkarigar.html'].forEach((page) => {
+['/loginpage.html', '/signup.html', '/pricing.html'].forEach((page) => {
   app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
 });
 

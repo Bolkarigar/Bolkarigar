@@ -4410,8 +4410,8 @@ function blockDuplicateSession() {
       <h2 style="color:#ef4444;">Access Denied (Ek hi Session Allowed Hai)</h2>
       <p style="margin-top:10px; color:#aaa;">Accounts Orbit is already open in another tab.</p>
       <p style="color:#666; font-size:14px;">Click <strong>Continue here</strong> below — the other tab will close automatically.</p>
-      <button onclick="window.location.href='bolkarigar.html?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Continue here</button>
-      <button onclick="window.location.href='bolkarigar.html?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 Open My Plan</button>
+      <button onclick="window.location.href='/dashboard?bkTakeover=1'" style="margin-top:20px; padding:12px 22px; background:#22c55e; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;">✅ Continue here</button>
+      <button onclick="window.location.href='/dashboard?openPanel=myPlanPanel&bkTakeover=1'" style="margin-top:10px; padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:6px; cursor:pointer;">💳 Open My Plan</button>
       <button onclick="window.location.reload()" style="margin-top:10px; padding:10px 20px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer;">Try again</button>
     </div>
   `;

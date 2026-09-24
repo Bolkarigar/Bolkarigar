@@ -339,9 +339,9 @@
       const p = new URLSearchParams(window.location.search);
       const r = p.get("redirect");
       if (r && !/^[a-z]+:/i.test(r) && !r.startsWith("//")) {
-        if (r.startsWith("/") || r.startsWith("bolkarigar.html")) return r;
+        if (r.startsWith("/") || r.startsWith("bolkarigar.html") || r.startsWith("dashboard")) return r.startsWith("bolkarigar.html") ? r.replace("bolkarigar.html", "/dashboard") : r;
       }
-      return "bolkarigar.html?_=" + Date.now();
+      return "/dashboard?_=" + Date.now();
     }
     if (localStorage.getItem("bk_token")) {
       window.location.href = bkLoginRedirectTarget();
@@ -373,7 +373,7 @@
     const LOGIN_MSG = {
       otpSent: (masked) => `A 6-digit OTP has been sent to ${masked || 'your registered email'}. Please check inbox and Spam/Junk folder.`,
       otpResent: 'A new OTP has been sent. Please also check your Spam/Junk folder.',
-      otpNotSent: 'No account found. Use the exact email or username from Sign Up on bolkarigar.onrender.com. If you signed up on localhost, create a new account on the live site.',
+      otpNotSent: 'No account found. Use the exact email or username from Sign Up on the live site. If you signed up on localhost, create a new account on the live site.',
       otpEmailFailed: 'Email server se OTP nahi bheja ja saka. Owner: Render me sahi Brevo API key (xkeysib-) lagao — SMTP key (xsmtpsib-) galat hai.',
       otpRateLimited: 'Too many attempts. Please wait 10 minutes and try again.',
       otpCooldown: 'OTP already sent. Check inbox and spam folder, or wait 15 minutes.',
