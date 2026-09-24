@@ -4539,8 +4539,9 @@ html[data-theme="light"] .tally-agent-sidebar-status {
 }
 .overview-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+  width: 100%;
 }
 .overview-stat-card {
   border: 1px solid var(--border);
@@ -4548,6 +4549,9 @@ html[data-theme="light"] .tally-agent-sidebar-status {
   padding: 14px 12px;
   background: var(--card);
   min-height: 96px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -4613,6 +4617,30 @@ html[data-theme="light"] .tally-agent-sidebar-status {
 }
 .overview-rec-totals-row {
   margin-bottom: 4px;
+}
+#overviewRecPicker .modify-type-grid,
+#overviewTypeGrid,
+#overviewPanel .overview-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+#overviewRecPicker .modify-type-card,
+#overviewPanel .overview-tool-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (max-width: 980px) {
+  .overview-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #overviewRecPicker .modify-type-grid,
+  #overviewTypeGrid,
+  #overviewPanel .overview-tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 #overviewRecPicker .modify-type-card,
 #overviewRecordsHub .modify-type-card {
