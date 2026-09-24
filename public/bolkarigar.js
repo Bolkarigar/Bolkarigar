@@ -431,6 +431,7 @@ function applyRoleBasedUI(me) {
   }
   if (typeof window.bkSyncBusinessCardPlan === "function") window.bkSyncBusinessCardPlan();
   if (typeof window.bkRenderBusinessCardGrid === "function") window.bkRenderBusinessCardGrid();
+  if (typeof window.aoPhoneRefreshMore === "function") window.aoPhoneRefreshMore();
   bkUpdateHeroModuleCount();
 }
 

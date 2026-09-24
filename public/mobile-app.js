@@ -74,7 +74,7 @@
 
   function fillMore() {
     var grid = document.getElementById("aoPhoneMoreGrid");
-    if (!grid || grid.dataset.ready === "1") return;
+    if (!grid) return;
     var skip = {
       overviewPanel: 1,
       invoicePanel: 1,
@@ -85,6 +85,7 @@
     document.querySelectorAll("#appSidebar .tab-btn[data-tab]").forEach(function (btn) {
       var id = btn.dataset.tab;
       if (!id || skip[id]) return;
+      if (btn.style.display === "none") return;
       var label = (btn.textContent || "").replace(/\s+/g, " ").trim();
       html += '<button type="button" class="ao-phone-more-btn" data-tab="' + id + '">' +
         label + "</button>";
@@ -98,6 +99,8 @@
       });
     });
   }
+
+  window.aoPhoneRefreshMore = fillMore;
 
   function bindBar() {
     document.querySelectorAll(".ao-phone-tab[data-phone-tab]").forEach(function (btn) {
