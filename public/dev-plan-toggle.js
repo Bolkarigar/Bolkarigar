@@ -36,7 +36,7 @@
 
   function isOwnerTestHost() {
     const h = (location.hostname || "").toLowerCase();
-    return h === "bolkarigar.onrender.com" || isLocalHost();
+    return h === "bolkarigar.onrender.com" || h === "accountsorbit.com" || h === "www.accountsorbit.com" || isLocalHost();
   }
 
   function isDevPlanForced() {
@@ -174,6 +174,7 @@
     const me = window._bkAccountInfo;
     if (me?.isStaff) {
       showPlanTestChrome(false);
+      document.getElementById("myPlanTestSwitch")?.classList.add("hidden");
       return;
     }
 
@@ -185,6 +186,7 @@
     const enabled = await isDevEnabled();
     if (!enabled) {
       showPlanTestChrome(false);
+      document.getElementById("myPlanTestSwitch")?.classList.add("hidden");
       return;
     }
 
@@ -193,6 +195,9 @@
     const wrap = document.getElementById("bkPlanTestToggleWrap");
     if (wrap && !me?.isStaff) wrap.style.display = "inline-flex";
     syncToggleUi();
+
+    const myPlanSwitch = document.getElementById("myPlanTestSwitch");
+    if (myPlanSwitch) myPlanSwitch.classList.remove("hidden");
 
     if (!wired) {
       wired = true;
@@ -207,6 +212,8 @@
           switchDevPlan(el.getAttribute("data-side") === "biz" ? "business" : "pro");
         });
       });
+      document.getElementById("myPlanTestProBtn")?.addEventListener("click", () => switchDevPlan("pro"));
+      document.getElementById("myPlanTestBizBtn")?.addEventListener("click", () => switchDevPlan("business"));
     }
   }
 

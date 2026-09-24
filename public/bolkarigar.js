@@ -8889,15 +8889,19 @@ function getEWayBillDetails() {
     if (!box || !name) return;
     box.classList.remove("hidden");
     box.innerHTML = "Loading customer summary...";
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = setTimeout(() => ctrl?.abort(), 12000);
     try {
       const hdrs = { Authorization: `Bearer ${getToken()}` };
+      const req = { headers: hdrs };
+      if (ctrl) req.signal = ctrl.signal;
       const st = voucherDates.Customer || { from: "", to: "" };
       let billed = 0;
       let paid = 0;
       let pending = 0;
       let returnsNote = "";
 
-      const ledRes = await fetch(`${API_URL}/api/ledgers`, { headers: hdrs });
+      const ledRes = await fetch(`${API_URL}/api/ledgers`, req);
       const ledData = await ledRes.json();
       const ledger = (ledData.ledgers || []).find(
         (l) => String(l.partyName || "").trim().toLowerCase() === String(name || "").trim().toLowerCase()
@@ -8913,8 +8917,8 @@ function getEWayBillDetails() {
         if (st.from) salesParams.set("fromDate", st.from);
         if (st.to) salesParams.set("toDate", st.to);
         const [salesRes, payRes] = await Promise.all([
-          fetch(`${API_URL}/api/sales?${salesParams.toString()}`, { headers: hdrs }),
-          fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, { headers: hdrs })
+          fetch(`${API_URL}/api/sales?${salesParams.toString()}`, req),
+          fetch(`${API_URL}/api/payments?customer=${encodeURIComponent(name)}`, req)
         ]);
         const salesData = await salesRes.json();
         const payData = await payRes.json();
@@ -8941,9 +8945,14 @@ function getEWayBillDetails() {
         ${dateNote}
         <br><span class="overview-customer-hint" style="font-size:12px;">Click <strong>View Customer Detail</strong> for the full transaction list, or use <strong>Print</strong> in the detail window.</span>`;
     } catch (err) {
-      box.textContent = "Could not load summary: " + err.message;
+      box.textContent = err.name === "AbortError"
+        ? "Summary is taking too long. Pick the full name from the list, then tap View Customer Detail."
+        : "Could not load summary: " + err.message;
+    } finally {
+      clearTimeout(timer);
     }
   }
+  window.bkShowCustomerQuickSummary = showCustomerQuickSummary;
 
   window.bkRefreshOverviewTotals = function () {
     loadOverviewTotals();
@@ -9022,7 +9031,7 @@ function getEWayBillDetails() {
 
   document.getElementById("ovCustomerSearch")?.addEventListener("change", (e) => {
     const name = e.target.value?.trim();
-    if (name) showCustomerQuickSummary(name);
+    if (name && name.length >= 2) showCustomerQuickSummary(name);
   });
 
   renderTypeGrid();

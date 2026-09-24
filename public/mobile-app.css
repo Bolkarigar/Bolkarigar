@@ -22,8 +22,6 @@ html.ao-phone body.sidebar-open .sidebar-overlay,
 html.ao-phone .topbar-clock,
 html.ao-phone .brand-text .eyebrow,
 html.ao-phone .brand-title-sub,
-html.ao-phone #devPlanToggleBar,
-html.ao-phone #bkPlanTestToggleWrap,
 html.ao-phone .sidebar-tally-card,
 html.ao-phone #accModeSection,
 html.ao-phone .overview-tool-card .modify-type-desc {
@@ -77,6 +75,40 @@ html.ao-phone .subscription-banner {
   border-radius: 0;
   padding: 8px 12px;
   font-size: 12px;
+}
+html.ao-phone #devPlanToggleBar,
+html.ao-phone .dev-plan-toggle:not(.hidden) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+html.ao-phone #bkPlanTestToggleWrap:not(.hidden) {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+html.ao-phone #myPlanPanel {
+  padding-bottom: 12px;
+}
+html.ao-phone .ao-plan-test-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+html.ao-phone .overview-customer-search {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+html.ao-phone .overview-customer-search .ao-suggest-wrap {
+  width: 100%;
+}
+html.ao-phone #ovCustomerViewBtn {
+  width: 100%;
 }
 
 html.ao-phone .page {
@@ -332,6 +364,13 @@ html[data-theme="dark"].ao-phone .panel-search-input,
 html[data-theme="dark"].ao-phone .modify-search-input {
   background: #1e293b;
   border-color: rgba(255,255,255,.14);
+}
+
+.ao-plan-test-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 @media (min-width: 821px) {

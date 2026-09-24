@@ -333,7 +333,19 @@
       "voiceProject"
     ];
 
-    partyIds.forEach((id) => attach(id, "party"));
+    partyIds.forEach((id) => {
+      if (id === "ovCustomerSearch") {
+        attach(id, "party", {
+          onPick: function (item) {
+            if (typeof window.bkShowCustomerQuickSummary === "function") {
+              window.bkShowCustomerQuickSummary(item.partyName || item.name || "");
+            }
+          }
+        });
+        return;
+      }
+      attach(id, "party");
+    });
     itemIds.forEach((id) => attach(id, "item"));
     projectIds.forEach((id) => attach(id, "project"));
     attach("labourNameInput", "worker");
