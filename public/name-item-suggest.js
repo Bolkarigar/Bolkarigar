@@ -302,6 +302,8 @@
   function initStatic() {
     const partyIds = [
       "ledgerNameInput",
+      "ledgerSearchInput",
+      "khataLedgerSearchInput",
       "projectCustomer",
       "raClientInput",
       "estCustomer",
@@ -334,6 +336,24 @@
     ];
 
     partyIds.forEach((id) => {
+      if (id === "ledgerSearchInput") {
+        attach(id, "party", {
+          onPick: function () {
+            if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
+            if (typeof window.bkPaintUdharPage === "function") window.bkPaintUdharPage();
+          }
+        });
+        return;
+      }
+      if (id === "khataLedgerSearchInput") {
+        attach(id, "party", {
+          onPick: function () {
+            const ev = new Event("input", { bubbles: true });
+            document.getElementById("khataLedgerSearchInput")?.dispatchEvent(ev);
+          }
+        });
+        return;
+      }
       if (id === "ovCustomerSearch") {
         attach(id, "party", {
           onPick: function (item) {

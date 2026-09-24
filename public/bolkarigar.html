@@ -24,7 +24,7 @@
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260923brand1"></script>
   <script>
-    window.BK_APP_BUILD = '20260924phone4';
+    window.BK_APP_BUILD = '20260924phone5';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -724,6 +724,7 @@
               <h3 data-i18n="ledger.title">📖 Credit Ledger</h3>
             </div>
           </div>
+          <input type="search" id="ledgerSearchInput" class="panel-search-input" placeholder="Search party / ledger name..." autocomplete="off" />
           <div class="table-wrap" style="margin-top: 15px;">
             <table>
               <thead>
@@ -783,6 +784,7 @@
             <input id="ledgerOpeningInput" type="number" placeholder="Opening Balance" />
           </div>
           <button id="addLedgerBtn" type="button" style="margin-top: 10px;">➕ Add Ledger</button>
+          <input type="search" id="khataLedgerSearchInput" class="panel-search-input" placeholder="Search ledger name..." autocomplete="off" style="margin-top:12px;" />
           <div class="table-wrap" style="margin-top:12px;">
             <table>
               <thead><tr><th>Name</th><th>Group</th><th>Address</th><th>Balance (Dr / Cr)</th><th>Action</th></tr></thead>
@@ -2542,9 +2544,9 @@
   <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260924suggest1"></script>
-  <script src="bolkarigar.js?v=20260924phone4"></script>
-  <script src="mobile-app.js?v=20260924phone3"></script>
-  <script src="name-item-suggest.js?v=20260924phone3"></script>
+  <script src="bolkarigar.js?v=20260924phone5"></script>
+  <script src="mobile-app.js?v=20260924phone5"></script>
+  <script src="name-item-suggest.js?v=20260924phone5"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();

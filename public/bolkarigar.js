@@ -1970,7 +1970,11 @@ function openPanel(id) {
   panels.forEach(panel => panel.classList.toggle("active", panel.id === id));
   tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
   bkExpandNavGroupForPanel(id);
-  if (id === "ledgerPanel" && typeof refreshUdharKhata === "function") refreshUdharKhata();
+  if (id === "ledgerPanel") {
+    if (typeof refreshUdharKhata === "function") refreshUdharKhata();
+    if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
+  }
+  if (id === "khataLedgersPanel" && typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
   if (id === "khataVoucherPanel" && typeof window.refreshKhataVoucherPanel === "function") {
     window.refreshKhataVoucherPanel();
   }
@@ -5032,7 +5036,11 @@ async function refreshUdharKhata(localFallback = {}) {
 
   function paintUdharPage() {
     const pag = window.bkUdharPaginator || (window.bkUdharPaginator = window.bkCreatePaginator("ledgerUdhar", paintUdharPage));
-    const rows = pag.slice(udharAllRows);
+    const q = (document.getElementById("ledgerSearchInput")?.value || "").trim().toLowerCase();
+    const filtered = q
+      ? udharAllRows.filter((row) => String(row.partyName || row.customer || "").toLowerCase().includes(q))
+      : udharAllRows;
+    const rows = pag.slice(filtered);
     ledgerBody.innerHTML = "";
     let totalUdhar = 0;
     let totalRefundDue = 0;
@@ -5042,7 +5050,7 @@ async function refreshUdharKhata(localFallback = {}) {
       else if (p < -0.01) totalRefundDue += Math.abs(p);
     });
     if (!rows.length) {
-      ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No Udhar Records Found.</td></tr>`;
+      ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">${q ? "No matching ledger name found." : "No Udhar Records Found."}</td></tr>`;
       if (document.getElementById("totalUdharVal")) document.getElementById("totalUdharVal").innerText = "₹0.00";
       window.bkSetTableAmountTotal(ledgerBody, { hide: true });
       return;
@@ -5121,6 +5129,7 @@ async function refreshUdharKhata(localFallback = {}) {
       return Math.abs(pending) > 0.01;
     });
     if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
+    window.bkPaintUdharPage = paintUdharPage;
     paintUdharPage();
   }
 
@@ -5146,6 +5155,11 @@ async function refreshUdharKhata(localFallback = {}) {
   renderUdharRows(localRows);
 }
 window.refreshUdharKhata = refreshUdharKhata;
+window.bkPaintUdharPage = null;
+document.getElementById("ledgerSearchInput")?.addEventListener("input", () => {
+  if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
+  if (typeof window.bkPaintUdharPage === "function") window.bkPaintUdharPage();
+});
 window.calculateFinancials = calculateFinancials;
 
 function bkFormatDetailQtyNum(qty) {
@@ -6747,7 +6761,7 @@ function getEWayBillDetails() {
   function updateKhataPaginationUI(key) {
     const state = khataPag[key];
     const cfg = khataPagConfig[key];
-    const totalRows = state.data.length;
+    const totalRows = getKhataVisibleData(key).length;
     const totalPages = Math.max(1, Math.ceil(totalRows / state.size) || 1);
     if (state.page > totalPages) state.page = totalPages;
 
@@ -6764,10 +6778,20 @@ function getEWayBillDetails() {
     if (next) next.disabled = state.page >= totalPages || totalRows === 0;
   }
 
+  function getKhataVisibleData(key) {
+    let data = khataPag[key].data || [];
+    if (key === "ledgers") {
+      const q = (document.getElementById("khataLedgerSearchInput")?.value || "").trim().toLowerCase();
+      if (q) data = data.filter((l) => String(l.partyName || "").toLowerCase().includes(q));
+    }
+    return data;
+  }
+
   function getKhataPageSlice(key) {
     const state = khataPag[key];
+    const data = getKhataVisibleData(key);
     const start = (state.page - 1) * state.size;
-    return state.data.slice(start, start + state.size);
+    return data.slice(start, start + state.size);
   }
 
   function initKhataPagination(key) {
@@ -6791,7 +6815,7 @@ function getEWayBillDetails() {
       }
     });
     next?.addEventListener("click", () => {
-      const totalPages = Math.max(1, Math.ceil(khataPag[key].data.length / khataPag[key].size));
+      const totalPages = Math.max(1, Math.ceil(getKhataVisibleData(key).length / khataPag[key].size));
       if (khataPag[key].page < totalPages) {
         khataPag[key].page++;
         renderKhataTable(key);
@@ -6800,6 +6824,11 @@ function getEWayBillDetails() {
   }
 
   Object.keys(khataPagConfig).forEach(initKhataPagination);
+
+  document.getElementById("khataLedgerSearchInput")?.addEventListener("input", () => {
+    khataPag.ledgers.page = 1;
+    renderKhataTable("ledgers");
+  });
 
   function renderKhataTable(key) {
     const cfg = khataPagConfig[key];
