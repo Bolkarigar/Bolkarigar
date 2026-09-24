@@ -16,13 +16,18 @@ function getAccountingMode() {
 
 function showToast(msg, type = "success") {
   if (typeof window.bkEnMsg === "function") msg = window.bkEnMsg(msg);
+  const text = String(msg || "");
+  if (type === "error" && text.length > 90 && typeof window.aoAlert === "function") {
+    window.aoAlert(text);
+    return;
+  }
   const el = document.getElementById("appToast");
-  if (!el) { if (type === "error") alert(msg); else console.log(msg); return; }
-  el.textContent = msg;
+  if (!el) { if (type === "error") alert(text); else console.log(text); return; }
+  el.textContent = text;
   el.className = "app-toast " + type;
   el.classList.remove("hidden");
   clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => el.classList.add("hidden"), 3500);
+  showToast._timer = setTimeout(() => el.classList.add("hidden"), type === "error" ? 8000 : 3500);
 }
 
 function bkVoucherTypeLabel(type) {

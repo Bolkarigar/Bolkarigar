@@ -371,12 +371,13 @@
       btn.disabled = true;
       btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
     }
+    const emailNow = document.getElementById('bmReplyEmail')?.value.trim() || mailStatus?.replyEmail || '';
     const hostRaw = document.getElementById('bmImapHost')?.value.trim() || '';
-    const host = /infernix/.test(hostRaw) ? 'dx.infernix.net' : hostRaw;
-    if (host !== hostRaw) {
-      const hostInp = document.getElementById('bmImapHost');
-      if (hostInp) hostInp.value = host;
-    }
+    const host = /infernix/i.test(emailNow) || /infernix/i.test(hostRaw)
+      ? 'dx.infernix.net'
+      : (hostRaw || guessHostFromEmail(emailNow));
+    const hostInp = document.getElementById('bmImapHost');
+    if (hostInp) hostInp.value = host;
     const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass, imapHost: host });
     if (btn) {
       btn.disabled = false;

@@ -198,8 +198,10 @@
 
   window.bkEnMsg = translate;
 
-  const nativeAlert = window.alert.bind(window);
+  const nativeAlert = window.__aoNativeAlert || window.alert.bind(window);
   window.alert = function (msg) {
-    return nativeAlert(translate(msg));
+    const text = translate(msg);
+    if (typeof window.aoAlert === 'function') return window.aoAlert(text);
+    return nativeAlert(text);
   };
 })();

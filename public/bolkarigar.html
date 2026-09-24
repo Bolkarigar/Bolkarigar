@@ -16,14 +16,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260924mail3">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260924mail4">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260923brand1"></script>
   <script>
-    window.BK_APP_BUILD = '20260924mail3';
+    window.BK_APP_BUILD = '20260924mail4';
     (function () {
       var build = window.BK_APP_BUILD;
       var prev = localStorage.getItem('bk_app_build');
@@ -2497,16 +2497,60 @@
     </div>
   </div>
 
+  <div id="appToast" class="app-toast hidden" role="status"></div>
+  <div id="aoDialog" class="ao-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="aoDialogTitle">
+    <div class="ao-dialog-card">
+      <div class="ao-dialog-head">
+        <span class="ao-dialog-mark" aria-hidden="true">AO</span>
+        <div>
+          <strong id="aoDialogTitle">Accounts Orbit</strong>
+          <small>Notice</small>
+        </div>
+      </div>
+      <p id="aoDialogMsg" class="ao-dialog-msg"></p>
+      <button type="button" id="aoDialogOk" class="ao-dialog-ok">OK</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var nativeAlert = window.alert.bind(window);
+      window.__aoNativeAlert = nativeAlert;
+      window.aoAlert = function (msg) {
+        var box = document.getElementById('aoDialog');
+        var text = document.getElementById('aoDialogMsg');
+        var ok = document.getElementById('aoDialogOk');
+        if (!box || !text) { nativeAlert(msg); return; }
+        text.textContent = String(msg == null ? '' : msg);
+        box.classList.remove('hidden');
+        function close() {
+          box.classList.add('hidden');
+          if (ok) ok.removeEventListener('click', close);
+          box.removeEventListener('click', onBox);
+          document.removeEventListener('keydown', onKey);
+        }
+        function onBox(e) { if (e.target === box) close(); }
+        function onKey(e) { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); close(); } }
+        if (ok) ok.addEventListener('click', close);
+        box.addEventListener('click', onBox);
+        document.addEventListener('keydown', onKey);
+        if (ok) ok.focus();
+      };
+      window.alert = function (msg) {
+        var t = typeof window.bkEnMsg === 'function' ? window.bkEnMsg(msg) : msg;
+        window.aoAlert(t);
+      };
+    })();
+  </script>
   <script src="responsive-ui.js?v=20260827r2"></script>
   <script src="help-module-data.js?v=20260921en2"></script>
   <script src="help-demo.js?v=20260921en2"></script>
   <script src="help-modules.js?v=20260921en2"></script>
   <script src="voice-controller.js?v=20260921en2"></script>
   <script src="plan-pricing.js?v=20260918ui55"></script>
-  <script src="messages-en.js?v=20260921en2"></script>
+  <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260921modify2"></script>
-  <script src="bolkarigar.js?v=20260923ao2"></script>
+  <script src="bolkarigar.js?v=20260924mail4"></script>
   <script>
     document.addEventListener('bk:langchange', function () {
       if (typeof renderTodos === 'function') renderTodos();
@@ -2529,7 +2573,7 @@
   <script src="bolkarigar-pro.js?v=20260921en3"></script>
   <script src="payroll-ui.js?v=20260921en2"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>
-  <script src="business-mail-ui.js?v=20260924mail3"></script>
+  <script src="business-mail-ui.js?v=20260924mail4"></script>
   <script src="team-alerts-ui.js?v=20260919alert1"></script>
   <script src="team-meeting-ui.js?v=20260921en2"></script>
   <script src="team-todo-ui.js?v=20260918todo1"></script>

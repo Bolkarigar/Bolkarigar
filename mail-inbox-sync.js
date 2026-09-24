@@ -262,9 +262,9 @@ async function tryConnect(host, port, user, pass) {
     secure: !useStartTls,
     auth: { user, pass },
     logger: false,
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 25000,
+    connectionTimeout: 25000,
+    greetingTimeout: 20000,
+    socketTimeout: 35000,
     tls: { servername: host, minVersion: 'TLSv1.2' }
   });
   await client.connect();
