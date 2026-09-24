@@ -21,7 +21,6 @@ html.ao-phone body.sidebar-open .sidebar,
 html.ao-phone body.sidebar-open .sidebar-overlay,
 html.ao-phone .topbar-clock,
 html.ao-phone .brand-text .eyebrow,
-html.ao-phone .brand-title-sub,
 html.ao-phone .sidebar-tally-card,
 html.ao-phone #accModeSection,
 html.ao-phone .overview-tool-card .modify-type-desc {
@@ -50,9 +49,16 @@ html.ao-phone .brand-mark-svg {
   height: 34px;
 }
 html.ao-phone .brand-title-main {
-  font-size: 20px;
-  line-height: 1;
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+html.ao-phone .brand-title-sub {
+  display: block !important;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #93c5fd;
+  white-space: nowrap;
 }
 html.ao-phone .topbar-toolbar {
   margin-left: auto;

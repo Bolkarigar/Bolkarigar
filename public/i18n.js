@@ -8,8 +8,8 @@
   const VOICE_LANG = { en: 'en-IN', hi: 'hi-IN' };
 
   const EN = {
-    'app.eyebrow': 'Voice-First Contractor Tool',
-    'app.subtitle': 'Accounts Orbit',
+    'app.eyebrow': 'Your business in orbit',
+    'app.subtitle': 'Your business in orbit',
     'top.liveTime': 'Live time',
     'top.voiceOff': 'Voice: OFF',
     'top.voiceOn': 'Voice: ON',
@@ -296,8 +296,8 @@
   };
 
   const HI = {
-    'app.eyebrow': 'हिंदी वॉइस-फर्स्ट ठेकेदार टूल',
-    'app.subtitle': 'Accounts Orbit',
+    'app.eyebrow': 'Your business in orbit',
+    'app.subtitle': 'Your business in orbit',
     'top.liveTime': 'लाइव समय',
     'top.voiceOff': 'वॉइस: बंद',
     'top.voiceOn': 'वॉइस: चालू',

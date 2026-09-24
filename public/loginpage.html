@@ -7,6 +7,7 @@
   <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Accounts Orbit AI - Login</title>
+  <link rel="icon" href="ao-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,9 +78,11 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .ao-hero-logo { width: min(196px, 70vw); height: auto; margin: 0 auto 8px; border-radius: 28px; display: block; }
+    .ao-tagline { margin: 0 0 18px; color: #2563eb; font-weight: 700; letter-spacing: .02em; }
     .login-card h2 { 
       margin: 0 0 10px 0; 
-      font-size: 32px; 
+      font-size: 26px; 
       font-weight: 800;
       letter-spacing: -0.5px;
       background: linear-gradient(to right, #111827, #6366f1);
@@ -250,7 +253,9 @@
 
   <div class="login-container">
     <div class="login-card">
-      <h2>Accounts Orbit AI</h2>
+      <img src="ao-logo.svg" alt="Accounts Orbit" class="ao-hero-logo" />
+      <p class="ao-tagline">Your business in orbit</p>
+      <h2>Sign in</h2>
       <p>Sign in to your account</p>
       <p style="font-size:12px;color:#22c55e;margin:-4px 0 16px;">New user? <a href="signup.html" style="color:#22c55e;">Sign Up</a> — Pro 30-day free trial, then ₹99/mo</p>
       

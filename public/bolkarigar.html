@@ -10,21 +10,23 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="ao-mark.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="ao-logo.svg" />
   <title>Accounts Orbit AI Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260924phonefix4">
-  <link rel="stylesheet" href="mobile-app.css?v=20260924phonefix4">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260924brand2">
+  <link rel="stylesheet" href="mobile-app.css?v=20260924brand2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
-  <script src="i18n.js?v=20260923brand1"></script>
+  <script src="i18n.js?v=20260924brand2"></script>
   <script>
-    window.BK_APP_BUILD = '20260924phonefix4';
+    window.BK_APP_BUILD = '20260924brand2';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -65,23 +67,11 @@
       </button>
       <div class="brand-wrap">
         <div class="brand-mark">
-          <svg class="brand-mark-svg" viewBox="0 0 44 44" role="img" aria-label="Accounts Orbit">
-            <defs>
-              <linearGradient id="aoMarkBg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#3b82f6" />
-                <stop offset="1" stop-color="#6366f1" />
-              </linearGradient>
-            </defs>
-            <rect width="44" height="44" rx="12" fill="url(#aoMarkBg)" />
-            <ellipse cx="22" cy="22" rx="14.5" ry="6.5" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="2" transform="rotate(-28 22 22)" />
-            <circle cx="22" cy="22" r="6" fill="#ffffff" />
-            <circle cx="34.8" cy="15.2" r="2.7" fill="#67e8f9" />
-          </svg>
+          <img class="brand-mark-img" src="ao-mark.svg" alt="Accounts Orbit" />
         </div>
         <div class="brand-text">
-          <p class="eyebrow" data-i18n="app.eyebrow">Voice-First Contractor Tool</p>
-          <h1 class="brand-title-main">AO</h1>
-          <p class="brand-title-sub" data-i18n="app.subtitle">Accounts Orbit</p>
+          <h1 class="brand-title-main">Accounts Orbit</h1>
+          <p class="brand-title-sub" data-i18n="app.subtitle">Your business in orbit</p>
         </div>
       </div>
       <div class="topbar-toolbar">
@@ -156,19 +146,11 @@
       <aside id="appSidebar" class="sidebar" aria-label="App navigation">
         <div class="sidebar-mobile-header">
           <div class="sidebar-mobile-brand">
-            <svg class="sidebar-brand-icon brand-mark-svg" viewBox="0 0 44 44" role="img" aria-hidden="true">
-              <defs>
-                <linearGradient id="aoMarkBgSidebar" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#3b82f6" />
-                  <stop offset="1" stop-color="#6366f1" />
-                </linearGradient>
-              </defs>
-              <rect width="44" height="44" rx="12" fill="url(#aoMarkBgSidebar)" />
-              <ellipse cx="22" cy="22" rx="14.5" ry="6.5" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="2" transform="rotate(-28 22 22)" />
-              <circle cx="22" cy="22" r="6" fill="#ffffff" />
-              <circle cx="34.8" cy="15.2" r="2.7" fill="#67e8f9" />
-            </svg>
-            <strong>Accounts Orbit</strong>
+            <img class="sidebar-brand-icon" src="ao-mark.svg" alt="" />
+            <div>
+              <strong>Accounts Orbit</strong>
+              <p class="ao-tagline">Your business in orbit</p>
+            </div>
           </div>
           <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn btn-close" data-i18n-aria="menu.close" aria-label="Close menu">✕</button>
         </div>
@@ -2496,10 +2478,10 @@
   <div id="aoDialog" class="ao-dialog hidden" role="alertdialog" aria-modal="true" aria-labelledby="aoDialogTitle">
     <div class="ao-dialog-card">
       <div class="ao-dialog-head">
-        <span class="ao-dialog-mark" aria-hidden="true">AO</span>
+        <img class="ao-dialog-mark" src="ao-mark.svg" alt="" />
         <div>
           <strong id="aoDialogTitle">Accounts Orbit</strong>
-          <small>Notice</small>
+          <small>Your business in orbit</small>
         </div>
       </div>
       <p id="aoDialogMsg" class="ao-dialog-msg"></p>
@@ -2673,6 +2655,8 @@
     <div class="modal-box" style="max-width:480px;text-align:left;">
       <p id="onboardProgress" style="color:#94a3b8;font-size:12px;margin-bottom:8px;">Step 1 / 3</p>
       <div class="onboard-step" data-step="1">
+        <img src="ao-logo.svg" alt="Accounts Orbit" class="ao-hero-logo" />
+        <p class="ao-tagline">Your business in orbit</p>
         <h3>👋 Welcome to Accounts Orbit!</h3>
         <p>This app handles billing, credit ledger, GST reports and Tally sync for your shop. Set up your business profile first.</p>
       </div>
@@ -2694,7 +2678,8 @@
   <!-- App Lock Overlay (PIN / Face ID) -->
   <div id="appLockOverlay" class="app-lock-overlay hidden" data-mode="unlock" role="dialog" aria-modal="true" aria-label="App lock">
     <div class="app-lock-inner">
-      <div class="app-lock-icon">🔒</div>
+      <img src="ao-logo.svg" alt="Accounts Orbit" class="ao-hero-logo" />
+      <p class="ao-tagline">Your business in orbit</p>
       <h2 id="appLockTitle" class="app-lock-title">Accounts Orbit Locked</h2>
       <p id="appLockSubtext" class="app-lock-sub">Unlock with PIN or Face ID</p>
       <div id="appLockDots" class="app-lock-dots" aria-hidden="true">

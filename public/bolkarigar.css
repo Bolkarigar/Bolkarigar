@@ -261,22 +261,36 @@
      aur gradient dono theme ke dark topbar par padhne layak rehta hai. */
   .brand-title-main {
     margin: 0;
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: .09em;
+    letter-spacing: -0.02em;
     line-height: 1.05;
     color: #f8fafc;
-    background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 55%, #a5b4fc 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 55%, #67e8f9 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .brand-title-sub {
-    margin: 1px 0 0;
+  .brand-title-sub,
+  .ao-tagline {
+    margin: 2px 0 0;
     font-size: 12px;
-    color: var(--topbar-muted, var(--muted));
+    color: #93c5fd;
     font-weight: 600;
-    letter-spacing: .03em;
+    letter-spacing: .02em;
+  }
+  .ao-hero-logo {
+    display: block;
+    width: min(220px, 72vw);
+    height: auto;
+    margin: 0 auto 8px;
+    border-radius: 24px;
+  }
+  .ao-dialog-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    object-fit: cover;
   }
   .topbar-toolbar {
     display: flex;
@@ -3008,12 +3022,21 @@ body.sidebar-open .sidebar-tally-card {
     min-width: 0;
   }
   .sidebar-mobile-brand strong {
-    font-size: 20px;
+    display: block;
+    font-size: 18px;
     font-weight: 800;
     letter-spacing: -0.02em;
     background: linear-gradient(135deg, #38bdf8, #818cf8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+  .sidebar-mobile-brand .ao-tagline {
+    margin: 2px 0 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    background: none;
+    -webkit-text-fill-color: #64748b;
   }
   .sidebar-brand-icon {
     width: 36px;
@@ -5733,12 +5756,9 @@ html[data-theme="light"] .modify-type-card:hover {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: #1e3a5f;
-  color: #fff;
-  font-weight: 800;
-  font-size: 13px;
+  display: block;
+  object-fit: cover;
+  background: none;
 }
 .ao-dialog-head strong { display: block; font-size: 15px; }
 .ao-dialog-head small { color: #64748b; font-size: 12px; }

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Accounts Orbit">
+  <defs>
+    <linearGradient id="aoLG" x1="120" y1="520" x2="520" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="640" rx="48" fill="#06144a"/>
+  <g transform="translate(200 118)">
+    <rect x="52" y="118" width="28" height="56" rx="6" fill="url(#aoLG)"/>
+    <rect x="106" y="78" width="28" height="96" rx="6" fill="url(#aoLG)"/>
+    <rect x="160" y="38" width="28" height="136" rx="6" fill="url(#aoLG)"/>
+    <ellipse cx="120" cy="122" rx="118" ry="58" fill="none" stroke="url(#aoLG)" stroke-width="12" transform="rotate(-28 120 122)"/>
+    <circle cx="214" cy="38" r="16" fill="url(#aoLG)"/>
+  </g>
+  <text x="320" y="470" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="62" font-weight="800">
+    <tspan fill="#ffffff">Accounts</tspan><tspan fill="url(#aoLG)">Orbit</tspan>
+  </text>
+</svg>
