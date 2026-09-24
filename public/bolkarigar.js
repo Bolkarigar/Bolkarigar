@@ -2093,6 +2093,10 @@ function closeTopbarMoreMenu() {
 
 function toggleTopbarMoreMenu() {
   if (!window.matchMedia("(max-width: 820px)").matches) return;
+  if (document.documentElement.classList.contains("ao-phone")) {
+    if (typeof window.aoPhoneToggleAccount === "function") window.aoPhoneToggleAccount();
+    return;
+  }
   const open = !document.body.classList.contains("topbar-more-open");
   document.body.classList.toggle("topbar-more-open", open);
   topbarMoreBtn?.setAttribute("aria-expanded", open ? "true" : "false");

@@ -24,25 +24,46 @@
     document.documentElement.classList.toggle("ao-phone", wantsPhone());
     var bar = document.getElementById("aoPhoneTabbar");
     if (bar) bar.hidden = !wantsPhone();
-    if (!wantsPhone()) closeMore();
+    if (!wantsPhone()) closeSheets();
     if (wantsPhone()) {
       var active = document.querySelector(".panel.active");
       if (active) setActiveTab(active.id);
     }
   }
 
-  function closeMore() {
-    document.getElementById("aoPhoneMore")?.classList.add("hidden");
-    document.body.classList.remove("ao-phone-more-open");
-    document.body.style.overflow = "";
+  function isSheetOpen(id) {
+    var el = document.getElementById(id);
+    return !!(el && !el.classList.contains("hidden"));
   }
 
-  function openMore() {
-    fillMore();
-    document.getElementById("aoPhoneMore")?.classList.remove("hidden");
+  function closeSheets() {
+    ["aoPhoneMore", "aoPhoneAccount"].forEach(function (id) {
+      document.getElementById(id)?.classList.add("hidden");
+    });
+    document.body.classList.remove("ao-phone-more-open", "topbar-more-open");
+    document.body.style.overflow = "";
+    document.getElementById("topbarMoreBtn")?.setAttribute("aria-expanded", "false");
+  }
+
+  function openSheet(id) {
+    closeSheets();
+    if (id === "aoPhoneMore") fillMore();
+    document.getElementById(id)?.classList.remove("hidden");
     document.body.classList.add("ao-phone-more-open");
     document.body.style.overflow = "hidden";
+    if (id === "aoPhoneAccount") {
+      document.getElementById("topbarMoreBtn")?.setAttribute("aria-expanded", "true");
+    }
   }
+
+  function toggleSheet(id) {
+    if (isSheetOpen(id)) closeSheets();
+    else openSheet(id);
+  }
+
+  window.aoPhoneToggleMore = function () { toggleSheet("aoPhoneMore"); };
+  window.aoPhoneToggleAccount = function () { toggleSheet("aoPhoneAccount"); };
+  window.aoPhoneCloseSheets = closeSheets;
 
   function setActiveTab(panelId) {
     var key = MAIN[panelId] || "more";
@@ -72,7 +93,7 @@
     grid.dataset.ready = "1";
     grid.querySelectorAll("button[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        closeMore();
+        closeSheets();
         if (typeof window.openPanel === "function") window.openPanel(btn.dataset.tab);
       });
     });
@@ -81,31 +102,46 @@
   function bindBar() {
     document.querySelectorAll(".ao-phone-tab[data-phone-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        closeMore();
+        closeSheets();
         if (typeof window.openPanel === "function") window.openPanel(btn.dataset.phoneTab);
       });
     });
     document.getElementById("aoPhoneMoreBtn")?.addEventListener("click", function () {
-      var sheet = document.getElementById("aoPhoneMore");
-      if (sheet && !sheet.classList.contains("hidden")) closeMore();
-      else openMore();
+      toggleSheet("aoPhoneMore");
     });
-    document.getElementById("aoPhoneMore")?.addEventListener("click", function (e) {
-      if (e.target.id === "aoPhoneMore") closeMore();
+    document.getElementById("topbarMoreBtn")?.addEventListener("click", function (e) {
+      if (!wantsPhone()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      toggleSheet("aoPhoneAccount");
+    }, true);
+    ["aoPhoneMore", "aoPhoneAccount"].forEach(function (id) {
+      document.getElementById(id)?.addEventListener("click", function (e) {
+        if (e.target.id === id || e.target.getAttribute("data-ao-close") === "1") closeSheets();
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && document.body.classList.contains("ao-phone-more-open")) {
+        closeSheets();
+      }
     });
     document.getElementById("aoPhoneMoreProfile")?.addEventListener("click", function () {
-      closeMore();
+      closeSheets();
       document.getElementById("businessProfileBtn")?.click();
     });
-    document.getElementById("aoPhoneMoreAi")?.addEventListener("click", function () {
-      closeMore();
-      document.getElementById("liveAiToggle")?.click();
+    document.getElementById("aoPhoneAccProfile")?.addEventListener("click", function () {
+      closeSheets();
+      document.getElementById("businessProfileBtn")?.click();
     });
-    document.getElementById("aoPhoneMoreTheme")?.addEventListener("click", function () {
+    document.getElementById("aoPhoneAccTheme")?.addEventListener("click", function () {
       document.getElementById("themeToggle")?.click();
     });
     document.getElementById("aoPhoneMoreLogout")?.addEventListener("click", function () {
-      closeMore();
+      closeSheets();
+      document.getElementById("logoutBtn")?.click();
+    });
+    document.getElementById("aoPhoneAccLogout")?.addEventListener("click", function () {
+      closeSheets();
       document.getElementById("logoutBtn")?.click();
     });
   }
@@ -173,7 +209,7 @@
   window.aoPhoneOnPanel = function (id) {
     if (!wantsPhone()) return;
     setActiveTab(id);
-    closeMore();
+    closeSheets();
     setTimeout(ensureTableSearch, 50);
   };
 
