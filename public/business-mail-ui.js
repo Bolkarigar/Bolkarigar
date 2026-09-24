@@ -59,6 +59,21 @@
     return !!m?.subscription?.fullAccess && !m?.isStaff;
   }
 
+  function cleanMailText(raw) {
+    let s = String(raw || '');
+    if (!s) return '';
+    s = s.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+    s = s.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|tr|h[1-6]|li)>/gi, '\n');
+    s = s.replace(/<[^>]+>/g, ' ');
+    s = s.replace(/&nbsp;/gi, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+    s = s.replace(/=([0-9A-F]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    s = s.replace(/((?:%[0-9A-F]{2})+)/gi, (enc) => { try { return decodeURIComponent(enc); } catch { return enc; } });
+    s = s.replace(/https?:\/\/[^\s]{70,}/g, '');
+    s = s.replace(/https?:\/\/[^\s]*(?:unsubscribe|click|track|connect\.)[^\s]*/gi, '');
+    s = s.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n');
+    return s.trim();
+  }
+
   function fmtDate(iso) {
     if (!iso) return '—';
     try {
@@ -182,7 +197,7 @@
     list.innerHTML = pageRows.map((m) => {
       const dirLabel = m.direction === 'outbound' ? 'Sent' : 'Received';
       const status = m.status === 'failed' ? `<span class="bm-badge bm-badge-fail">Failed</span>` : '';
-      const preview = (m.bodyText || '').slice(0, 120);
+      const preview = cleanMailText(m.bodyText || '').slice(0, 140);
       return `
         <article class="bm-msg-card" data-id="${esc(m._id)}" tabindex="0">
           <div class="bm-msg-head">
@@ -236,7 +251,7 @@
     document.getElementById('bmDetailSubject').textContent = m.subject || '(No subject)';
     document.getElementById('bmDetailMeta').textContent =
       `${m.direction === 'outbound' ? 'To' : 'From'}: ${m.direction === 'outbound' ? m.to : m.from} · ${fmtDate(m.createdAt)}`;
-    document.getElementById('bmDetailBody').textContent = m.bodyText || '';
+    document.getElementById('bmDetailBody').textContent = cleanMailText(m.bodyText) || '(No message text)';
     const delivery = document.getElementById('bmDetailDelivery');
     if (delivery) {
       if (m.direction === 'outbound' && m.status === 'sent') {

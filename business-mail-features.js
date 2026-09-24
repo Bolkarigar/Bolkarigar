@@ -12,7 +12,8 @@ const {
   encryptSecret,
   decryptSecret,
   envFallbackFor,
-  fetchMailboxEmails
+  fetchMailboxEmails,
+  cleanStoredEmailBody
 } = require('./mail-inbox-sync');
 
 const MAIL_TEMPLATES = {
@@ -159,7 +160,14 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       if (folder === 'inbox') q.direction = 'inbound';
       const limit = Math.min(parseInt(req.query.limit, 10) || 80, 200);
       const rows = await BusinessMail.find(q).sort({ createdAt: -1 }).limit(limit);
-      res.json({ success: true, messages: rows });
+      res.json({
+        success: true,
+        messages: rows.map((m) => {
+          const o = m.toObject();
+          o.bodyText = cleanStoredEmailBody(o.bodyText);
+          return o;
+        })
+      });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -285,7 +293,14 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
           ...(row.messageId ? [{ providerMessageId: row.messageId }] : [])
         ]
       });
-      if (existing) continue;
+      if (existing) {
+        if (row.bodyText && row.bodyText !== existing.bodyText) {
+          existing.bodyText = row.bodyText;
+          if (row.subject) existing.subject = row.subject;
+          await existing.save();
+        }
+        continue;
+      }
       await BusinessMail.create({
         userId,
         threadId: row.messageId || crypto.randomUUID(),
@@ -352,7 +367,11 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         added,
         pulled: fetched.messages.length,
         imapHost: fetched.host,
-        messages: rows
+        messages: rows.map((m) => {
+          const o = m.toObject();
+          o.bodyText = cleanStoredEmailBody(o.bodyText);
+          return o;
+        })
       });
     } catch (e) {
       res.status(502).json({ error: e.message || 'Inbox sync failed' });

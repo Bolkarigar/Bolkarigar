@@ -111,6 +111,85 @@ function firstEmail(list) {
   return String(list[0].address || '').trim().toLowerCase();
 }
 
+function decodeEntities(s) {
+  return String(s || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => {
+      const c = Number(n);
+      return c ? String.fromCharCode(c) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => {
+      const c = parseInt(n, 16);
+      return c ? String.fromCharCode(c) : _;
+    });
+}
+
+function decodeQuotedPrintableBits(s) {
+  return String(s || '')
+    .replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function decodePct(s) {
+  return String(s || '').replace(/((?:%[0-9A-F]{2})+)/gi, (enc) => {
+    try { return decodeURIComponent(enc); } catch { return enc; }
+  });
+}
+
+function tidyReadable(s) {
+  let t = decodePct(decodeEntities(decodeQuotedPrintableBits(s)));
+  t = t.replace(/https?:\/\/[^\s<>"]{70,}/g, '');
+  t = t.replace(/https?:\/\/[^\s<>"]*(?:unsubscribe|click|track|pixel|connect\.)[^\s<>"]*/gi, '');
+  t = t.replace(/[ \t\f\v]+/g, ' ');
+  t = t.replace(/ *\n */g, '\n');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.replace(/^[ \t]*[-_=.]{6,}[ \t]*$/gm, '');
+  return t.trim().slice(0, 8000);
+}
+
+function htmlToReadable(html) {
+  let s = String(html || '');
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
+  s = s.replace(/<style[\s\S]*?<\/style>/gi, '');
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<\/(p|div|tr|h[1-6]|li|blockquote|table)>/gi, '\n');
+  s = s.replace(/<a [^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, inner) => {
+    const label = inner.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (/unsubscribe|track|pixel|connect\.|click/i.test(href)) return label;
+    return label || '';
+  });
+  s = s.replace(/<[^>]+>/g, '');
+  return tidyReadable(s);
+}
+
+function looksLikeGarbage(text) {
+  const s = String(text || '');
+  if (!s) return true;
+  const urls = (s.match(/https?:\/\//g) || []).length;
+  const pct = (s.match(/%[0-9A-F]{2}/gi) || []).length;
+  const words = (s.match(/[A-Za-z\u0900-\u097F]{3,}/g) || []).length;
+  return pct > 8 || (urls >= 4 && words < urls * 3);
+}
+
+function cleanEmailBody(parsed) {
+  const fromHtml = parsed?.html ? htmlToReadable(parsed.html) : '';
+  const fromText = tidyReadable(String(parsed?.text || '').replace(/<[^>]+>/g, ' '));
+  if (looksLikeGarbage(fromText) && fromHtml) return fromHtml;
+  return fromText || fromHtml || '';
+}
+
+function cleanStoredEmailBody(raw) {
+  const s = String(raw || '');
+  if (!s) return '';
+  if (looksLikeGarbage(s) || /<[a-z][\s\S]*>/i.test(s)) return htmlToReadable(s) || tidyReadable(s);
+  return tidyReadable(s);
+}
+
 async function tryConnect(host, port, user, pass) {
   try { dns.setDefaultResultOrder('ipv4first'); } catch { /* node < 17 */ }
   const { ImapFlow } = require('imapflow');
@@ -204,7 +283,7 @@ async function readMailbox(client, mailbox, limit, folderHint) {
       const fromAddr = firstEmail(parsed?.from?.value || env.from) || addrList(env.from);
       const toAddr = firstEmail(parsed?.to?.value || env.to) || addrList(env.to);
       const subject = String(parsed?.subject || env.subject || '(No subject)');
-      const bodyText = String(parsed?.text || parsed?.html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 8000);
+      const bodyText = cleanEmailBody(parsed);
       const date = parsed?.date || env.date || new Date();
       rows.push({
         folderHint,
@@ -256,5 +335,7 @@ module.exports = {
   encryptSecret,
   decryptSecret,
   envFallbackFor,
-  fetchMailboxEmails
+  fetchMailboxEmails,
+  cleanEmailBody,
+  cleanStoredEmailBody
 };

@@ -5402,9 +5402,11 @@ html[data-theme="light"] .bm-compose-card {
   white-space: pre-wrap;
   font-family: inherit;
   font-size: 14px;
+  line-height: 1.55;
   margin: 12px 0 0;
-  max-height: 280px;
+  max-height: 420px;
   overflow: auto;
+  color: var(--text);
 }
 .bm-detail-err {
   color: var(--danger, #f87171);
