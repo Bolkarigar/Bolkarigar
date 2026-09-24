@@ -1,15 +1,17 @@
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-[assembly: AssemblyTitle("Accounts Orbit Setup")]
+[assembly: AssemblyTitle("Accounts Orbit")]
 [assembly: AssemblyProduct("Accounts Orbit")]
 [assembly: AssemblyCompany("Accounts Orbit")]
-[assembly: AssemblyDescription("Accounts Orbit desktop installer")]
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyDescription("Accounts Orbit desktop app")]
+[assembly: AssemblyVersion("1.0.3.0")]
+[assembly: AssemblyFileVersion("1.0.3.0")]
 
 internal static class Program
 {
@@ -21,42 +23,68 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        try { TryUnblock(Application.ExecutablePath); }
+        catch { }
+
+        string installed = null;
+        try { installed = InstallAppCopy(); }
+        catch { }
+
+        try { InstallDesktopShortcut(installed); }
+        catch { }
+
         try
         {
-            var running = Application.ExecutablePath;
-            TryUnblock(running);
-
-            var appDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AccountsOrbit");
-            var installed = Path.Combine(appDir, "AccountsOrbit.exe");
-            var isInstalledCopy = string.Equals(
-                Path.GetFullPath(running),
-                Path.GetFullPath(installed),
-                StringComparison.OrdinalIgnoreCase);
-
-            if (!isInstalledCopy)
-            {
-                Directory.CreateDirectory(appDir);
-                File.Copy(running, installed, true);
-                TryUnblock(installed);
-                try
-                {
-                    CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Accounts Orbit.lnk"), installed);
-                    CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Accounts Orbit.lnk"), installed);
-                }
-                catch { /* shortcut optional — app phir bhi khule */ }
-            }
-
             LaunchApp();
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
-                "Accounts Orbit start nahi ho paya.\n\n" + ex.Message +
-                "\n\nAgar Windows 'protected your PC' dikhaye to More info → Run anyway dabao.",
-                "Accounts Orbit",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = AppUrl, UseShellExecute = true });
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "Accounts Orbit start nahi ho paya.\n\n" + ex.Message,
+                    "Accounts Orbit",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
+    }
+
+    static string AppDir()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AccountsOrbit");
+    }
+
+    static string InstallAppCopy()
+    {
+        var dir = AppDir();
+        Directory.CreateDirectory(dir);
+        var dest = Path.Combine(dir, "AccountsOrbit.exe");
+        var running = Application.ExecutablePath;
+        if (!string.Equals(Path.GetFullPath(running), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+            File.Copy(running, dest, true);
+        TryUnblock(dest);
+        var ico = Path.Combine(dir, "app.ico");
+        try
+        {
+            var beside = Path.Combine(Path.GetDirectoryName(running) ?? "", "icon.ico");
+            if (File.Exists(beside))
+                File.Copy(beside, ico, true);
+            else if (File.Exists(Path.Combine(dir, "icon.ico")))
+                File.Copy(Path.Combine(dir, "icon.ico"), ico, true);
+            else
+            {
+                using (var icon = Icon.ExtractAssociatedIcon(dest) ?? Icon.ExtractAssociatedIcon(running))
+                using (var fs = File.Create(ico))
+                    icon.Save(fs);
+            }
+        }
+        catch { }
+        return dest;
     }
 
     static void TryUnblock(string file)
@@ -98,19 +126,74 @@ internal static class Program
         return null;
     }
 
-    static void CreateShortcut(string lnkPath, string target)
+    static void InstallDesktopShortcut(string installedExe)
     {
-        var lnk = lnkPath.Replace("'", "''");
-        var tgt = target.Replace("'", "''");
-        var dir = Path.GetDirectoryName(target).Replace("'", "''");
-        var cmd = "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('" + lnk + "'); $s.TargetPath = '" + tgt + "'; $s.WorkingDirectory = '" + dir + "'; $s.Description = 'Accounts Orbit'; $s.Save()";
-        var p = Process.Start(new ProcessStartInfo
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var startMenu = Environment.GetFolderPath(Environment.SpecialFolder.StartMenu);
+        string[] stale =
         {
-            FileName = "powershell.exe",
-            Arguments = "-NoProfile -ExecutionPolicy Bypass -Command " + cmd,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
-        if (p != null) p.WaitForExit(15000);
+            Path.Combine(desktop, "Accounts Orbit.url"),
+            Path.Combine(desktop, "AccountsOrbit.url"),
+            Path.Combine(desktop, "Accounts Orbit.lnk"),
+            Path.Combine(desktop, "AccountsOrbit.lnk"),
+            Path.Combine(startMenu, "Accounts Orbit.url"),
+            Path.Combine(startMenu, "AccountsOrbit.url"),
+            Path.Combine(startMenu, "Accounts Orbit.lnk"),
+            Path.Combine(startMenu, "AccountsOrbit.lnk")
+        };
+        foreach (var s in stale) TryDelete(s);
+
+        var target = string.IsNullOrEmpty(installedExe) ? Application.ExecutablePath : installedExe;
+        var icon = Path.Combine(AppDir(), "app.ico");
+        if (!File.Exists(icon)) icon = target;
+
+        TryCreateShortcut(Path.Combine(desktop, "Accounts Orbit.lnk"), target, "", icon);
+        TryCreateShortcut(Path.Combine(startMenu, "Accounts Orbit.lnk"), target, "", icon);
+        try { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
+    }
+
+    [DllImport("shell32.dll")]
+    static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
+
+    static void TryDelete(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); }
+        catch { }
+    }
+
+    static void TryCreateShortcut(string lnkPath, string target, string args, string iconPath)
+    {
+        try
+        {
+            var lnk = lnkPath.Replace("'", "''");
+            var tgt = target.Replace("'", "''");
+            var arguments = (args ?? "").Replace("'", "''");
+            var icon = (iconPath ?? target).Replace("'", "''");
+            var cmd = "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('" + lnk + "'); $s.TargetPath = '" + tgt + "'; $s.Arguments = '" + arguments + "'; $s.IconLocation = '" + icon + ",0'; $s.Description = 'Accounts Orbit'; $s.Save()";
+            var p = Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-NoProfile -ExecutionPolicy Bypass -Command " + cmd,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            if (p != null) p.WaitForExit(12000);
+            if (File.Exists(lnkPath)) return;
+        }
+        catch { }
+
+        WriteUrlShortcut(Path.ChangeExtension(lnkPath, ".url"), iconPath);
+    }
+
+    static void WriteUrlShortcut(string path, string iconPath)
+    {
+        try
+        {
+            var body = "[InternetShortcut]\r\nURL=" + AppUrl + "\r\n";
+            if (!string.IsNullOrEmpty(iconPath) && File.Exists(iconPath))
+                body += "IconFile=" + iconPath + "\r\nIconIndex=0\r\n";
+            File.WriteAllText(path, body);
+        }
+        catch { }
     }
 }
