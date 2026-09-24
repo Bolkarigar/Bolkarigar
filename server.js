@@ -305,7 +305,7 @@ const UserSchema = new mongoose.Schema({
   resetOtpAttempts: { type: Number, default: 0 },
   // 🟢 DESKTOP AGENT: yeh ek permanent (non-expiring) token hai jo sirf
   // Desktop Agent app apne aap ko pehchanwane ke liye use karta hai — normal
-  // login JWT (24h expiry) ki tarah baar-baar login karne ki zaroorat nahi
+  // login JWT (30-day expiry) ki tarah baar-baar login karne ki zaroorat nahi
   // padti Agent ko. Regenerate button se purana turant invalid ho jaata hai.
   agentToken: { type: String, default: null, index: true, sparse: true },
   role: { type: String, enum: ['owner', 'manager', 'cashier', 'staff'], default: 'owner' },
@@ -604,7 +604,7 @@ app.post('/api/auth/signup', async (req, res) => {
     await newUser.save();
     await UserData.create({ userId: newUser._id });
 
-    const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       message: signupPlan === 'business'
@@ -678,7 +678,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     clearAttempts(rateLimitKey);
-    const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
     const role = user.ownerId ? (user.role || 'staff') : 'owner';
 
     let subscription = null;

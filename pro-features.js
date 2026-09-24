@@ -174,16 +174,21 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       if (!user || user.ownerId) return res.status(403).json({ error: 'Sirf owner staff invite kar sakta hai.' });
       const subscription = await getSubscriptionForUser(User, user);
       if (!subscription.canInviteStaff) {
+        if (user.staffInviteCode) {
+          user.staffInviteCode = null;
+          user.staffInviteRole = null;
+          await user.save();
+        }
         return res.status(402).json({
           error: subscription.isExpired
-            ? 'Plan expire ho gaya — staff invite ke liye Pro plan renew karein.'
-            : 'Starter plan me staff invite nahi — Pro ya Business plan lein.',
+            ? 'Plan expire ho gaya — staff invite ke liye Business plan renew karein.'
+            : 'Staff invite Business plan (₹299) par available hai. My Plan se upgrade karein.',
           subscription
         });
       }
       const staffCount = await User.countDocuments({ ownerId: user._id });
       const maxStaff = subscription.staffSlots || 0;
-      if (maxStaff > 0 && staffCount >= maxStaff) {
+      if (staffCount >= maxStaff) {
         return res.status(402).json({
           error: `Business plan par maximum ${maxStaff} staff add ho sakte hain. Pehle kisi staff ko remove karein.`,
           staffCount,
@@ -227,9 +232,16 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       }
       const staffCount = await User.countDocuments({ ownerId: owner._id });
       const maxStaff = ownerSub.staffSlots || 0;
-      if (maxStaff > 0 && staffCount >= maxStaff) {
+      if (!ownerSub.canInviteStaff || staffCount >= maxStaff) {
+        if (owner.staffInviteCode) {
+          owner.staffInviteCode = null;
+          owner.staffInviteRole = null;
+          await owner.save();
+        }
         return res.status(402).json({
-          error: `Owner ke plan par staff limit (${maxStaff}) full hai. Owner se extra slot ya remove karne ko kahein.`
+          error: !ownerSub.canInviteStaff
+            ? 'Staff accounts Business plan (₹299) par hain. Owner se upgrade karne ko kahein.'
+            : `Owner ke plan par staff limit (${maxStaff}) full hai. Owner se extra slot ya remove karne ko kahein.`
         });
       }
       const exists = await User.findOne({ $or: [{ username }, { email }] });
@@ -252,6 +264,11 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const staff = await User.find({ ownerId: req.user.id }).select('username email role createdAt');
       const subscription = await getSubscriptionForUser(User, user);
       const staffSlots = subscription.staffSlots || 0;
+      if (!subscription.canInviteStaff && user.staffInviteCode) {
+        user.staffInviteCode = null;
+        user.staffInviteRole = null;
+        await user.save();
+      }
       res.json({
         success: true,
         staff,
@@ -262,8 +279,8 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         staffPackSize: subscription.staffPackSize,
         staffPackPrice: subscription.staffPackPrice,
         staffSlotsRemaining: Math.max(0, staffSlots - staff.length),
-        inviteCode: user.staffInviteCode || null,
-        inviteRole: user.staffInviteRole || null
+        inviteCode: subscription.canInviteStaff ? (user.staffInviteCode || null) : null,
+        inviteRole: subscription.canInviteStaff ? (user.staffInviteRole || null) : null
       });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });

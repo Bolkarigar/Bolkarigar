@@ -3587,7 +3587,7 @@ const APP_FAQ = [
   { keywords: ["accounting mode", "tally prime kya", "bolkarigar khata kya"],
     answer: "Choose Accounting Mode on the invoice — Accounts Orbit Khata (in-house) or Tally Prime (sync with Tally)." },
   { keywords: ["business profile", "company profile", "profile save", "firm ka naam", "gstin kaise dalu"],
-    answer: "In Business Profile, enter Company Name, GSTIN, Phone and Address, then Save — this unlocks the invoice generator." },
+    answer: "In Business Profile, enter Company Name, GSTIN, Phone and Address, then Save. You can create invoices even before saving the profile." },
   { keywords: ["udhar khata", "udhar kaise", "khata kya", "credit customer"],
     answer: "Credit Ledger tracks customer credit — who owes how much." },
   { keywords: ["inventory kya", "stock kaise"],
@@ -6265,7 +6265,6 @@ async function saveCompanyProfile(event) {
         state.company = profileForStorage;
       }
 
-      // Profile lock karo & Invoice Generator unlock karo
       setProfileLockState(true);
     } else {
       alert("❌ Error: " + (result.error || "Could not save"));
@@ -6308,7 +6307,6 @@ function setProfileLockState(isSaved) {
   const invoiceContainer = document.getElementById("invoiceGeneratorSection");
 
   if (isSaved) {
-    // 1. PROFILE LOCK KARO
     profileInputs.forEach(input => {
       input.disabled = true;
       input.style.opacity = "0.7";
@@ -6316,17 +6314,7 @@ function setProfileLockState(isSaved) {
     });
     if (btnSave) btnSave.style.display = "none";
     if (btnEdit) btnEdit.style.display = "inline-block";
-
-    // 2. INVOICE GENERATOR UNLOCK KARO
-    if (invoiceContainer) {
-      invoiceContainer.classList.remove("blocked-invoice");
-      // Saare inputs aur buttons enable karo
-      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button:not(.inv-btn-quit), textarea");
-      invoiceElements.forEach(el => el.disabled = false);
-    }
-
   } else {
-    // 1. PROFILE UNLOCK KARO (Editing Mode)
     profileInputs.forEach(input => {
       input.disabled = false;
       input.style.opacity = "1";
@@ -6334,14 +6322,14 @@ function setProfileLockState(isSaved) {
     });
     if (btnSave) btnSave.style.display = "inline-flex";
     if (btnEdit) btnEdit.style.display = "none";
+  }
 
-    // 2. INVOICE GENERATOR COMPLETE BLOCK KARO
-    if (invoiceContainer) {
-      invoiceContainer.classList.add("blocked-invoice");
-      // Saare inputs aur buttons disable karo
-      const invoiceElements = invoiceContainer.querySelectorAll("input, select, button:not(.inv-btn-quit), textarea");
-      invoiceElements.forEach(el => el.disabled = true);
-    }
+  // Invoice hamesha open — profile save ke bina bhi bill ban sakta hai
+  if (invoiceContainer) {
+    invoiceContainer.classList.remove("blocked-invoice");
+    invoiceContainer.querySelectorAll("input, select, button:not(.inv-btn-quit), textarea").forEach((el) => {
+      el.disabled = false;
+    });
   }
 }
 
