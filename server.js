@@ -3402,17 +3402,9 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpag
 });
 
 app.get(['/download-app', '/download-app.exe', '/download-app.zip'], (req, res) => {
-  const fs = require('fs');
-  const zip = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.zip');
-  const installer = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.exe');
-  if (fs.existsSync(zip)) {
-    res.setHeader('Content-Type', 'application/zip');
-    return res.download(zip, 'AccountsOrbit-Setup.zip');
-  }
-  if (fs.existsSync(installer)) {
-    return res.download(installer, 'AccountsOrbit-Setup.exe');
-  }
-  return res.status(404).send('Desktop installer is being prepared. Please try again shortly.');
+  // Unsigned .exe/.zip Chrome Safe Browsing block karta hai.
+  // Desktop icon Chrome/Edge ke official Install se banta hai.
+  return res.redirect(302, '/loginpage.html?install=1');
 });
 
 // --- Catch-all Fallback Route (Sabse Niche) ---
