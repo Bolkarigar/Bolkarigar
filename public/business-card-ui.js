@@ -1335,10 +1335,14 @@
     updatePreview();
     document.getElementById("bcEditorModal")?.classList.remove("hidden");
     document.getElementById("bcEditorTitle").textContent = getTemplate(templateId).name;
+    document.body.classList.add("bc-editor-open");
+    document.body.style.overflow = "hidden";
   }
 
   function closeEditor() {
     document.getElementById("bcEditorModal")?.classList.add("hidden");
+    document.body.classList.remove("bc-editor-open");
+    document.body.style.overflow = "";
   }
 
   function navigateTemplate(dir) {

@@ -1082,6 +1082,36 @@
     padding: 12px;
   }
   #previewImage { display: none; max-width: 100%; border-radius: 12px; }
+  .ao-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+  .ao-file-pick {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--brand-primary, #2563eb);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .media-preview-box {
+    margin-top: 15px;
+    border: 2px dashed var(--border, #444);
+    padding: 10px;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
   .search-list {
     list-style: none;
     padding: 0;

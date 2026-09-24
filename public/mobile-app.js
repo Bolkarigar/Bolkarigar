@@ -149,7 +149,7 @@
   function skipTableWrap(wrap) {
     if (!wrap || wrap.classList.contains("inv-tax-table-wrap")) return true;
     if (wrap.closest(".inv-tax-footer")) return true;
-    if (wrap.closest("#ledgerPanel, #khataLedgersPanel")) return true;
+    if (wrap.closest("#ledgerPanel, #khataLedgersPanel, #mediaPanel, #calcPanel")) return true;
     var tb = wrap.querySelector("tbody");
     if (!tb) return true;
     return /^(invoiceBody|pvItemsBody|busyTaxSummaryBody|pvTaxSummaryBody|pvTaxBody|ledgerBody|khataLedgersBody)$/.test(tb.id || "");
@@ -157,6 +157,7 @@
 
   function hasNearbySearch(wrap) {
     if (wrap.previousElementSibling && wrap.previousElementSibling.classList.contains("ao-phone-table-search")) return true;
+    if (wrap.previousElementSibling && wrap.previousElementSibling.classList.contains("ao-phone-list-tools")) return true;
     var parent = wrap.parentElement;
     if (!parent) return false;
     var kids = Array.prototype.slice.call(parent.children);
@@ -187,6 +188,8 @@
     if (!wantsPhone()) return;
     document.querySelectorAll(".table-wrap").forEach(function (wrap) {
       if (skipTableWrap(wrap) || hasNearbySearch(wrap)) return;
+      var box = document.createElement("div");
+      box.className = "ao-phone-list-tools";
       var input = document.createElement("input");
       input.type = "search";
       input.className = "ao-phone-table-search";
@@ -195,7 +198,8 @@
       input.addEventListener("input", function () {
         filterTableRows(wrap, input.value);
       });
-      wrap.parentNode.insertBefore(input, wrap);
+      box.appendChild(input);
+      wrap.parentNode.insertBefore(box, wrap);
       var tbody = wrap.querySelector("tbody");
       if (tbody && wrap.dataset.aoSearchObs !== "1") {
         wrap.dataset.aoSearchObs = "1";
