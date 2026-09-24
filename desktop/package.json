@@ -1,0 +1,47 @@
+{
+  "name": "accounts-orbit-desktop",
+  "version": "1.0.0",
+  "description": "Accounts Orbit desktop app",
+  "main": "main.js",
+  "author": "Accounts Orbit",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.accountsorbit.desktop",
+    "productName": "Accounts Orbit",
+    "artifactName": "AccountsOrbit-Setup.exe",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "icon.png"
+    ],
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Accounts Orbit",
+      "uninstallDisplayName": "Accounts Orbit",
+      "installerIcon": "icon.png",
+      "uninstallerIcon": "icon.png"
+    }
+  }
+}

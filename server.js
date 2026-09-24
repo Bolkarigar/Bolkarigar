@@ -3397,8 +3397,16 @@ setupDevPlanToggle({ app, User, authenticateToken });
 
 // Explicit HTML routes (static ke baad bhi safe fallback)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpage.html')));
-['/loginpage.html', '/signup.html', '/pricing.html'].forEach((page) => {
+['/loginpage.html', '/signup.html', '/pricing.html', '/download.html'].forEach((page) => {
   app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
+});
+
+app.get(['/download-app', '/download-app.exe'], (req, res) => {
+  const installer = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.exe');
+  if (!require('fs').existsSync(installer)) {
+    return res.status(404).send('Desktop installer is being prepared. Please try again shortly.');
+  }
+  res.download(installer, 'AccountsOrbit-Setup.exe');
 });
 
 // --- Catch-all Fallback Route (Sabse Niche) ---
