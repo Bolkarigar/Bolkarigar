@@ -3401,12 +3401,18 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpag
   app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
 });
 
-app.get(['/download-app', '/download-app.exe'], (req, res) => {
+app.get(['/download-app', '/download-app.exe', '/download-app.zip'], (req, res) => {
+  const fs = require('fs');
+  const zip = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.zip');
   const installer = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.exe');
-  if (!require('fs').existsSync(installer)) {
-    return res.status(404).send('Desktop installer is being prepared. Please try again shortly.');
+  if (fs.existsSync(zip)) {
+    res.setHeader('Content-Type', 'application/zip');
+    return res.download(zip, 'AccountsOrbit-Setup.zip');
   }
-  res.download(installer, 'AccountsOrbit-Setup.exe');
+  if (fs.existsSync(installer)) {
+    return res.download(installer, 'AccountsOrbit-Setup.exe');
+  }
+  return res.status(404).send('Desktop installer is being prepared. Please try again shortly.');
 });
 
 // --- Catch-all Fallback Route (Sabse Niche) ---
