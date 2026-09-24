@@ -1,0 +1,321 @@
+/* Accounts Orbit — phone app shell (html.ao-phone only).
+   Revert: set localStorage ao_phone_ui=off or remove this file + mobile-app.js */
+html.ao-phone {
+  --ao-phone-bar: 62px;
+  --ao-navy: #152238;
+  --ao-blue: #2563eb;
+  --ao-mint: #10b981;
+}
+
+html.ao-phone body {
+  background: #eef2f7;
+}
+html[data-theme="dark"].ao-phone body {
+  background: #0b1220;
+}
+
+html.ao-phone .sidebar,
+html.ao-phone .mobile-menu-btn,
+html.ao-phone .sidebar-overlay,
+html.ao-phone body.sidebar-open .sidebar,
+html.ao-phone body.sidebar-open .sidebar-overlay,
+html.ao-phone .topbar-clock,
+html.ao-phone .brand-text .eyebrow,
+html.ao-phone .brand-title-sub,
+html.ao-phone #devPlanToggleBar,
+html.ao-phone #bkPlanTestToggleWrap,
+html.ao-phone .sidebar-tally-card,
+html.ao-phone #accModeSection,
+html.ao-phone .overview-tool-card .modify-type-desc {
+  display: none !important;
+}
+
+html.ao-phone .topbar-stack {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+}
+html.ao-phone .topbar {
+  padding: 8px 12px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  gap: 8px;
+  min-height: 56px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.12);
+}
+html.ao-phone .brand-wrap {
+  gap: 8px;
+  min-width: 0;
+}
+html.ao-phone .brand-mark,
+html.ao-phone .brand-mark-svg {
+  width: 34px;
+  height: 34px;
+}
+html.ao-phone .brand-title-main {
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+html.ao-phone .topbar-toolbar {
+  margin-left: auto;
+  gap: 6px;
+}
+html.ao-phone .topbar .voice-btn {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+html.ao-phone .topbar-more-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+html.ao-phone .subscription-banner {
+  margin: 0;
+  border-radius: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+html.ao-phone .page {
+  max-width: none;
+  margin: 0;
+  padding: 10px 10px calc(var(--ao-phone-bar) + 18px + env(safe-area-inset-bottom));
+}
+html.ao-phone .dashboard-layout {
+  display: block;
+  gap: 0;
+}
+html.ao-phone .panel-area {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+}
+html.ao-phone .panel {
+  padding: 0;
+  background: transparent;
+}
+html.ao-phone .panel-header {
+  margin-bottom: 10px;
+  padding: 4px 2px 0;
+}
+html.ao-phone .panel-header .eyebrow {
+  display: none;
+}
+html.ao-phone .panel-header h3 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html.ao-phone .overview-section-card,
+html.ao-phone .modify-panel-card {
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+html.ao-phone .overview-stat-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+html.ao-phone .overview-stat-card {
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 86px;
+}
+html.ao-phone .overview-stat-label {
+  font-size: 11px;
+}
+html.ao-phone .overview-stat-value {
+  font-size: 18px;
+}
+html.ao-phone .modify-type-grid,
+html.ao-phone .overview-tool-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+html.ao-phone .modify-type-card,
+html.ao-phone .overview-tool-card {
+  min-height: 88px;
+  border-radius: 14px;
+  padding: 12px 10px;
+  text-align: left;
+}
+html.ao-phone .modify-type-icon {
+  font-size: 22px;
+}
+html.ao-phone .modify-type-label {
+  font-size: 13px;
+  font-weight: 800;
+}
+html.ao-phone #overviewRecPicker .voucher-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+html.ao-phone input,
+html.ao-phone select,
+html.ao-phone textarea {
+  font-size: 16px !important;
+  min-height: 44px;
+  border-radius: 12px;
+}
+html.ao-phone button,
+html.ao-phone .bk-save-btn,
+html.ao-phone .inv-add-btn {
+  min-height: 44px;
+  border-radius: 12px;
+}
+html.ao-phone .grid-2 {
+  grid-template-columns: 1fr;
+}
+html.ao-phone .inv-item-entry {
+  flex-direction: column;
+  align-items: stretch;
+}
+html.ao-phone .inv-item-entry input,
+html.ao-phone .inv-item-entry select,
+html.ao-phone .inv-item-entry .ao-suggest-wrap,
+html.ao-phone .inv-item-entry .ao-item-suggest {
+  flex: 1 1 auto !important;
+  max-width: 100% !important;
+  width: 100%;
+}
+html.ao-phone .inv-add-btn,
+html.ao-phone .bk-save-btn,
+html.ao-phone .inv-action-row button {
+  width: 100%;
+  margin-left: 0;
+}
+html.ao-phone .inv-action-row {
+  flex-direction: column;
+}
+html.ao-phone .inv-vch-header-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ao-phone-tabbar,
+.ao-phone-more { display: none; }
+html.ao-phone .ao-phone-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1300;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--ao-phone-bar) + env(safe-area-inset-bottom));
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: 1px solid #dbe3ee;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+}
+html[data-theme="dark"].ao-phone .ao-phone-tabbar {
+  background: #152238;
+  border-top-color: rgba(255,255,255,.08);
+}
+html.ao-phone .ao-phone-tab {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  border-radius: 12px;
+  padding: 4px 2px;
+}
+html.ao-phone .ao-phone-tab .ao-phone-ico {
+  font-size: 18px;
+  line-height: 1;
+}
+html.ao-phone .ao-phone-tab.active {
+  color: var(--ao-blue);
+  background: rgba(37, 99, 235, 0.1);
+}
+html.ao-phone .ao-phone-more {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+}
+html.ao-phone .ao-phone-more.hidden { display: none; }
+html.ao-phone .ao-phone-more-sheet {
+  width: 100%;
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 14px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px rgba(0,0,0,.2);
+}
+html[data-theme="dark"].ao-phone .ao-phone-more-sheet {
+  background: #1e293b;
+}
+html.ao-phone .ao-phone-more-handle {
+  width: 42px;
+  height: 4px;
+  border-radius: 99px;
+  background: #cbd5e1;
+  margin: 4px auto 10px;
+}
+html.ao-phone .ao-phone-more-sheet h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+html.ao-phone .ao-phone-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+html.ao-phone .ao-phone-more-btn {
+  border: 1px solid var(--border);
+  background: var(--card2, #f8fafc);
+  color: var(--text);
+  border-radius: 14px;
+  min-height: 74px;
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+html.ao-phone .ao-phone-more-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+html.ao-phone .ao-phone-more-actions button {
+  width: 100%;
+}
+
+html.ao-phone #appToast {
+  bottom: calc(var(--ao-phone-bar) + 16px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 821px) {
+  html.ao-phone:not(.capacitor-native) .ao-phone-tabbar,
+  html.ao-phone:not(.capacitor-native) .ao-phone-more {
+    display: none !important;
+  }
+}

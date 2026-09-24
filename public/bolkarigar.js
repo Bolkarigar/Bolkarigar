@@ -2037,6 +2037,7 @@ function openPanel(id) {
       window.enhanceMobileTables(panel || document);
     });
   }
+  if (typeof window.aoPhoneOnPanel === "function") window.aoPhoneOnPanel(id);
 }
 tabButtons.forEach(btn => btn.addEventListener("click", () => {
   if (btn.dataset.tab) openPanel(btn.dataset.tab);
