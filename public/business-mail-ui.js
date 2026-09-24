@@ -192,7 +192,10 @@
     }
     if (mailStatus.imapConnected) {
       const when = mailStatus.imapLastSyncAt ? ` Last sync: ${fmtDate(mailStatus.imapLastSyncAt)}.` : '';
-      el.textContent = `Inbox connected to ${mailStatus.replyEmail}${mailStatus.imapHost ? ` via ${mailStatus.imapHost}` : ''}.${when}`;
+      const hostShown = /infernix/i.test(mailStatus.replyEmail || '')
+        ? 'dx.infernix.net'
+        : mailStatus.imapHost;
+      el.textContent = `Inbox connected to ${mailStatus.replyEmail}${hostShown ? ` via ${hostShown}` : ''}.${when}`;
       return;
     }
     if (/@(gmail|googlemail)\./i.test(mailStatus.replyEmail || '')) {
@@ -313,25 +316,32 @@
     mailStatus = data;
     const inp = document.getElementById('bmReplyEmail');
     if (inp && data.replyEmail) inp.value = data.replyEmail;
-    const hostInp = document.getElementById('bmImapHost');
-    if (hostInp) {
-      const guessed = guessHostFromEmail(data.replyEmail || hostInp.value);
-      const saved = String(data.imapHost || '').trim().toLowerCase();
-      const email = String(data.replyEmail || '').toLowerCase();
-      const mismatch = (/gmail/.test(saved) && !/gmail/.test(email))
-        || /mail\.infernix|imap\.infernix|^infernix\.com$/.test(saved)
-        || (/infernix/.test(email) && saved !== 'dx.infernix.net');
-      hostInp.value = guessed || (!mismatch ? data.imapHost : '') || '';
-    }
+    applyHostForEmail(data.replyEmail);
     renderStatusBanner();
   }
 
   function guessHostFromEmail(email) {
-    const domain = String(email || '').split('@')[1] || '';
-    if (domain === 'infernix.com' || domain === 'infernix.net') return 'dx.infernix.net';
+    const raw = String(email || '');
+    if (/infernix/i.test(raw)) return 'dx.infernix.net';
+    const domain = raw.split('@')[1] || '';
     if (/gmail|googlemail/.test(domain)) return 'imap.gmail.com';
     if (/outlook|hotmail|live/.test(domain)) return 'outlook.office365.com';
     return domain ? `mail.${domain}` : '';
+  }
+
+  function applyHostForEmail(email) {
+    const hostInp = document.getElementById('bmImapHost');
+    if (!hostInp) return '';
+    const guessed = guessHostFromEmail(email || hostInp.value);
+    if (/infernix/i.test(email || '') || /infernix/i.test(hostInp.value || '') || guessed === 'dx.infernix.net') {
+      hostInp.value = 'dx.infernix.net';
+      hostInp.readOnly = true;
+      hostInp.setAttribute('value', 'dx.infernix.net');
+      return 'dx.infernix.net';
+    }
+    hostInp.readOnly = false;
+    if (guessed && !hostInp.dataset.userEdited) hostInp.value = guessed;
+    return String(hostInp.value || guessed || '').trim();
   }
 
   async function loadPartySuggestions() {
@@ -347,9 +357,7 @@
 
   async function saveReplyEmail() {
     const email = document.getElementById('bmReplyEmail')?.value.trim() || '';
-    const hostInp = document.getElementById('bmImapHost');
-    const guessed = guessHostFromEmail(email);
-    if (hostInp && guessed) hostInp.value = guessed;
+    const guessed = applyHostForEmail(email);
     const data = await apiPut('/api/business-mail/settings', { businessEmail: email, imapHost: guessed || '' });
     if (!data.success) {
       toast(data.error || 'Save failed', 'error');
@@ -372,12 +380,7 @@
       btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
     }
     const emailNow = document.getElementById('bmReplyEmail')?.value.trim() || mailStatus?.replyEmail || '';
-    const hostRaw = document.getElementById('bmImapHost')?.value.trim() || '';
-    const host = /infernix/i.test(emailNow) || /infernix/i.test(hostRaw)
-      ? 'dx.infernix.net'
-      : (hostRaw || guessHostFromEmail(emailNow));
-    const hostInp = document.getElementById('bmImapHost');
-    if (hostInp) hostInp.value = host;
+    const host = applyHostForEmail(emailNow) || 'dx.infernix.net';
     const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass, imapHost: host });
     if (btn) {
       btn.disabled = false;
@@ -514,17 +517,15 @@
       btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
       btn.setAttribute('title', show ? 'Hide password' : 'Show password');
     });
+    document.getElementById('bmReplyEmail')?.addEventListener('input', () => {
+      applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
+    });
     document.getElementById('bmReplyEmail')?.addEventListener('blur', () => {
-      const hostInp = document.getElementById('bmImapHost');
-      const email = document.getElementById('bmReplyEmail')?.value || '';
-      if (!hostInp) return;
-      if (/infernix/i.test(email) || !hostInp.dataset.userEdited) {
-        hostInp.value = guessHostFromEmail(email);
-      }
+      applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
     });
     document.getElementById('bmImapHost')?.addEventListener('input', (e) => {
-      const v = String(e.target.value || '').trim().toLowerCase();
-      if (/infernix/.test(v) && v !== 'dx.infernix.net') {
+      const email = document.getElementById('bmReplyEmail')?.value || '';
+      if (/infernix/i.test(email) || /infernix/i.test(e.target.value || '')) {
         e.target.value = 'dx.infernix.net';
         delete e.target.dataset.userEdited;
         return;
@@ -549,6 +550,7 @@
   function loadBusinessMailPanel() {
     applyAccessUI();
     if (!hasAccess()) return;
+    applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
     refreshStatus().then(() => {
       if (mailStatus?.imapConnected) syncInbox(false);
     });

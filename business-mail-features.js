@@ -104,6 +104,11 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       const freeSenderDomain = /@(gmail|googlemail|yahoo|outlook|hotmail|live|rediffmail)\./i.test(senderEmail);
       const profile = await BusinessProfile.findOne({ userId: req.dataUserId }).select('imapPassEnc imapHost imapLastSyncAt');
       const envFb = envFallbackFor(ctx.replyEmail);
+      const imapHost = normalizeImapHost(ctx.replyEmail, profile?.imapHost || envFb?.host || '');
+      if (profile && imapHost && profile.imapHost !== imapHost) {
+        profile.imapHost = imapHost;
+        await profile.save();
+      }
       res.json({
         success: true,
         emailConfigured: isEmailConfigured(),
@@ -112,7 +117,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         senderEmail,
         freeSenderDomain,
         imapConnected: !!(profile?.imapPassEnc || envFb),
-        imapHost: profile?.imapHost || envFb?.host || '',
+        imapHost,
         imapLastSyncAt: profile?.imapLastSyncAt || null,
         templates: Object.keys(MAIL_TEMPLATES)
       });

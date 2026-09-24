@@ -98,6 +98,7 @@ async function guessImapHosts(email, preferredHost) {
   const live = [];
   for (const h of [...new Set(candidates)]) {
     if (/aspmx|google\.com$/.test(h)) continue;
+    if (/^(mail|imap)\.infernix\.com$|^infernix\.com$/i.test(h)) continue;
     if (await hostResolves(h)) live.push(h);
   }
   return live;
@@ -382,10 +383,11 @@ async function readMailbox(client, mailbox, limit, folderHint) {
 }
 
 async function fetchMailboxEmails({ email, pass, host, port, limit = 40 }) {
+  const lockedHost = normalizeImapHost(email, host) || host;
   const { client, host: usedHost, port: usedPort } = await connectWithGuess({
     email,
     pass,
-    preferredHost: host,
+    preferredHost: lockedHost,
     preferredPort: port
   });
   try {
