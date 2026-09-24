@@ -69,6 +69,53 @@ html.ao-phone .topbar-more-btn {
   height: 36px;
   border-radius: 10px;
 }
+html.ao-phone .top-actions {
+  display: none !important;
+}
+html.ao-phone body.topbar-more-open::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1480;
+}
+html.ao-phone body.topbar-more-open .top-actions {
+  display: flex !important;
+  position: fixed !important;
+  top: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100%;
+  max-height: min(72dvh, 520px);
+  margin: 0;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  background: #ffffff !important;
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.28);
+  z-index: 1500;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  gap: 10px;
+}
+html[data-theme="dark"].ao-phone body.topbar-more-open .top-actions {
+  background: #1e293b !important;
+}
+html.ao-phone body.topbar-more-open .top-actions .theme-btn,
+html.ao-phone body.topbar-more-open .top-actions .staff-mode-banner,
+html.ao-phone body.topbar-more-open .top-actions .bk-plan-test-toggle-wrap {
+  width: 100%;
+  min-height: 48px;
+}
+html.ao-phone body.topbar-more-open .top-actions #bkPlanTestToggleWrap {
+  display: none !important;
+}
+html.ao-phone body.topbar-more-open {
+  overflow: hidden;
+}
 
 html.ao-phone .subscription-banner {
   margin: 0;
@@ -280,19 +327,26 @@ html.ao-phone .ao-phone-tab.active {
 html.ao-phone .ao-phone-more {
   position: fixed;
   inset: 0;
-  z-index: 1400;
-  background: rgba(15, 23, 42, 0.45);
+  z-index: 1600;
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
 }
-html.ao-phone .ao-phone-more.hidden { display: none; }
+html.ao-phone .ao-phone-more.hidden { display: none !important; }
 html.ao-phone .ao-phone-more-sheet {
   width: 100%;
-  max-height: min(78vh, 640px);
-  overflow: auto;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(100dvh - 72px);
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   background: #fff;
   border-radius: 22px 22px 0 0;
-  padding: 10px 14px calc(18px + env(safe-area-inset-bottom));
+  padding: 10px 14px calc(28px + env(safe-area-inset-bottom));
   box-shadow: 0 -12px 40px rgba(0,0,0,.2);
 }
 html[data-theme="dark"].ao-phone .ao-phone-more-sheet {
@@ -339,6 +393,12 @@ html.ao-phone .ao-phone-more-actions {
 }
 html.ao-phone .ao-phone-more-actions button {
   width: 100%;
+}
+html.ao-phone body.ao-phone-more-open {
+  overflow: hidden;
+}
+html.ao-phone body.ao-phone-more-open .ao-phone-tabbar {
+  display: none !important;
 }
 
 html.ao-phone #appToast {

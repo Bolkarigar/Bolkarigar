@@ -2092,7 +2092,7 @@ function closeTopbarMoreMenu() {
 }
 
 function toggleTopbarMoreMenu() {
-  if (!window.matchMedia("(max-width: 768px)").matches) return;
+  if (!window.matchMedia("(max-width: 820px)").matches) return;
   const open = !document.body.classList.contains("topbar-more-open");
   document.body.classList.toggle("topbar-more-open", open);
   topbarMoreBtn?.setAttribute("aria-expanded", open ? "true" : "false");

@@ -1,5 +1,5 @@
 /* Accounts Orbit SW — network-first taaki purani files cache na ho */
-const CACHE = 'bolkarigar-v82';
+const CACHE = 'bolkarigar-v83';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

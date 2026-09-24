@@ -33,11 +33,15 @@
 
   function closeMore() {
     document.getElementById("aoPhoneMore")?.classList.add("hidden");
+    document.body.classList.remove("ao-phone-more-open");
+    document.body.style.overflow = "";
   }
 
   function openMore() {
     fillMore();
     document.getElementById("aoPhoneMore")?.classList.remove("hidden");
+    document.body.classList.add("ao-phone-more-open");
+    document.body.style.overflow = "hidden";
   }
 
   function setActiveTab(panelId) {
