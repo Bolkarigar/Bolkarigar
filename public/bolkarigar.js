@@ -1971,6 +1971,8 @@ function openPanel(id) {
   tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === id));
   bkExpandNavGroupForPanel(id);
   if (id === "ledgerPanel") {
+    const search = document.getElementById("ledgerSearchInput");
+    if (search && search.value.trim().length < 2) search.value = "";
     if (typeof refreshUdharKhata === "function") refreshUdharKhata();
     if (typeof loadInvoiceLedgers === "function") loadInvoiceLedgers();
   }
@@ -5033,34 +5035,69 @@ async function refreshUdharKhata(localFallback = {}) {
   if (!ledgerBody) return;
 
   let udharAllRows = [];
+  ledgerBody.innerHTML = `<tr><td colspan="5" data-label="" style="text-align:center;">Loading credit…</td></tr>`;
+
+  function udharPending(row) {
+    return Number(row?.pending ?? row?.netBalance ?? row?.ledgerBalance ?? row?.pendingUdhar ?? 0) || 0;
+  }
+
+  function ledgerSearchQuery() {
+    const raw = (document.getElementById("ledgerSearchInput")?.value || "").trim().toLowerCase();
+    return raw.length >= 2 ? raw : "";
+  }
+
+  function rowsFromLedgers(list) {
+    return (list || []).map((l) => {
+      const pending = udharPending(l) || Number(l.currentBalance) || 0;
+      return {
+        partyName: l.partyName || l.customer || "",
+        billed: Number(l.billedAmount ?? l.grossBilled ?? l.billed ?? (pending > 0 ? pending : 0)) || 0,
+        paid: Number(l.paidAmount ?? l.paid ?? 0) || 0,
+        pending
+      };
+    }).filter((r) => r.partyName && Math.abs(Number(r.pending) || 0) > 0.01);
+  }
 
   function paintUdharPage() {
-    const pag = window.bkUdharPaginator || (window.bkUdharPaginator = window.bkCreatePaginator("ledgerUdhar", paintUdharPage));
-    const q = (document.getElementById("ledgerSearchInput")?.value || "").trim().toLowerCase();
-    const filtered = q
+    const pag = typeof window.bkCreatePaginator === "function"
+      ? (window.bkUdharPaginator || (window.bkUdharPaginator = window.bkCreatePaginator("ledgerUdhar", paintUdharPage)))
+      : null;
+    const q = ledgerSearchQuery();
+    let filtered = q
       ? udharAllRows.filter((row) => String(row.partyName || row.customer || "").toLowerCase().includes(q))
       : udharAllRows;
-    const rows = pag.slice(filtered);
+    if (q && !filtered.length) {
+      const cache = (typeof window.aoGetLedgers === "function" ? window.aoGetLedgers() : []) || [];
+      filtered = cache
+        .filter((l) => String(l.partyName || "").toLowerCase().includes(q))
+        .map((l) => ({
+          partyName: l.partyName,
+          billed: Number(l.billedAmount ?? l.grossBilled ?? 0) || 0,
+          paid: Number(l.paidAmount ?? 0) || 0,
+          pending: Number(l.netBalance ?? l.pendingUdhar ?? l.currentBalance ?? 0) || 0
+        }));
+    }
+    const rows = pag ? pag.slice(filtered) : filtered;
     ledgerBody.innerHTML = "";
     let totalUdhar = 0;
     let totalRefundDue = 0;
     udharAllRows.forEach((row) => {
-      const p = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
+      const p = udharPending(row);
       if (p > 0.01) totalUdhar += p;
       else if (p < -0.01) totalRefundDue += Math.abs(p);
     });
     if (!rows.length) {
-      ledgerBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">${q ? "No matching ledger name found." : "No Udhar Records Found."}</td></tr>`;
+      ledgerBody.innerHTML = `<tr><td colspan="5" data-label="" style="text-align:center;">${q ? "No matching ledger name found." : "No Udhar Records Found."}</td></tr>`;
       if (document.getElementById("totalUdharVal")) document.getElementById("totalUdharVal").innerText = "₹0.00";
       window.bkSetTableAmountTotal(ledgerBody, { hide: true });
       return;
     }
     let pageBilled = 0, pagePaid = 0, pagePending = 0;
     rows.forEach(row => {
-      const pending = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
+      const pending = udharPending(row);
       const cust = row.partyName || row.customer;
-      const billed = row.billed ?? (pending > 0 ? pending : 0);
-      const paid = row.paid ?? 0;
+      const billed = row.billed ?? row.billedAmount ?? (pending > 0 ? pending : 0);
+      const paid = row.paid ?? row.paidAmount ?? 0;
       pageBilled += Number(billed) || 0;
       pagePaid += Number(paid) || 0;
       pagePending += pending;
@@ -5071,11 +5108,11 @@ async function refreshUdharKhata(localFallback = {}) {
         : `₹${pending.toFixed(2)}`;
       const tr = document.createElement("tr");
       tr.innerHTML = `
-          <td>${escapeHtml(cust)}</td>
-          <td>₹${Number(billed).toFixed(2)}</td>
-          <td>₹${Number(paid).toFixed(2)}</td>
-          <td style="color: ${pendingColor}; font-weight: bold;" title="${escapeHtml(fmt?.label || "")}">${pendingText}${pending < -0.01 ? " <small>(Refund)</small>" : ""}</td>
-          <td class="udhar-actions"></td>`;
+          <td data-label="Customer">${escapeHtml(cust)}</td>
+          <td data-label="Total Billed">₹${Number(billed).toFixed(2)}</td>
+          <td data-label="Received">₹${Number(paid).toFixed(2)}</td>
+          <td data-label="Pending Credit" style="color: ${pendingColor}; font-weight: bold;" title="${escapeHtml(fmt?.label || "")}">${pendingText}${pending < -0.01 ? " <small>(Refund)</small>" : ""}</td>
+          <td data-label="Action" class="udhar-actions"></td>`;
       const actions = tr.querySelector(".udhar-actions");
       const viewBtn = document.createElement("button");
       viewBtn.type = "button";
@@ -5106,11 +5143,9 @@ async function refreshUdharKhata(localFallback = {}) {
         : `₹${totalUdhar.toFixed(2)}`;
       document.getElementById("totalUdharVal").innerText = totalText;
     }
-    let allBilled = 0, allPaid = 0, allPending = 0;
+    let allPending = 0;
     udharAllRows.forEach((row) => {
-      allBilled += Number(row.billed ?? row.pending ?? row.ledgerBalance ?? 0) || 0;
-      allPaid += Number(row.paid ?? 0) || 0;
-      allPending += Number(row.pending ?? row.ledgerBalance ?? 0) || 0;
+      allPending += udharPending(row);
     });
     window.bkSetTableAmountTotal(ledgerBody, {
       lines: [
@@ -5124,13 +5159,13 @@ async function refreshUdharKhata(localFallback = {}) {
   }
 
   function renderUdharRows(rows) {
-    udharAllRows = rows.filter((row) => {
-      const pending = Number(row.pending ?? row.netBalance ?? row.ledgerBalance ?? 0) || 0;
-      return Math.abs(pending) > 0.01;
-    });
+    udharAllRows = (rows || []).filter((row) => Math.abs(udharPending(row)) > 0.01);
     if (window.bkUdharPaginator) window.bkUdharPaginator.reset();
     window.bkPaintUdharPage = paintUdharPage;
     paintUdharPage();
+    if (typeof window.enhanceMobileTables === "function") {
+      window.enhanceMobileTables(document.getElementById("ledgerPanel") || document);
+    }
   }
 
   try {
@@ -5140,13 +5175,27 @@ async function refreshUdharKhata(localFallback = {}) {
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.rows?.length) {
-        const rows = data.rows.filter((r) => Math.abs(Number(r.pending ?? r.netBalance ?? 0) || 0) > 0.01);
+        const rows = data.rows.filter((r) => Math.abs(udharPending(r)) > 0.01);
         if (rows.length) return renderUdharRows(rows);
       }
     }
-  } catch (e) { /* server se nahi mila to local fallback */ }
+  } catch (e) { /* server se nahi mila to ledger fallback */ }
 
-  const localRows = Object.keys(localFallback).map(cust => ({
+  try {
+    if (typeof window.aoEnsureLedgers === "function") await window.aoEnsureLedgers();
+    const fromCache = rowsFromLedgers(typeof window.aoGetLedgers === "function" ? window.aoGetLedgers() : []);
+    if (fromCache.length) return renderUdharRows(fromCache);
+    const ledRes = await fetch(`${API_URL}/api/ledgers`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    if (ledRes.ok) {
+      const ledData = await ledRes.json();
+      const fromApi = rowsFromLedgers(ledData.ledgers || []);
+      if (fromApi.length) return renderUdharRows(fromApi);
+    }
+  } catch (e) { /* last: local sales fallback */ }
+
+  const localRows = Object.keys(localFallback || {}).map((cust) => ({
     partyName: cust,
     billed: localFallback[cust].billed,
     paid: localFallback[cust].paid,

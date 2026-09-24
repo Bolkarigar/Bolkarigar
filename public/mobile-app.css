@@ -365,6 +365,102 @@ html[data-theme="dark"].ao-phone .modify-search-input {
   background: #1e293b;
   border-color: rgba(255,255,255,.14);
 }
+html.ao-phone #ledgerPanel .ao-suggest-wrap {
+  display: block;
+  width: 100%;
+}
+html.ao-phone #ledgerPanel,
+html.ao-phone #ledgerPanel .table-wrap {
+  overflow: visible !important;
+  max-height: none !important;
+}
+html.ao-phone #ledgerPanel .table-wrap {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+}
+html.ao-phone #ledgerPanel table {
+  min-width: 0 !important;
+  width: 100%;
+  display: block;
+}
+html.ao-phone #ledgerPanel thead {
+  display: none;
+}
+html.ao-phone #ledgerPanel tbody {
+  display: block;
+  width: 100%;
+}
+html.ao-phone #ledgerPanel tbody tr {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d5deea;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="dark"].ao-phone #ledgerPanel tbody tr {
+  background: #1e293b;
+  border-color: rgba(255,255,255,.12);
+}
+html.ao-phone #ledgerPanel tbody td {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid rgba(148,163,184,.16);
+  white-space: normal;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+html[data-theme="dark"].ao-phone #ledgerPanel tbody td {
+  color: #e2e8f0;
+}
+html.ao-phone #ledgerPanel tbody td::before {
+  content: attr(data-label);
+  font-weight: 700;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-align: left;
+  flex: 0 0 42%;
+  max-width: 46%;
+}
+html.ao-phone #ledgerPanel tbody td[colspan] {
+  display: block !important;
+  text-align: center;
+  border-bottom: none;
+  font-weight: 600;
+  color: #64748b;
+}
+html.ao-phone #ledgerPanel tbody td[colspan]::before {
+  display: none;
+}
+html.ao-phone #ledgerPanel tbody td:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+html.ao-phone #ledgerPanel .table-amount-total-bar {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
 
 .ao-plan-test-row {
   display: grid;

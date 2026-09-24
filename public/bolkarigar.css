@@ -2794,6 +2794,16 @@ body.sidebar-open .sidebar-tally-card {
   .panel {
     overflow-x: hidden;
   }
+  #ledgerPanel {
+    overflow: visible;
+  }
+  #ledgerPanel .table-wrap {
+    overflow: visible;
+    max-height: none;
+  }
+  #ledgerPanel table {
+    min-width: 0;
+  }
 
   #khataVoucherPanel .grid-2 {
     grid-template-columns: 1fr;
