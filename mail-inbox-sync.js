@@ -141,14 +141,52 @@ function decodePct(s) {
   });
 }
 
+function looksLikeCss(text) {
+  const s = String(text || '');
+  if (!s) return false;
+  const braces = (s.match(/\{[^{}]{0,400}\}/g) || []).length;
+  return braces >= 2
+    || /#outlook\b/i.test(s)
+    || /\bmso-[a-z-]+\s*:/i.test(s)
+    || /-webkit-text-size-adjust/i.test(s)
+    || /@media\s+(only\s+)?screen/i.test(s)
+    || /mso-table-lspace/i.test(s)
+    || /#MessageViewBody/i.test(s);
+}
+
+function stripCssBlocks(s) {
+  let t = String(s || '');
+  t = t.replace(/<head[\s\S]*?<\/head>/gi, ' ');
+  t = t.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  t = t.replace(/<!--[\s\S]*?-->/g, ' ');
+  t = t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  for (let i = 0; i < 24; i += 1) {
+    const next = t.replace(/\{[^{}]*\}/g, (block) => (
+      /[a-z-]+\s*:/.test(block) || /!important|px;|pt;|%\s*\}/i.test(block) ? ' ' : block
+    ));
+    if (next === t) break;
+    t = next;
+  }
+  t = t.replace(/@media[^{;\n]{0,160}/gi, ' ');
+  t = t.replace(/\{\s*[.#][^{}]*\}/g, ' ');
+  t = t.replace(/\{[^{}]{0,60}\}/g, ' ');
+  t = t.replace(/\b(?:mso|moz|webkit|ms)-[a-z-]+\s*:\s*[^;\n{}]+;?/gi, ' ');
+  t = t.replace(/\b(?:padding|margin|width|height|max-width|min-width|border(?:-collapse|-radius)?|font-(?:family|size|weight)|line-height|text-(?:decoration|align|size-adjust)|display|background(?:-color)?|vertical-align|outline|letter-spacing)\s*:\s*[^;\n{}]{1,80};?/gi, ' ');
+  t = t.replace(/#outlook\b|#MessageViewBody|\.?ExternalClass|\.x\d+/gi, ' ');
+  t = t.replace(/^(?:\s*(?:#outlook|body|html|table|td|th|img|span|div|li|a|p|u)\s*,?)+/i, ' ');
+  return t;
+}
+
 function tidyReadable(s) {
-  let t = decodePct(decodeEntities(decodeQuotedPrintableBits(s)));
+  let t = decodePct(decodeEntities(decodeQuotedPrintableBits(stripCssBlocks(s))));
+  t = stripCssBlocks(t);
   t = t.replace(/https?:\/\/[^\s<>"]{70,}/g, '');
   t = t.replace(/https?:\/\/[^\s<>"]*(?:unsubscribe|click|track|pixel|connect\.)[^\s<>"]*/gi, '');
   t = t.replace(/[ \t\f\v]+/g, ' ');
   t = t.replace(/ *\n */g, '\n');
   t = t.replace(/\n{3,}/g, '\n\n');
   t = t.replace(/^[ \t]*[-_=.]{6,}[ \t]*$/gm, '');
+  t = t.replace(/[{};]{2,}/g, ' ');
   return t.trim().slice(0, 8000);
 }
 
@@ -156,6 +194,8 @@ function htmlToReadable(html) {
   let s = String(html || '');
   s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
   s = s.replace(/<style[\s\S]*?<\/style>/gi, '');
+  s = s.replace(/<head[\s\S]*?<\/head>/gi, '');
+  s = s.replace(/<!--[\s\S]*?-->/g, '');
   s = s.replace(/<br\s*\/?>/gi, '\n');
   s = s.replace(/<\/(p|div|tr|h[1-6]|li|blockquote|table)>/gi, '\n');
   s = s.replace(/<a [^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, inner) => {
@@ -170,20 +210,31 @@ function htmlToReadable(html) {
 function looksLikeGarbage(text) {
   const s = String(text || '');
   if (!s) return true;
+  if (looksLikeCss(s)) return true;
   const urls = (s.match(/https?:\/\//g) || []).length;
   const pct = (s.match(/%[0-9A-F]{2}/gi) || []).length;
   const words = (s.match(/[A-Za-z\u0900-\u097F]{3,}/g) || []).length;
   return pct > 8 || (urls >= 4 && words < urls * 3);
 }
 
+function realWordCount(s) {
+  return (String(s || '').match(/[A-Za-z\u0900-\u097F]{3,}/g) || []).length;
+}
+
 function cleanEmailBody(parsed) {
   const fromHtml = parsed?.html ? htmlToReadable(parsed.html) : '';
   const fromText = tidyReadable(String(parsed?.text || '').replace(/<[^>]+>/g, ' '));
-  if (looksLikeGarbage(fromText) && fromHtml) return fromHtml;
-  return fromText || fromHtml || '';
+  if (fromHtml && realWordCount(fromHtml) >= 4) return fromHtml;
+  if (fromText && !looksLikeGarbage(fromText)) return fromText;
+  return fromHtml || fromText || '';
 }
 
-function cleanStoredEmailBody(raw) {
+function cleanStoredEmailBody(raw, html) {
+  if (html) {
+    const fromHtml = htmlToReadable(html);
+    if (fromHtml && !looksLikeGarbage(fromHtml)) return fromHtml;
+    if (fromHtml) return fromHtml;
+  }
   const s = String(raw || '');
   if (!s) return '';
   if (looksLikeGarbage(s) || /<[a-z][\s\S]*>/i.test(s)) return htmlToReadable(s) || tidyReadable(s);
@@ -284,6 +335,7 @@ async function readMailbox(client, mailbox, limit, folderHint) {
       const toAddr = firstEmail(parsed?.to?.value || env.to) || addrList(env.to);
       const subject = String(parsed?.subject || env.subject || '(No subject)');
       const bodyText = cleanEmailBody(parsed);
+      const bodyHtml = parsed?.html ? String(parsed.html).slice(0, 40000) : '';
       const date = parsed?.date || env.date || new Date();
       rows.push({
         folderHint,
@@ -294,6 +346,7 @@ async function readMailbox(client, mailbox, limit, folderHint) {
         to: toAddr,
         subject,
         bodyText,
+        bodyHtml,
         date,
         providerMessageId: messageId || `imap:${mailbox}:${msg.uid}`
       });
@@ -337,5 +390,6 @@ module.exports = {
   envFallbackFor,
   fetchMailboxEmails,
   cleanEmailBody,
-  cleanStoredEmailBody
+  cleanStoredEmailBody,
+  htmlToReadable
 };

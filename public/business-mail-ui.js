@@ -59,8 +59,28 @@
     return !!m?.subscription?.fullAccess && !m?.isStaff;
   }
 
+  function stripMailCss(s) {
+    let t = String(s || '');
+    t = t.replace(/<head[\s\S]*?<\/head>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+    for (let i = 0; i < 20; i += 1) {
+      const next = t.replace(/\{[^{}]*\}/g, (block) => (
+        /[a-z-]+\s*:/.test(block) || /!important|px;|pt;/i.test(block) ? ' ' : block
+      ));
+      if (next === t) break;
+      t = next;
+    }
+    t = t.replace(/@media[^{;\n]{0,160}/gi, ' ');
+    t = t.replace(/\{\s*[.#][^{}]*\}/g, ' ');
+    t = t.replace(/\{[^{}]{0,60}\}/g, ' ');
+    t = t.replace(/\b(?:mso|moz|webkit|ms)-[a-z-]+\s*:\s*[^;\n{}]+;?/gi, ' ');
+    t = t.replace(/\b(?:padding|margin|width|height|max-width|min-width|border(?:-collapse|-radius)?|font-(?:family|size|weight)|line-height|text-(?:decoration|align|size-adjust)|display|background(?:-color)?|vertical-align|outline)\s*:\s*[^;\n{}]{1,80};?/gi, ' ');
+    t = t.replace(/#outlook\b|#MessageViewBody|\.?ExternalClass|\.x\d+/gi, ' ');
+    t = t.replace(/^(?:\s*(?:#outlook|body|html|table|td|th|img|span|div|li|a|p|u)\s*,?)+/i, ' ');
+    return t;
+  }
+
   function cleanMailText(raw) {
-    let s = String(raw || '');
+    let s = stripMailCss(String(raw || ''));
     if (!s) return '';
     s = s.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
     s = s.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|tr|h[1-6]|li)>/gi, '\n');
@@ -68,9 +88,10 @@
     s = s.replace(/&nbsp;/gi, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
     s = s.replace(/=([0-9A-F]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
     s = s.replace(/((?:%[0-9A-F]{2})+)/gi, (enc) => { try { return decodeURIComponent(enc); } catch { return enc; } });
+    s = stripMailCss(s);
     s = s.replace(/https?:\/\/[^\s]{70,}/g, '');
     s = s.replace(/https?:\/\/[^\s]*(?:unsubscribe|click|track|connect\.)[^\s]*/gi, '');
-    s = s.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n');
+    s = s.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').replace(/[{};]{2,}/g, ' ');
     return s.trim();
   }
 
@@ -251,7 +272,8 @@
     document.getElementById('bmDetailSubject').textContent = m.subject || '(No subject)';
     document.getElementById('bmDetailMeta').textContent =
       `${m.direction === 'outbound' ? 'To' : 'From'}: ${m.direction === 'outbound' ? m.to : m.from} · ${fmtDate(m.createdAt)}`;
-    document.getElementById('bmDetailBody').textContent = cleanMailText(m.bodyText) || '(No message text)';
+    document.getElementById('bmDetailBody').textContent = cleanMailText(m.bodyText)
+      || 'This mail is HTML-only. Click Refresh Inbox to load the readable text.';
     const delivery = document.getElementById('bmDetailDelivery');
     if (delivery) {
       if (m.direction === 'outbound' && m.status === 'sent') {

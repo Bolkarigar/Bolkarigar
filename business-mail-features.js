@@ -164,7 +164,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         success: true,
         messages: rows.map((m) => {
           const o = m.toObject();
-          o.bodyText = cleanStoredEmailBody(o.bodyText);
+          o.bodyText = cleanStoredEmailBody(o.bodyText, o.bodyHtml);
           return o;
         })
       });
@@ -294,8 +294,15 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         ]
       });
       if (existing) {
-        if (row.bodyText && row.bodyText !== existing.bodyText) {
-          existing.bodyText = row.bodyText;
+        const nextText = row.bodyText || existing.bodyText;
+        const nextHtml = row.bodyHtml || existing.bodyHtml;
+        if (
+          (nextText && nextText !== existing.bodyText)
+          || (nextHtml && nextHtml !== existing.bodyHtml)
+          || (row.subject && row.subject !== existing.subject)
+        ) {
+          existing.bodyText = nextText;
+          if (nextHtml) existing.bodyHtml = nextHtml;
           if (row.subject) existing.subject = row.subject;
           await existing.save();
         }
@@ -310,6 +317,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         partyName: '',
         subject: row.subject,
         bodyText: row.bodyText,
+        bodyHtml: row.bodyHtml || '',
         status: row.folderHint === 'outbound' ? 'sent' : 'received',
         provider: 'imap',
         providerMessageId: row.providerMessageId,
@@ -369,7 +377,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
         imapHost: fetched.host,
         messages: rows.map((m) => {
           const o = m.toObject();
-          o.bodyText = cleanStoredEmailBody(o.bodyText);
+          o.bodyText = cleanStoredEmailBody(o.bodyText, o.bodyHtml);
           return o;
         })
       });
