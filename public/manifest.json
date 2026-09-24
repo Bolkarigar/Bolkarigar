@@ -3,7 +3,7 @@
   "name": "Accounts Orbit AI",
   "short_name": "Accounts Orbit",
   "description": "Accounts Orbit — Your business in orbit",
-  "start_url": "/bolkarigar.html",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
