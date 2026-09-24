@@ -13,7 +13,8 @@ const {
   decryptSecret,
   envFallbackFor,
   fetchMailboxEmails,
-  cleanStoredEmailBody
+  cleanStoredEmailBody,
+  normalizeImapHost
 } = require('./mail-inbox-sync');
 
 const MAIL_TEMPLATES = {
@@ -126,10 +127,19 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       if (businessEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessEmail)) {
         return res.status(400).json({ error: 'Enter a valid business email address.' });
       }
+      const existing = await BusinessProfile.findOne({ userId: req.dataUserId });
       const $set = { businessEmail: businessEmail || undefined };
       const imapPass = String(req.body.imapPass || req.body.imapPassword || '').trim();
       const imapHost = String(req.body.imapHost || '').trim();
-      if (imapHost) $set.imapHost = imapHost;
+      const prevDomain = String(existing?.businessEmail || '').split('@')[1] || '';
+      const nextDomain = String(businessEmail || '').split('@')[1] || '';
+      if (businessEmail && prevDomain && nextDomain && prevDomain !== nextDomain) {
+        $set.imapPassEnc = '';
+        $set.imapHost = normalizeImapHost(businessEmail, imapHost);
+        $set.imapLastSyncAt = null;
+      } else if (imapHost || businessEmail) {
+        $set.imapHost = normalizeImapHost(businessEmail || existing?.businessEmail || '', imapHost);
+      }
       if (req.body.disconnectImap) {
         $set.imapPassEnc = '';
         $set.imapHost = '';
@@ -345,7 +355,7 @@ function setupBusinessMailFeatures({ app, mongoose, authenticateToken, requireBu
       const fetched = await fetchMailboxEmails({
         email: auth.email,
         pass: auth.pass,
-        host: String(req.body.imapHost || auth.host || '').trim(),
+        host: normalizeImapHost(auth.email, String(req.body.imapHost || auth.host || '').trim()),
         port: auth.port,
         limit: 40
       });

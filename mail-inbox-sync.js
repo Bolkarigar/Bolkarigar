@@ -66,13 +66,16 @@ function errText(e) {
   return [...new Set(parts.filter(Boolean))].join(' — ');
 }
 
+function isInfernixEmail(email) {
+  return /@(infernix\.com|infernix\.net)$/i.test(String(email || '').trim());
+}
+
 function normalizeImapHost(email, preferredHost) {
   const domain = String(email || '').split('@')[1] || '';
   const pref = String(preferredHost || '').trim().toLowerCase();
-  if (domain === 'infernix.com' || domain === 'infernix.net' || /infernix/.test(pref)) {
+  if (isInfernixEmail(email) || /infernix/.test(pref) || /infernix/.test(domain)) {
     return 'dx.infernix.net';
   }
-  if (pref && !/aspmx|google\.com$/.test(pref)) return pref;
   const wellKnown = {
     'gmail.com': 'imap.gmail.com',
     'googlemail.com': 'imap.gmail.com',
@@ -81,7 +84,10 @@ function normalizeImapHost(email, preferredHost) {
     'live.com': 'outlook.office365.com',
     'yahoo.com': 'imap.mail.yahoo.com'
   };
-  return wellKnown[domain] || '';
+  const locked = wellKnown[domain] || '';
+  if (locked) return locked;
+  if (pref && !/aspmx|google\.com$/.test(pref)) return pref;
+  return '';
 }
 
 async function guessImapHosts(email, preferredHost) {
@@ -243,11 +249,17 @@ function cleanStoredEmailBody(raw, html) {
 
 async function tryConnect(host, port, user, pass) {
   try { dns.setDefaultResultOrder('ipv4first'); } catch { /* node < 17 */ }
+  let connectHost = host;
+  try {
+    const looked = await dns.lookup(host, { family: 4 });
+    if (looked?.address) connectHost = looked.address;
+  } catch { /* hostname as-is */ }
+  const useStartTls = Number(port) === 143;
   const { ImapFlow } = require('imapflow');
   const client = new ImapFlow({
-    host,
+    host: connectHost,
     port: port || 993,
-    secure: true,
+    secure: !useStartTls,
     auth: { user, pass },
     logger: false,
     connectionTimeout: 15000,
@@ -270,6 +282,16 @@ function loginFailMessage(email, host) {
   return `Login failed for ${email} on ${host}. Mailbox password check karo (eye icon).`;
 }
 
+function connectFailMessage(email, host, lastErr) {
+  if (/auth|login|invalid|credentials|command failed/i.test(lastErr)) {
+    return loginFailMessage(email, host);
+  }
+  if (isInfernixEmail(email) || /infernix/i.test(host) || /infernix/i.test(lastErr)) {
+    return `Infernix mailbox (${email}) connect nahi hua. mail.infernix.com / imap.infernix.com galat host hain — sahi IMAP host dx.infernix.net hai. Password issue nahi. Host box mein dx.infernix.net rakho aur Connect Inbox dabao. Detail: ${lastErr}`;
+  }
+  return `Inbox connect failed (${lastErr}). IMAP host ${host} try karo.`;
+}
+
 async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   const hosts = await guessImapHosts(email, preferredHost);
   if (!hosts.length) {
@@ -287,26 +309,28 @@ async function connectWithGuess({ email, pass, preferredHost, preferredPort }) {
   const envFb = envFallbackFor(email);
   if (envFb?.pass && envFb.pass !== cleanPass) tryPasswords.push(envFb.pass);
 
+  const ports = isInfernixEmail(email)
+    ? [...new Set([preferredPort || 993, 993, 143])]
+    : [preferredPort || 993];
+
   for (const host of hosts.slice(0, 4)) {
-    for (const pwd of tryPasswords) {
-      try {
-        const client = await tryConnect(host, preferredPort || 993, email, pwd);
-        return { client, host, port: preferredPort || 993 };
-      } catch (e) {
-        const msg = errText(e);
-        const r = rank(msg);
-        if (r >= lastRank) {
-          lastRank = r;
-          lastErr = `${host}: ${msg}`;
+    for (const port of ports) {
+      for (const pwd of tryPasswords) {
+        try {
+          const client = await tryConnect(host, port, email, pwd);
+          return { client, host, port };
+        } catch (e) {
+          const msg = errText(e);
+          const r = rank(msg);
+          if (r >= lastRank) {
+            lastRank = r;
+            lastErr = `${host}:${port} ${msg}`;
+          }
         }
       }
     }
   }
-  throw new Error(
-    /auth|login|invalid|credentials|command failed/i.test(lastErr)
-      ? loginFailMessage(email, hosts[0])
-      : `Inbox connect failed (${lastErr}). IMAP host ${hosts[0]} try karo.`
-  );
+  throw new Error(connectFailMessage(email, hosts[0], lastErr));
 }
 
 async function readMailbox(client, mailbox, limit, folderHint) {
@@ -391,5 +415,6 @@ module.exports = {
   fetchMailboxEmails,
   cleanEmailBody,
   cleanStoredEmailBody,
-  htmlToReadable
+  htmlToReadable,
+  normalizeImapHost
 };

@@ -315,13 +315,13 @@
     if (inp && data.replyEmail) inp.value = data.replyEmail;
     const hostInp = document.getElementById('bmImapHost');
     if (hostInp) {
-      const guessed = guessHostFromEmail(data.replyEmail);
-      const cur = (hostInp.value || data.imapHost || '').trim().toLowerCase();
-      if (!cur || cur === 'mail.infernix.com' || cur === 'imap.infernix.com' || cur === 'infernix.com') {
-        hostInp.value = guessed || 'dx.infernix.net';
-      } else if (!hostInp.value && data.imapHost) {
-        hostInp.value = data.imapHost;
-      }
+      const guessed = guessHostFromEmail(data.replyEmail || hostInp.value);
+      const saved = String(data.imapHost || '').trim().toLowerCase();
+      const email = String(data.replyEmail || '').toLowerCase();
+      const mismatch = (/gmail/.test(saved) && !/gmail/.test(email))
+        || /mail\.infernix|imap\.infernix|^infernix\.com$/.test(saved)
+        || (/infernix/.test(email) && saved !== 'dx.infernix.net');
+      hostInp.value = guessed || (!mismatch ? data.imapHost : '') || '';
     }
     renderStatusBanner();
   }
@@ -347,7 +347,10 @@
 
   async function saveReplyEmail() {
     const email = document.getElementById('bmReplyEmail')?.value.trim() || '';
-    const data = await apiPut('/api/business-mail/settings', { businessEmail: email });
+    const hostInp = document.getElementById('bmImapHost');
+    const guessed = guessHostFromEmail(email);
+    if (hostInp && guessed) hostInp.value = guessed;
+    const data = await apiPut('/api/business-mail/settings', { businessEmail: email, imapHost: guessed || '' });
     if (!data.success) {
       toast(data.error || 'Save failed', 'error');
       return;
@@ -512,10 +515,19 @@
     });
     document.getElementById('bmReplyEmail')?.addEventListener('blur', () => {
       const hostInp = document.getElementById('bmImapHost');
-      if (!hostInp || hostInp.dataset.userEdited) return;
-      hostInp.value = guessHostFromEmail(document.getElementById('bmReplyEmail')?.value);
+      const email = document.getElementById('bmReplyEmail')?.value || '';
+      if (!hostInp) return;
+      if (/infernix/i.test(email) || !hostInp.dataset.userEdited) {
+        hostInp.value = guessHostFromEmail(email);
+      }
     });
     document.getElementById('bmImapHost')?.addEventListener('input', (e) => {
+      const v = String(e.target.value || '').trim().toLowerCase();
+      if (/infernix/.test(v) && v !== 'dx.infernix.net') {
+        e.target.value = 'dx.infernix.net';
+        delete e.target.dataset.userEdited;
+        return;
+      }
       e.target.dataset.userEdited = '1';
     });
     document.getElementById('bmSendBtn')?.addEventListener('click', sendMail);
