@@ -59,42 +59,6 @@
     return !!m?.subscription?.fullAccess && !m?.isStaff;
   }
 
-  function stripMailCss(s) {
-    let t = String(s || '');
-    t = t.replace(/<head[\s\S]*?<\/head>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
-    for (let i = 0; i < 20; i += 1) {
-      const next = t.replace(/\{[^{}]*\}/g, (block) => (
-        /[a-z-]+\s*:/.test(block) || /!important|px;|pt;/i.test(block) ? ' ' : block
-      ));
-      if (next === t) break;
-      t = next;
-    }
-    t = t.replace(/@media[^{;\n]{0,160}/gi, ' ');
-    t = t.replace(/\{\s*[.#][^{}]*\}/g, ' ');
-    t = t.replace(/\{[^{}]{0,60}\}/g, ' ');
-    t = t.replace(/\b(?:mso|moz|webkit|ms)-[a-z-]+\s*:\s*[^;\n{}]+;?/gi, ' ');
-    t = t.replace(/\b(?:padding|margin|width|height|max-width|min-width|border(?:-collapse|-radius)?|font-(?:family|size|weight)|line-height|text-(?:decoration|align|size-adjust)|display|background(?:-color)?|vertical-align|outline)\s*:\s*[^;\n{}]{1,80};?/gi, ' ');
-    t = t.replace(/#outlook\b|#MessageViewBody|\.?ExternalClass|\.x\d+/gi, ' ');
-    t = t.replace(/^(?:\s*(?:#outlook|body|html|table|td|th|img|span|div|li|a|p|u)\s*,?)+/i, ' ');
-    return t;
-  }
-
-  function cleanMailText(raw) {
-    let s = stripMailCss(String(raw || ''));
-    if (!s) return '';
-    s = s.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-    s = s.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|tr|h[1-6]|li)>/gi, '\n');
-    s = s.replace(/<[^>]+>/g, ' ');
-    s = s.replace(/&nbsp;/gi, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
-    s = s.replace(/=([0-9A-F]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
-    s = s.replace(/((?:%[0-9A-F]{2})+)/gi, (enc) => { try { return decodeURIComponent(enc); } catch { return enc; } });
-    s = stripMailCss(s);
-    s = s.replace(/https?:\/\/[^\s]{70,}/g, '');
-    s = s.replace(/https?:\/\/[^\s]*(?:unsubscribe|click|track|connect\.)[^\s]*/gi, '');
-    s = s.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').replace(/[{};]{2,}/g, ' ');
-    return s.trim();
-  }
-
   function fmtDate(iso) {
     if (!iso) return '—';
     try {
@@ -180,29 +144,6 @@
     }
     el.className = `bm-status-banner ${mailStatus.freeSenderDomain ? 'bm-status-warn' : 'bm-status-ok'}`;
     el.innerHTML = lines.join('');
-    renderImapStatus();
-  }
-
-  function renderImapStatus() {
-    const el = document.getElementById('bmImapStatus');
-    if (!el || !mailStatus) return;
-    if (!mailStatus.replyEmail) {
-      el.textContent = 'Inbox ke liye pehle owner email save karo.';
-      return;
-    }
-    if (mailStatus.imapConnected) {
-      const when = mailStatus.imapLastSyncAt ? ` Last sync: ${fmtDate(mailStatus.imapLastSyncAt)}.` : '';
-      const hostShown = /infernix/i.test(mailStatus.replyEmail || '')
-        ? 'dx.infernix.net'
-        : mailStatus.imapHost;
-      el.textContent = `Inbox connected to ${mailStatus.replyEmail}${hostShown ? ` via ${hostShown}` : ''}.${when}`;
-      return;
-    }
-    if (/@(gmail|googlemail)\./i.test(mailStatus.replyEmail || '')) {
-      el.textContent = 'Gmail login password yahan nahi chalega. Google → Security → App passwords se 16-letter App Password banao, phir Connect inbox.';
-      return;
-    }
-    el.textContent = `${mailStatus.replyEmail} ki mails dikhane ke liye mailbox password daal ke Connect inbox dabao.`;
   }
 
   function renderMessageList(folder) {
@@ -215,13 +156,13 @@
     const pager = isSent ? sentPager : inboxPager;
     const pageRows = pager ? pager.slice(rows) : rows;
     if (!pageRows.length) {
-      list.innerHTML = `<p class="bm-empty">${isSent ? 'No sent emails yet. Compose your first message.' : 'Is mailbox se abhi koi inbound mail nahi mili. Connect inbox / Refresh try karo.'}</p>`;
+      list.innerHTML = `<p class="bm-empty">${isSent ? 'No sent emails yet. Compose your first message.' : 'No customer replies logged yet. Use “Log customer reply” when someone emails you.'}</p>`;
       return;
     }
     list.innerHTML = pageRows.map((m) => {
       const dirLabel = m.direction === 'outbound' ? 'Sent' : 'Received';
       const status = m.status === 'failed' ? `<span class="bm-badge bm-badge-fail">Failed</span>` : '';
-      const preview = cleanMailText(m.bodyText || '').slice(0, 140);
+      const preview = (m.bodyText || '').slice(0, 120);
       return `
         <article class="bm-msg-card" data-id="${esc(m._id)}" tabindex="0">
           <div class="bm-msg-head">
@@ -275,8 +216,7 @@
     document.getElementById('bmDetailSubject').textContent = m.subject || '(No subject)';
     document.getElementById('bmDetailMeta').textContent =
       `${m.direction === 'outbound' ? 'To' : 'From'}: ${m.direction === 'outbound' ? m.to : m.from} · ${fmtDate(m.createdAt)}`;
-    document.getElementById('bmDetailBody').textContent = cleanMailText(m.bodyText)
-      || 'This mail is HTML-only. Click Refresh Inbox to load the readable text.';
+    document.getElementById('bmDetailBody').textContent = m.bodyText || '';
     const delivery = document.getElementById('bmDetailDelivery');
     if (delivery) {
       if (m.direction === 'outbound' && m.status === 'sent') {
@@ -316,32 +256,7 @@
     mailStatus = data;
     const inp = document.getElementById('bmReplyEmail');
     if (inp && data.replyEmail) inp.value = data.replyEmail;
-    applyHostForEmail(data.replyEmail);
     renderStatusBanner();
-  }
-
-  function guessHostFromEmail(email) {
-    const raw = String(email || '');
-    if (/infernix/i.test(raw)) return 'dx.infernix.net';
-    const domain = raw.split('@')[1] || '';
-    if (/gmail|googlemail/.test(domain)) return 'imap.gmail.com';
-    if (/outlook|hotmail|live/.test(domain)) return 'outlook.office365.com';
-    return domain ? `mail.${domain}` : '';
-  }
-
-  function applyHostForEmail(email) {
-    const hostInp = document.getElementById('bmImapHost');
-    if (!hostInp) return '';
-    const guessed = guessHostFromEmail(email || hostInp.value);
-    if (/infernix/i.test(email || '') || /infernix/i.test(hostInp.value || '') || guessed === 'dx.infernix.net') {
-      hostInp.value = 'dx.infernix.net';
-      hostInp.readOnly = true;
-      hostInp.setAttribute('value', 'dx.infernix.net');
-      return 'dx.infernix.net';
-    }
-    hostInp.readOnly = false;
-    if (guessed && !hostInp.dataset.userEdited) hostInp.value = guessed;
-    return String(hostInp.value || guessed || '').trim();
   }
 
   async function loadPartySuggestions() {
@@ -357,53 +272,13 @@
 
   async function saveReplyEmail() {
     const email = document.getElementById('bmReplyEmail')?.value.trim() || '';
-    const guessed = applyHostForEmail(email);
-    const data = await apiPut('/api/business-mail/settings', { businessEmail: email, imapHost: guessed || '' });
+    const data = await apiPut('/api/business-mail/settings', { businessEmail: email });
     if (!data.success) {
       toast(data.error || 'Save failed', 'error');
       return;
     }
-    toast('Owner email saved', 'success');
+    toast('Business reply email saved', 'success');
     await refreshStatus();
-  }
-
-  async function syncInbox(connectFirst) {
-    const pass = document.getElementById('bmImapPass')?.value.trim() || '';
-    if (connectFirst && !pass && !mailStatus?.imapConnected) {
-      toast('Mailbox password daalo, phir Connect inbox', 'error');
-      return;
-    }
-    const btn = document.getElementById(connectFirst ? 'bmConnectInboxBtn' : 'bmSyncInboxBtn');
-    const old = btn?.textContent;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = connectFirst ? 'Connecting…' : 'Refreshing…';
-    }
-    const emailNow = document.getElementById('bmReplyEmail')?.value.trim() || mailStatus?.replyEmail || '';
-    const host = applyHostForEmail(emailNow) || 'dx.infernix.net';
-    const data = await apiPost('/api/business-mail/sync-inbox', { imapPass: pass, imapHost: host });
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = old;
-    }
-    if (!data.success) {
-      toast(data.error || 'Inbox sync failed', 'error');
-      return;
-    }
-    const passInp = document.getElementById('bmImapPass');
-    if (passInp) passInp.value = '';
-    if (Array.isArray(data.messages)) messagesCache = data.messages;
-    else await loadMessages();
-    renderMessageList('sent');
-    renderMessageList('inbox');
-    await refreshStatus();
-    toast(
-      data.pulled
-        ? `Inbox ready — ${data.pulled} mail mili, ${data.added || 0} nayi save hui`
-        : 'Mailbox connected, inbox empty',
-      'success'
-    );
-    setSubtab('inbox');
   }
 
   async function sendMail() {
@@ -505,33 +380,6 @@
       onTemplateChange();
     });
     document.getElementById('bmSaveReplyBtn')?.addEventListener('click', saveReplyEmail);
-    document.getElementById('bmConnectInboxBtn')?.addEventListener('click', () => syncInbox(true));
-    document.getElementById('bmSyncInboxBtn')?.addEventListener('click', () => syncInbox(false));
-    document.getElementById('bmImapPassToggle')?.addEventListener('click', () => {
-      const inp = document.getElementById('bmImapPass');
-      const btn = document.getElementById('bmImapPassToggle');
-      if (!inp || !btn) return;
-      const show = inp.type === 'password';
-      inp.type = show ? 'text' : 'password';
-      btn.textContent = show ? '🙈' : '👁️';
-      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-      btn.setAttribute('title', show ? 'Hide password' : 'Show password');
-    });
-    document.getElementById('bmReplyEmail')?.addEventListener('input', () => {
-      applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
-    });
-    document.getElementById('bmReplyEmail')?.addEventListener('blur', () => {
-      applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
-    });
-    document.getElementById('bmImapHost')?.addEventListener('input', (e) => {
-      const email = document.getElementById('bmReplyEmail')?.value || '';
-      if (/infernix/i.test(email) || /infernix/i.test(e.target.value || '')) {
-        e.target.value = 'dx.infernix.net';
-        delete e.target.dataset.userEdited;
-        return;
-      }
-      e.target.dataset.userEdited = '1';
-    });
     document.getElementById('bmSendBtn')?.addEventListener('click', sendMail);
     document.getElementById('bmLogInboundBtn')?.addEventListener('click', logInbound);
     document.getElementById('bmDetailClose')?.addEventListener('click', () => {
@@ -550,10 +398,7 @@
   function loadBusinessMailPanel() {
     applyAccessUI();
     if (!hasAccess()) return;
-    applyHostForEmail(document.getElementById('bmReplyEmail')?.value || '');
-    refreshStatus().then(() => {
-      if (mailStatus?.imapConnected) syncInbox(false);
-    });
+    refreshStatus();
     loadMessages();
     loadPartySuggestions();
     onTemplateChange();
