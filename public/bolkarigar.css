@@ -791,7 +791,9 @@
   }
   .mini-card h4 { margin: 0 0 8px; }
   .mini-card p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
-  input, select, textarea {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+  select,
+  textarea {
     width: 100%;
     padding: 10px 12px;
     border-radius: 10px;
@@ -801,7 +803,24 @@
     outline: none;
     color-scheme: dark;
   }
-  html[data-theme="light"] input,
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    max-width: 18px;
+    padding: 0;
+    margin: 0;
+    border-radius: 4px;
+    flex: 0 0 18px;
+    accent-color: var(--brand-primary, #2563eb);
+    vertical-align: middle;
+  }
+  input[type="radio"] {
+    border-radius: 50%;
+  }
+  html[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
   html[data-theme="light"] select,
   html[data-theme="light"] textarea {
     background: #fff;

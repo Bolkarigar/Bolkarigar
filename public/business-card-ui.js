@@ -87,6 +87,7 @@
   let currentTier = "free";
   let currentTemplateId = FREE_TEMPLATES[0].id;
   let html2canvasLoaded = false;
+  let hadBusinessAccess = false;
 
   function esc(s) {
     const d = document.createElement("div");
@@ -1122,6 +1123,27 @@
     return String(id || "").startsWith("p");
   }
 
+  function applyBusinessDefaultTier(forcePremium) {
+    const hasBiz = hasPremiumAccess();
+    const premiumTab = document.querySelector('.bc-tier-tab[data-tier="premium"]');
+    const freeTab = document.querySelector('.bc-tier-tab[data-tier="free"]');
+    if (hasBiz && (forcePremium || currentTier !== "free")) {
+      currentTier = "premium";
+      if (!isPremiumTemplateId(currentTemplateId)) {
+        currentTemplateId = PREMIUM_TEMPLATES[0]?.id || "p01";
+      }
+      document.querySelectorAll(".bc-tier-tab").forEach((t) => t.classList.remove("active"));
+      premiumTab?.classList.add("active");
+    } else if (!hasBiz) {
+      currentTier = "free";
+      if (isPremiumTemplateId(currentTemplateId)) {
+        currentTemplateId = FREE_TEMPLATES[0]?.id || "f01";
+      }
+      document.querySelectorAll(".bc-tier-tab").forEach((t) => t.classList.remove("active"));
+      freeTab?.classList.add("active");
+    }
+  }
+
   function syncPlanUI() {
     const tierTabs = document.querySelector(".bc-tier-tabs");
     const premiumTab = document.querySelector('.bc-tier-tab[data-tier="premium"]');
@@ -1130,6 +1152,11 @@
     const freeOnlyTitle = document.getElementById("bcFreeOnlyTitle");
     const premiumOnlyTitle = document.getElementById("bcPremiumOnlyTitle");
     const hasBiz = hasPremiumAccess();
+
+    if (hasBiz && !hadBusinessAccess) {
+      applyBusinessDefaultTier(true);
+    }
+    hadBusinessAccess = hasBiz;
 
     if (tierTabs) tierTabs.classList.toggle("hidden", !hasBiz);
     if (freeOnlyTitle) freeOnlyTitle.classList.toggle("hidden", hasBiz || currentTier === "premium");
@@ -1492,23 +1519,14 @@
     });
 
     document.querySelector('.tab-btn[data-tab="businessCardPanel"]')?.addEventListener("click", () => {
-      initFormSelects();
-      if (hasPremiumAccess()) {
-        currentTier = "premium";
-        currentTemplateId = PREMIUM_TEMPLATES[0]?.id || "p01";
-        document.querySelectorAll(".bc-tier-tab").forEach((t) => t.classList.remove("active"));
-        document.querySelector('.bc-tier-tab[data-tier="premium"]')?.classList.add("active");
-      }
-      renderGrid();
+      openBusinessCardPanel();
     });
 
     if (hasPremiumAccess()) {
-      currentTier = "premium";
-      currentTemplateId = PREMIUM_TEMPLATES[0]?.id || "p01";
+      applyBusinessDefaultTier(true);
     }
 
-    if (panel.classList.contains("active")) renderGrid();
-    else renderGrid();
+    renderGrid();
   }
 
   if (document.readyState === "loading") {
@@ -1517,6 +1535,13 @@
     init();
   }
 
+  function openBusinessCardPanel() {
+    initFormSelects();
+    applyBusinessDefaultTier(true);
+    renderGrid();
+  }
+
   window.bkRenderBusinessCardGrid = renderGrid;
   window.bkSyncBusinessCardPlan = syncPlanUI;
+  window.bkOpenBusinessCardPanel = openBusinessCardPanel;
 })();

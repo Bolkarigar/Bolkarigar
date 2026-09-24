@@ -2001,6 +2001,9 @@ function openPanel(id) {
   if (id === "galleryPanel" && typeof window.BolKarigarTeamGallery?.loadTeamGallery === "function") {
     window.BolKarigarTeamGallery.loadTeamGallery();
   }
+  if (id === "businessCardPanel" && typeof window.bkOpenBusinessCardPanel === "function") {
+    window.bkOpenBusinessCardPanel();
+  }
   if (typeof window.BolKarigarMeetings?.closeMeetingRoom === "function") {
     window.BolKarigarMeetings.closeMeetingRoom();
   }

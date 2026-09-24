@@ -195,12 +195,66 @@ html.ao-phone #overviewRecPicker .voucher-label {
   font-weight: 700;
 }
 
-html.ao-phone input,
+html.ao-phone input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
 html.ao-phone select,
 html.ao-phone textarea {
   font-size: 16px !important;
   min-height: 44px;
   border-radius: 12px;
+}
+html.ao-phone input[type="checkbox"],
+html.ao-phone input[type="radio"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 4px !important;
+  flex: 0 0 18px;
+  appearance: auto;
+  -webkit-appearance: auto;
+  accent-color: var(--ao-blue);
+}
+html.ao-phone input[type="radio"] {
+  border-radius: 50% !important;
+}
+html.ao-phone .meet-invite-mode,
+html.ao-phone .payroll-weekly-off-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+html.ao-phone .meet-invite-mode label,
+html.ao-phone .payroll-weekly-off-picks label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+  max-width: none;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid #d5deea;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+html[data-theme="dark"].ao-phone .meet-invite-mode label,
+html[data-theme="dark"].ao-phone .payroll-weekly-off-picks label {
+  background: #1e293b;
+  border-color: rgba(255,255,255,.12);
+}
+html.ao-phone .meet-invite-mode label:has(input:checked),
+html.ao-phone .payroll-weekly-off-picks label:has(input:checked) {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: #2563eb;
+  color: #1d4ed8;
 }
 html.ao-phone button,
 html.ao-phone .bk-save-btn,
@@ -517,6 +571,158 @@ html.ao-phone #ledgerPanel .table-amount-total-bar {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 12px;
+}
+
+html.ao-phone .page {
+  padding-bottom: calc(var(--ao-phone-bar) + 28px + env(safe-area-inset-bottom));
+}
+html.ao-phone .topbar .voice-btn {
+  max-width: none;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+html.ao-phone #devPlanToggleBar {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 6px 10px;
+}
+html.ao-phone .dev-plan-toggle-label {
+  display: none;
+}
+html.ao-phone .dev-plan-toggle-actions {
+  flex: 0 0 auto;
+}
+html.ao-phone .dev-plan-active-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.ao-phone .subscription-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+html.ao-phone .subscription-banner span {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.3;
+}
+html.ao-phone .mini-card,
+html.ao-phone #galleryPanel,
+html.ao-phone #todoPanel,
+html.ao-phone #calcPanel,
+html.ao-phone #companiesPanel,
+html.ao-phone #contractorPanel,
+html.ao-phone #payrollPanel,
+html.ao-phone #teamMeetingPanel,
+html.ao-phone #businessCardPanel {
+  min-width: 0;
+}
+html.ao-phone .mini-card {
+  background: #fff;
+  border: 1px solid #d5deea;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+html[data-theme="dark"].ao-phone .mini-card {
+  background: #1e293b;
+  border-color: rgba(255,255,255,.1);
+}
+html.ao-phone .btn-row,
+html.ao-phone .payroll-subtabs,
+html.ao-phone .contractor-subtab-btn,
+html.ao-phone .payroll-subtab-btn {
+  min-width: 0;
+}
+html.ao-phone #contractorPanel > .btn-row,
+html.ao-phone .payroll-subtabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+html.ao-phone #contractorPanel > .btn-row {
+  grid-template-columns: 1fr;
+}
+html.ao-phone #contractorPanel > .btn-row .contractor-subtab-btn,
+html.ao-phone .payroll-subtab-btn {
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+html.ao-phone .payroll-weekly-off-picks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+html.ao-phone .payroll-weekly-off-picks label {
+  justify-content: center;
+  padding: 6px 4px;
+}
+html.ao-phone .meet-quick-btns {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+html.ao-phone .meet-quick-btns .theme-btn,
+html.ao-phone .meet-quick-btns button {
+  width: 100%;
+  min-width: 0 !important;
+}
+html.ao-phone .bc-tier-tabs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+html.ao-phone .bc-tier-tab {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.25;
+}
+html.ao-phone .bc-card-grid,
+html.ao-phone .bc-card-grid.bc-premium-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+html.ao-phone .bc-thumb {
+  min-height: 110px;
+}
+html.ao-phone #calcPanel .calc-grid {
+  gap: 8px;
+}
+html.ao-phone #calcPanel .calc-btn,
+html.ao-phone #calcPanel button {
+  min-height: 48px;
+}
+html.ao-phone .gallery-thumbs {
+  grid-template-columns: 1fr 1fr;
+}
+html.ao-phone .team-todo-list li,
+html.ao-phone #teamGalleryShareList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+html.ao-phone .team-todo-list button,
+html.ao-phone #teamGalleryShareList button {
+  width: auto;
+  min-height: 36px;
+  margin-left: auto;
 }
 
 @media (min-width: 821px) {
