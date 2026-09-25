@@ -128,6 +128,7 @@ app.use(cors({
     : (process.env.NODE_ENV === 'production'
       ? [
           'https://bolkarigar.onrender.com',
+          'https://app.accountsorbit.com',
           'https://accountsorbit.com',
           'https://www.accountsorbit.com'
         ]
