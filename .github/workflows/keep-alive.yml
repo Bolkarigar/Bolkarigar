@@ -1,0 +1,20 @@
+# Pings the live app so Render free hosting sleeps less often.
+# This does not replace a paid always-on instance.
+name: Keep app awake
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health
+        run: |
+          for url in \
+            "https://app.accountsorbit.com/api/health" \
+            "https://bolkarigar.onrender.com/api/health"
+          do
+            echo "GET $url"
+            curl -fsS --max-time 90 "$url" || true
+          done
