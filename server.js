@@ -3402,8 +3402,8 @@ setupRazorpayPayments({ app, mongoose, User, authenticateToken });
 setupDevPlanToggle({ app, User, authenticateToken });
 
 // Explicit HTML routes (static ke baad bhi safe fallback)
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'loginpage.html')));
-['/loginpage.html', '/signup.html', '/pricing.html', '/download.html'].forEach((page) => {
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+['/index.html', '/loginpage.html', '/signup.html', '/pricing.html', '/download.html', '/privacy.html'].forEach((page) => {
   app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
 });
 
@@ -3430,7 +3430,7 @@ app.use((req, res, next) => {
   next();
 });
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'loginpage.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ==================================================================================

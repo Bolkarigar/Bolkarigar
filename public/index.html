@@ -2,10 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0;url=loginpage.html" />
-  <title>Accounts Orbit</title>
-  <script src="native-config.js?v=1"></script>
-  <script>location.replace('loginpage.html');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Accounts Orbit — Billing software for shops</title>
+  <meta name="description" content="Accounts Orbit is billing and accounts software for shop owners — invoices, purchase, ledger, voice, and WhatsApp bills. Start a free trial." />
+  <meta name="theme-color" content="#06144a" />
+  <link rel="canonical" href="https://accountsorbit.com/" />
+  <link rel="icon" href="ao-mark.svg" type="image/svg+xml" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Accounts Orbit" />
+  <meta property="og:title" content="Accounts Orbit — Your business in orbit" />
+  <meta property="og:description" content="Shop billing, ledger, inventory and voice — Pro ₹99 or Business ₹299. Free trial on signup." />
+  <meta property="og:url" content="https://accountsorbit.com/" />
+  <meta property="og:image" content="https://accountsorbit.com/ao-logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #06144a;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: rgba(15, 23, 42, 0.1);
+      --blue: #2563eb;
+      --cyan: #22d3ee;
+      --green: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--ink);
+      background: #f8fafc;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    .top {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(6, 20, 74, 0.96);
+      backdrop-filter: blur(10px);
+      color: #fff;
+    }
+    .top-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; min-height: 68px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand img { width: 40px; height: 40px; border-radius: 10px; }
+    .brand strong { font-size: 17px; letter-spacing: -0.02em; }
+    nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    nav a {
+      color: #e2e8f0; text-decoration: none; font-size: 14px; font-weight: 600;
+      padding: 8px 10px; border-radius: 8px;
+    }
+    nav a:hover { background: rgba(255,255,255,.08); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none; font-weight: 700; border-radius: 10px;
+      padding: 11px 16px; font-size: 14px;
+    }
+    .btn-light { background: #fff; color: var(--navy); }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-ghost { background: #e2e8f0; color: #0f172a; }
+    .hero {
+      background:
+        radial-gradient(700px 320px at 15% 0%, rgba(34,211,238,.22), transparent 55%),
+        radial-gradient(600px 280px at 90% 20%, rgba(37,99,235,.28), transparent 50%),
+        var(--navy);
+      color: #fff; padding: 64px 0 72px;
+    }
+    .hero h1 {
+      margin: 10px 0 14px; font-size: clamp(32px, 6vw, 56px);
+      line-height: 1.1; letter-spacing: -0.04em; max-width: 14ch;
+    }
+    .hero p { margin: 0 0 26px; color: #cbd5e1; font-size: 18px; max-width: 38rem; line-height: 1.6; }
+    .eyebrow { color: #67e8f9; font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .features { padding: 64px 0; }
+    .features h2, .plans h2, .cta h2 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.03em; }
+    .lead { color: var(--muted); margin: 0 0 28px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 16px;
+      padding: 20px; box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+    }
+    .card h3 { margin: 0 0 8px; font-size: 17px; }
+    .card p { margin: 0; color: var(--muted); line-height: 1.55; font-size: 14px; }
+    .plans { padding: 0 0 72px; }
+    .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 760px; }
+    .price { font-size: 36px; font-weight: 800; color: var(--green); margin: 8px 0; }
+    .cta {
+      background: #fff; border-top: 1px solid var(--line);
+      padding: 56px 0; text-align: center;
+    }
+    .cta .hero-actions { justify-content: center; }
+    footer {
+      background: var(--navy); color: #94a3b8; padding: 28px 0;
+      font-size: 13px;
+    }
+    footer a { color: #e2e8f0; text-decoration: none; }
+    .foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    @media (max-width: 800px) {
+      .grid, .plan-grid { grid-template-columns: 1fr; }
+      .hero { padding: 40px 0 48px; }
+      nav .hide-sm { display: none; }
+    }
+  </style>
 </head>
-<body></body>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="/">
+        <img src="ao-mark.svg" alt="Accounts Orbit" />
+        <strong>Accounts Orbit</strong>
+      </a>
+      <nav>
+        <a class="hide-sm" href="#features">Features</a>
+        <a class="hide-sm" href="pricing.html">Pricing</a>
+        <a href="loginpage.html">Login</a>
+        <a class="btn btn-light" href="signup.html">Start free trial</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Your business in orbit</div>
+      <h1>Billing software for shops</h1>
+      <p>Invoices, purchase, ledger, inventory and WhatsApp bills — on phone or computer. Voice can do the work while you talk to the customer.</p>
+      <div class="hero-actions">
+        <a class="btn btn-green" href="signup.html">Create free account</a>
+        <a class="btn btn-light" href="loginpage.html">Open the app</a>
+        <a class="btn btn-ghost" href="/download-app">Download for Windows</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="wrap">
+      <h2>What the app does</h2>
+      <p class="lead">Made for shopkeepers and contractors who want accounts without a complicated Tally setup.</p>
+      <div class="grid">
+        <article class="card"><h3>Sales & invoices</h3><p>Make GST or simple bills, search old sales, and share on WhatsApp.</p></article>
+        <article class="card"><h3>Purchase & payments</h3><p>Supplier bills, payment and receipt vouchers with date filters.</p></article>
+        <article class="card"><h3>Ledger & khata</h3><p>Party ledgers, stock items, day book and credit statements.</p></article>
+        <article class="card"><h3>Voice billing</h3><p>Say the work in Hindi or English — open invoice, add a bill, check a party.</p></article>
+        <article class="card"><h3>Staff access</h3><p>Owner buys the plan. Staff and cashier join with an invite code.</p></article>
+        <article class="card"><h3>Business extras</h3><p>Business plan adds reports, payroll, Tally sync, mail and more.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="plans" id="plans">
+    <div class="wrap">
+      <h2>Simple plans</h2>
+      <p class="lead">Free trial on signup. Pay later with UPI, card or netbanking.</p>
+      <div class="plan-grid">
+        <article class="card">
+          <h3>Pro Shop</h3>
+          <div class="price">₹99<span style="font-size:16px;color:#64748b;font-weight:600">/mo</span></div>
+          <p>30-day trial. Invoice, purchase, ledger, inventory, gallery and todo.</p>
+          <p style="margin-top:16px;"><a class="btn btn-green" href="signup.html?plan=pro">Start Pro trial</a></p>
+        </article>
+        <article class="card">
+          <h3>Business</h3>
+          <div class="price">₹299<span style="font-size:16px;color:#64748b;font-weight:600">/mo</span></div>
+          <p>15-day trial. Everything in the app, plus staff, payroll, reports and Tally sync.</p>
+          <p style="margin-top:16px;"><a class="btn btn-blue" href="signup.html?plan=business">Start Business trial</a></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap">
+      <h2>Ready to try Accounts Orbit?</h2>
+      <p class="lead">Website yahan hai. App login / signup se khulti hai.</p>
+      <div class="hero-actions">
+        <a class="btn btn-green" href="signup.html">Sign up</a>
+        <a class="btn btn-blue" href="loginpage.html">Login to app</a>
+        <a class="btn btn-ghost" href="pricing.html">See full pricing</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap foot">
+      <div>© Accounts Orbit · Your business in orbit</div>
+      <div>
+        <a href="pricing.html">Pricing</a> ·
+        <a href="privacy.html">Privacy</a> ·
+        <a href="loginpage.html">App login</a>
+      </div>
+    </div>
+  </footer>
+</body>
 </html>
