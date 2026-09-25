@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -10,8 +9,8 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("Accounts Orbit")]
 [assembly: AssemblyCompany("Accounts Orbit")]
 [assembly: AssemblyDescription("Accounts Orbit desktop app")]
-[assembly: AssemblyVersion("1.0.3.0")]
-[assembly: AssemblyFileVersion("1.0.3.0")]
+[assembly: AssemblyVersion("1.0.4.0")]
+[assembly: AssemblyFileVersion("1.0.4.0")]
 
 internal static class Program
 {
@@ -68,22 +67,17 @@ internal static class Program
         if (!string.Equals(Path.GetFullPath(running), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
             File.Copy(running, dest, true);
         TryUnblock(dest);
-        var ico = Path.Combine(dir, "app.ico");
-        try
+        var ico = Path.Combine(dir, "AccountsOrbit.ico");
+        try { File.WriteAllBytes(ico, AppIconData.Bytes()); }
+        catch
         {
-            var beside = Path.Combine(Path.GetDirectoryName(running) ?? "", "icon.ico");
-            if (File.Exists(beside))
-                File.Copy(beside, ico, true);
-            else if (File.Exists(Path.Combine(dir, "icon.ico")))
-                File.Copy(Path.Combine(dir, "icon.ico"), ico, true);
-            else
+            try
             {
-                using (var icon = Icon.ExtractAssociatedIcon(dest) ?? Icon.ExtractAssociatedIcon(running))
-                using (var fs = File.Create(ico))
-                    icon.Save(fs);
+                var beside = Path.Combine(Path.GetDirectoryName(running) ?? "", "icon.ico");
+                if (File.Exists(beside)) File.Copy(beside, ico, true);
             }
+            catch { }
         }
-        catch { }
         return dest;
     }
 
@@ -144,7 +138,7 @@ internal static class Program
         foreach (var s in stale) TryDelete(s);
 
         var target = string.IsNullOrEmpty(installedExe) ? Application.ExecutablePath : installedExe;
-        var icon = Path.Combine(AppDir(), "app.ico");
+        var icon = Path.Combine(AppDir(), "AccountsOrbit.ico");
         if (!File.Exists(icon)) icon = target;
 
         TryCreateShortcut(Path.Combine(desktop, "Accounts Orbit.lnk"), target, "", icon);

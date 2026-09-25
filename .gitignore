@@ -1,6 +1,7 @@
 node_modules/
 desktop/node_modules/
 desktop/dist/
+desktop/IconData.cs
 .env
 .env.local
 .env.production
