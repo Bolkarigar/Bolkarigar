@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone sheet check</title>
+  <style>
+    .hidden { display: none !important; }
+    .ao-phone-tabbar { position: fixed; bottom: 0; left: 0; right: 0; }
+  </style>
+</head>
+<body>
+  <button id="topbarMoreBtn" type="button">⋮</button>
+  <div class="top-actions" id="topActionsMenu">
+    <button id="businessProfileBtn" type="button">Business Profile</button>
+    <button id="themeToggle" type="button">Dark</button>
+    <button id="logoutBtn" type="button">Logout</button>
+  </div>
+  <aside id="appSidebar">
+    <button class="tab-btn" data-tab="overviewPanel">Home</button>
+    <button class="tab-btn" data-tab="invoicePanel">Sale</button>
+    <button class="tab-btn" data-tab="stockPanel">Stock</button>
+    <button class="tab-btn" data-tab="partyPanel">Parties</button>
+  </aside>
+  <div class="panel active" id="overviewPanel"></div>
+  <nav class="ao-phone-tabbar" id="aoPhoneTabbar">
+    <button type="button" class="ao-phone-tab" data-phone-key="home" data-phone-tab="overviewPanel">Home</button>
+    <button type="button" class="ao-phone-tab" data-phone-key="more" id="aoPhoneMoreBtn">More</button>
+  </nav>
+  <div id="aoPhoneMore" class="ao-phone-more hidden">
+    <div class="ao-phone-more-sheet">
+      <div class="ao-phone-more-head">
+        <h3>More</h3>
+        <button type="button" class="ao-phone-sheet-close" data-ao-close="1">✕</button>
+      </div>
+      <div class="ao-phone-more-grid" id="aoPhoneMoreGrid"></div>
+      <button type="button" id="aoPhoneMoreProfile">Business Profile</button>
+      <button type="button" id="aoPhoneMoreLogout">Logout</button>
+    </div>
+  </div>
+  <div id="aoPhoneAccount" class="ao-phone-more hidden">
+    <div class="ao-phone-more-sheet">
+      <div class="ao-phone-more-head">
+        <h3>Account</h3>
+        <button type="button" class="ao-phone-sheet-close" data-ao-close="1">✕</button>
+      </div>
+      <button type="button" id="aoPhoneAccProfile">Business Profile</button>
+      <button type="button" id="aoPhoneAccTheme">Dark / Light</button>
+      <button type="button" id="aoPhoneAccLogout">Logout</button>
+    </div>
+  </div>
+  <script src="../public/mobile-app.js"></script>
+</body>
+</html>
