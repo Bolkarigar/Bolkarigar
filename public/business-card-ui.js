@@ -89,6 +89,36 @@
   let html2canvasLoaded = false;
   let hadBusinessAccess = false;
 
+  const DEMO_CARD = {
+    name: "Rahul Sharma",
+    designation: "Owner",
+    mobile: "9876543210",
+    businessName: "Sharma Traders",
+    shopType: "Shop",
+    email: "hello@sharmatraders.in",
+    category: "Retail",
+    gst: "06AABCU9603R1ZM",
+    address: "12, Main Market, Hisar, Haryana 125001",
+    qrMode: "whatsapp"
+  };
+
+  function isCardSparse(data) {
+    const d = data || {};
+    return !String(d.name || "").trim() && !String(d.businessName || "").trim() && !String(d.mobile || "").trim();
+  }
+
+  function withCardPreviewDefaults(data) {
+    const src = data || {};
+    if (isCardSparse(src)) return { ...DEMO_CARD, ...src };
+    return {
+      ...src,
+      designation: src.designation || "Owner",
+      shopType: src.shopType || "Shop",
+      category: src.category || "Retail",
+      qrMode: src.qrMode || "whatsapp"
+    };
+  }
+
   function esc(s) {
     const d = document.createElement("div");
     d.textContent = s || "";
@@ -208,12 +238,12 @@
   }
 
   function renderLuxContactRow(label, value, iconType, accent, textColor) {
-    if (!value) return "";
-    return `<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px">
-      <div style="width:42px;height:42px;min-width:42px;border:2px solid ${accent}77;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${accent}18">${luxIcon(iconType, accent)}</div>
-      <div style="min-width:0">
-        <div style="font-size:11px;letter-spacing:2.5px;color:${accent};font-weight:800;margin-bottom:4px">${label}</div>
-        <div style="font-size:20px;font-weight:700;color:${textColor};line-height:1.35;word-break:break-word">${value}</div>
+    const v = value || "—";
+    return `<div class="bc-lux-row">
+      <div class="bc-lux-row-ico" style="border-color:${accent}66;background:${accent}16">${luxIcon(iconType, accent)}</div>
+      <div class="bc-lux-row-txt">
+        <div class="bc-lux-row-lab" style="color:${accent}">${label}</div>
+        <div class="bc-lux-row-val" style="color:${textColor}">${v}</div>
       </div>
     </div>`;
   }
@@ -222,21 +252,21 @@
     const a = tpl.accent;
     const layout = tpl.layout || "lux-gold";
     if (layout === "lux-geometric") {
-      return `<div style="width:128px;height:128px;border:2px solid ${a};transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px ${a}18">
-        <span style="transform:rotate(-45deg);font-size:52px;font-weight:700;color:${a}">${initial}</span></div>`;
+      return `<div style="width:80px;height:80px;border:2px solid ${a};transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px ${a}18">
+        <span style="transform:rotate(-45deg);font-size:32px;font-weight:700;color:${a}">${initial}</span></div>`;
     }
     if (layout === "lux-boutique") {
-      return `<div style="position:relative;width:120px;height:120px">
-        <svg width="120" height="120" viewBox="0 0 100 100" style="position:absolute;inset:0;opacity:0.45"><path fill="${a}" d="M50 6 C26 36 14 58 50 94 C86 58 74 36 50 6 Z"/></svg>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:700;color:${a}">${initial}</div></div>`;
+      return `<div style="position:relative;width:80px;height:80px">
+        <svg width="80" height="80" viewBox="0 0 100 100" style="position:absolute;inset:0;opacity:0.45"><path fill="${a}" d="M50 6 C26 36 14 58 50 94 C86 58 74 36 50 6 Z"/></svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:${a}">${initial}</div></div>`;
     }
     if (layout === "lux-platinum") {
-      return `<div style="width:118px;height:118px;border-radius:50%;border:2px solid ${a};display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:300;color:${a};box-shadow:0 0 0 10px ${a}15, inset 0 0 20px ${a}22">${initial}</div>`;
+      return `<div style="width:80px;height:80px;border-radius:50%;border:2px solid ${a};display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:300;color:${a};box-shadow:0 0 0 7px ${a}15, inset 0 0 14px ${a}22">${initial}</div>`;
     }
-    return `<div style="position:relative;width:120px;height:120px">
+    return `<div style="position:relative;width:80px;height:80px">
       <div style="position:absolute;inset:0;border:2px solid ${a};border-radius:50%;opacity:0.35"></div>
-      <div style="position:absolute;inset:8px;border:1px solid ${a};border-radius:50%;opacity:0.55"></div>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:700;color:${a}">${initial}</div></div>`;
+      <div style="position:absolute;inset:6px;border:1px solid ${a};border-radius:50%;opacity:0.55"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:${a}">${initial}</div></div>`;
   }
 
   function renderPrintedOverlay(tpl) {
@@ -259,10 +289,10 @@
   }
 
   function renderLuxFooterBar(addr, accent, textColor, extra) {
-    return `<div style="grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:14px 18px;background:${accent}16;border:2px solid ${accent}40;border-radius:8px;margin-top:6px">
-      ${addr ? `<div style="flex:1;display:flex;align-items:flex-start;gap:12px;font-size:16px;line-height:1.5;color:${textColor};font-weight:600">
-        <div style="width:32px;height:32px;min-width:32px;border:2px solid ${accent}66;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${accent}12">${luxIcon("pin", accent)}</div>
-        <span>${addr}</span></div>` : `<div style="flex:1"></div>`}
+    const line = addr || "Add your shop address";
+    return `<div class="bc-lux-foot" style="background:${accent}16;border-color:${accent}40;color:${textColor}">
+      <div class="bc-lux-foot-pin" style="border-color:${accent}66;background:${accent}12">${luxIcon("pin", accent)}</div>
+      <span class="bc-lux-foot-txt">${line}</span>
       ${extra || ""}
     </div>`;
   }
@@ -683,9 +713,7 @@
           <div style="width:70%;height:2px;background:linear-gradient(90deg,transparent,${accent},transparent);margin:12px auto"></div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px">
             ${gst ? renderMetaChip(`GST ${gst}`, accent, textDark, false) : ""}
-            ${renderMetaChip("Verified Business", accent, textDark, false)}
           </div>
-          ${renderActionMiniGrid(accent, textDark)}
         </div>
         <div class="bc-anim-qr-pulse" style="--bc-accent:${accent}">${renderLuxQRBlock(data, accent, 108, "Scan · Connect · Grow")}</div>
       </div>
@@ -723,11 +751,11 @@
 
   function renderLuxSplitCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
-    const gst = data.gst ? esc(data.gst) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
     const cat = data.category ? esc(data.category) : "";
     const shop = data.shopType ? esc(data.shopType) : "";
@@ -736,47 +764,40 @@
     const t = tpl.text;
     const font = luxFont(tpl);
     const meta = [cat, shop].filter(Boolean).join("  ·  ");
-    const foilBar = `<div style="grid-column:1/-1;height:6px;background:linear-gradient(90deg,transparent,${a},${a}88,${a},transparent);border-radius:3px;opacity:0.75;margin-top:8px"></div>`;
 
-    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
-      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a},${a}55);z-index:2"></div>
-      <div style="position:absolute;inset:0;padding:22px 26px 22px 30px;display:flex;flex-direction:column;font-family:${font};z-index:2;height:100%;box-sizing:border-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px">
-          <div style="font-size:13px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:${a}">${biz}</div>
-          ${meta ? `<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${t};opacity:0.8;text-align:right;font-weight:600">${meta}</div>` : ""}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      <div class="bc-lux-accent-bar" style="background:linear-gradient(180deg,${a},${a}55)"></div>
+      <div class="bc-lux-shell" style="font-family:${font}">
+        <div class="bc-lux-head">
+          <div class="bc-lux-biz" style="color:${a}">${biz}</div>
+          ${meta ? `<div class="bc-lux-meta" style="color:${t}">${meta}</div>` : ""}
         </div>
-        <div style="height:2px;background:linear-gradient(90deg,${a},${a}66,transparent);margin-bottom:10px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 270px 200px;grid-template-rows:1fr auto auto;gap:12px 18px;align-items:center;min-height:0">
-          <div style="grid-row:1;display:flex;flex-direction:column;justify-content:center;padding-right:16px;border-right:2px solid ${a}33;min-height:0">
+        <div class="bc-lux-rule" style="background:linear-gradient(90deg,${a},${a}66,transparent)"></div>
+        <div class="bc-lux-grid">
+          <div class="bc-lux-main">
+            <h2 class="bc-lux-name" style="color:${a}">${name}</h2>
+            <p class="bc-lux-desig" style="color:${t}">${desig}</p>
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
-            ${renderLuxMetaChips(cat, shop, gst, a)}
-            ${renderActionMiniGrid(a, t)}
+            ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
           </div>
-          <div style="grid-row:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 14px;background:${a}10;border-radius:14px;border:1px solid ${a}35;height:100%;min-height:0">
-            ${renderCenteredLuxLogo(initial, tpl, `
-              <h2 style="margin:0;font-size:38px;font-weight:700;color:${a};line-height:1.05;letter-spacing:0.5px">${name}</h2>
-              ${desig ? `<p style="margin:6px 0 0;font-size:15px;color:${t};opacity:0.9;letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
-              <div style="width:64px;height:3px;background:${a};margin:12px auto;opacity:0.9"></div>
-              ${renderActionChips(data.mobile, shop, a, tpl.bg)}
-              <div style="margin-top:10px;font-size:10px;letter-spacing:4px;color:${a};opacity:0.7;text-transform:uppercase;font-weight:700">Premium Visiting Card</div>
-            `)}
+          <div class="bc-lux-aside" style="background:${a}10;border-color:${a}35">
+            <div class="bc-lux-emblem-wrap">${renderLuxEmblem(initial, tpl)}</div>
+            ${renderCenteredQR(data, a, 96)}
           </div>
-          <div style="grid-row:1">${renderCenteredQR(data, a, 108)}</div>
-          ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:3px;color:${a};opacity:0.75;text-transform:uppercase;white-space:nowrap;font-weight:700">Accounts Orbit</div>`)}
-          ${foilBar}
         </div>
+        ${renderLuxFooterBar(addr, a, t, `<span class="bc-lux-brand" style="color:${a}">Accounts Orbit</span>`)}
       </div>
     </div>`;
   }
 
   function renderLuxVerticalCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
-    const gst = data.gst ? esc(data.gst) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
     const cat = data.category ? esc(data.category) : "";
     const shop = data.shopType ? esc(data.shopType) : "";
@@ -784,40 +805,40 @@
     const a = tpl.accent;
     const t = tpl.text;
     const font = luxFont(tpl);
+    const meta = [cat, shop].filter(Boolean).join(" · ");
 
-    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
-      <div style="position:absolute;left:0;top:0;bottom:0;width:30%;background:linear-gradient(180deg,${a}35,${a}12);border-right:2px solid ${a}55;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px;z-index:2">
-        <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a};transform:scale(0.92)">${renderLuxEmblem(initial, tpl)}</div>
-        <div style="margin-top:14px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${a};text-align:center;line-height:1.6;font-weight:800">${biz}</div>
-        ${renderActionChips(data.mobile, shop, a, tpl.bg)}
-      </div>
-      <div style="position:absolute;left:30%;right:0;top:0;bottom:0;padding:22px 24px 22px 18px;display:flex;flex-direction:column;font-family:${font};z-index:2">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-          <div style="flex:1;min-width:0">
-            <h2 style="margin:0;font-size:44px;font-weight:700;color:${a};line-height:1.05">${name}</h2>
-            ${desig ? `<p style="margin:6px 0 0;font-size:17px;color:${t};opacity:0.9;letter-spacing:2px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      <div class="bc-lux-vsplit">
+        <aside class="bc-lux-vrail" style="background:linear-gradient(180deg,${a}38,${a}12);border-color:${a}55">
+          <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a}">${renderLuxEmblem(initial, tpl)}</div>
+          <div class="bc-lux-rail-biz" style="color:${a}">${biz}</div>
+          ${meta ? `<div class="bc-lux-rail-meta" style="color:${t}">${meta}</div>` : ""}
+        </aside>
+        <div class="bc-lux-vmain" style="font-family:${font}">
+          <h2 class="bc-lux-name" style="color:${a}">${name}</h2>
+          <p class="bc-lux-desig" style="color:${t}">${desig}</p>
+          <div class="bc-lux-rule" style="background:linear-gradient(90deg,${a},transparent)"></div>
+          <div class="bc-lux-vgrid">
+            <div>
+              ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
+              ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+              ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
+            </div>
+            <div class="bc-lux-aside is-plain">${renderCenteredQR(data, a, 96)}</div>
           </div>
+          ${renderLuxFooterBar(addr, a, t, "")}
         </div>
-        <div style="height:2px;background:linear-gradient(90deg,${a},transparent);margin:12px 0"></div>
-        <div style="flex:1;display:flex;flex-direction:column;min-height:0;align-items:stretch">
-          ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
-          ${renderLuxContactRow("EMAIL", email, "email", a, t)}
-          ${renderLuxMetaChips(cat, shop, gst, a)}
-          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:10px 0">${renderCenteredQR(data, a, 104)}</div>
-          <div style="margin-top:6px">${renderLuxFooterBar(addr, a, t, "")}</div>
-        </div>
-        <div style="height:5px;background:linear-gradient(90deg,transparent,${a},transparent);margin-top:10px;opacity:0.65"></div>
       </div>
     </div>`;
   }
 
   function renderLuxCenterCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
-    const gst = data.gst ? esc(data.gst) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
     const cat = data.category ? esc(data.category) : "";
     const shop = data.shopType ? esc(data.shopType) : "";
@@ -826,44 +847,40 @@
     const t = tpl.text;
     const font = luxFont(tpl);
     const isNoir = tpl.layout === "lux-noir";
+    const meta = [cat, shop].filter(Boolean).join(" · ");
 
-    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}${renderVisitingAccent(a)}
-      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a},${a}44);z-index:2"></div>
-      <div style="position:absolute;right:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,${a}44,${a});z-index:2"></div>
-      <div style="position:absolute;inset:0;padding:20px 28px 18px 32px;display:flex;flex-direction:column;font-family:${font};z-index:2;height:100%;box-sizing:border-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-size:13px;letter-spacing:5px;text-transform:uppercase;color:${a};font-weight:800">${biz}</div>
-          ${cat || shop ? `<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${t};opacity:0.8;font-weight:600">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
+    return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
+      <div class="bc-lux-accent-bar" style="background:linear-gradient(180deg,${a},${a}44)"></div>
+      <div class="bc-lux-accent-bar is-right" style="background:linear-gradient(180deg,${a}44,${a})"></div>
+      <div class="bc-lux-shell" style="font-family:${font}">
+        <div class="bc-lux-head is-center">
+          <div class="bc-lux-emblem-wrap">${renderLuxEmblem(initial, tpl)}</div>
+          <div class="bc-lux-biz" style="color:${a}">${biz}</div>
+          <h2 class="bc-lux-name ${isNoir ? "is-light" : ""}" style="color:${isNoir ? t : a}">${name}</h2>
+          <p class="bc-lux-desig" style="color:${a}">${desig}</p>
+          ${meta ? `<div class="bc-lux-meta" style="color:${t}">${meta}</div>` : ""}
         </div>
-        <div style="height:2px;background:linear-gradient(90deg,${a},${a}55,transparent);margin-bottom:8px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 260px 200px;gap:16px 18px;align-items:center;min-height:0">
-          <div style="display:flex;flex-direction:column;justify-content:center;padding:8px 12px 8px 0;border-right:2px solid ${a}33">
+        <div class="bc-lux-rule" style="background:linear-gradient(90deg,${a},${a}55,transparent)"></div>
+        <div class="bc-lux-grid is-tight">
+          <div class="bc-lux-main">
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
-            ${renderLuxMetaChips(cat, shop, gst, a)}
+            ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px 12px;background:${a}10;border-radius:14px;border:1px solid ${a}33;height:100%">
-            ${renderCenteredLuxLogo(initial, tpl, `
-              <h2 style="margin:0;font-size:${isNoir ? "36" : "34"}px;font-weight:${isNoir ? "300" : "700"};color:${isNoir ? t : a};letter-spacing:${isNoir ? "2px" : "0.5px"};line-height:1.05">${name}</h2>
-              ${desig ? `<p style="margin:6px 0 0;font-size:15px;color:${a};letter-spacing:2.5px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
-              <div style="width:56px;height:2px;background:${a};margin:10px auto"></div>
-              ${renderActionChips(data.mobile, shop, a, tpl.bg)}
-            `)}
-          </div>
-          <div>${renderCenteredQR(data, a, 100)}</div>
+          <div class="bc-lux-aside is-plain">${renderCenteredQR(data, a, 96)}</div>
         </div>
-        <div style="margin-top:8px">${renderLuxFooterBar(addr, a, t, "")}</div>
-        <div style="height:5px;background:linear-gradient(90deg,transparent,${a},transparent);margin-top:8px;opacity:0.6"></div>
+        ${renderLuxFooterBar(addr, a, t, "")}
       </div>
     </div>`;
   }
 
   function renderLuxDiagonalCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
     const initial = esc(getInitial(data.name || data.businessName));
     const a = tpl.accent;
@@ -871,110 +888,102 @@
     const font = luxFont(tpl);
 
     return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,${a}44 0%,transparent 42%,${a}22 100%);pointer-events:none;z-index:1"></div>
-      <div style="position:absolute;top:-80px;right:-80px;width:320px;height:320px;background:linear-gradient(135deg,${a},${a}55);transform:rotate(45deg);opacity:0.35;z-index:1"></div>
-      <div style="position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;border:3px solid ${a};transform:rotate(45deg);opacity:0.25;z-index:1"></div>
-      <div style="position:absolute;inset:14px;border:1px solid ${a};opacity:0.45;pointer-events:none;z-index:2"></div>
-      <div style="position:absolute;inset:22px;border:1px solid ${a};opacity:0.2;pointer-events:none;z-index:2"></div>
+      <div class="bc-lux-diag-wash" style="background:linear-gradient(135deg,${a}44 0%,transparent 42%,${a}22 100%)"></div>
       ${renderLuxWatermark(initial, a)}
-      <div style="position:absolute;inset:0;padding:28px 32px;display:grid;grid-template-columns:1fr 250px 200px;grid-template-rows:1fr auto;gap:16px 18px;font-family:${font};z-index:3;height:100%;box-sizing:border-box;align-items:center">
-        <div style="display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:12px;letter-spacing:5px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">${biz}</div>
-          <h2 style="margin:0;font-size:44px;font-weight:700;color:${t};line-height:1.05;letter-spacing:0.5px">${name}</h2>
-          ${desig ? `<p style="margin:8px 0 0;font-size:17px;color:${a};letter-spacing:3px;text-transform:uppercase;font-weight:600">${desig}</p>` : ""}
-          <div style="width:80px;height:3px;background:linear-gradient(90deg,${a},transparent);margin:16px 0"></div>
-          ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
-          ${renderLuxContactRow("EMAIL", email, "email", a, t)}
-          ${renderActionChips(data.mobile, data.shopType, a, tpl.bg)}
+      <div class="bc-lux-shell" style="font-family:${font}">
+        <div class="bc-lux-head">
+          <div class="bc-lux-biz" style="color:${a}">${biz}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;background:${a}12;border-radius:14px;border:1px solid ${a}35">
-          ${renderCenteredLuxLogo(initial, tpl, "")}
+        <div class="bc-lux-grid">
+          <div class="bc-lux-main">
+            <h2 class="bc-lux-name" style="color:${t}">${name}</h2>
+            <p class="bc-lux-desig" style="color:${a}">${desig}</p>
+            <div class="bc-lux-rule" style="background:linear-gradient(90deg,${a},transparent)"></div>
+            ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
+            ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+            ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
+          </div>
+          <div class="bc-lux-aside" style="background:${a}12;border-color:${a}35">
+            <div class="bc-lux-emblem-wrap">${renderLuxEmblem(initial, tpl)}</div>
+            ${renderCenteredQR(data, a, 96)}
+          </div>
         </div>
-        <div>${renderCenteredQR(data, a, 108)}</div>
-        ${renderLuxFooterBar(addr, a, t, `<div style="font-size:10px;letter-spacing:4px;color:${a};font-weight:800">LUXURY</div>`)}
+        ${renderLuxFooterBar(addr, a, t, `<span class="bc-lux-brand" style="color:${a}">LUXURY</span>`)}
       </div>
     </div>`;
   }
 
   function renderLuxExecutiveCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
-    const gst = data.gst ? esc(data.gst) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
-    const cat = data.category ? esc(data.category) : "";
     const initial = esc(getInitial(data.name || data.businessName));
     const a = tpl.accent;
     const t = tpl.text;
     const font = luxFont(tpl);
 
     return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderLuxCornerFrame(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
-      <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(135deg,${a},${a}88);z-index:1"></div>
-      <div style="position:absolute;top:0;left:0;right:0;height:120px;opacity:0.15;background:repeating-linear-gradient(-45deg,#fff 0,#fff 1px,transparent 1px,transparent 8px);z-index:2"></div>
-      <div style="position:absolute;top:22px;left:50%;transform:translateX(-50%);z-index:3">
-        <div class="bc-anim-float bc-logo-glow" style="--bc-accent:${a};width:92px;height:92px;border-radius:50%;background:${tpl.bg};border:4px solid ${a};display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:${a};box-shadow:0 8px 24px rgba(0,0,0,0.35)">${initial}</div>
-      </div>
-      <div style="position:absolute;inset:0;padding:118px 36px 28px;display:flex;flex-direction:column;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
-        <div style="text-align:center;padding-bottom:8px">
-          <div style="font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#fff;font-weight:800;opacity:0.95">${biz}</div>
-          <h2 style="margin:6px 0 0;font-size:42px;font-weight:700;color:#fff;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,0.2)">${name}</h2>
-          ${desig ? `<p style="margin:4px 0 0;font-size:16px;color:rgba(255,255,255,0.92);letter-spacing:2px;text-transform:uppercase">${desig}</p>` : ""}
+      <div class="bc-lux-exec-banner" style="background:linear-gradient(135deg,${a},${a}88)"></div>
+      <div class="bc-lux-exec-card" style="font-family:${font}">
+        <div class="bc-lux-exec-top">
+          <div class="bc-anim-float bc-logo-glow bc-lux-exec-logo" style="--bc-accent:${a};background:${tpl.bg};border-color:${a};color:${a}">${initial}</div>
+          <div class="bc-lux-biz" style="color:#fff">${biz}</div>
+          <h2 class="bc-lux-name is-on-banner">${name}</h2>
+          <p class="bc-lux-desig is-on-banner">${desig}</p>
         </div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 200px;gap:16px;margin-top:12px;align-items:center">
-          <div>
+        <div class="bc-lux-grid is-tight">
+          <div class="bc-lux-main">
             ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
             ${renderLuxContactRow("EMAIL", email, "email", a, t)}
-            ${renderLuxMetaChips(cat, data.shopType, gst, a)}
+            ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
           </div>
-          <div>${renderCenteredQR(data, a, 100)}</div>
+          <div class="bc-lux-aside is-plain">${renderCenteredQR(data, a, 92)}</div>
         </div>
         ${renderLuxFooterBar(addr, a, t, "")}
-        <div style="height:4px;background:linear-gradient(90deg,${a},transparent);margin-top:10px;opacity:0.7"></div>
       </div>
     </div>`;
   }
 
   function renderLuxArtDecoCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
     const addr = data.address ? esc(data.address) : "";
     const initial = esc(getInitial(data.name || data.businessName));
     const a = tpl.accent;
     const t = tpl.text;
     const font = luxFont(tpl);
-    const decoCorner = (top, left, flip) => {
-      const pos = top ? "top:20px" : "bottom:20px";
-      const side = left ? "left:20px" : "right:20px";
-      const rot = flip ? "scaleX(-1)" : "";
-      return `<div style="position:absolute;${pos};${side};width:56px;height:56px;border-${top ? "top" : "bottom"}:3px solid ${a};border-${left ? "left" : "right"}:3px solid ${a};opacity:0.65;transform:${rot};z-index:2"></div>`;
+    const decoCorner = (top, left) => {
+      const pos = top ? "top:18px" : "bottom:18px";
+      const side = left ? "left:18px" : "right:18px";
+      return `<div style="position:absolute;${pos};${side};width:42px;height:42px;border-${top ? "top" : "bottom"}:3px solid ${a};border-${left ? "left" : "right"}:3px solid ${a};opacity:0.7;z-index:2"></div>`;
     };
 
     return `<div class="bc-card-export bc-lux-card bc-card-luxury" style="background:${tpl.bg};color:${t}">${renderLuxAnimLayers(a)}${renderPremiumPatterns(tpl)}${renderPrintedOverlay(tpl)}
-      ${decoCorner(true, true, false)}${decoCorner(true, false, true)}${decoCorner(false, true, false)}${decoCorner(false, false, true)}
-      <div style="position:absolute;top:50%;left:50%;width:200px;height:200px;margin:-100px 0 0 -100px;border:1px solid ${a};opacity:0.12;transform:rotate(45deg);z-index:1"></div>
-      <div style="position:absolute;top:50%;left:50%;width:140px;height:140px;margin:-70px 0 0 -70px;border:1px solid ${a};opacity:0.18;transform:rotate(45deg);z-index:1"></div>
-      <div style="position:absolute;inset:0;padding:32px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;font-family:${font};z-index:3;height:100%;box-sizing:border-box">
-        <div style="font-size:11px;letter-spacing:6px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:6px">${biz}</div>
-        <div style="width:120px;height:2px;background:linear-gradient(90deg,transparent,${a},transparent);margin-bottom:14px"></div>
-        <div style="width:72px;height:72px;border:2px solid ${a};display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:${a};margin-bottom:12px;transform:rotate(45deg)">
-          <span style="transform:rotate(-45deg)">${initial}</span>
+      ${decoCorner(true, true)}${decoCorner(true, false)}${decoCorner(false, true)}${decoCorner(false, false)}
+      <div class="bc-lux-shell is-deco" style="font-family:${font}">
+        <div class="bc-lux-head is-center">
+          <div class="bc-lux-biz" style="color:${a}">${biz}</div>
+          <div class="bc-lux-deco-mark" style="border-color:${a};color:${a}"><span>${initial}</span></div>
+          <h2 class="bc-lux-name is-light" style="color:${t}">${name}</h2>
+          <p class="bc-lux-desig" style="color:${a}">${desig}</p>
         </div>
-        <h2 style="margin:0;font-size:46px;font-weight:300;color:${t};letter-spacing:4px;text-transform:uppercase;line-height:1.1">${name}</h2>
-        ${desig ? `<p style="margin:8px 0 0;font-size:15px;color:${a};letter-spacing:3px;text-transform:uppercase">${desig}</p>` : ""}
-        <div style="width:80px;height:1px;background:${a};margin:16px auto;opacity:0.6"></div>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px 32px;margin-top:8px">
-          <div style="font-size:18px;font-weight:700;color:${t}">${phone}</div>
-          ${email ? `<div style="font-size:16px;color:${t};opacity:0.9">${email}</div>` : ""}
+        <div class="bc-lux-grid is-tight">
+          <div class="bc-lux-main">
+            ${renderLuxContactRow("MOBILE", phone, "phone", a, t)}
+            ${renderLuxContactRow("EMAIL", email, "email", a, t)}
+            ${renderLuxContactRow("GSTIN", gst, "gst", a, t)}
+          </div>
+          <div class="bc-lux-aside is-plain">${renderCenteredQR(data, a, 92)}</div>
         </div>
-        <div style="margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:16px">
-          ${renderCenteredQR(data, a, 96)}
-          <div style="font-size:14px;color:${t};opacity:0.85;text-align:center;line-height:1.5;max-width:90%">${addr ? `📍 ${addr}` : ""}</div>
-        </div>
+        ${renderLuxFooterBar(addr, a, t, "")}
       </div>
     </div>`;
   }
@@ -990,23 +999,39 @@
     return renderLuxSplitCard(data, tpl);
   }
 
+  function renderProContacts(phone, email, gst, accent, textColor) {
+    return `<div class="bc-pro-contacts" style="border-color:${accent}33">
+      <div class="bc-pro-line"><span class="bc-pro-line-lab" style="color:${accent}">MOBILE</span><span class="bc-pro-line-val" style="color:${textColor}">${phone}</span></div>
+      <div class="bc-pro-line"><span class="bc-pro-line-lab" style="color:${accent}">EMAIL</span><span class="bc-pro-line-val" style="color:${textColor}">${email}</span></div>
+      <div class="bc-pro-line"><span class="bc-pro-line-lab" style="color:${accent}">GSTIN</span><span class="bc-pro-line-val" style="color:${textColor}">${gst}</span></div>
+    </div>`;
+  }
+
+  function renderProAddr(addr, accent, textColor) {
+    return `<div class="bc-pro-addr" style="background:${accent}16;border-color:${accent}50;color:${textColor}">
+      <span class="bc-pro-addr-dot" style="background:${accent}"></span>
+      <span>${addr}</span>
+    </div>`;
+  }
+
   function renderFreeCard(data, tpl) {
     const name = esc(data.name || "Your Name");
-    const desig = esc(data.designation || "");
+    const desig = esc(data.designation || "Owner");
     const biz = esc(data.businessName || "Business Name");
     const phone = data.mobile ? `+91 ${data.mobile}` : "+91 XXXXX XXXXX";
-    const email = data.email ? esc(data.email) : "";
-    const gst = data.gst ? esc(data.gst) : "";
-    const addr = data.address ? esc(data.address) : "";
+    const email = data.email ? esc(data.email) : "—";
+    const gst = data.gst ? esc(data.gst) : "—";
+    const addr = data.address ? esc(data.address) : "Add your shop address";
     const cat = data.category ? esc(data.category) : "";
     const shop = data.shopType ? esc(data.shopType) : "";
+    const meta = [shop, cat].filter(Boolean).join(" · ");
     const initial = esc(getInitial(data.name || data.businessName));
     const a = tpl.accent;
     const t = tpl.text;
     const layout = tpl.layout || "classic";
     const isGrad = String(tpl.bg).includes("gradient");
-    const logoColor = isGrad ? "#fff" : (tpl.bg === "#ffffff" || tpl.bg.startsWith("#fff") ? a : tpl.bg);
-    const onDarkSide = layout === "split" || layout === "banner" || layout === "diagonal";
+    const lightBg = isGrad || /^#(fff|f[0-9a-f]{5}|e[0-9a-f]{5})/i.test(String(tpl.bg));
+    const logoColor = isGrad ? "#fff" : (lightBg ? a : tpl.bg);
 
     let patternHtml = "";
     if (tpl.pattern === "dots") patternHtml = `<div class="bc-pattern-dots" style="color:${t}"></div>`;
@@ -1014,98 +1039,113 @@
 
     let layoutDeco = "";
     if (layout === "wave") {
-      layoutDeco += `<svg style="position:absolute;bottom:0;left:0;right:0;height:100px;pointer-events:none;z-index:1" viewBox="0 0 1050 120" preserveAspectRatio="none"><path fill="${a}" fill-opacity="0.3" d="M0,60 C200,120 400,0 600,60 C800,120 950,30 1050,60 L1050,120 L0,120 Z"/></svg>`;
-    } else if (layout === "split") {
-      layoutDeco += `<div style="position:absolute;left:0;top:0;bottom:0;width:34%;background:linear-gradient(180deg,${a}ee,${a}88);z-index:1"></div>`;
+      layoutDeco = `<svg class="bc-pro-wave" viewBox="0 0 1050 90" preserveAspectRatio="none"><path fill="${a}" fill-opacity="0.22" d="M0,40 C180,90 420,0 640,40 C820,80 940,20 1050,40 L1050,90 L0,90 Z"/></svg>`;
     } else if (layout === "modern") {
-      layoutDeco += `<div style="position:absolute;left:0;top:0;bottom:0;width:10px;background:${a};z-index:1"></div>`;
+      layoutDeco = `<div class="bc-pro-deco-bar" style="background:${a}"></div>`;
     } else if (layout === "diagonal") {
-      layoutDeco += `<div style="position:absolute;inset:0;background:linear-gradient(125deg,${a}55 0%,${a}22 38%,transparent 38%);z-index:1"></div>`;
+      layoutDeco = `<div class="bc-pro-deco-diag" style="background:linear-gradient(125deg,${a}40 0%,${a}14 36%,transparent 36%)"></div>`;
     } else if (layout === "corner") {
-      layoutDeco += `<div style="position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 180px 180px 0;border-color:transparent ${a}44 transparent transparent;z-index:1"></div>`;
-    } else if (layout === "banner") {
-      layoutDeco += `<div style="position:absolute;top:0;left:0;right:0;height:100px;background:linear-gradient(90deg,${a},${a}aa);z-index:1"></div>`;
+      layoutDeco = `<div class="bc-pro-deco-corner" style="border-color:transparent ${a}30 transparent transparent"></div>`;
     } else if (layout === "stripe") {
-      layoutDeco += `<div style="position:absolute;inset:0;opacity:0.08;background:repeating-linear-gradient(90deg,${a} 0,${a} 4px,transparent 4px,transparent 24px);z-index:1"></div>`;
+      layoutDeco = `<div class="bc-pro-deco-stripe" style="background:repeating-linear-gradient(90deg,${a} 0,${a} 3px,transparent 3px,transparent 22px)"></div>`;
     } else if (layout === "glass") {
-      layoutDeco += `<div style="position:absolute;inset:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:16px;backdrop-filter:blur(4px);z-index:1"></div>`;
+      layoutDeco = `<div class="bc-pro-deco-glass"></div>`;
     }
 
-    const topBand = layout !== "banner"
-      ? `<div style="position:absolute;top:0;left:0;right:0;height:8px;background:linear-gradient(90deg,${a},${a}cc,transparent);z-index:1"></div>`
-      : "";
+    const contacts = renderProContacts(phone, email, gst, a, t);
+    const address = renderProAddr(addr, a, t);
+    const qr = renderCenteredQR(data, a, 92);
+    const logo = renderProLogoCircle(initial, a, logoColor, false, 72);
+    const identity = `<div class="bc-pro-identity">
+      <h2 class="bc-pro-name${layout === "bold" ? " is-bold" : ""}" style="color:${t}">${name}</h2>
+      <p class="bc-pro-desig" style="color:${a}">${desig}</p>
+    </div>`;
 
-    let padLeft = "28px";
-    if (layout === "split") padLeft = "38%";
-    else if (layout === "modern") padLeft = "44px";
-
-    let nameSize = layout === "bold" ? "48" : "42";
-    let nameColor = onDarkSide ? "#fff" : t;
-    let accentColor = onDarkSide ? "#fff" : a;
-    let bizColor = layout === "banner" ? "#fff" : (onDarkSide ? "#fff" : t);
-    let padTop = layout === "banner" ? "112px" : "24px";
-
-    if (layout === "centered") {
-      return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${topBand}${renderVisitingAccent(a)}
-        <div style="position:absolute;inset:0;padding:28px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;height:100%;box-sizing:border-box">
-          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800;margin-bottom:8px">★ PRO VISITING CARD</div>
-          ${renderProLogoCircle(initial, a, logoColor, false, 92)}
-          <div style="height:12px"></div>
-          <div style="font-size:13px;letter-spacing:3px;text-transform:uppercase;color:${a};font-weight:800">${biz}</div>
-          <h2 style="margin:10px 0 0;font-size:44px;font-weight:800;color:${t};line-height:1.08">${name}</h2>
-          ${desig ? `<p style="margin:6px 0 0;font-size:17px;color:${a};font-weight:700;text-transform:uppercase;letter-spacing:1px">${desig}</p>` : ""}
-          <div style="width:64px;height:3px;background:${a};margin:14px auto;border-radius:2px"></div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px">
-            ${renderMetaChip(shop, a, t, false)}
-            ${renderMetaChip(cat, a, t, true)}
+    if (layout === "split") {
+      return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}
+        <div class="bc-pro-split">
+          <aside class="bc-pro-rail" style="background:linear-gradient(180deg,${a},${a}c4)">
+            ${renderProLogoCircle(initial, a, logoColor, true, 80)}
+            <div class="bc-pro-rail-biz">${biz}</div>
+            ${meta ? `<div class="bc-pro-rail-meta">${meta}</div>` : ""}
+          </aside>
+          <div class="bc-pro-split-main">
+            ${identity}
+            ${contacts}
+            <div class="bc-pro-split-bottom">${address}${qr}</div>
           </div>
-          <div style="font-size:22px;font-weight:800;color:${t}">${phone}</div>
-          ${email ? `<div style="font-size:16px;margin-top:8px;color:${t};opacity:0.9">${email}</div>` : ""}
-          ${renderActionMiniGrid(a, t)}
-          <div style="margin-top:14px;width:100%;display:flex;justify-content:center">${renderCenteredQR(data, a, 96)}</div>
-          <div style="margin-top:12px;width:100%;font-size:15px;line-height:1.5;font-weight:600;padding:10px 14px;background:${a}18;border-left:4px solid ${a};border-radius:0 8px 8px 0;text-align:center">${addr ? `📍 ${addr}` : "Your business address"}</div>
-          ${renderProBottomBand(data, a, t)}
         </div>
       </div>`;
     }
 
-    return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${layoutDeco}${renderVisitingAccent(a)}${topBand}
-      <div style="position:absolute;inset:0;padding:${padTop} 28px 24px ${padLeft};display:flex;flex-direction:column;height:100%;box-sizing:border-box;z-index:2">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px">
-          <div style="font-size:24px;font-weight:800;color:${bizColor}">${biz}</div>
-          ${cat || shop ? `<div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.85;text-align:right;font-weight:700;color:${bizColor}">${[cat, shop].filter(Boolean).join(" · ")}</div>` : ""}
-        </div>
-        <div style="height:4px;width:72px;background:${accentColor};margin-bottom:10px;border-radius:2px"></div>
-        <div style="flex:1;display:grid;grid-template-columns:1fr 190px 180px;gap:14px 16px;min-height:0;align-items:center">
-          <div style="display:flex;flex-direction:column;justify-content:center">
-            <h2 style="margin:0;font-size:${nameSize}px;font-weight:800;color:${nameColor};line-height:1.08">${name}</h2>
-            ${desig ? `<p style="margin:5px 0 0;font-size:18px;color:${onDarkSide ? "#fff" : a};font-weight:700;letter-spacing:1px;text-transform:uppercase">${desig}</p>` : ""}
-            <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;border-left:3px solid ${accentColor};padding-left:16px">
-              <div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">MOBILE</div><div style="font-size:22px;font-weight:800;color:${nameColor}">${phone}</div></div>
-              ${email ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">EMAIL</div><div style="font-size:17px;font-weight:700;word-break:break-all;color:${nameColor}">${email}</div></div>` : ""}
-              ${gst ? `<div><div style="font-size:10px;letter-spacing:2px;opacity:0.75;margin-bottom:3px;font-weight:700;color:${nameColor}">GSTIN</div><div style="font-size:15px;font-weight:700;color:${nameColor}">${gst}</div></div>` : ""}
+    if (layout === "banner") {
+      return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}
+        <div class="bc-pro-banner-card">
+          <div class="bc-pro-banner" style="background:linear-gradient(90deg,${a},${a}b8)">
+            <div>
+              <div class="bc-pro-kicker" style="color:rgba(255,255,255,0.85)">PRO VISITING CARD</div>
+              <div class="bc-pro-biz" style="color:#fff">${biz}</div>
+              <h2 class="bc-pro-name" style="color:#fff">${name}</h2>
+              <p class="bc-pro-desig" style="color:rgba(255,255,255,0.92)">${desig}</p>
             </div>
-            ${renderActionChips(data.mobile, shop, accentColor, onDarkSide ? a : tpl.bg)}
+            ${renderProLogoCircle(initial, a, logoColor, true, 76)}
           </div>
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px 8px;background:${a}12;border-radius:12px;border:1px solid ${a}33">
-            ${renderProLogoCircle(initial, a, logoColor, onDarkSide, 86)}
+          <div class="bc-pro-banner-body">
+            <div>${contacts}</div>
+            <div class="bc-pro-side">${qr}</div>
           </div>
-          <div>${renderCenteredQR(data, accentColor, 100)}</div>
+          ${address}
         </div>
-        <div style="margin-top:10px;padding:12px 16px;background:${a}22;border-left:4px solid ${a};border-radius:0 8px 8px 0;font-size:16px;line-height:1.5;display:flex;gap:10px;align-items:flex-start;font-weight:600;color:${t}">
-          <span style="opacity:0.9;font-size:18px">📍</span><span>${addr || "Your business address"}</span>
+      </div>`;
+    }
+
+    if (layout === "centered") {
+      return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}
+        <div class="bc-pro-center-card">
+          <div class="bc-pro-center-top">
+            ${renderProLogoCircle(initial, a, logoColor, false, 68)}
+            <div class="bc-pro-kicker" style="color:${a}">PRO VISITING CARD</div>
+            <div class="bc-pro-biz" style="color:${a}">${biz}</div>
+            <h2 class="bc-pro-name" style="color:${t}">${name}</h2>
+            <p class="bc-pro-desig" style="color:${a}">${desig}</p>
+          </div>
+          <div class="bc-pro-center-grid">
+            ${contacts}
+            <div class="bc-pro-side">${qr}</div>
+          </div>
+          ${address}
         </div>
-        ${renderProBottomBand(data, a, t)}
-        <div style="height:4px;background:linear-gradient(90deg,${a},transparent);margin-top:10px;opacity:0.55;border-radius:2px"></div>
+      </div>`;
+    }
+
+    return `<div class="bc-card-export bc-free-card bc-card-pro" style="background:${tpl.bg};color:${t}">${renderProAnimLayers(a)}${renderProCornerFrame(a)}${patternHtml}${layoutDeco}
+      <div class="bc-pro-shell${layout === "modern" ? " is-modern" : ""}">
+        <div class="bc-pro-head">
+          <div>
+            <div class="bc-pro-kicker" style="color:${a}">PRO VISITING CARD</div>
+            <div class="bc-pro-biz" style="color:${t}">${biz}</div>
+          </div>
+          ${meta ? `<div class="bc-pro-meta" style="color:${a}">${meta}</div>` : ""}
+        </div>
+        <div class="bc-pro-body">
+          ${identity}
+          ${contacts}
+        </div>
+        <div class="bc-pro-side">
+          ${logo}
+          ${qr}
+        </div>
+        ${address}
       </div>
     </div>`;
   }
 
   function renderCardHTML(data, tpl) {
+    const filled = withCardPreviewDefaults(data);
     if (String(tpl.layout || "").startsWith("lux-") || isPremiumTemplateId(tpl.id)) {
-      return renderLuxuryCard(data, tpl);
+      return renderLuxuryCard(filled, tpl);
     }
-    return renderFreeCard(data, tpl);
+    return renderFreeCard(filled, tpl);
   }
 
   function getTemplate(id) {
@@ -1250,28 +1290,35 @@
 
   function renderFreeThumbPreview(tpl) {
     const layout = tpl.layout || "classic";
-    let layoutHint = "";
-    if (layout === "split") layoutHint = '<div class="bc-tfv-split" style="background:' + tpl.accent + '"></div>';
-    else if (layout === "wave") layoutHint = '<div class="bc-tfv-wave" style="border-color:' + tpl.accent + '"></div>';
-    else if (layout === "diagonal") layoutHint = '<div class="bc-tfv-diagonal" style="background:linear-gradient(125deg,' + tpl.accent + '66,transparent 45%)"></div>';
-    else if (layout === "corner") layoutHint = '<div class="bc-tfv-corner" style="border-color:' + tpl.accent + ' transparent transparent transparent"></div>';
-    else if (layout === "banner") layoutHint = '<div class="bc-tfv-banner" style="background:' + tpl.accent + '"></div>';
-    else if (layout === "centered") layoutHint = '<div class="bc-tfv-center-dot" style="background:' + tpl.accent + '"></div>';
-    else if (layout === "glass") layoutHint = '<div class="bc-tfv-glass"></div>';
-    else if (layout === "bold" || layout === "stripe") layoutHint = '<div class="bc-tfv-stripe" style="background:repeating-linear-gradient(90deg,' + tpl.accent + '33 0,' + tpl.accent + '33 2px,transparent 2px,transparent 8px)"></div>';
-    else if (layout === "modern") layoutHint = '<div class="bc-tfv-side" style="background:' + tpl.accent + '"></div>';
+    let extra = "";
+    if (layout === "split") extra = '<div class="bc-tfv-split" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "wave") extra = '<div class="bc-tfv-wave" style="border-color:' + tpl.accent + '"></div>';
+    else if (layout === "diagonal") extra = '<div class="bc-tfv-diagonal" style="background:linear-gradient(125deg,' + tpl.accent + '66,transparent 45%)"></div>';
+    else if (layout === "corner") extra = '<div class="bc-tfv-corner" style="border-color:' + tpl.accent + ' transparent transparent transparent"></div>';
+    else if (layout === "banner") extra = '<div class="bc-tfv-banner" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "centered") extra = '<div class="bc-tfv-center-dot" style="background:' + tpl.accent + '"></div>';
+    else if (layout === "glass") extra = '<div class="bc-tfv-glass"></div>';
+    else if (layout === "bold" || layout === "stripe") extra = '<div class="bc-tfv-stripe" style="background:repeating-linear-gradient(90deg,' + tpl.accent + '33 0,' + tpl.accent + '33 2px,transparent 2px,transparent 8px)"></div>';
+    else if (layout === "modern") extra = '<div class="bc-tfv-side" style="background:' + tpl.accent + '"></div>';
 
-    return `<div class="bc-tfv" style="background:${tpl.bg};color:${tpl.text}">
-      ${layoutHint}
-      <div class="bc-tfv-bar" style="background:${tpl.accent}"></div>
-      <div class="bc-tfv-body">
-        <div class="bc-tfv-tag" style="color:${tpl.accent}">PRO</div>
-        <div class="bc-tfv-name">${esc(tpl.name)}</div>
-        <div class="bc-tfv-lines">
-          <div class="bc-tfv-line med"></div>
-          <div class="bc-tfv-line short"></div>
+    return `<div class="bc-tfv bc-tfv-mini" style="background:${tpl.bg};color:${tpl.text}">
+      ${extra}
+      <div class="bc-tfv-mini-row">
+        <div class="bc-tfv-mini-left">
+          <div class="bc-tfv-tag" style="color:${tpl.accent}">PRO</div>
+          <div class="bc-tfv-name">${esc(tpl.name)}</div>
+          <div class="bc-tfv-lines">
+            <div class="bc-tfv-line med"></div>
+            <div class="bc-tfv-line short"></div>
+            <div class="bc-tfv-line med"></div>
+          </div>
+        </div>
+        <div class="bc-tfv-mini-right">
+          <div class="bc-tfv-avatar" style="background:${tpl.accent}"></div>
+          <div class="bc-tfv-mini-qr" style="border-color:${tpl.accent}"></div>
         </div>
       </div>
+      <div class="bc-tfv-mini-foot" style="background:${tpl.accent}28"></div>
     </div>`;
   }
 
@@ -1331,7 +1378,8 @@
 
     currentTemplateId = templateId;
     currentTier = wantsPremium ? "premium" : "free";
-    fillForm(loadSavedData());
+    const saved = loadSavedData();
+    fillForm(isCardSparse(saved) ? { ...DEMO_CARD, ...saved } : saved);
     updatePreview();
     document.getElementById("bcEditorModal")?.classList.remove("hidden");
     document.getElementById("bcEditorTitle").textContent = getTemplate(templateId).name;
@@ -1548,4 +1596,8 @@
   window.bkRenderBusinessCardGrid = renderGrid;
   window.bkSyncBusinessCardPlan = syncPlanUI;
   window.bkOpenBusinessCardPanel = openBusinessCardPanel;
+  window.bkDemoCard = DEMO_CARD;
+  window.bkRenderCardHTML = function (templateId, data) {
+    return renderCardHTML(withCardPreviewDefaults(data || DEMO_CARD), getTemplate(templateId || "f01"));
+  };
 })();
