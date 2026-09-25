@@ -34,14 +34,8 @@
     return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
   }
 
-  function isOwnerTestHost() {
-    const h = (location.hostname || "").toLowerCase();
-    return h === "bolkarigar.onrender.com" || h === "accountsorbit.com" || h === "www.accountsorbit.com" || isLocalHost();
-  }
-
   function isDevPlanForced() {
     if (window.Capacitor?.isNativePlatform?.()) return false;
-    if (localStorage.getItem("bk_force_dev_plan") === "1") return true;
     return isLocalHost();
   }
 
@@ -156,8 +150,12 @@
   }
 
   async function isDevEnabled() {
+    if (window.Capacitor?.isNativePlatform?.()) return false;
+    if (!isLocalHost()) {
+      try { localStorage.removeItem("bk_force_dev_plan"); } catch (_) { /* ignore */ }
+      return false;
+    }
     if (isDevPlanForced()) return true;
-    if (isOwnerTestHost()) return true;
     return fetchDevToggleEnabled();
   }
 
