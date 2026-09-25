@@ -48,10 +48,11 @@ html.ao-phone .brand-mark-svg {
   width: 34px;
   height: 34px;
 }
-html.ao-phone .brand-title-main {
-  font-size: 15px;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+html.ao-phone .brand-title-main,
+html.ao-phone .ao-wordmark {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 html.ao-phone .brand-title-sub {
   display: block !important;

@@ -225,12 +225,11 @@
   }
   html[data-theme="light"] .topbar .clock-box strong { color: var(--topbar-fg); }
   /* Topbar light theme mein bhi dark hai, is liye gradient wordmark bana rehta hai. */
-  html[data-theme="light"] .topbar .brand-title-main {
-    background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 55%, #a5b4fc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: #ffffff;
+  html[data-theme="light"] .topbar .brand-title-main,
+  html[data-theme="light"] .topbar .ao-wordmark {
+    background: none;
+    -webkit-text-fill-color: unset;
+    color: #f8fafc;
   }
   html[data-theme="light"] .topbar .eyebrow { color: #93c5fd; }
   .brand-wrap { display: flex; align-items: center; gap: 12px; }
@@ -266,11 +265,39 @@
     letter-spacing: -0.02em;
     line-height: 1.05;
     color: #f8fafc;
-    background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 55%, #67e8f9 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
+  .ao-wordmark {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    margin: 0;
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+    white-space: nowrap;
+  }
+  .ao-w-accounts { color: #f8fafc; }
+  .ao-w-orbit {
+    display: inline-flex;
+    align-items: baseline;
+    color: #d4b36a;
+    font-weight: 600;
+  }
+  .ao-w-o {
+    width: 0.95em;
+    height: 1.12em;
+    display: inline-block;
+    margin: 0 -0.04em;
+    vertical-align: -0.18em;
+    overflow: visible;
+  }
+  .ao-w-o text { font-family: "Playfair Display", Georgia, serif; }
   .brand-title-sub,
   .ao-tagline {
     margin: 2px 0 0;
@@ -3032,10 +3059,11 @@ body.sidebar-open .sidebar-tally-card {
     font-size: 18px;
     font-weight: 800;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #38bdf8, #818cf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
+  .sidebar-mobile-brand .ao-wordmark {
+    font-size: 18px;
+  }
+  .sidebar-mobile-brand .ao-w-accounts { color: #0f172a; }
   .sidebar-mobile-brand .ao-tagline {
     margin: 2px 0 0;
     font-size: 11px;
@@ -3127,7 +3155,8 @@ body.sidebar-open .sidebar-tally-card {
 /* Small tablet + phone */
 @media (max-width: 768px) {
   h1 { font-size: 15px; line-height: 1.2; }
-  .brand-title-main { font-size: 21px; letter-spacing: .07em; }
+  .brand-title-main { font-size: 21px; letter-spacing: -0.03em; }
+  .ao-wordmark { font-size: 20px; }
   .brand-title-sub { font-size: 11px; }
   .hero-copy h2 { font-size: 19px; }
   .brand-wrap .eyebrow { display: none; }
