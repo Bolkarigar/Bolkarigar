@@ -342,9 +342,19 @@
       const p = new URLSearchParams(window.location.search);
       const r = p.get("redirect");
       if (r && !/^[a-z]+:/i.test(r) && !r.startsWith("//")) {
-        if (r.startsWith("/") || r.startsWith("bolkarigar.html") || r.startsWith("dashboard")) return r.startsWith("bolkarigar.html") ? r.replace("bolkarigar.html", "/dashboard") : r;
+        let dest = r.startsWith("bolkarigar.html") ? r.replace("bolkarigar.html", "/dashboard") : r;
+        if (dest.startsWith("/") || dest.startsWith("dashboard")) {
+          try {
+            const u = new URL(dest, window.location.origin);
+            u.searchParams.delete("openPanel");
+            u.searchParams.delete("plan");
+            u.searchParams.delete("bkTakeover");
+            dest = u.pathname + u.search + u.hash;
+          } catch (_) { /* keep dest */ }
+          return dest;
+        }
       }
-      return "/dashboard?_=" + Date.now();
+      return "/dashboard";
     }
     if (localStorage.getItem("bk_token")) {
       window.location.href = bkLoginRedirectTarget();

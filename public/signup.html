@@ -238,7 +238,7 @@
     const BK_API = () => window.API_URL || window.location.origin;
 
     if (localStorage.getItem("bk_token")) {
-      window.location.href = "/dashboard?openPanel=myPlanPanel";
+      window.location.href = "/dashboard";
     }
 
     // Signup execution
@@ -274,10 +274,7 @@
           localStorage.setItem("bk_token", result.token);
           localStorage.setItem("bk_user", result.username || username);
           setTimeout(() => {
-            const panel = selectedPlan === "business" ? "myPlanPanel" : "";
-            window.location.href = panel
-              ? `/dashboard?openPanel=${panel}&plan=${selectedPlan}&bkTakeover=1&_=${Date.now()}`
-              : `/dashboard?_=${Date.now()}`;
+            window.location.href = "/dashboard";
           }, 1200);
         } else {
           setTimeout(() => { window.location.href = "loginpage.html"; }, 2000);

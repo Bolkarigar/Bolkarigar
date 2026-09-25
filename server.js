@@ -712,7 +712,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('username email role ownerId plan subscriptionStatus trialEndsAt planExpiresAt createdAt');
+    const user = await User.findById(req.user.id).select('username email role ownerId plan subscriptionStatus trialStartedAt trialEndsAt planExpiresAt createdAt');
     const dataId = dataUid(req);
     const hasData = await UserData.findOne({ userId: dataId });
     const salesCount = await SalesHistory.countDocuments({ userId: dataId });

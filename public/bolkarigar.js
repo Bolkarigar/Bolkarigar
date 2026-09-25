@@ -1605,22 +1605,21 @@ window.addEventListener("load", () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   const openPanelId = urlParams.get("openPanel");
-  const planFromUrl = urlParams.get("plan");
   const meetJoin = urlParams.get("meetJoin");
   if (meetJoin && urlParams.get("code") && document.getElementById("teamMeetingPanel")) {
     openPanel("teamMeetingPanel");
-  } else if (openPanelId && document.getElementById(openPanelId)) {
+  } else if (openPanelId && openPanelId !== "myPlanPanel" && document.getElementById(openPanelId)) {
     openPanel(openPanelId);
-    if (openPanelId === "myPlanPanel" && planFromUrl) {
-      setTimeout(() => {
-        if (typeof window.bkHandlePlanPaymentRequest === "function") {
-          window.bkHandlePlanPaymentRequest(planFromUrl);
-        }
-      }, 1200);
-    }
   } else {
     openPanel("overviewPanel");
   }
+  try {
+    if (urlParams.has("openPanel") || urlParams.has("plan") || urlParams.has("bkTakeover")) {
+      const clean = new URL(window.location.href);
+      ["openPanel", "plan", "bkTakeover"].forEach((k) => clean.searchParams.delete(k));
+      history.replaceState(null, "", clean.pathname + clean.search + clean.hash);
+    }
+  } catch (_) { /* ignore */ }
   
   setupImageScanner();
 
@@ -4464,15 +4463,8 @@ function blockDuplicateSession() {
   if (recognition) { try { recognition.stop(); } catch (e) {} }
 }
 
-function handlePlanPaymentRequest(plan) {
+function handlePlanPaymentRequest() {
   if (typeof openPanel === 'function') openPanel('myPlanPanel');
-  const startPayment = () => {
-    if (typeof window.buyAOPlan === 'function' && (plan === 'pro' || plan === 'business')) {
-      window.buyAOPlan(plan);
-    }
-  };
-  if (window._bkAccountInfo || !getToken()) startPayment();
-  else setTimeout(startPayment, 800);
 }
 
 sessionChannel && (sessionChannel.onmessage = (event) => {
