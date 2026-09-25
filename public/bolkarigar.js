@@ -7925,6 +7925,49 @@ function getEWayBillDetails() {
   let purchaseLineItems = [];
   let purchaseEditingIndex = -1;
   let purchaseStockItemsCache = [];
+  let purchaseGstLastRate = 18;
+
+  function isPurchaseGstEnabled() {
+    return document.getElementById("purchaseGstToggle")?.checked === true;
+  }
+
+  function getPurchaseLineGstRate(storedRate) {
+    if (!isPurchaseGstEnabled()) return 0;
+    const r = parseFloat(storedRate);
+    return Number.isNaN(r) ? 0 : r;
+  }
+
+  function getPurchaseGstTaxMode() {
+    const profile = typeof getCompanyProfile === "function" ? getCompanyProfile() : {};
+    const gstin = document.getElementById("pvSupplierGstinInput")?.value?.trim() || "";
+    const supplierState = typeof stateFromGstinFrontend === "function" ? stateFromGstinFrontend(gstin) : "";
+    return typeof resolveGstTaxMode === "function"
+      ? resolveGstTaxMode(profile, supplierState, "")
+      : { isIntraState: true };
+  }
+
+  function applyPurchaseGstToggleUI() {
+    const card = document.querySelector("#purchasePanel .inv-voucher-card");
+    const gstSelect = document.getElementById("pvGstInput");
+    const enabled = isPurchaseGstEnabled();
+    card?.classList.toggle("gst-off", !enabled);
+    const rateEl = document.getElementById("pvRateInput");
+    if (rateEl) rateEl.placeholder = enabled ? "Rate (Excl. GST) ₹" : "Rate ₹";
+    const totalLabel = document.getElementById("pvGrandTotalLabel");
+    if (totalLabel) totalLabel.textContent = enabled ? "Grand Total (Incl. GST)" : "Grand Total";
+    if (gstSelect) {
+      if (enabled) {
+        gstSelect.value = String(purchaseGstLastRate || 18);
+        gstSelect.disabled = false;
+      } else {
+        const current = parseFloat(gstSelect.value);
+        if (current > 0) purchaseGstLastRate = current;
+        gstSelect.value = "0";
+        gstSelect.disabled = true;
+      }
+    }
+    renderPurchaseItems();
+  }
 
   function findPurchaseStockItem(name) {
     const q = String(name || "").trim().toLowerCase();
@@ -7947,7 +7990,10 @@ function getEWayBillDetails() {
     if (hiddenId) hiddenId.value = match._id;
     if (hsnEl) hsnEl.value = match.hsnCode || "";
     if (unitTag) unitTag.textContent = match.unit || "Pcs";
-    if (gstEl && match.gstRate != null) gstEl.value = String(match.gstRate);
+    if (gstEl && isPurchaseGstEnabled() && match.gstRate != null) {
+      gstEl.value = String(match.gstRate);
+      purchaseGstLastRate = parseFloat(match.gstRate) || 18;
+    }
     const rate = parseFloat(match.purchasePrice) || 0;
     if (rateEl && rate > 0) rateEl.value = rate;
     return true;
@@ -7956,7 +8002,7 @@ function getEWayBillDetails() {
   function purchaseLineTotal(line) {
     const rate = parseFloat(line.rate) || 0;
     const qty = parseFloat(line.qty) || 0;
-    const gstRate = parseFloat(line.gstRate) || 0;
+    const gstRate = getPurchaseLineGstRate(line.gstRate);
     const taxable = rate * qty;
     return taxable + (taxable * gstRate / 100);
   }
@@ -7967,33 +8013,42 @@ function getEWayBillDetails() {
     const billInfo = document.getElementById("pvBillInfo");
     if (!taxBody) return;
 
-    const buckets = {};
-    let grand = 0;
-    purchaseLineItems.forEach((line) => {
-      const gst = parseFloat(line.gstRate) || 0;
-      const taxable = (parseFloat(line.rate) || 0) * (parseFloat(line.qty) || 0);
-      const tax = taxable * gst / 100;
-      grand += taxable + tax;
-      if (!buckets[gst]) buckets[gst] = { taxable: 0, tax: 0 };
-      buckets[gst].taxable += taxable;
-      buckets[gst].tax += tax;
-    });
-
-    const rates = Object.keys(buckets).map(Number).sort((a, b) => a - b);
-    if (!rates.length) {
-      taxBody.innerHTML = "<tr><td colspan=\"3\">Add items to see tax breakup</td></tr>";
-      if (taxDesc) taxDesc.textContent = "Add items to see GST breakup.";
+    if (!isPurchaseGstEnabled()) {
+      taxBody.innerHTML = "<tr><td colspan=\"3\" style=\"text-align:center\">GST OFF — no tax</td></tr>";
+      if (taxDesc) taxDesc.textContent = "GST OFF — items will be added without tax.";
     } else {
-      taxBody.innerHTML = rates.map((r) =>
-        `<tr><td>${r}%</td><td>₹${buckets[r].taxable.toFixed(2)}</td><td>₹${buckets[r].tax.toFixed(2)}</td></tr>`
-      ).join("");
-      if (taxDesc) taxDesc.textContent = `Purchase total incl. GST: ₹${grand.toFixed(2)}`;
+      const buckets = {};
+      let grand = 0;
+      purchaseLineItems.forEach((line) => {
+        const gst = getPurchaseLineGstRate(line.gstRate);
+        const taxable = (parseFloat(line.rate) || 0) * (parseFloat(line.qty) || 0);
+        const tax = taxable * gst / 100;
+        grand += taxable + tax;
+        if (!buckets[gst]) buckets[gst] = { taxable: 0, tax: 0 };
+        buckets[gst].taxable += taxable;
+        buckets[gst].tax += tax;
+      });
+
+      const rates = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+      const taxMode = getPurchaseGstTaxMode();
+      if (!rates.length) {
+        taxBody.innerHTML = "<tr><td colspan=\"3\">Add items to see tax breakup</td></tr>";
+        if (taxDesc) taxDesc.textContent = "Add items to see GST breakup.";
+      } else {
+        taxBody.innerHTML = rates.map((r) => {
+          const rateLabel = taxMode.isIntraState ? `${r}% (CGST+SGST)` : `${r}% (IGST)`;
+          return `<tr><td>${rateLabel}</td><td>₹${buckets[r].taxable.toFixed(2)}</td><td>₹${buckets[r].tax.toFixed(2)}</td></tr>`;
+        }).join("");
+        const taxLabel = taxMode.isIntraState ? "CGST + SGST" : "IGST";
+        if (taxDesc) taxDesc.textContent = `${taxLabel} — total incl. GST: ₹${grand.toFixed(2)}`;
+      }
     }
 
     if (billInfo) {
       const party = document.getElementById("pvPartySearch")?.value.trim() || "—";
       const billNo = document.getElementById("pvBillNoInput")?.value.trim() || "—";
-      billInfo.textContent = `Supplier: ${party} · Bill No: ${billNo} · Lines: ${purchaseLineItems.length}`;
+      const gstLabel = isPurchaseGstEnabled() ? "ON" : "OFF";
+      billInfo.textContent = `Supplier: ${party} · Bill No: ${billNo} · Lines: ${purchaseLineItems.length} · GST: ${gstLabel}`;
     }
   }
 
@@ -8015,7 +8070,8 @@ function getEWayBillDetails() {
         const lineTotal = purchaseLineTotal(line);
         grand += lineTotal;
         const hsnLine = line.hsn ? `<br><small style="color:#666">HSN: ${escapeHtml(line.hsn)}</small>` : "";
-        const gstSmall = line.gstRate > 0 ? `<br><small style="color:#666">GST ${line.gstRate}%</small>` : "";
+        const gstRate = getPurchaseLineGstRate(line.gstRate);
+        const gstSmall = gstRate > 0 ? `<br><small style="color:#666">GST ${gstRate}%</small>` : "";
         const row = document.createElement("tr");
         row.innerHTML = `
           <td class="col-sn">${index + 1}</td>
@@ -8054,7 +8110,7 @@ function getEWayBillDetails() {
     const rateEl = document.getElementById("pvRateInput");
     if (rateEl) rateEl.value = "";
     const gstEl = document.getElementById("pvGstInput");
-    if (gstEl) gstEl.value = "18";
+    if (gstEl) gstEl.value = isPurchaseGstEnabled() ? String(purchaseGstLastRate || 18) : "0";
   }
 
   function executePurchaseAdd() {
@@ -8064,7 +8120,10 @@ function getEWayBillDetails() {
     if (stockMatch) itemId = String(stockMatch._id);
     const qty = parseFloat(document.getElementById("pvQtyInput")?.value) || 0;
     let rate = parseFloat(document.getElementById("pvRateInput")?.value);
-    const gstRate = parseFloat(document.getElementById("pvGstInput")?.value) || 0;
+    const gstRate = isPurchaseGstEnabled()
+      ? (parseFloat(document.getElementById("pvGstInput")?.value) || 0)
+      : 0;
+    if (isPurchaseGstEnabled() && gstRate > 0) purchaseGstLastRate = gstRate;
     const statusText = document.getElementById("pvStatusText");
     const hsn = document.getElementById("pvHsnDisplay")?.value.trim() || "";
     const unit = document.getElementById("pvUnitTag")?.textContent.trim() || "Pcs";
@@ -8123,7 +8182,10 @@ function getEWayBillDetails() {
     const rateEl = document.getElementById("pvRateInput");
     if (rateEl) rateEl.value = line.rate;
     const gstEl = document.getElementById("pvGstInput");
-    if (gstEl) gstEl.value = line.gstRate;
+    if (gstEl) {
+      gstEl.value = isPurchaseGstEnabled() ? String(line.gstRate || 0) : "0";
+      if (isPurchaseGstEnabled() && parseFloat(line.gstRate) > 0) purchaseGstLastRate = parseFloat(line.gstRate);
+    }
     purchaseEditingIndex = index;
     const addBtn = document.getElementById("addPurchaseItemBtn");
     if (addBtn) addBtn.textContent = "Update Item (F2)";
@@ -8181,7 +8243,7 @@ function getEWayBillDetails() {
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
     updatePurchaseDateDisplay();
     loadPurchasePanelDropdowns();
-    renderPurchaseItems();
+    applyPurchaseGstToggleUI();
   }
 
   window.refreshPurchasePanel = refreshPurchasePanel;
@@ -8198,9 +8260,16 @@ function getEWayBillDetails() {
   document.getElementById("pvItemNameInput")?.addEventListener("change", (e) => {
     applyPurchaseStockItemToFields(e.target.value);
   });
-  ["pvPartySearch", "pvBillNoInput"].forEach((id) => {
+  ["pvPartySearch", "pvBillNoInput", "pvSupplierGstinInput"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updatePurchaseTaxSummary);
   });
+
+  document.getElementById("purchaseGstToggle")?.addEventListener("change", applyPurchaseGstToggleUI);
+  document.getElementById("pvGstInput")?.addEventListener("change", () => {
+    const v = parseFloat(document.getElementById("pvGstInput")?.value);
+    if (isPurchaseGstEnabled() && v > 0) purchaseGstLastRate = v;
+  });
+  applyPurchaseGstToggleUI();
 
   document.getElementById("addPurchaseItemBtn")?.addEventListener("click", executePurchaseAdd);
 
@@ -8225,7 +8294,7 @@ function getEWayBillDetails() {
       itemName: line.itemName,
       qty: line.qty,
       rate: line.rate,
-      gstRate: line.gstRate
+      gstRate: getPurchaseLineGstRate(line.gstRate)
     }));
     const amount = purchaseLineItems.reduce((sum, line) => sum + purchaseLineTotal(line), 0);
 

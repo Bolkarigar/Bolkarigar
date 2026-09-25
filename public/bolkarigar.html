@@ -19,14 +19,14 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <link rel="stylesheet" href="bolkarigar.css?v=20260924brand2">
-  <link rel="stylesheet" href="mobile-app.css?v=20260924brand2">
+  <link rel="stylesheet" href="mobile-app.css?v=20260925pgst1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260918bc5">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260924brand2"></script>
   <script>
-    window.BK_APP_BUILD = '20260925cred1';
+    window.BK_APP_BUILD = '20260925pgst1';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -1931,6 +1931,11 @@
       <div class="inv-vch-meta">
         <input type="date" id="pvDateInput" class="inv-date-input-hidden" aria-hidden="true" tabindex="-1" />
         <span class="inv-meta-chip inv-date-clickable" id="pvDateDisplay" title="Click to change date">—</span>
+        <label class="gst-toggle-wrap" title="GST ON / OFF">
+          <span class="gst-toggle-label">GST</span>
+          <input type="checkbox" id="purchaseGstToggle" />
+          <span class="gst-toggle-slider"></span>
+        </label>
       </div>
     </div>
 
@@ -1961,12 +1966,12 @@
       <input type="text" id="pvHsnDisplay" class="inv-field-hsn" placeholder="HSN/SAC" title="Auto from stock — you can edit" />
       <input id="pvQtyInput" type="number" class="inv-field-qty" min="0" step="0.01" placeholder="Qty" value="1" />
       <span id="pvUnitTag" class="inv-unit-tag">Pcs</span>
-      <input id="pvRateInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Rate (Excl. GST) ₹" />
+      <input id="pvRateInput" type="number" class="inv-field-price" min="0" step="0.01" placeholder="Rate ₹" />
       <select id="pvGstInput" class="inv-field-gst">
-        <option value="0">0%</option>
+        <option value="0" selected>0%</option>
         <option value="5">5%</option>
         <option value="12">12%</option>
-        <option value="18" selected>18%</option>
+        <option value="18">18%</option>
         <option value="28">28%</option>
       </select>
       <button type="button" id="addPurchaseItemBtn" class="inv-add-btn">Add Item (F2)</button>
@@ -1988,7 +1993,7 @@
         <tbody id="pvItemsBody"></tbody>
         <tfoot>
           <tr class="inv-total-row">
-            <td colspan="5" style="text-align:right;font-weight:700">Grand Total (Incl. GST)</td>
+            <td colspan="5" style="text-align:right;font-weight:700" id="pvGrandTotalLabel">Grand Total</td>
             <td class="inv-amt-cell">₹<span id="pvGrandTotal">0.00</span></td>
             <td></td>
           </tr>
@@ -2527,7 +2532,7 @@
   <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260924suggest1"></script>
-  <script src="bolkarigar.js?v=20260924ux3"></script>
+  <script src="bolkarigar.js?v=20260925pgst1"></script>
   <script src="mobile-app.js?v=20260924ux3"></script>
   <script src="name-item-suggest.js?v=20260924phone5"></script>
   <script>

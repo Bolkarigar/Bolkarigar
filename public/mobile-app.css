@@ -297,6 +297,29 @@ html.ao-phone .inv-vch-header-row {
   align-items: flex-start;
   gap: 8px;
 }
+html.ao-phone .inv-vch-meta {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+html.ao-phone .gst-toggle-wrap {
+  min-height: 44px;
+  padding: 8px 12px;
+  flex: 0 0 auto;
+}
+html.ao-phone .gst-toggle-slider {
+  width: 48px;
+  height: 28px;
+}
+html.ao-phone .gst-toggle-slider::before {
+  width: 22px;
+  height: 22px;
+}
+html.ao-phone .gst-toggle-wrap input:checked + .gst-toggle-slider::before {
+  transform: translateX(20px);
+}
 
 .ao-phone-tabbar,
 .ao-phone-more { display: none; }
