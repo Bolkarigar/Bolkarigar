@@ -18,15 +18,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260924brand2">
-  <link rel="stylesheet" href="mobile-app.css?v=20260925pgst1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260925live2">
+  <link rel="stylesheet" href="mobile-app.css?v=20260925live2">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
   <link rel="stylesheet" href="business-card.css?v=20260925bc1">
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260924brand2"></script>
   <script>
-    window.BK_APP_BUILD = '20260925login1';
+    window.BK_APP_BUILD = '20260925live2';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -104,28 +104,10 @@
           <button id="liveAiToggle" class="theme-btn theme-btn--ai" type="button" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
           <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
           <button id="themeToggle" class="theme-btn theme-btn--ghost" type="button" data-i18n="top.dark">Dark</button>
-          <div id="bkPlanTestToggleWrap" class="bk-plan-test-toggle-wrap owner-only-plan hidden" title="Test: Pro ₹99 ↔ Business ₹299">
-            <span class="bk-plan-test-opt" data-side="pro">₹99</span>
-            <label class="bk-billing-toggle bk-plan-dev-toggle">
-              <input type="checkbox" id="bkPlanDevSwitch" aria-label="Business ₹299 plan test">
-              <span class="bk-billing-slider"></span>
-            </label>
-            <span class="bk-plan-test-opt" data-side="biz">₹299</span>
-          </div>
           <button id="logoutBtn" class="theme-btn theme-btn--danger top-action-logout" type="button" data-i18n="top.logout">Logout</button>
         </div>
       </div>
     </header>
-
-    <!-- DEV: Pro trial / Business plan test bar -->
-    <div id="devPlanToggleBar" class="dev-plan-toggle hidden" role="toolbar" aria-label="Dev plan UI switch">
-      <span class="dev-plan-toggle-label">🧪 Plan test (temporary)</span>
-      <div class="dev-plan-toggle-actions">
-        <button type="button" id="devPlanProBtn" class="dev-plan-btn" data-plan="pro">Pro ₹99</button>
-        <button type="button" id="devPlanBusinessBtn" class="dev-plan-btn" data-plan="business">Business ₹299</button>
-      </div>
-      <span id="devPlanActiveLabel" class="dev-plan-active-label">After login, switch Pro / Business plans</span>
-    </div>
   </div>
 
   <div id="subscriptionBanner" class="subscription-banner hidden" role="status">
@@ -1723,10 +1705,6 @@
             <h4 id="myPlanStatus" style="margin:0 0 10px;">Loading...</h4>
             <ul id="myPlanDetails" class="helper-text" style="line-height:1.8;padding-left:18px;"></ul>
             <p id="myPlanStaffNote" class="helper-text" style="margin-top:12px;"></p>
-            <div id="myPlanTestSwitch" class="ao-plan-test-row hidden">
-              <button type="button" id="myPlanTestProBtn" class="secondary" data-test-plan="pro">Test Pro ₹99</button>
-              <button type="button" id="myPlanTestBizBtn" class="secondary" data-test-plan="business">Test Business ₹299</button>
-            </div>
           </div>
           <div id="myPlanRenewBox" class="mini-card" style="margin-bottom:16px;border:1px solid rgba(59,130,246,.35);">
             <h4 style="margin:0 0 10px;">Plan Renew / Upgrade</h4>
@@ -2566,7 +2544,7 @@
   </script>
   <script src="pagination-ui.js?v=20260831r1"></script>
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
-  <script src="dev-plan-toggle.js?v=20260925live1"></script>
+  <script src="dev-plan-toggle.js?v=20260925live2"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
   <script src="bolkarigar-pro.js?v=20260925login1"></script>
   <script src="pwa-install.js?v=20260924dl1"></script>

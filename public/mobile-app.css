@@ -87,27 +87,13 @@ html.ao-phone .subscription-banner {
   font-size: 12px;
 }
 html.ao-phone #devPlanToggleBar,
-html.ao-phone .dev-plan-toggle:not(.hidden) {
-  display: flex !important;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-}
-html.ao-phone #bkPlanTestToggleWrap:not(.hidden) {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 4px;
+html.ao-phone .dev-plan-toggle,
+html.ao-phone #bkPlanTestToggleWrap,
+html.ao-phone .ao-plan-test-row {
+  display: none !important;
 }
 html.ao-phone #myPlanPanel {
   padding-bottom: 12px;
-}
-html.ao-phone .ao-plan-test-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 10px 0 14px;
 }
 html.ao-phone .overview-customer-search {
   display: grid;
@@ -680,10 +666,7 @@ html.ao-phone #ledgerStatementModal tbody td[colspan]::before {
 }
 
 .ao-plan-test-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
+  display: none !important;
 }
 
 html.ao-phone .page {
@@ -695,9 +678,7 @@ html.ao-phone .topbar .voice-btn {
   padding: 6px 12px;
 }
 html.ao-phone #devPlanToggleBar {
-  flex-wrap: nowrap;
-  gap: 6px;
-  padding: 6px 10px;
+  display: none !important;
 }
 html.ao-phone .dev-plan-toggle-label {
   display: none;

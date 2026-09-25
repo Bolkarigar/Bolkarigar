@@ -150,60 +150,13 @@
   }
 
   async function isDevEnabled() {
-    if (window.Capacitor?.isNativePlatform?.()) return false;
-    if (!isLocalHost()) {
-      try { localStorage.removeItem("bk_force_dev_plan"); } catch (_) { /* ignore */ }
-      return false;
-    }
-    if (isDevPlanForced()) return true;
-    return fetchDevToggleEnabled();
+    try { localStorage.removeItem("bk_force_dev_plan"); } catch (_) { /* ignore */ }
+    return false;
   }
 
   async function initDevPlanToggle() {
-    const me = window._bkAccountInfo;
-    if (me?.isStaff) {
-      showPlanTestChrome(false);
-      document.getElementById("myPlanTestSwitch")?.classList.add("hidden");
-      return;
-    }
-
-    if (!getToken()) {
-      showPlanTestChrome(false);
-      return;
-    }
-
-    const enabled = await isDevEnabled();
-    if (!enabled) {
-      showPlanTestChrome(false);
-      document.getElementById("myPlanTestSwitch")?.classList.add("hidden");
-      return;
-    }
-
-    localStorage.setItem("bk_force_dev_plan", "1");
-    showPlanTestChrome(true);
-    const wrap = document.getElementById("bkPlanTestToggleWrap");
-    if (wrap && !me?.isStaff) wrap.style.display = "inline-flex";
-    syncToggleUi();
-
-    const myPlanSwitch = document.getElementById("myPlanTestSwitch");
-    if (myPlanSwitch) myPlanSwitch.classList.remove("hidden");
-
-    if (!wired) {
-      wired = true;
-      document.getElementById("devPlanProBtn")?.addEventListener("click", () => switchDevPlan("pro"));
-      document.getElementById("devPlanBusinessBtn")?.addEventListener("click", () => switchDevPlan("business"));
-      document.getElementById("bkPlanDevSwitch")?.addEventListener("change", (e) => {
-        if (syncingToggle) return;
-        switchDevPlan(e.target.checked ? "business" : "pro");
-      });
-      document.querySelectorAll(".bk-plan-test-opt").forEach((el) => {
-        el.addEventListener("click", () => {
-          switchDevPlan(el.getAttribute("data-side") === "biz" ? "business" : "pro");
-        });
-      });
-      document.getElementById("myPlanTestProBtn")?.addEventListener("click", () => switchDevPlan("pro"));
-      document.getElementById("myPlanTestBizBtn")?.addEventListener("click", () => switchDevPlan("business"));
-    }
+    showPlanTestChrome(false);
+    document.getElementById("myPlanTestSwitch")?.classList.add("hidden");
   }
 
   window.bkUpdateDevPlanToggle = syncToggleUi;

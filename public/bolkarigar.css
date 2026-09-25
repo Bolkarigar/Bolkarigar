@@ -1961,7 +1961,13 @@ button.bk-save-busy {
   cursor: not-allowed;
 }
 
-/* DEV ONLY — plan UI toggle bar (testing) */
+/* DEV ONLY — plan UI toggle bar (testing) — permanently off for live */
+#devPlanToggleBar,
+.dev-plan-toggle,
+.bk-plan-test-toggle-wrap,
+.ao-plan-test-row {
+  display: none !important;
+}
 .dev-plan-toggle {
   position: relative;
   display: grid;
