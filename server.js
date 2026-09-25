@@ -52,6 +52,7 @@ const {
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,
   buildDebtorLedgerStatement,
+  buildCreditorLedgerStatement,
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
   findLinkedPaymentForReceipt,
@@ -3102,6 +3103,11 @@ app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) =>
     if (party.ledgerGroup === 'Sundry Debtor' && Payment) {
       const statement = await buildDebtorLedgerStatement(req.dataUserId, party, models);
       return res.json({ success: true, ...statement, isDebtorStatement: true });
+    }
+
+    if (party.ledgerGroup === 'Sundry Creditor') {
+      const statement = await buildCreditorLedgerStatement(req.dataUserId, party, models);
+      return res.json({ success: true, ...statement, isDebtorStatement: false, isCreditorStatement: true });
     }
 
     const transactions = await Voucher.find({

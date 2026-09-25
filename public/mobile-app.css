@@ -572,6 +572,90 @@ html.ao-phone #ledgerPanel .table-amount-total-bar {
   margin-top: 8px;
 }
 
+html.ao-phone #udharDetailModal .modal-box,
+html.ao-phone #ledgerStatementModal .modal-box {
+  width: 96%;
+  max-width: none;
+  max-height: calc(100dvh - var(--ao-phone-bar) - 24px);
+  overflow: auto;
+}
+html.ao-phone #udharDetailModal .table-wrap,
+html.ao-phone #ledgerStatementModal .table-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+}
+html.ao-phone #udharDetailModal table,
+html.ao-phone #ledgerStatementModal table {
+  min-width: 0 !important;
+  width: 100%;
+  display: block;
+}
+html.ao-phone #udharDetailModal thead,
+html.ao-phone #ledgerStatementModal thead {
+  display: none;
+}
+html.ao-phone #udharDetailModal tbody,
+html.ao-phone #ledgerStatementModal tbody {
+  display: block;
+  width: 100%;
+}
+html.ao-phone #udharDetailModal tbody tr,
+html.ao-phone #ledgerStatementModal tbody tr {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d5deea;
+  border-radius: 14px;
+  background: #fff;
+}
+html[data-theme="dark"].ao-phone #udharDetailModal tbody tr,
+html[data-theme="dark"].ao-phone #ledgerStatementModal tbody tr {
+  background: #1e293b;
+  border-color: rgba(255,255,255,.12);
+}
+html.ao-phone #udharDetailModal tbody td,
+html.ao-phone #ledgerStatementModal tbody td {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid rgba(148,163,184,.16);
+  white-space: normal;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  word-break: break-word;
+}
+html.ao-phone #udharDetailModal tbody td::before,
+html.ao-phone #ledgerStatementModal tbody td::before {
+  content: attr(data-label);
+  font-weight: 700;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-align: left;
+  flex: 0 0 42%;
+}
+html.ao-phone #udharDetailModal tbody td[colspan],
+html.ao-phone #ledgerStatementModal tbody td[colspan] {
+  display: block !important;
+  text-align: center;
+  border-bottom: none;
+  font-weight: 600;
+  color: #64748b;
+}
+html.ao-phone #udharDetailModal tbody td[colspan]::before,
+html.ao-phone #ledgerStatementModal tbody td[colspan]::before {
+  display: none;
+}
+
 .ao-plan-test-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

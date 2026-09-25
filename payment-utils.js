@@ -584,6 +584,98 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
   };
 }
 
+/**
+ * Ledger statement for Sundry Creditor — purchase bills, payments, returns.
+ */
+async function buildCreditorLedgerStatement(userId, ledger, models) {
+  const { Voucher } = models;
+  const openingBalance = Number(ledger.openingBalance) || 0;
+  const events = [];
+
+  const vouchers = await Voucher.find({
+    userId,
+    $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
+  }).sort({ date: 1, _id: 1 });
+
+  for (const v of vouchers) {
+    const amt = Number(v.amount) || 0;
+    if (amt <= 0) continue;
+    const vt = v.voucherType;
+    let payableEffect = 0;
+    let status = 'Posted';
+
+    if (vt === 'Purchase') {
+      const paidNow = ['cash', 'upi', 'bank', 'paid'].includes(String(v.paymentMode || '').trim().toLowerCase());
+      payableEffect = paidNow ? 0 : amt;
+      status = paidNow ? 'Paid' : 'Payable';
+    } else if (vt === 'Payment') {
+      payableEffect = -amt;
+      status = 'Paid';
+    } else if (vt === 'Debit Note') {
+      payableEffect = -amt;
+      status = 'Return';
+    } else if (vt === 'Credit Note') {
+      payableEffect = amt;
+      status = 'Credit Note';
+    } else if (vt === 'Journal') {
+      const line = (v.journalEntries || []).find((e) => String(e.ledgerId) === String(ledger._id));
+      if (line) {
+        const lineAmt = Number(line.amount) || 0;
+        payableEffect = line.drCr === 'Cr' ? lineAmt : -lineAmt;
+        status = line.drCr === 'Cr' ? 'Payable' : 'Paid';
+      }
+    } else {
+      continue;
+    }
+
+    const qty = (v.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0) || null;
+    const itemNames = (v.items || []).map((it) => it.itemName).filter(Boolean).join(', ');
+    events.push({
+      date: v.date,
+      voucherType: vt,
+      amount: amt,
+      paymentMode: v.paymentMode || '—',
+      status,
+      payableEffect,
+      note: [v.note, v.supplierInvoiceNo ? `#${v.supplierInvoiceNo}` : '', itemNames].filter(Boolean).join(' | ') || '-',
+      product: itemNames || v.note || '',
+      qty
+    });
+  }
+
+  let running = openingBalance < -0.01 ? Math.abs(openingBalance) : 0;
+
+  const history = events.map((e) => {
+    running = Math.round((running + e.payableEffect) * 100) / 100;
+    return {
+      date: e.date,
+      voucherType: e.voucherType,
+      amount: e.amount,
+      paymentMode: e.paymentMode,
+      status: e.status,
+      udharEffect: e.payableEffect,
+      runningBalance: running,
+      note: e.note,
+      product: e.product,
+      qty: e.qty
+    };
+  });
+
+  const netPayable = history.length
+    ? history[history.length - 1].runningBalance
+    : running;
+
+  return {
+    partyName: ledger.partyName,
+    ledgerGroup: ledger.ledgerGroup,
+    openingBalance,
+    currentBalance: Number(ledger.currentBalance) || 0,
+    netBalance: netPayable,
+    pendingUdhar: netPayable,
+    history
+  };
+}
+
 module.exports = {
   isCreditPayment,
   saleRecordAmount,
@@ -594,6 +686,7 @@ module.exports = {
   reconcileAllDebtorLedgers,
   getDebtorUdharSummary,
   buildDebtorLedgerStatement,
+  buildCreditorLedgerStatement,
   findLinkedSalesVouchers,
   findLinkedSalesRecord,
   findLinkedPaymentForReceipt,
