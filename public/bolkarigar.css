@@ -267,35 +267,21 @@
     color: #f8fafc;
   }
   .ao-wordmark {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
+    display: block;
     margin: 0;
     font-family: "Playfair Display", Georgia, "Times New Roman", serif;
-    font-weight: 500;
-    font-size: 23px;
-    letter-spacing: -0.04em;
-    line-height: 1;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: #f7f4ee;
     background: none !important;
     -webkit-background-clip: unset !important;
     background-clip: unset !important;
     -webkit-text-fill-color: unset !important;
     white-space: nowrap;
   }
-  .ao-w-accounts { color: #f7f4ee; }
-  .ao-w-orbit {
-    display: inline-flex;
-    align-items: center;
-    color: #c9a36a;
-  }
-  .ao-orbit-o {
-    width: 1.22em;
-    height: 1.22em;
-    display: block;
-    margin: -0.18em 0.01em 0 -0.02em;
-    flex-shrink: 0;
-  }
-  .ao-w-rbit { color: #c9a36a; }
+  .ao-w-orbit { color: #c9a36a; }
   .brand-title-sub,
   .ao-tagline {
     margin: 2px 0 0;
@@ -3060,10 +3046,9 @@ body.sidebar-open .sidebar-tally-card {
   }
   .sidebar-mobile-brand .ao-wordmark {
     font-size: 18px;
-    align-items: center;
+    color: #0f172a;
   }
-  .sidebar-mobile-brand .ao-w-accounts { color: #0f172a; }
-  .sidebar-mobile-brand .ao-w-rbit { color: #c9a36a; }
+  .sidebar-mobile-brand .ao-w-orbit { color: #c9a36a; }
   .sidebar-mobile-brand .ao-tagline {
     margin: 2px 0 0;
     font-size: 11px;
