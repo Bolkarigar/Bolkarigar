@@ -50,9 +50,10 @@ html.ao-phone .brand-mark-svg {
 }
 html.ao-phone .brand-title-main,
 html.ao-phone .ao-wordmark {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
+  align-items: center;
 }
 html.ao-phone .brand-title-sub {
   display: block !important;
