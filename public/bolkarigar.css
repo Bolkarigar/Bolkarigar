@@ -1405,6 +1405,14 @@ textarea.form-input {
 .sales-date-filter-label {
   margin: 8px 0 0;
 }
+.daybook-filter-row {
+  margin-top: 0;
+}
+.daybook-filter-row .sales-date-filter-label {
+  margin: 0;
+  align-self: center;
+  min-height: 1.2em;
+}
 .panel-pagination-bar {
   display: flex;
   align-items: center;

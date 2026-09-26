@@ -6814,7 +6814,7 @@ function getEWayBillDetails() {
     paymentVoucherPanel: () => { if (typeof window.refreshPaymentVoucherPanel === "function") window.refreshPaymentVoucherPanel(); },
     receiptVoucherPanel: () => { if (typeof window.refreshReceiptVoucherPanel === "function") window.refreshReceiptVoucherPanel(); },
     modifyPanel: () => { if (typeof window.refreshModifyPanel === "function") window.refreshModifyPanel(); },
-    khataDaybookPanel: () => loadKhataDaybook()
+    khataDaybookPanel: () => loadKhataDaybook({ resetDate: true })
   };
 
   document.querySelectorAll(".tab-btn[data-tab]").forEach((btn) => {
@@ -6860,11 +6860,31 @@ function getEWayBillDetails() {
     if (next) next.disabled = state.page >= totalPages || totalRows === 0;
   }
 
+  function khataLocalYmd(value) {
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getKhataDaybookSelectedDate() {
+    const el = document.getElementById("khataDaybookDate");
+    return (el?.value || khataLocalYmd(new Date())).trim();
+  }
+
   function getKhataVisibleData(key) {
     let data = khataPag[key].data || [];
     if (key === "ledgers") {
       const q = (document.getElementById("khataLedgerSearchInput")?.value || "").trim().toLowerCase();
       if (q) data = data.filter((l) => String(l.partyName || "").toLowerCase().includes(q));
+    }
+    if (key === "daybook") {
+      const selected = getKhataDaybookSelectedDate();
+      if (selected) {
+        data = data.filter((v) => khataLocalYmd(v.date) === selected);
+      }
     }
     return data;
   }
@@ -6979,14 +6999,30 @@ function getEWayBillDetails() {
   }
 
   function renderKhataDaybookTable(body) {
+    const visible = getKhataVisibleData("daybook");
     const rows = getKhataPageSlice("daybook");
+    const selected = getKhataDaybookSelectedDate();
+    const selectedLabel = selected
+      ? new Date(`${selected}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      : "";
+    const labelEl = document.getElementById("khataDaybookDateLabel");
+    if (labelEl) {
+      labelEl.textContent = selectedLabel
+        ? (visible.length ? `${visible.length} entries on ${selectedLabel}` : `No entries on ${selectedLabel}`)
+        : "";
+    }
     if (!khataPag.daybook.data.length) {
       body.innerHTML = `<tr><td colspan='6'>No vouchers yet.</td></tr>`;
       window.bkSetTableAmountTotal(body, { hide: true });
       return;
     }
+    if (!visible.length) {
+      body.innerHTML = `<tr><td colspan='6'>No entries on ${escapeHtml(selectedLabel) || "this date"}. Pick another date.</td></tr>`;
+      window.bkSetTableAmountTotal(body, { hide: true });
+      return;
+    }
     const pageSum = rows.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
-    const grandSum = khataPag.daybook.data.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
+    const grandSum = visible.reduce((s, v) => s + (parseFloat(v.amount) || 0), 0);
     body.innerHTML = rows.map(v => {
       let partyCol = escapeHtml(v.partyId?.partyName) || "-";
       if (v.voucherType === "Journal" && v.journalEntries?.length) {
@@ -7009,7 +7045,7 @@ function getEWayBillDetails() {
       label: "Page Total",
       amount: pageSum,
       rows: rows.length,
-      grand: khataPag.daybook.data.length > rows.length ? grandSum : null
+      grand: visible.length > rows.length ? grandSum : null
     });
   }
 
@@ -8458,9 +8494,29 @@ function getEWayBillDetails() {
   if (typeof setupVoucherPartyAutocompletes === "function") setupVoucherPartyAutocompletes();
 
   // ---------- DAY BOOK ----------
-  async function loadKhataDaybook() {
+  function setKhataDaybookDate(ymd) {
+    const dateEl = document.getElementById("khataDaybookDate");
+    if (dateEl) dateEl.value = ymd || khataLocalYmd(new Date());
+  }
+
+  function applyKhataDaybookDateFilter() {
+    khataPag.daybook.page = 1;
+    renderKhataTable("daybook");
+  }
+
+  document.getElementById("khataDaybookDate")?.addEventListener("change", applyKhataDaybookDateFilter);
+  document.getElementById("khataDaybookTodayBtn")?.addEventListener("click", () => {
+    setKhataDaybookDate(khataLocalYmd(new Date()));
+    applyKhataDaybookDateFilter();
+  });
+
+  async function loadKhataDaybook(opts = {}) {
     const body = document.getElementById("khataDaybookBody");
     if (!body) return;
+    const dateEl = document.getElementById("khataDaybookDate");
+    if (dateEl && (opts.resetDate || !dateEl.value)) {
+      setKhataDaybookDate(khataLocalYmd(new Date()));
+    }
     body.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
     try {
       const res = await fetch(`${API_URL}/api/vouchers`, { headers: khataHeaders() });
