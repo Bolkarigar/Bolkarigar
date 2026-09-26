@@ -291,6 +291,10 @@ async function tryLocalSignupFlow() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(user)
     });
+    if (signup.status >= 200 && signup.status < 300 && signup.data.needsOtp) {
+      ok("local signup waits for email OTP", user.username);
+      return;
+    }
     if (signup.status >= 200 && signup.status < 300 && (signup.data.token || signup.data.success)) {
       ok("local signup", user.username);
     } else {

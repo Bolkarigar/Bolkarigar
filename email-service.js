@@ -492,6 +492,34 @@ async function sendCompanyDeleteOtp(email, otp, companyName) {
   return sendOtpMail(email, { subject, text, html }, 'Company Delete');
 }
 
+function buildSignupOtpEmail(otp) {
+  const subject = 'Accounts Orbit — Verify your email';
+  const text = [
+    'Hello,',
+    '',
+    `Your 6-digit OTP to create your Accounts Orbit account: ${otp}`,
+    '',
+    'This OTP is valid for 10 minutes.',
+    'If you did not request this, ignore this email.',
+    '',
+    '— Accounts Orbit Team'
+  ].join('\n');
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+      <h2 style="color:#1e3a5f;margin:0 0 12px;">Verify your email</h2>
+      <p style="color:#334155;line-height:1.5;">Enter this 6-digit OTP to create your Accounts Orbit account:</p>
+      <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
+      <p style="color:#64748b;font-size:14px;">This OTP is valid for <strong>10 minutes</strong>.</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you did not request this, ignore this email.</p>
+    </div>`;
+  return { subject, text, html };
+}
+
+async function sendSignupOtp(email, otp) {
+  const { subject, text, html } = buildSignupOtpEmail(otp);
+  return sendOtpMail(email, { subject, text, html }, 'Signup');
+}
+
 module.exports = {
   isEmailConfigured,
   hasHttpsEmailProvider,
@@ -501,6 +529,7 @@ module.exports = {
   createMailTransporter,
   sendPasswordResetOtp,
   sendCompanyDeleteOtp,
+  sendSignupOtp,
   sendBusinessEmail,
   wrapBusinessEmailHtml,
   getBusinessSenderEmail

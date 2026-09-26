@@ -194,25 +194,37 @@
       <p style="margin:0 0 12px;"><a href="/" style="color:#2563eb;font-size:13px;text-decoration:none;font-weight:600;">← Accounts Orbit website</a></p>
       <h2>Create New Account</h2>
       <p id="planBanner">🎁 <strong>30-day free trial</strong> on Pro — then ₹99/month or ₹999/year</p>
+      <p style="margin-top:-16px;margin-bottom:22px;font-size:13px;">First we send a 6-digit OTP to your email. Your account is created only after you enter it.</p>
       
       <form id="signupForm">
-        <div class="input-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" required placeholder="Choose a username">
-        </div>
-        <div class="input-group">
-          <label for="email">Email ID</label>
-          <input type="email" id="email" required placeholder="example@gmail.com">
-        </div>
-        <div class="input-group">
-          <label for="password">Password</label>
-          <div class="password-wrapper">
-            <input type="password" id="password" required placeholder="••••••••">
-            <span class="toggle-password" id="eyeIcon">SHOW</span>
+        <div id="signupDetailsStep">
+          <div class="input-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" required placeholder="Choose a username" autocomplete="username">
           </div>
+          <div class="input-group">
+            <label for="email">Email ID</label>
+            <input type="email" id="email" required placeholder="example@gmail.com" autocomplete="email">
+          </div>
+          <div class="input-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="password" required placeholder="••••••••" autocomplete="new-password">
+              <span class="toggle-password" id="eyeIcon">SHOW</span>
+            </div>
+          </div>
+          <button type="submit" class="login-btn" id="signupSendOtpBtn">Send OTP to email</button>
         </div>
-        
-        <button type="submit" class="login-btn">Register</button>
+        <div id="signupOtpStep" style="display:none;">
+          <p id="signupOtpHint" style="margin-bottom:18px;">Enter the 6-digit OTP sent to your email.</p>
+          <div class="input-group">
+            <label for="signupOtp">OTP</label>
+            <input type="text" id="signupOtp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit OTP" style="letter-spacing:6px;text-align:center;font-size:20px;font-weight:700;">
+          </div>
+          <button type="button" class="login-btn" id="signupVerifyBtn">Verify OTP and create account</button>
+          <button type="button" class="login-btn" id="signupResendBtn" style="margin-top:8px;background:#64748b;box-shadow:none;">Resend OTP</button>
+          <p style="margin-top:12px;font-size:13px;"><a href="#" id="signupChangeEmail" style="color:#2563eb;">Use a different email</a></p>
+        </div>
         <p class="error-msg" id="errorMsg"></p>
         <p class="success-msg" id="successMsg"></p>
       </form>
@@ -242,50 +254,131 @@
       window.location.href = "/dashboard";
     }
 
-    // Signup execution
-    document.getElementById("signupForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const email = document.getElementById("email").value.trim().toLowerCase();
-      const password = document.getElementById("password").value;
-      
-      const errorEl = document.getElementById("errorMsg");
-      const successEl = document.getElementById("successMsg");
-      const submitBtn = this.querySelector('button[type="submit"]');
+    const errorEl = document.getElementById("errorMsg");
+    const successEl = document.getElementById("successMsg");
+    const detailsStep = document.getElementById("signupDetailsStep");
+    const otpStep = document.getElementById("signupOtpStep");
+    const sendBtn = document.getElementById("signupSendOtpBtn");
+    const verifyBtn = document.getElementById("signupVerifyBtn");
+    const resendBtn = document.getElementById("signupResendBtn");
 
-      errorEl.style.display = "none";
+    function showErr(msg) {
+      errorEl.textContent = msg || "Something went wrong.";
+      errorEl.style.display = "block";
       successEl.style.display = "none";
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Creating account...";
+    }
+    function showOk(msg) {
+      successEl.textContent = msg || "";
+      successEl.style.display = msg ? "block" : "none";
+      errorEl.style.display = "none";
+    }
+    function signupPayload() {
+      return {
+        username: document.getElementById("username").value.trim(),
+        email: document.getElementById("email").value.trim().toLowerCase(),
+        password: document.getElementById("password").value,
+        plan: selectedPlan
+      };
+    }
+    function showOtpStep(masked) {
+      detailsStep.style.display = "none";
+      otpStep.style.display = "block";
+      document.getElementById("signupOtpHint").textContent =
+        "OTP sent to " + (masked || "your email") + ". It is valid for 10 minutes. Your account is created only after this OTP.";
+      document.getElementById("signupOtp").value = "";
+      document.getElementById("signupOtp").focus();
+    }
 
+    async function sendSignupOtp() {
+      const body = signupPayload();
+      if (!body.username || !body.email || !body.password) {
+        showErr("Username, email and password are required.");
+        return;
+      }
+      sendBtn.disabled = true;
+      resendBtn.disabled = true;
+      sendBtn.textContent = "Sending OTP…";
+      showOk("");
       try {
         const response = await fetch(`${BK_API()}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email, password, plan: selectedPlan })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
         });
         const result = await response.json();
-
-        if (!response.ok) throw new Error(result.error || "Signup failed");
-
-        successEl.textContent = result.message + " Opening app...";
-        successEl.style.display = "block";
-
+        if (result.needsOtp) {
+          showOtpStep(result.sentToMasked);
+          if (!response.ok) showErr(result.error || "OTP was already sent. Check inbox and spam.");
+          else showOk(result.message || "OTP sent to your email.");
+          return;
+        }
+        if (!response.ok) throw new Error(result.error || "Could not send OTP");
         if (result.token) {
           localStorage.setItem("bk_token", result.token);
-          localStorage.setItem("bk_user", result.username || username);
-          setTimeout(() => {
-            window.location.href = "/dashboard";
-          }, 1200);
-        } else {
-          setTimeout(() => { window.location.href = "loginpage.html"; }, 2000);
+          localStorage.setItem("bk_user", result.username || body.username);
+          window.location.href = "/dashboard";
+          return;
         }
-
+        throw new Error(result.error || "Could not send OTP");
       } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.style.display = "block";
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Register";
+        showErr(err.message);
+      } finally {
+        sendBtn.disabled = false;
+        resendBtn.disabled = false;
+        sendBtn.textContent = "Send OTP to email";
+      }
+    }
+
+    async function verifySignupOtp() {
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const otp = document.getElementById("signupOtp").value.replace(/\D/g, "");
+      if (otp.length !== 6) {
+        showErr("Enter the 6-digit OTP from your email.");
+        return;
+      }
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = "Creating account…";
+      showOk("");
+      try {
+        const response = await fetch(`${BK_API()}/api/auth/verify-signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "OTP verification failed");
+        showOk((result.message || "Account created.") + " Opening app…");
+        if (result.token) {
+          localStorage.setItem("bk_token", result.token);
+          localStorage.setItem("bk_user", result.username || document.getElementById("username").value.trim());
+          setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+        } else {
+          setTimeout(() => { window.location.href = "loginpage.html"; }, 1200);
+        }
+      } catch (err) {
+        showErr(err.message);
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify OTP and create account";
+      }
+    }
+
+    document.getElementById("signupForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendSignupOtp();
+    });
+    verifyBtn.addEventListener("click", verifySignupOtp);
+    resendBtn.addEventListener("click", sendSignupOtp);
+    document.getElementById("signupChangeEmail").addEventListener("click", function (e) {
+      e.preventDefault();
+      otpStep.style.display = "none";
+      detailsStep.style.display = "block";
+      showOk("");
+      errorEl.style.display = "none";
+    });
+    document.getElementById("signupOtp").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        verifySignupOtp();
       }
     });
 

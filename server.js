@@ -35,6 +35,7 @@ const {
   hasHttpsEmailProvider,
   isRenderHost,
   sendPasswordResetOtp,
+  sendSignupOtp,
   verifyEmailTransport
 } = require('./email-service');
 const {
@@ -101,6 +102,7 @@ const GENERAL_API_SKIP = new Set([
   '/api/health',
   '/api/auth/login',
   '/api/auth/signup',
+  '/api/auth/verify-signup',
   '/api/auth/forgot-password',
   '/api/auth/reset-password'
 ]);
@@ -483,6 +485,18 @@ const voucherSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now }
 });
 
+const PendingSignupSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  passwordHash: { type: String, required: true },
+  plan: { type: String, enum: ['pro', 'business', 'starter'], default: 'pro' },
+  otpHash: { type: String, required: true },
+  otpExpiry: { type: Date, required: true },
+  otpAttempts: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now, expires: 1800 }
+});
+const PendingSignup = mongoose.model('PendingSignup', PendingSignupSchema);
+
 const User = mongoose.model('User', UserSchema);
 const UserData = mongoose.model('UserData', DataSchema);
 const SalesHistory = mongoose.model('SalesHistory', salesHistorySchema);
@@ -581,12 +595,35 @@ function recordAuthAction(key) {
   authActionAttempts.set(key, entry);
 }
 
+async function createOwnerFromPending(pending) {
+  const signupPlan = pending.plan === 'business' ? 'business' : 'pro';
+  const { startOwnerTrial } = require('./subscription');
+  const newUser = await User.create({
+    username: pending.username,
+    email: pending.email,
+    password: pending.passwordHash,
+    role: 'owner'
+  });
+  startOwnerTrial(newUser, signupPlan);
+  await newUser.save();
+  await UserData.create({ userId: newUser._id });
+  await PendingSignup.deleteMany({ email: pending.email });
+  const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '30d' });
+  return {
+    token,
+    username: newUser.username,
+    plan: signupPlan,
+    message: signupPlan === 'business'
+      ? 'Account created! Business plan — 15-day free trial started.'
+      : 'Account created! Pro Shop — 30-day free trial started.'
+  };
+}
+
 app.post('/api/auth/signup', async (req, res) => {
   const rlKey = `signup:${req.ip}`;
   if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
-    return res.status(429).json({ error: 'Bahut zyada signup attempts. 10 minute baad try karein.' });
+    return res.status(429).json({ error: 'Too many signup attempts. Please wait 10 minutes and try again.' });
   }
-  recordAuthAction(rlKey);
   try {
     const username = String(req.body.username || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
@@ -594,45 +631,150 @@ app.post('/api/auth/signup', async (req, res) => {
     const requestedPlan = ['pro', 'business', 'starter'].includes(req.body.plan) ? req.body.plan : 'pro';
 
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email aur password teeno zaroori hain.' });
+      return res.status(400).json({ error: 'Username, email and password are required.' });
+    }
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters.' });
     }
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Sahi email address daalein.' });
+      return res.status(400).json({ error: 'Enter a valid email address.' });
     }
 
-    const userExists = await User.findOne({ $or: [{ username }, { email }] });
-    if (userExists) return res.status(400).json({ error: 'Username ya Email pehle se registered hai!' });
+    const userExists = await User.findOne({
+      $or: [
+        { username: new RegExp(`^${escapeRegexForEmail(username)}$`, 'i') },
+        { email }
+      ]
+    });
+    if (userExists) return res.status(400).json({ error: 'Username or email is already registered.' });
+
+    const usernameHeld = await PendingSignup.findOne({
+      username: new RegExp(`^${escapeRegexForEmail(username)}$`, 'i'),
+      email: { $ne: email }
+    });
+    if (usernameHeld) return res.status(400).json({ error: 'This username is already taken. Choose another.' });
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        error: 'Email is not set up on the server yet. Account cannot be created without OTP.'
+      });
+    }
+
+    const existingPending = await PendingSignup.findOne({ email });
+    const remainingMs = existingPending?.otpExpiry ? existingPending.otpExpiry.getTime() - Date.now() : 0;
+    if (existingPending && remainingMs > 8 * 60 * 1000) {
+      return res.status(429).json({
+        error: 'OTP was just sent. Check inbox and spam, or wait 2 minutes to resend.',
+        needsOtp: true,
+        sentToMasked: maskEmail(email),
+        email,
+        code: 'OTP_COOLDOWN'
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const now = new Date();
+    const otp = String(crypto.randomInt(100000, 1000000));
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
     const signupPlan = requestedPlan === 'business' ? 'business' : 'pro';
-    const { startOwnerTrial } = require('./subscription');
-    const newUser = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-      role: 'owner'
-    });
-    startOwnerTrial(newUser, signupPlan);
-    await newUser.save();
-    await UserData.create({ userId: newUser._id });
 
-    const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '30d' });
+    await PendingSignup.findOneAndUpdate(
+      { email },
+      {
+        username,
+        email,
+        passwordHash: hashedPassword,
+        plan: signupPlan,
+        otpHash,
+        otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+        otpAttempts: 0,
+        createdAt: new Date()
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
-    res.status(201).json({
-      message: signupPlan === 'business'
-        ? 'Account created! Business plan — 15-day free trial started.'
-        : 'Account created! Pro Shop — 30-day free trial started.',
-      token,
-      username: newUser.username,
-      plan: requestedPlan
+    try {
+      const delivery = await sendSignupOtp(email, otp);
+      if (!delivery.sent) {
+        await PendingSignup.deleteOne({ email });
+        const smtpBlocked = isRenderHost() && !hasHttpsEmailProvider();
+        return res.status(503).json({
+          error: smtpBlocked
+            ? 'Email is blocked on the live server. Add BREVO_API_KEY on Render.'
+            : (delivery.error || 'Could not send the OTP email. Please try again in a minute.'),
+          needsOtp: false
+        });
+      }
+    } catch (mailErr) {
+      await PendingSignup.deleteOne({ email });
+      logger.error('Signup OTP email error:', mailErr.message);
+      return res.status(503).json({ error: 'Could not send the OTP email. Please try again shortly.' });
+    }
+
+    recordAuthAction(rlKey);
+    recordAuthAction(`signup-email:${email}`);
+    return res.json({
+      success: true,
+      needsOtp: true,
+      message: 'OTP sent to your email. Enter it to create your account.',
+      sentToMasked: maskEmail(email),
+      email
     });
   } catch (err) {
     logger.error('Signup error', { err: err.message, stack: err.stack, ip: req.ip });
-    res.status(500).json({ error: 'Server Error during Registration' });
+    res.status(500).json({ error: 'Server error during registration.' });
+  }
+});
+
+app.post('/api/auth/verify-signup', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const otp = String(req.body.otp || '').trim();
+    if (!email || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ error: 'Email and 6-digit OTP are required.' });
+    }
+
+    const rlKey = `signup-otp:${email}`;
+    if (isAuthActionRateLimited(rlKey, 5, 10 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Too many wrong attempts. Request a new OTP from Sign Up.' });
+    }
+
+    const pending = await PendingSignup.findOne({ email });
+    if (!pending || !pending.otpExpiry || pending.otpExpiry < new Date()) {
+      return res.status(400).json({ error: 'OTP expired. Please sign up again to get a new OTP.' });
+    }
+    if ((pending.otpAttempts || 0) >= 5) {
+      await PendingSignup.deleteOne({ email });
+      return res.status(429).json({ error: 'Too many wrong attempts. Please sign up again.' });
+    }
+
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    if (otpHash !== pending.otpHash) {
+      pending.otpAttempts = (pending.otpAttempts || 0) + 1;
+      await pending.save();
+      recordAuthAction(rlKey);
+      const left = Math.max(0, 5 - pending.otpAttempts);
+      return res.status(400).json({ error: left ? `Wrong OTP. ${left} attempts left.` : 'Wrong OTP. Please sign up again.' });
+    }
+
+    const userExists = await User.findOne({
+      $or: [
+        { username: new RegExp(`^${escapeRegexForEmail(pending.username)}$`, 'i') },
+        { email: pending.email }
+      ]
+    });
+    if (userExists) {
+      await PendingSignup.deleteOne({ email });
+      return res.status(400).json({ error: 'This username or email is already registered. Please sign in.' });
+    }
+
+    const created = await createOwnerFromPending(pending);
+    return res.status(201).json(created);
+  } catch (err) {
+    logger.error('Verify-signup error', { err: err.message, stack: err.stack, ip: req.ip });
+    res.status(500).json({ error: 'Could not verify OTP. Please try again.' });
   }
 });
 
