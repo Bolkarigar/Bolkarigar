@@ -5101,10 +5101,20 @@ html[data-theme="light"] .overview-customer-summary .overview-customer-hint {
     display: block;
     width: 100%;
   }
+  .inv-table-wrap,
+  .inv-table-wrap.mobile-ready,
+  .table-wrap,
+  .table-wrap.mobile-ready {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
   .panel-pagination-bar,
   .khata-pagination {
-    position: relative;
-    z-index: 3;
+    position: relative !important;
+    top: auto !important;
+    bottom: auto !important;
+    z-index: 1;
     clear: both;
     width: 100%;
     margin-top: 14px;
@@ -5113,6 +5123,10 @@ html[data-theme="light"] .overview-customer-summary .overview-customer-hint {
     border: 1px solid var(--border);
     background: var(--card2);
     box-sizing: border-box;
+  }
+  .panel-pagination-bar.is-single-page,
+  .khata-pagination.is-single-page {
+    display: none !important;
   }
   .panel-pagination-bar .khata-pagination-left,
   .khata-pagination .khata-pagination-left {

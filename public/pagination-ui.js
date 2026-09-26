@@ -24,6 +24,8 @@
       if (indicator) indicator.textContent = `Page ${st.page} of ${totalPages}`;
       if (prev) prev.disabled = st.page <= 1;
       if (next) next.disabled = st.page >= totalPages || st.total === 0;
+      const bar = (info || indicator || prev)?.closest(".panel-pagination-bar, .khata-pagination");
+      if (bar) bar.classList.toggle("is-single-page", st.total <= st.size);
     }
 
     function slice(data) {

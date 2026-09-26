@@ -1026,6 +1026,27 @@ html.ao-phone #teamGalleryShareList button {
   margin-left: auto;
 }
 
+html.ao-phone .inv-table-wrap,
+html.ao-phone .table-wrap,
+html.ao-phone .table-wrap.mobile-ready {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+html.ao-phone .panel-pagination-bar,
+html.ao-phone .khata-pagination {
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: 1;
+  margin-top: 12px;
+  clear: both;
+}
+html.ao-phone .panel-pagination-bar.is-single-page,
+html.ao-phone .khata-pagination.is-single-page {
+  display: none !important;
+}
+
 html.ao-phone #khataDaybookPanel.panel.active {
   display: block !important;
   min-height: 0 !important;

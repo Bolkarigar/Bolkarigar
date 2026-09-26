@@ -6858,6 +6858,8 @@ function getEWayBillDetails() {
     if (indicator) indicator.textContent = `Page ${state.page} of ${totalPages}`;
     if (prev) prev.disabled = state.page <= 1;
     if (next) next.disabled = state.page >= totalPages || totalRows === 0;
+    const bar = (info || indicator || prev)?.closest(".panel-pagination-bar, .khata-pagination");
+    if (bar) bar.classList.toggle("is-single-page", totalRows <= state.size);
   }
 
   function khataLocalYmd(value) {
