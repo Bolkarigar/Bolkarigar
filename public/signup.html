@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
-  <script src="native-config.js?v=1"></script>
+  <script src="native-config.js?v=20260926clean1"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -314,6 +314,7 @@
         }
         if (!response.ok) throw new Error(result.error || "Could not send OTP");
         if (result.token) {
+          if (typeof window.bkBeginAccountSession === "function") window.bkBeginAccountSession(result.username || body.username);
           localStorage.setItem("bk_token", result.token);
           localStorage.setItem("bk_user", result.username || body.username);
           window.location.href = "/dashboard";
@@ -349,8 +350,10 @@
         if (!response.ok) throw new Error(result.error || "OTP verification failed");
         showOk((result.message || "Account created.") + " Opening app…");
         if (result.token) {
+          const uname = result.username || document.getElementById("username").value.trim();
+          if (typeof window.bkBeginAccountSession === "function") window.bkBeginAccountSession(uname);
           localStorage.setItem("bk_token", result.token);
-          localStorage.setItem("bk_user", result.username || document.getElementById("username").value.trim());
+          localStorage.setItem("bk_user", uname);
           setTimeout(() => { window.location.href = "/dashboard"; }, 800);
         } else {
           setTimeout(() => { window.location.href = "loginpage.html"; }, 1200);

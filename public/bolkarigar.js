@@ -1748,16 +1748,15 @@ function setupImageScanner() {
 }
 
 function logoutUser() {
-  // Sabhi Profile aur Dashboard Keys ko Clear Karein
-  localStorage.removeItem("bk_token");
-  localStorage.removeItem("token");
-  localStorage.removeItem("bk_user");
-  localStorage.removeItem("business_profile"); // 👈 Agar koi alag key rakhi hai profile ke liye
-  localStorage.removeItem("bolkarigar_invoices");
-  
-  // Best practice: Pure LocalStorage ko clear kar dena agar app saara state isme rakhti hai
-  // localStorage.clear(); 
-
+  if (typeof window.bkClearAccountLocalData === "function") window.bkClearAccountLocalData();
+  else {
+    localStorage.removeItem("bk_token");
+    localStorage.removeItem("token");
+    localStorage.removeItem("bk_user");
+    localStorage.removeItem("business_profile");
+    localStorage.removeItem("bolkarigar_company_profile");
+    localStorage.removeItem("bolkarigar_invoices");
+  }
   window.location.replace("loginpage.html");
 }
 // UI Elements & Controls
@@ -6232,6 +6231,16 @@ async function loadCompanyProfile() {
           };
           localStorage.setItem("bolkarigar_company_profile", JSON.stringify(savedProfile));
           setActiveCompanyChip(p.activeCompanyName || p.companyName);
+        } else if (res.ok) {
+          localStorage.removeItem("bolkarigar_company_profile");
+          localStorage.removeItem("company_profile");
+          localStorage.removeItem("business_profile");
+          applyProfileToForm({
+            name: "", gstin: "", phone: "", upiId: "", state: "", address: ""
+          });
+          setProfileLockState(false);
+          setActiveCompanyChip(p.activeCompanyName || "");
+          return;
         }
       }
     }
@@ -6246,11 +6255,14 @@ async function loadCompanyProfile() {
     } catch { /* ignore */ }
   }
 
-  if (savedProfile) {
+  if (savedProfile && savedProfile.name) {
     applyProfileToForm(savedProfile);
     const chipName = document.getElementById("activeCompanyChipName")?.textContent;
     if (!chipName) setActiveCompanyChip(savedProfile.name);
   } else {
+    applyProfileToForm({
+      name: "", gstin: "", phone: "", upiId: "", state: "", address: ""
+    });
     setProfileLockState(false);
     setActiveCompanyChip("");
   }
