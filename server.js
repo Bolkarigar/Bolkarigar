@@ -3412,6 +3412,11 @@ app.get(['/download-app', '/download-app.exe', '/download-app.zip'], (req, res) 
   const fs = require('fs');
   const zip = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.zip');
   const installer = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.exe');
+  const wantZip = req.path.endsWith('.zip') || req.query.format === 'zip';
+  if (!wantZip && fs.existsSync(installer)) {
+    res.setHeader('Content-Type', 'application/octet-stream');
+    return res.download(installer, 'AccountsOrbit-Setup.exe');
+  }
   if (fs.existsSync(zip)) {
     res.setHeader('Content-Type', 'application/zip');
     return res.download(zip, 'AccountsOrbit-Setup.zip');

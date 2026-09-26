@@ -41,6 +41,14 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item $out (Join-Path $stage "AccountsOrbit-Setup.exe")
 Copy-Item $ico (Join-Path $stage "icon.ico")
+@"
+Accounts Orbit — Windows install
+
+1. AccountsOrbit-Setup.exe par double-click karo.
+2. Neela screen "Windows protected your PC" aaye to daro mat.
+3. Don't run mat dabao.
+4. More info dabao, phir Run anyway dabao.
+"@ | Set-Content -Path (Join-Path $stage "READ-ME-FIRST.txt") -Encoding UTF8
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -Force
 Remove-Item $stage -Recurse -Force
 

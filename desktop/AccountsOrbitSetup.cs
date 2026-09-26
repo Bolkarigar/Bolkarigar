@@ -14,7 +14,7 @@ using System.Windows.Forms;
 
 internal static class Program
 {
-    const string AppUrl = "https://bolkarigar.onrender.com/loginpage.html";
+    const string AppUrl = "https://app.accountsorbit.com/loginpage.html";
 
     [STAThread]
     static void Main()

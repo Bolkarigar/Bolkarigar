@@ -2,11 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Downloading Accounts Orbit…</title>
-  <script>location.replace('/download-app');</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download Accounts Orbit</title>
+  <link rel="icon" href="ao-mark.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { --navy:#06144a; --gold:#c9a36a; --ink:#0f172a; --muted:#64748b; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #f8fafc; color: var(--ink); }
+    .top { background: var(--navy); color: #fff; padding: 16px 20px; }
+    .top a { color: #e2e8f0; text-decoration: none; font-weight: 600; }
+    .wrap { width: min(720px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 56px; }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.03em; }
+    .lead { color: var(--muted); line-height: 1.6; }
+    .card {
+      background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 16px;
+      padding: 22px; margin: 22px 0; box-shadow: 0 10px 24px rgba(15,23,42,.05);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 18px; }
+    ol { margin: 0; padding-left: 20px; line-height: 1.7; }
+    .warn {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px;
+      padding: 14px 16px; margin: 16px 0; color: #1e3a8a; line-height: 1.55;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none; font-weight: 700; border-radius: 10px;
+      padding: 12px 18px; margin: 6px 8px 6px 0;
+    }
+    .btn-gold { background: var(--gold); color: #1a1204; }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-ghost { background: #e2e8f0; color: #0f172a; }
+    .note { font-size: 13px; color: var(--muted); }
+  </style>
 </head>
 <body>
-  <p>Your download is starting…</p>
-  <p><a href="/download-app">Click here if the file does not start.</a></p>
+  <div class="top"><a href="/">← Accounts Orbit website</a></div>
+  <div class="wrap">
+    <h1>Download for Windows</h1>
+    <p class="lead">Ek hi setup file aayegi — zip kholne ki zaroorat nahi. Neela Windows screen aaye to darna nahi.</p>
+
+    <div class="card">
+      <h2>1. Pehle yeh download karo</h2>
+      <a class="btn btn-gold" id="dlBtn" href="/download-app">Download Accounts Orbit</a>
+      <a class="btn btn-ghost" href="https://app.accountsorbit.com/loginpage.html">Browser me kholo</a>
+      <p class="note">File ka naam: <strong>AccountsOrbit-Setup.exe</strong></p>
+    </div>
+
+    <div class="card">
+      <h2>2. Blue screen aaye to yeh karo</h2>
+      <div class="warn">
+        <strong>Windows protected your PC</strong> Microsoft ka normal check hai.
+        App kharab nahi hai. <strong>Don't run mat dabao.</strong>
+      </div>
+      <ol>
+        <li>Setup file par double-click karo.</li>
+        <li>Neela box aaye to chhota link <strong>More info</strong> dabao.</li>
+        <li>Phir <strong>Run anyway</strong> dabao.</li>
+        <li>Accounts Orbit khul jaayegi.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>3. Warning bilkul na aaye?</h2>
+      <p class="lead">Woh tab hota hai jab Windows signed certificate hota hai. Abhi setup unsigned hai, isliye Microsoft ek baar poochta hai. <strong>More info → Run anyway</strong> ke baad app normal chalti hai.</p>
+      <a class="btn btn-navy" href="https://app.accountsorbit.com/loginpage.html">Download ke bina app kholo</a>
+    </div>
+  </div>
+  <script>
+    setTimeout(function () {
+      var a = document.createElement("a");
+      a.href = "/download-app";
+      a.click();
+    }, 900);
+  </script>
 </body>
 </html>
