@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260926del1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260926brand1">
   <link rel="stylesheet" href="mobile-app.css?v=20260926pg1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
@@ -26,7 +26,7 @@
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260924brand2"></script>
   <script>
-    window.BK_APP_BUILD = '20260926del2';
+    window.BK_APP_BUILD = '20260926brand1';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -100,6 +100,10 @@
             <span class="staff-mode-dot"></span>
             <span id="staffModeText" data-i18n="top.staffMode">Staff Mode</span>
           </div>
+          <button id="activeCompanyChip" class="active-company-chip hidden" type="button" title="Active company">
+            <span class="active-company-label">Active</span>
+            <strong id="activeCompanyChipName"></strong>
+          </button>
           <button id="businessProfileBtn" class="theme-btn theme-btn--secondary owner-only-plan" type="button" data-i18n="top.businessProfile">🏢 Business Profile</button>
           <button id="liveAiToggle" class="theme-btn theme-btn--ai" type="button" data-i18n="top.aiAssistant">🤖 AI Assistant</button>
           <button id="bkLangToggleBtn" class="theme-btn bk-lang-toggle hidden" type="button" title="Language" aria-hidden="true" style="display:none">🌐 EN</button>
@@ -2556,7 +2560,7 @@
   <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260924suggest1"></script>
-  <script src="bolkarigar.js?v=20260926del2"></script>
+  <script src="bolkarigar.js?v=20260926brand1"></script>
   <script src="mobile-app.js?v=20260926pg1"></script>
   <script src="name-item-suggest.js?v=20260924phone5"></script>
   <script>

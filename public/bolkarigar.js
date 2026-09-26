@@ -5559,6 +5559,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("businessProfileBtn")?.addEventListener("click", () => {
     document.getElementById("businessProfileModal")?.classList.remove("hidden");
   });
+  document.getElementById("activeCompanyChip")?.addEventListener("click", () => {
+    if (typeof openPanel === "function") openPanel("companiesPanel");
+  });
   document.getElementById("closeBusinessProfileModal")?.addEventListener("click", () => {
     document.getElementById("businessProfileModal")?.classList.add("hidden");
   });
@@ -6192,6 +6195,22 @@ function applyProfileToForm(savedProfile) {
   setProfileLockState(true);
 }
 
+function setActiveCompanyChip(name) {
+  const sub = document.querySelector(".brand-title-sub");
+  if (sub) sub.textContent = "Your business in orbit";
+  const chip = document.getElementById("activeCompanyChip");
+  const label = document.getElementById("activeCompanyChipName");
+  const text = String(name || "").trim();
+  if (!chip || !label) return;
+  if (!text) {
+    chip.classList.add("hidden");
+    label.textContent = "";
+    return;
+  }
+  label.textContent = text;
+  chip.classList.remove("hidden");
+}
+
 async function loadCompanyProfile() {
   let savedProfile = null;
   try {
@@ -6212,10 +6231,7 @@ async function loadCompanyProfile() {
             address: p.fullAddress || ''
           };
           localStorage.setItem("bolkarigar_company_profile", JSON.stringify(savedProfile));
-          const sub = document.querySelector(".brand-title-sub");
-          if (sub && (p.activeCompanyName || p.companyName)) {
-            sub.textContent = p.activeCompanyName || p.companyName;
-          }
+          setActiveCompanyChip(p.activeCompanyName || p.companyName);
         }
       }
     }
@@ -6232,8 +6248,11 @@ async function loadCompanyProfile() {
 
   if (savedProfile) {
     applyProfileToForm(savedProfile);
+    const chipName = document.getElementById("activeCompanyChipName")?.textContent;
+    if (!chipName) setActiveCompanyChip(savedProfile.name);
   } else {
     setProfileLockState(false);
+    setActiveCompanyChip("");
   }
 }
 
@@ -6307,6 +6326,7 @@ async function saveCompanyProfile(event) {
       }
 
       setProfileLockState(true);
+      setActiveCompanyChip(name);
     } else {
       alert("❌ Error: " + (result.error || "Could not save"));
     }

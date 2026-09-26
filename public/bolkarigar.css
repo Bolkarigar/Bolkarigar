@@ -312,6 +312,41 @@
     flex-shrink: 0;
   }
   .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .active-company-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 163, 106, 0.45);
+    background: rgba(201, 163, 106, 0.16);
+    color: #f7f4ee;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  .active-company-chip.hidden { display: none !important; }
+  .active-company-chip:hover { filter: brightness(1.08); }
+  .active-company-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #c9a36a;
+    flex-shrink: 0;
+  }
+  .active-company-chip strong {
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #f8fafc;
+  }
+  html[data-theme="light"] .active-company-chip {
+    border-color: rgba(201, 163, 106, 0.5);
+    background: rgba(201, 163, 106, 0.18);
+  }
   .topbar-toolbar .topbar-clock {
     flex-shrink: 0;
     text-align: right;
@@ -3273,6 +3308,12 @@ body.sidebar-open .sidebar-tally-card {
   }
   body.topbar-more-open .top-actions {
     display: flex;
+  }
+  .top-actions .active-company-chip {
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+    min-height: 44px;
   }
   .top-actions .theme-btn,
   .top-actions .staff-mode-banner {
