@@ -758,21 +758,21 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   app.post('/api/companies/:id/delete-otp', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
     try {
       const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
-      if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
+      if (!co) return res.status(404).json({ error: 'Company not found.' });
 
       const owner = await User.findById(req.ownerId);
-      if (!owner) return res.status(404).json({ error: 'Account nahi mila.' });
+      if (!owner) return res.status(404).json({ error: 'Account not found.' });
 
       const recipient = String(owner.email || '').trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
         return res.status(400).json({
-          error: 'Is account ki registered email valid nahi hai. Pehle Profile / Sign Up wali email set karein.'
+          error: 'This account does not have a valid registered email. Set the Sign Up / Profile email first.'
         });
       }
 
       if (!isEmailConfigured()) {
         return res.status(503).json({
-          error: 'OTP email server par set nahi hai. Delete abhi possible nahi.'
+          error: 'OTP email is not set up on the server. Delete is not available right now.'
         });
       }
 
@@ -785,7 +785,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         remainingMs > 8 * 60 * 1000
       ) {
         return res.status(429).json({
-          error: 'OTP abhi-abhi bheja gaya hai. Inbox / spam check karein, ya 2 minute baad resend karein.',
+          error: 'OTP was just sent. Check inbox and spam, or wait 2 minutes to resend.',
           sentToMasked: maskOwnerEmail(recipient),
           code: 'OTP_COOLDOWN'
         });
@@ -806,8 +806,8 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           const smtpBlocked = isRenderHost() && !hasHttpsEmailProvider();
           return res.status(503).json({
             error: smtpBlocked
-              ? 'Live server par email band hai. Owner ko Render par BREVO_API_KEY add karna hoga.'
-              : (delivery.error || 'OTP email nahi gaya. 1 minute baad try karein.'),
+              ? 'Email is blocked on the live server. Add BREVO_API_KEY on Render.'
+              : (delivery.error || 'Could not send the OTP email. Please try again in a minute.'),
             code: smtpBlocked ? 'RENDER_SMTP_BLOCKED' : 'EMAIL_SEND_FAILED'
           });
         }
@@ -815,13 +815,13 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         clearCompanyDeleteOtp(owner);
         await owner.save();
         return res.status(503).json({
-          error: 'OTP email nahi gaya. Thodi der baad try karein.'
+          error: 'Could not send the OTP email. Please try again shortly.'
         });
       }
 
       return res.json({
         success: true,
-        message: 'OTP registered email par bhej diya gaya.',
+        message: 'OTP has been sent to your registered email.',
         sentToMasked: maskOwnerEmail(recipient),
         companyName: co.companyName
       });
@@ -834,25 +834,25 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     try {
       const otp = String(req.body?.otp || '').trim();
       if (!/^\d{6}$/.test(otp)) {
-        return res.status(400).json({ error: 'Pehle registered email ka 6-digit OTP bhejein. Bina OTP company delete nahi hogi.' });
+        return res.status(400).json({ error: 'Enter the 6-digit OTP from your registered email. The company cannot be deleted without it.' });
       }
 
       const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
-      if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
+      if (!co) return res.status(404).json({ error: 'Company not found.' });
 
       const owner = await User.findById(req.ownerId);
-      if (!owner) return res.status(404).json({ error: 'Account nahi mila.' });
+      if (!owner) return res.status(404).json({ error: 'Account not found.' });
 
       if (!owner.companyDeleteOtpHash || !owner.companyDeleteOtpExpiry || owner.companyDeleteOtpExpiry < new Date()) {
-        return res.status(400).json({ error: 'OTP expire ho gaya. Naya OTP maango.' });
+        return res.status(400).json({ error: 'OTP expired. Request a new OTP.' });
       }
       if (String(owner.companyDeleteTargetId) !== String(co._id)) {
-        return res.status(400).json({ error: 'Yeh OTP is company ke liye nahi hai. Naya OTP maango.' });
+        return res.status(400).json({ error: 'This OTP is not for this company. Request a new OTP.' });
       }
       if ((owner.companyDeleteOtpAttempts || 0) >= 5) {
         clearCompanyDeleteOtp(owner);
         await owner.save();
-        return res.status(429).json({ error: 'Bahut galat attempts. Naya OTP maango.' });
+        return res.status(429).json({ error: 'Too many wrong attempts. Request a new OTP.' });
       }
 
       const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
@@ -860,7 +860,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         owner.companyDeleteOtpAttempts = (owner.companyDeleteOtpAttempts || 0) + 1;
         await owner.save();
         const left = Math.max(0, 5 - owner.companyDeleteOtpAttempts);
-        return res.status(400).json({ error: left ? `Galat OTP. ${left} attempts bachi hain.` : 'Galat OTP. Naya OTP maango.' });
+        return res.status(400).json({ error: left ? `Wrong OTP. ${left} attempts left.` : 'Wrong OTP. Request a new OTP.' });
       }
 
       const wasActive = !!co.isActive;
@@ -882,7 +882,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       }
       res.json({
         success: true,
-        message: 'Company aur uska saara data delete ho gaya.',
+        message: 'Company and all of its data have been deleted.',
         reloaded: wasActive
       });
     } catch (e) { res.status(500).json({ error: e.message }); }

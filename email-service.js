@@ -402,27 +402,27 @@ async function sendBusinessEmail({ to, subject, text, html, replyTo, senderName,
 }
 
 function buildCompanyDeleteOtpEmail(otp, companyName) {
-  const name = companyName || 'company';
+  const name = companyName || 'this company';
   const subject = 'Accounts Orbit — Company delete OTP';
   const text = [
-    'Namaste,',
+    'Hello,',
     '',
-    `"${name}" company delete karne ka OTP: ${otp}`,
+    `Your 6-digit OTP to delete "${name}": ${otp}`,
     '',
-    'Agar aap yeh company delete karoge to iska saara data permanently delete ho jayega.',
-    'Yeh OTP 10 minute ke liye valid hai.',
-    'Agar aapne yeh request nahi ki, is email ko ignore karein.',
+    'If you delete this company, all of its data will be permanently removed.',
+    'This OTP is valid for 10 minutes.',
+    'If you did not request this, ignore this email.',
     '',
     '— Accounts Orbit Team'
   ].join('\n');
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
       <h2 style="color:#b91c1c;margin:0 0 12px;">Company delete confirmation</h2>
-      <p style="color:#334155;line-height:1.5;"><strong>${name}</strong> delete karne ka 6-digit OTP:</p>
+      <p style="color:#334155;line-height:1.5;">6-digit OTP to delete <strong>${name}</strong>:</p>
       <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
-      <p style="color:#b91c1c;font-size:14px;">Is company ka saara data permanently delete ho jayega.</p>
-      <p style="color:#64748b;font-size:14px;">Yeh OTP <strong>10 minute</strong> ke liye valid hai.</p>
-      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Agar aapne request nahi ki, is email ko ignore karein.</p>
+      <p style="color:#b91c1c;font-size:14px;">All data for this company will be permanently deleted.</p>
+      <p style="color:#64748b;font-size:14px;">This OTP is valid for <strong>10 minutes</strong>.</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you did not request this, ignore this email.</p>
     </div>`;
   return { subject, text, html };
 }

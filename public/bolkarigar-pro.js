@@ -344,11 +344,11 @@
   function openCompanyDeleteModal(id, name) {
     const els = companyDeleteEls();
     if (!els.modal) {
-      showToast('❌ Delete confirm screen nahi khuli.', 'error');
+      showToast('❌ Delete confirmation screen could not open.', 'error');
       return;
     }
     pendingDeleteCompany = { id, name };
-    els.warn.textContent = '"' + name + '" delete karoge to is company ka saara data permanently delete ho jayega — sales, purchase, stock, ledger, day book, invoices, photos. Wapas nahi aayega. Pehle registered email par OTP aayega.';
+    els.warn.textContent = 'If you delete "' + name + '", all of this company\'s data will be permanently removed — sales, purchase, stock, ledger, day book, invoices and photos. This cannot be undone. An OTP will be sent to your registered email first.';
     if (els.ack) els.ack.checked = false;
     if (els.otp) els.otp.value = '';
     els.stepWarn?.classList.remove('hidden');
@@ -360,26 +360,26 @@
     if (!pendingDeleteCompany) return;
     const els = companyDeleteEls();
     if (els.ack && !els.ack.checked && !els.stepWarn?.classList.contains('hidden')) {
-      showToast('Pehle confirm box tick karo — saara data delete ho jayega.', 'error');
+      showToast('Please tick the confirmation box first — all data will be deleted.', 'error');
       return;
     }
     const prev = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'OTP bhej rahe hain…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending OTP…'; }
     try {
       const res = await apiPost('/api/companies/' + pendingDeleteCompany.id + '/delete-otp', {});
       if (!res.success) {
-        showToast('❌ ' + (res.error || 'OTP nahi gaya'), 'error');
+        showToast('❌ ' + (res.error || 'Could not send OTP'), 'error');
         return;
       }
       if (els.hint) {
-        els.hint.textContent = 'OTP ' + (res.sentToMasked || 'registered email') + ' par bhej diya. 10 minute valid hai.';
+        els.hint.textContent = 'OTP sent to ' + (res.sentToMasked || 'your registered email') + '. It is valid for 10 minutes.';
       }
       els.stepWarn?.classList.add('hidden');
       els.stepOtp?.classList.remove('hidden');
       els.otp?.focus();
-      showToast('✅ OTP email par chala gaya.');
+      showToast('✅ OTP sent to your email.');
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = prev || 'OTP email par bhejo'; }
+      if (btn) { btn.disabled = false; btn.textContent = prev || 'Send OTP to email'; }
     }
   }
 
@@ -388,7 +388,7 @@
     const els = companyDeleteEls();
     const otp = String(els.otp?.value || '').replace(/\D/g, '');
     if (otp.length !== 6) {
-      showToast('6-digit OTP daalo.', 'error');
+      showToast('Enter the 6-digit OTP.', 'error');
       return;
     }
     const prev = btn ? btn.textContent : '';
@@ -396,16 +396,16 @@
     try {
       const del = await apiDelete('/api/companies/' + pendingDeleteCompany.id, { otp });
       if (!del.success) {
-        showToast('❌ ' + (del.error || 'Delete fail'), 'error');
+        showToast('❌ ' + (del.error || 'Delete failed'), 'error');
         return;
       }
       closeCompanyDeleteModal();
-      showToast('✅ Company aur uska data delete ho gaya.');
+      showToast('✅ Company and its data have been deleted.');
       loadCompanies();
       refreshProfileAfterCompanyChange();
       if (del.reloaded) setTimeout(() => window.location.reload(), 400);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = prev || 'OTP verify karke delete'; }
+      if (btn) { btn.disabled = false; btn.textContent = prev || 'Verify OTP and delete'; }
     }
   }
 
