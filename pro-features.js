@@ -46,8 +46,11 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   const active = requireActivePlan || ((req, res, next) => next());
 
   // --- Schemas ---
+  const { uidFilter, uidDoc } = require('./company-scope');
+
   const paymentSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     customerName: { type: String, required: true },
     amount: { type: Number, required: true },
     paymentMode: { type: String, enum: ['Cash', 'UPI', 'Bank', 'Cheque', 'Other'], default: 'Cash' },
@@ -58,6 +61,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   const labourSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     workerName: { type: String, required: true },
     projectName: String,
     date: { type: Date, default: Date.now },
@@ -68,6 +72,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   const raBillSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     billNo: String,
     projectName: { type: String, required: true },
     clientName: String,
@@ -80,6 +85,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   const materialSlipSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     slipNo: String,
     projectName: { type: String, required: true },
     itemName: { type: String, required: true },
@@ -93,6 +99,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   const bankReconSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     bankLedgerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ledger' },
     statementDate: Date,
     description: String,
@@ -114,6 +121,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     fullAddress: String,
     address: String,
     isActive: { type: Boolean, default: false },
+    invoiceCounter: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
   });
 
@@ -297,22 +305,21 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     try {
       const { customerName, amount, paymentMode, invoiceNo, note } = req.body;
       if (!customerName || !amount) return res.status(400).json({ error: 'Customer aur amount zaroori.' });
-      const payment = await Payment.create({
-        userId: req.ownerId, customerName, amount: parseFloat(amount),
+      const payment = await Payment.create(uidDoc(req, {
+        customerName, amount: parseFloat(amount),
         paymentMode: paymentMode || 'Cash', invoiceNo, note
-      });
+      }));
       // Auto Receipt voucher in Khata Pro
-      const ledger = await Ledger.findOne({ userId: req.ownerId, partyName: new RegExp('^' + customerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') });
+      const ledger = await Ledger.findOne(uidFilter(req, { partyName: new RegExp('^' + customerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }));
       if (ledger) {
         await Ledger.updateOne({ _id: ledger._id }, { $inc: { currentBalance: -parseFloat(amount) } });
-        await Voucher.create({
-          userId: req.ownerId,
+        await Voucher.create(uidDoc(req, {
           voucherType: 'Receipt',
           partyId: ledger._id,
           amount: parseFloat(amount),
           linkedPaymentId: payment._id,
           note: note || `Payment received — ${paymentMode || 'Cash'}`
-        });
+        }));
       }
       await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher }, { force: true });
       res.json({ success: true, payment });
@@ -322,7 +329,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   app.get('/api/payments', authenticateToken, ownerMiddleware, async (req, res) => {
     try {
       const { customer } = req.query;
-      const filter = { userId: req.ownerId };
+      const filter = uidFilter(req);
       if (customer) filter.customerName = new RegExp(customer, 'i');
       const payments = await Payment.find(filter).sort({ date: -1 });
       res.json({ success: true, payments });
@@ -333,9 +340,9 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     try {
       await reconcileAllDebtorLedgers(req.ownerId, { Ledger, SalesHistory, Payment, Voucher }, { force: true });
 
-      const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Sundry Debtor' });
-      const allSales = await SalesHistory.find({ userId: req.ownerId });
-      const payments = await Payment.find({ userId: req.ownerId });
+      const debtors = await Ledger.find(uidFilter(req, { ledgerGroup: 'Sundry Debtor' }));
+      const allSales = await SalesHistory.find(uidFilter(req));
+      const payments = await Payment.find(uidFilter(req));
       const byCustomer = {};
 
       debtors.forEach((d) => {
@@ -372,10 +379,9 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         byCustomer[key].paid += Number(p.amount) || 0;
       });
 
-      const returnVouchers = await Voucher.find({
-        userId: req.ownerId,
+      const returnVouchers = await Voucher.find(uidFilter(req, {
         voucherType: { $in: ['Credit Note', 'Purchase'] }
-      }).populate('partyId', 'partyName ledgerGroup');
+      })).populate('partyId', 'partyName ledgerGroup');
       returnVouchers.forEach((rv) => {
         const party = rv.partyId;
         if (!party || party.ledgerGroup !== 'Sundry Debtor') return;
@@ -414,7 +420,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const y = parseInt(year) || new Date().getFullYear();
       const from = new Date(y, m - 1, 1);
       const to = new Date(y, m, 0, 23, 59, 59);
-      const sales = await SalesHistory.find({ userId: req.ownerId, date: { $gte: from, $lte: to } });
+      const sales = await SalesHistory.find(uidFilter(req, { date: { $gte: from, $lte: to } }));
       const profile = await BusinessProfile.findOne({ userId: req.ownerId });
       const b2b = [], b2cl = [], b2cs = [];
       sales.forEach(s => {
@@ -446,8 +452,8 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const y = parseInt(year) || new Date().getFullYear();
       const from = new Date(y, m - 1, 1);
       const to = new Date(y, m, 0, 23, 59, 59);
-      const sales = await SalesHistory.find({ userId: req.ownerId, date: { $gte: from, $lte: to } });
-      const purchases = await Voucher.find({ userId: req.ownerId, voucherType: 'Purchase', date: { $gte: from, $lte: to } });
+      const sales = await SalesHistory.find(uidFilter(req, { date: { $gte: from, $lte: to } }));
+      const purchases = await Voucher.find(uidFilter(req, { voucherType: 'Purchase', date: { $gte: from, $lte: to } }));
       let outTax = 0, inTax = 0;
       sales.forEach(s => { outTax += (s.price || 0) * (s.qty || 1) * ((s.gstRate || 0) / 100); });
       purchases.forEach(p => { inTax += (p.amount || 0) * 0.18; });
@@ -466,7 +472,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.get('/api/reports/pl', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.REPORTS_VIEW), async (req, res) => {
     try {
-      const ledgers = await Ledger.find({ userId: req.ownerId });
+      const ledgers = await Ledger.find(uidFilter(req));
       let income = 0, expenses = 0;
       const incomeRows = [], expenseRows = [];
       ledgers.forEach(l => {
@@ -477,7 +483,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           expenses += bal; expenseRows.push({ name: l.partyName, group: l.ledgerGroup, amount: bal });
         }
       });
-      const salesVouchers = await Voucher.find({ userId: req.ownerId, voucherType: 'Sales' });
+      const salesVouchers = await Voucher.find(uidFilter(req, { voucherType: 'Sales' }));
       const salesTotal = salesVouchers.reduce((a, v) => a + v.amount, 0);
       if (salesTotal > income) { income = salesTotal; incomeRows.push({ name: 'Sales (Vouchers)', group: 'Sales', amount: salesTotal }); }
       res.json({ success: true, income: incomeRows, expenses: expenseRows, totalIncome: income, totalExpenses: expenses, netProfit: income - expenses });
@@ -486,7 +492,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.get('/api/reports/balance-sheet', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.REPORTS_VIEW), async (req, res) => {
     try {
-      const ledgers = await Ledger.find({ userId: req.ownerId });
+      const ledgers = await Ledger.find(uidFilter(req));
       const assets = [], liabilities = [];
       const assetGroups = ['Fixed Asset', 'Current Assets', 'Stock-in-Hand', 'Sundry Debtor', 'Cash', 'Bank', 'Investments', 'Deposits (Asset)', 'Loans & Advances (Asset)'];
       const liabGroups = ['Capital Account', 'Reserves & Surplus', 'Secured Loans', 'Unsecured Loans', 'Current Liabilities', 'Sundry Creditor', 'Duties & Taxes', 'Provisions', 'Capital'];
@@ -505,8 +511,8 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
 
   app.get('/api/reports/ageing', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.REPORTS_VIEW), async (req, res) => {
     try {
-      const debtors = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Sundry Debtor', currentBalance: { $gt: 0 } });
-      const vouchers = await Voucher.find({ userId: req.ownerId, voucherType: 'Sales' }).sort({ date: -1 });
+      const debtors = await Ledger.find(uidFilter(req, { ledgerGroup: 'Sundry Debtor', currentBalance: { $gt: 0 } }));
+      const vouchers = await Voucher.find(uidFilter(req, { voucherType: 'Sales' })).sort({ date: -1 });
       const rows = debtors.map(d => {
         const lastV = vouchers.find(v => v.partyId && String(v.partyId) === String(d._id));
         const days = lastV ? Math.floor((Date.now() - new Date(lastV.date)) / 86400000) : 0;
@@ -527,7 +533,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const y = parseInt(year) || new Date().getFullYear();
       const from = new Date(y, m - 1, 1);
       const to = new Date(y, m, 0, 23, 59, 59);
-      const vouchers = await Voucher.find({ userId: req.ownerId, date: { $gte: from, $lte: to } });
+      const vouchers = await Voucher.find(uidFilter(req, { date: { $gte: from, $lte: to } }));
       let inflow = 0, outflow = 0;
       vouchers.forEach(v => {
         if (['Receipt', 'Sales'].includes(v.voucherType)) inflow += v.amount;
@@ -549,9 +555,9 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
       const altNames = names.length ? names : [...resp.matchAll(/<LEDGER[^>]*NAME="([^"]+)"/gi)].map(m => m[1]);
       let imported = 0, skipped = 0;
       for (const name of [...new Set(altNames)].slice(0, 200)) {
-        const exists = await Ledger.findOne({ userId: req.ownerId, partyName: name });
+        const exists = await Ledger.findOne(uidFilter(req, { partyName: name }));
         if (exists) { skipped++; continue; }
-        await Ledger.create({ userId: req.ownerId, partyName: name, ledgerGroup: 'Sundry Debtor', currentBalance: 0, openingBalance: 0 });
+        await Ledger.create(uidDoc(req, { partyName: name, ledgerGroup: 'Sundry Debtor', currentBalance: 0, openingBalance: 0 }));
         imported++;
       }
       res.json({ success: true, imported, skipped, message: `${imported} ledgers Tally se import hue.` });
@@ -583,48 +589,48 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   // ===================== CONTRACTOR MODULES =====================
   app.post('/api/labour', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
     try {
-      const rec = await LabourAttendance.create({ userId: req.ownerId, ...req.body });
+      const rec = await LabourAttendance.create(uidDoc(req, { ...req.body }));
       res.json({ success: true, record: rec });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
   app.get('/api/labour', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    const records = await LabourAttendance.find({ userId: req.ownerId }).sort({ date: -1 }).limit(200);
+    const records = await LabourAttendance.find(uidFilter(req)).sort({ date: -1 }).limit(200);
     res.json({ success: true, records });
   });
   app.delete('/api/labour/:id', authenticateToken, ownerMiddleware, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    await LabourAttendance.deleteOne({ _id: req.params.id, userId: req.ownerId });
+    await LabourAttendance.deleteOne(uidFilter(req, { _id: req.params.id }));
     res.json({ success: true });
   });
 
   app.post('/api/ra-bill', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
     try {
-      const count = await RABill.countDocuments({ userId: req.ownerId });
-      const rec = await RABill.create({ userId: req.ownerId, billNo: 'RA-' + (count + 1), ...req.body });
+      const count = await RABill.countDocuments(uidFilter(req));
+      const rec = await RABill.create(uidDoc(req, { billNo: 'RA-' + (count + 1), ...req.body }));
       res.json({ success: true, record: rec });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
   app.get('/api/ra-bill', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    const records = await RABill.find({ userId: req.ownerId }).sort({ date: -1 });
+    const records = await RABill.find(uidFilter(req)).sort({ date: -1 });
     res.json({ success: true, records });
   });
   app.delete('/api/ra-bill/:id', authenticateToken, ownerMiddleware, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    await RABill.deleteOne({ _id: req.params.id, userId: req.ownerId });
+    await RABill.deleteOne(uidFilter(req, { _id: req.params.id }));
     res.json({ success: true });
   });
 
   app.post('/api/material-slip', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
     try {
-      const count = await MaterialSlip.countDocuments({ userId: req.ownerId });
-      const rec = await MaterialSlip.create({ userId: req.ownerId, slipNo: 'MS-' + (count + 1), ...req.body });
+      const count = await MaterialSlip.countDocuments(uidFilter(req));
+      const rec = await MaterialSlip.create(uidDoc(req, { slipNo: 'MS-' + (count + 1), ...req.body }));
       res.json({ success: true, record: rec });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
   app.get('/api/material-slip', authenticateToken, ownerMiddleware, biz, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    const records = await MaterialSlip.find({ userId: req.ownerId }).sort({ date: -1 });
+    const records = await MaterialSlip.find(uidFilter(req)).sort({ date: -1 });
     res.json({ success: true, records });
   });
   app.delete('/api/material-slip/:id', authenticateToken, ownerMiddleware, requirePermission(PERMISSIONS.CONTRACTOR), async (req, res) => {
-    await MaterialSlip.deleteOne({ _id: req.params.id, userId: req.ownerId });
+    await MaterialSlip.deleteOne(uidFilter(req, { _id: req.params.id }));
     res.json({ success: true });
   });
 
@@ -632,6 +638,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   app.post('/api/bank-recon', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
     try {
       const payload = buildBankReconPayload(req.body, req.ownerId);
+      if (req.activeCompanyId) payload.companyId = req.activeCompanyId;
       const rec = await BankRecon.create(payload);
       await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId: req.ownerId });
       res.json({ success: true, record: rec });
@@ -639,12 +646,12 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   });
   app.get('/api/bank-recon', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
     await autoMatchBankRecon({ BankRecon, Payment, SalesHistory, userId: req.ownerId });
-    const records = await BankRecon.find({ userId: req.ownerId }).sort({ date: -1 });
-    const bankLedgers = await Ledger.find({ userId: req.ownerId, ledgerGroup: 'Bank' });
+    const records = await BankRecon.find(uidFilter(req)).sort({ date: -1 });
+    const bankLedgers = await Ledger.find(uidFilter(req, { ledgerGroup: 'Bank' }));
     res.json({ success: true, records, bankLedgers });
   });
   app.delete('/api/bank-recon/all', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
-    const result = await BankRecon.deleteMany({ userId: req.ownerId });
+    const result = await BankRecon.deleteMany(uidFilter(req));
     res.json({ success: true, deleted: result.deletedCount || 0 });
   });
   app.post('/api/bank-recon/auto-match', authenticateToken, ownerMiddleware, requireOwner, biz, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
@@ -652,7 +659,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     res.json({ success: true, ...result });
   });
   app.patch('/api/bank-recon/:id/match', authenticateToken, ownerMiddleware, requireOwner, requirePermission(PERMISSIONS.BANK_RECON), async (req, res) => {
-    await BankRecon.updateOne({ _id: req.params.id, userId: req.ownerId }, { matched: true, voucherId: req.body.voucherId });
+    await BankRecon.updateOne(uidFilter(req, { _id: req.params.id }), { matched: true, voucherId: req.body.voucherId });
     res.json({ success: true });
   });
 
@@ -675,6 +682,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           plan: limitInfo.plan
         });
       }
+      const isFirst = count === 0;
       const co = await Company.create({
         userId: req.ownerId,
         companyName: companyName.trim(),
@@ -683,8 +691,16 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
         upiId: (upiId || '').trim(),
         statePincode: (statePincode || '').trim(),
         fullAddress: addr,
-        address: addr
+        address: addr,
+        isActive: isFirst
       });
+      if (isFirst) {
+        await BusinessProfile.findOneAndUpdate(
+          { userId: req.ownerId },
+          businessProfileFromCompany(co),
+          { upsert: true }
+        );
+      }
       res.json({ success: true, company: co, limit: limitInfo.max, count: count + 1 });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });

@@ -54,8 +54,11 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
     lineTotal: { type: Number, default: 0 }
   }, { _id: false });
 
+  const { uidFilter, uidDoc } = require('./company-scope');
+
   const estimateSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     estimateNo: { type: String, required: true },
     customer: { type: String, required: true },
     customerGstin: String,
@@ -116,7 +119,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
   app.get('/api/estimates', authenticateToken, biz, canWrite, async (req, res) => {
     try {
       const { status, search, limit = 50 } = req.query;
-      const filter = { userId: req.dataUserId };
+      const filter = uidFilter(req);
       if (status && ESTIMATE_STATUSES.includes(status)) filter.status = status;
       if (search) {
         const rx = new RegExp(String(search).trim(), 'i');
@@ -132,7 +135,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.get('/api/estimates/:id', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
       res.json({ success: true, estimate: doc });
     } catch (e) {
@@ -151,8 +154,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
       if (!estimateNo) estimateNo = await nextEstimateNo(req.dataUserId);
 
       const grandTotal = sumGrandTotal(lines);
-      const doc = await Estimate.create({
-        userId: req.dataUserId,
+      const doc = await Estimate.create(uidDoc(req, {
         estimateNo,
         customer,
         customerGstin: req.body.customerGstin,
@@ -168,7 +170,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
         validUntil: req.body.validUntil ? new Date(req.body.validUntil) : undefined,
         status: ESTIMATE_STATUSES.includes(req.body.status) ? req.body.status : 'draft',
         estimateDate: req.body.estimateDate ? new Date(req.body.estimateDate) : new Date()
-      });
+      }));
       res.json({ success: true, estimate: doc });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -177,7 +179,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.put('/api/estimates/:id', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
       if (doc.status === 'converted') {
         return res.status(400).json({ error: 'Converted estimates cannot be edited.' });
@@ -213,7 +215,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.delete('/api/estimates/:id', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
       if (doc.status === 'converted') {
         return res.status(400).json({ error: 'Delete the invoice from Modification if needed — estimate is already invoiced.' });
@@ -227,7 +229,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.post('/api/estimates/:id/mark-sent', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
       if (doc.status === 'converted') return res.status(400).json({ error: 'Already converted to invoice.' });
       doc.status = 'sent';
@@ -240,7 +242,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.post('/api/estimates/:id/accept', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
       if (doc.status === 'converted') return res.status(400).json({ error: 'Already converted to invoice.' });
       doc.status = 'accepted';
@@ -253,7 +255,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
 
   app.post('/api/estimates/:id/convert-to-invoice', authenticateToken, biz, canWrite, async (req, res) => {
     try {
-      const doc = await Estimate.findOne({ _id: req.params.id, userId: req.dataUserId });
+      const doc = await Estimate.findOne(uidFilter(req, { _id: req.params.id }));
       if (!doc) return res.status(404).json({ error: 'Estimate not found.' });
 
       if (doc.status === 'converted' && doc.linkedInvoiceNo) {
@@ -275,8 +277,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
       const salesRecords = [];
       for (const line of doc.lines) {
         const totalAmount = line.lineTotal || lineTotal(line);
-        const record = await SalesHistory.create({
-          userId: req.dataUserId,
+        const record = await SalesHistory.create(uidDoc(req, {
           invoiceNo,
           customer: doc.customer,
           product: line.product,
@@ -288,7 +289,7 @@ function setupEstimateFeatures({ app, mongoose, authenticateToken, rbac, require
           paymentType: payType,
           status: isCredit ? 'Pending' : 'Paid',
           date: new Date(voucherDate)
-        });
+        }));
         salesRecords.push(record);
       }
 

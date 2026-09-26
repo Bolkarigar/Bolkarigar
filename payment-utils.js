@@ -1,6 +1,10 @@
 /**
  * Cash vs Credit (Udhar) — shared payment classification
  */
+const { scopedUser } = require('./company-scope');
+function uq(userId, extra = {}) {
+  return scopedUser(userId, extra);
+}
 
 function isCreditPayment(paymentType, status) {
   const p = String(paymentType || '').trim().toLowerCase();
@@ -167,22 +171,21 @@ async function reconcileDebtorLedger(userId, ledger, models) {
   const rx = partyRegex(ledger.partyName);
   let balance = Number(ledger.openingBalance) || 0;
 
-  const sales = await SalesHistory.find({ userId, customer: rx });
+  const sales = await SalesHistory.find(uq(userId, { customer: rx }));
   for (const s of sales) {
     if (isCreditPayment(s.paymentType, s.status)) {
       balance += saleRecordAmount(s);
     }
   }
 
-  const payments = await Payment.find({ userId, customerName: rx });
+  const payments = await Payment.find(uq(userId, { customerName: rx }));
   for (const p of payments) {
     balance -= Number(p.amount) || 0;
   }
 
-  const vouchers = await Voucher.find({
-    userId,
+  const vouchers = await Voucher.find(uq(userId, {
     $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
-  });
+  }));
   for (const v of vouchers) {
     if (debtorVoucherIsDuplicate(v, sales)) continue;
     balance += debtorVoucherUdharEffect(v, ledger._id).effect;
@@ -194,7 +197,7 @@ async function reconcileDebtorLedger(userId, ledger, models) {
 async function reconcileAllDebtorLedgers(userId, models, options = {}) {
   const { force = false } = options;
   const { Ledger } = models;
-  const debtors = await Ledger.find({ userId, ledgerGroup: 'Sundry Debtor' });
+  const debtors = await Ledger.find(uq(userId, { ledgerGroup: 'Sundry Debtor' }));
   const updates = [];
   for (const ledger of debtors) {
     const computed = await reconcileDebtorLedger(userId, ledger, models);
@@ -216,23 +219,22 @@ async function getDebtorUdharSummary(userId, ledger, models) {
   let paid = 0;
   let returns = 0;
 
-  const sales = await SalesHistory.find({ userId, customer: rx });
+  const sales = await SalesHistory.find(uq(userId, { customer: rx }));
   for (const s of sales) {
     const amt = saleRecordAmount(s);
     billed += amt;
     if (!isCreditPayment(s.paymentType, s.status)) paid += amt;
   }
 
-  const payments = await Payment.find({ userId, customerName: rx });
+  const payments = await Payment.find(uq(userId, { customerName: rx }));
   for (const p of payments) {
     paid += Number(p.amount) || 0;
   }
 
   if (Voucher) {
-    const vouchers = await Voucher.find({
-      userId,
+    const vouchers = await Voucher.find(uq(userId, {
       $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
-    });
+    }));
     for (const v of vouchers) {
       if (debtorVoucherIsDuplicate(v, sales)) continue;
       const { effect } = debtorVoucherUdharEffect(v, ledger._id);
@@ -276,7 +278,7 @@ function draftLineAmount(item) {
 /** Remove one matching row from UserData invoice draft when permanent sale is deleted. */
 async function removeOneMatchingDraftInvoice(userId, sale, UserData) {
   if (!UserData || !sale) return 0;
-  const data = await UserData.findOne({ userId });
+  const data = await UserData.findOne(uq(userId));
   if (!data?.invoices?.length) return 0;
 
   const customer = String(sale.customer || '').trim().toLowerCase();
@@ -328,25 +330,23 @@ async function findLinkedSalesVouchers(userId, sale, models) {
   const found = new Map();
 
   if (sale.linkedVoucherId) {
-    const direct = await Voucher.findOne({ _id: sale.linkedVoucherId, userId, voucherType: 'Sales' });
+    const direct = await Voucher.findOne(uq(userId, { _id: sale.linkedVoucherId, voucherType: 'Sales' }));
     if (direct) found.set(String(direct._id), direct);
   }
 
-  const byLink = await Voucher.find({
-    userId,
+  const byLink = await Voucher.find(uq(userId, {
     voucherType: 'Sales',
     linkedSalesId: sale._id
-  });
+  }));
   byLink.forEach((v) => found.set(String(v._id), v));
 
   const rx = partyRegex(sale.customer);
-  const ledger = await Ledger.findOne({ userId, partyName: rx });
+  const ledger = await Ledger.findOne(uq(userId, { partyName: rx }));
   if (ledger) {
-    const candidates = await Voucher.find({
-      userId,
+    const candidates = await Voucher.find(uq(userId, {
       partyId: ledger._id,
       voucherType: 'Sales'
-    });
+    }));
     candidates.filter((v) => voucherMatchesSale(v, sale))
       .forEach((v) => found.set(String(v._id), v));
   }
@@ -359,7 +359,7 @@ async function findLinkedPaymentsForSale(userId, sale, models) {
   const { Payment } = models;
   if (!Payment || !sale?.customer) return [];
   const rx = partyRegex(sale.customer);
-  const payments = await Payment.find({ userId, customerName: rx });
+  const payments = await Payment.find(uq(userId, { customerName: rx }));
   const inv = String(sale.invoiceNo || '').trim();
   const amt = saleRecordAmount(sale);
   return payments.filter((p) => {
@@ -374,23 +374,21 @@ async function findReceiptVouchersForPayment(userId, payment, models) {
   const found = new Map();
 
   if (payment?._id) {
-    const direct = await Voucher.find({
-      userId,
+    const direct = await Voucher.find(uq(userId, {
       voucherType: 'Receipt',
       linkedPaymentId: payment._id
-    });
+    }));
     direct.forEach((v) => found.set(String(v._id), v));
   }
 
   const rx = partyRegex(payment.customerName);
-  const ledger = await Ledger.findOne({ userId, partyName: rx });
+  const ledger = await Ledger.findOne(uq(userId, { partyName: rx }));
   if (!ledger) return Array.from(found.values());
 
-  const receipts = await Voucher.find({
-    userId,
+  const receipts = await Voucher.find(uq(userId, {
     partyId: ledger._id,
     voucherType: 'Receipt'
-  });
+  }));
   receipts.filter((r) =>
     Math.abs(Number(r.amount) - Number(payment.amount)) < 0.02
     && sameCalendarDay(r.date, payment.date)
@@ -413,7 +411,7 @@ async function findLinkedSalesRecord(userId, voucher, models) {
   if (!party) return null;
 
   const rx = partyRegex(party.partyName);
-  const sales = await SalesHistory.find({ userId, customer: rx }).sort({ date: 1 });
+  const sales = await SalesHistory.find(uq(userId, { customer: rx })).sort({ date: 1 });
   const amt = Number(voucher.amount) || 0;
   const note = String(voucher.note || '').toLowerCase();
 
@@ -449,7 +447,7 @@ async function findLinkedPaymentForReceipt(userId, voucher, models) {
 
   const rx = partyRegex(party.partyName);
   const amt = Number(voucher.amount) || 0;
-  const payments = await Payment.find({ userId, customerName: rx }).sort({ date: 1 });
+  const payments = await Payment.find(uq(userId, { customerName: rx })).sort({ date: 1 });
   return payments.find((p) =>
     Math.abs(Number(p.amount) - amt) < 0.02 && sameCalendarDay(p.date, voucher.date)
   ) || null;
@@ -471,7 +469,7 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
   const rx = partyRegex(ledger.partyName);
   const events = [];
 
-  const sales = await SalesHistory.find({ userId, customer: rx });
+  const sales = await SalesHistory.find(uq(userId, { customer: rx }));
   for (const s of sales) {
     const amt = saleRecordAmount(s);
     const credit = isCreditPayment(s.paymentType, s.status);
@@ -492,7 +490,7 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     });
   }
 
-  const payments = await Payment.find({ userId, customerName: rx });
+  const payments = await Payment.find(uq(userId, { customerName: rx }));
   for (const p of payments) {
     const amt = Number(p.amount) || 0;
     if (amt <= 0) continue;
@@ -509,10 +507,9 @@ async function buildDebtorLedgerStatement(userId, ledger, models) {
     });
   }
 
-  const vouchers = await Voucher.find({
-    userId,
+  const vouchers = await Voucher.find(uq(userId, {
     $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
-  });
+  }));
   for (const v of vouchers) {
     const amt = Number(v.amount) || 0;
     if (amt <= 0) continue;
@@ -592,10 +589,9 @@ async function buildCreditorLedgerStatement(userId, ledger, models) {
   const openingBalance = Number(ledger.openingBalance) || 0;
   const events = [];
 
-  const vouchers = await Voucher.find({
-    userId,
+  const vouchers = await Voucher.find(uq(userId, {
     $or: [{ partyId: ledger._id }, { secondaryLedgerId: ledger._id }]
-  }).sort({ date: 1, _id: 1 });
+  })).sort({ date: 1, _id: 1 });
 
   for (const v of vouchers) {
     const amt = Number(v.amount) || 0;

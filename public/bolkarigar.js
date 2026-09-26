@@ -6212,6 +6212,10 @@ async function loadCompanyProfile() {
             address: p.fullAddress || ''
           };
           localStorage.setItem("bolkarigar_company_profile", JSON.stringify(savedProfile));
+          const sub = document.querySelector(".brand-title-sub");
+          if (sub && (p.activeCompanyName || p.companyName)) {
+            sub.textContent = p.activeCompanyName || p.companyName;
+          }
         }
       }
     }

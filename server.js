@@ -20,6 +20,7 @@ const { getOfflineAiReply, isValidGeminiApiKey } = require('./ai-offline.js');
 const { callVoiceParse } = require('./voice-ai.js');
 const { callChatAI, sanitizeHistory } = require('./chat-ai.js');
 const { setupProFeatures, LEDGER_GROUPS_FULL } = require('./pro-features.js');
+const { uidFilter, uidDoc, attachCompanyScope, runWithCompanyScope } = require('./company-scope.js');
 const { setupPayrollFeatures } = require('./payroll-features.js');
 const { setupEstimateFeatures } = require('./estimate-features.js');
 const { setupBusinessMailFeatures } = require('./business-mail-features.js');
@@ -329,6 +330,7 @@ const UserSchema = new mongoose.Schema({
 
 const DataSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   todos: { type: [String], default: [] },
   projects: { type: Array, default: [] },
   expenses: { type: Array, default: [] },
@@ -347,6 +349,7 @@ const DataSchema = new mongoose.Schema({
 // ==================================================================================
 const salesHistorySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   invoiceNo: String,
   customer: String,
   product: String,
@@ -395,6 +398,7 @@ const businessProfileSchema = new mongoose.Schema({
 // same MongoDB connection use hoti hai, bas properly chunk karke store hoti hai.
 const photoSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   caption: { type: String, default: '' },
   fileId: { type: mongoose.Schema.Types.ObjectId, required: true }, // GridFS file ka reference
   contentType: { type: String, default: 'image/jpeg' },
@@ -412,6 +416,7 @@ const VOUCHER_TYPES = ['Sales', 'Purchase', 'Payment', 'Receipt', 'Journal', 'Co
 
 const ledgerSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   partyName: { type: String, required: true },
   ledgerGroup: { type: String, enum: LEDGER_GROUPS, default: 'Sundry Debtor' },
   partyType: { type: String, enum: ['Debtor', 'Creditor'], default: 'Debtor' }, // backward-compat
@@ -425,6 +430,7 @@ const ledgerSchema = new mongoose.Schema({
 
 const itemSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   itemName: { type: String, required: true },
   unit: { type: String, default: 'Pcs' },
   hsnCode: String,
@@ -442,6 +448,7 @@ const itemSchema = new mongoose.Schema({
 
 const voucherSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
   voucherType: { type: String, enum: VOUCHER_TYPES, required: true },
   voucherNo: { type: String },
   partyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ledger' },
@@ -520,7 +527,10 @@ authenticateToken = (req, res, next) => {
         }
       } catch { /* subscription optional on fallback */ }
     }
-    next();
+    try {
+      await attachCompanyScope(req);
+    } catch { /* company scope optional */ }
+    runWithCompanyScope(req, () => next());
   });
 };
 
@@ -1026,8 +1036,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // --- Business Profile & Sync Endpoints ---
 app.get('/api/dashboard/sync', authenticateToken, async (req, res) => {
   try {
-    let data = await UserData.findOne({ userId: req.dataUserId });
-    if (!data) data = await UserData.create({ userId: req.dataUserId });
+    let data = await UserData.findOne(uidFilter(req));
+    if (!data) data = await UserData.create(uidDoc(req));
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Data load karne mein dikkat aayi.' });
@@ -1074,7 +1084,10 @@ app.get('/api/invoices/next-number', authenticateToken, async (req, res) => {
 app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
     const profile = await BusinessProfile.findOne({ userId: req.dataUserId });
-    res.json(profile || {});
+    const payload = profile ? profile.toObject() : {};
+    payload.activeCompanyId = req.activeCompanyId || null;
+    payload.activeCompanyName = req.activeCompany?.companyName || payload.companyName || '';
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ error: "Profile fetch error" });
   }
@@ -1109,15 +1122,14 @@ app.post('/api/sales/record', authenticateToken, async (req, res) => {
     const dateVal = voucherDate || date;
     const payType = paymentType || 'Cash';
     const credit = isCreditPayment(payType, status);
-    const record = await SalesHistory.create({
-      userId: req.dataUserId,
+    const record = await SalesHistory.create(uidDoc(req, {
       invoiceNo, customer, product, hsn,
       qty: qty || 1, price: price || 0, gstRate: gstRate || 0,
       totalAmount: totalAmount || 0,
       paymentType: payType,
       status: credit ? 'Pending' : 'Paid',
       date: dateVal ? new Date(dateVal) : undefined
-    });
+    }));
     res.json({ success: true, record });
   } catch (err) {
     logger.error('Sales record error:', err);
@@ -1128,7 +1140,7 @@ app.post('/api/sales/record', authenticateToken, async (req, res) => {
 app.get('/api/sales', authenticateToken, async (req, res) => {
   try {
     const { search, page = 1, limit = 20, fromDate, toDate } = req.query;
-    const filter = { userId: req.dataUserId };
+    const filter = uidFilter(req);
 
     if (search) {
       const rx = new RegExp(search, 'i');
@@ -1165,7 +1177,7 @@ app.get('/api/sales', authenticateToken, async (req, res) => {
 
 app.get('/api/sales/:id', authenticateToken, async (req, res) => {
   try {
-    const record = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const record = await SalesHistory.findOne(uidFilter(req, { _id: req.params.id }));
     if (!record) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
     res.json({ success: true, record });
   } catch (err) {
@@ -1175,7 +1187,7 @@ app.get('/api/sales/:id', authenticateToken, async (req, res) => {
 
 app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SALES_DELETE), async (req, res) => {
   try {
-    const sale = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const sale = await SalesHistory.findOne(uidFilter(req, { _id: req.params.id }));
     if (!sale) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
 
     const Payment = mongoose.models.Payment;
@@ -1228,7 +1240,7 @@ app.delete('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.SA
 
 app.put('/api/sales/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
-    const record = await SalesHistory.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const record = await SalesHistory.findOne(uidFilter(req, { _id: req.params.id }));
     if (!record) return res.status(404).json({ success: false, error: 'Invoice record nahi mila.' });
     const { invoiceNo, customer, product, hsn, qty, price, gstRate, totalAmount, paymentType, status, voucherDate, date } = req.body;
     if (invoiceNo !== undefined) record.invoiceNo = String(invoiceNo || '').trim();
@@ -1264,9 +1276,9 @@ app.post('/api/dashboard/update', authenticateToken, requireDashboardUpdate, asy
     const updateObj = {};
     updateObj[type] = payload;
     let data = await UserData.findOneAndUpdate(
-      { userId: req.dataUserId },
+      uidFilter(req),
       { $set: updateObj },
-      { new: true, upsert: true }
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     res.json({ success: true, data });
   } catch (err) {
@@ -1279,13 +1291,14 @@ app.post('/api/dashboard/clear-data', authenticateToken, requirePermission(PERMI
     const { type } = req.body;
     if (type === 'ALL') {
       await UserData.findOneAndUpdate(
-        { userId: req.dataUserId },
-        { $set: { todos: [], projects: [], expenses: [], invoices: [] } }
+        uidFilter(req),
+        { $set: { todos: [], projects: [], expenses: [], invoices: [] } },
+        { upsert: true }
       );
     } else {
       const updateObj = {};
       updateObj[type] = [];
-      await UserData.findOneAndUpdate({ userId: req.dataUserId }, { $set: updateObj });
+      await UserData.findOneAndUpdate(uidFilter(req), { $set: updateObj }, { upsert: true });
     }
     res.json({ success: true, message: `${type} ka data bilkul saaf kar diya gaya hai.` });
   } catch (err) {
@@ -2046,46 +2059,44 @@ app.post('/api/tally/sync-invoice', authenticateToken, requireTallyAccess, requi
     // Pehle Khata Pro me ledger + voucher (duplicate se bachne ke liye recent match dhundo)
     const ledger = await findOrCreateCustomerLedger(req.dataUserId, customer, {
       gstin: customerGstin,
-      ledgerGroup: 'Sundry Debtor'
+      ledgerGroup: 'Sundry Debtor',
+      companyId: req.activeCompanyId
     });
 
     let savedVoucher = null;
     if (ledger) {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      savedVoucher = await Voucher.findOne({
-        userId: req.dataUserId,
+      savedVoucher = await Voucher.findOne(uidFilter(req, {
         partyId: ledger._id,
         voucherType: 'Sales',
         amount: saleAmount,
         date: { $gte: since }
-      }).sort({ date: -1 });
+      })).sort({ date: -1 });
 
       if (!savedVoucher) {
-        savedVoucher = await Voucher.create({
-          userId: req.dataUserId,
+        savedVoucher = await Voucher.create(uidDoc(req, {
           voucherType: 'Sales',
           partyId: ledger._id,
           amount: saleAmount,
           note: `${customer} | ${product} x${qty}`,
           tallyXml: '',
           syncedToTally: false
-        });
+        }));
         if (isCreditPayment(voucherParams.paymentType, null)) {
-          await Ledger.updateOne({ _id: ledger._id, userId: req.dataUserId }, { $inc: { currentBalance: saleAmount } });
+          await Ledger.updateOne(uidFilter(req, { _id: ledger._id }), { $inc: { currentBalance: saleAmount } });
         }
       }
       savedVoucher.syncedToTally = false;
       savedVoucher.note = `${customer} | ${product} x${qty}`;
       await savedVoucher.save();
     } else {
-      savedVoucher = await Voucher.create({
-        userId: req.dataUserId,
+      savedVoucher = await Voucher.create(uidDoc(req, {
         voucherType: 'Sales',
         amount: saleAmount,
         note: `${customer} | ${product} x${qty}`,
         tallyXml: '',
         syncedToTally: false
-      });
+      }));
     }
 
     try {
@@ -2156,12 +2167,11 @@ app.post('/api/gallery/upload', authenticateToken, async (req, res) => {
     uploadStream.end(buffer);
 
     uploadStream.on('finish', async () => {
-      const photo = await Photo.create({
-        userId: req.dataUserId,
+      const photo = await Photo.create(uidDoc(req, {
         fileId: uploadStream.id,
         contentType,
         caption: caption || ''
-      });
+      }));
       res.json({ success: true, photo: { _id: photo._id, fileId: photo.fileId, caption: photo.caption, createdAt: photo.createdAt } });
     });
     uploadStream.on('error', (err) => {
@@ -2178,7 +2188,7 @@ app.post('/api/gallery/upload', authenticateToken, async (req, res) => {
 // bytes nahi, isliye yeh request bahut fast/light hai.
 app.get('/api/gallery', authenticateToken, async (req, res) => {
   try {
-    const photos = await Photo.find({ userId: req.dataUserId }).sort({ createdAt: -1 });
+    const photos = await Photo.find(uidFilter(req)).sort({ createdAt: -1 });
     res.json({ success: true, photos });
   } catch (err) {
     res.status(500).json({ error: 'Gallery load karne mein dikkat aayi.' });
@@ -2219,11 +2229,11 @@ app.get('/api/gallery/image/:fileId', async (req, res) => {
 
 app.delete('/api/gallery/:id', authenticateToken, async (req, res) => {
   try {
-    const photo = await Photo.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const photo = await Photo.findOne(uidFilter(req, { _id: req.params.id }));
     if (photo && galleryBucket) {
       try { await galleryBucket.delete(photo.fileId); } catch (e) { /* file already gone, ignore */ }
     }
-    await Photo.deleteOne({ _id: req.params.id, userId: req.dataUserId });
+    await Photo.deleteOne(uidFilter(req, { _id: req.params.id }));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Photo delete karne mein dikkat aayi.' });
@@ -2236,11 +2246,15 @@ async function findOrCreateCustomerLedger(userId, partyName, opts = {}) {
   const name = String(partyName || '').trim();
   if (!name) return null;
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  let ledger = await Ledger.findOne({ userId, partyName: new RegExp(`^${escaped}$`, 'i') });
+  const companyId = opts.companyId || null;
+  const ledgerQ = { userId, partyName: new RegExp(`^${escaped}$`, 'i') };
+  if (companyId) ledgerQ.companyId = companyId;
+  let ledger = await Ledger.findOne(ledgerQ);
   if (!ledger) {
     const group = opts.ledgerGroup || 'Sundry Debtor';
     ledger = await Ledger.create({
       userId,
+      companyId: companyId || null,
       partyName: name,
       ledgerGroup: group,
       partyType: group === 'Sundry Creditor' ? 'Creditor' : 'Debtor',
@@ -2433,15 +2447,14 @@ app.post('/api/ledgers', authenticateToken, requirePermission(PERMISSIONS.KHATA_
     if (!partyName) return res.status(400).json({ error: 'Party/Ledger naam zaroori hai.' });
 
     const partyType = (ledgerGroup === 'Sundry Creditor') ? 'Creditor' : 'Debtor';
-    const newLedger = new Ledger({
-      userId: req.dataUserId,
+    const newLedger = new Ledger(uidDoc(req, {
       partyName,
       ledgerGroup: ledgerGroup || 'Sundry Debtor',
       partyType,
       mobile, gstin, address,
       openingBalance: openingBalance || 0,
       currentBalance: openingBalance || 0
-    });
+    }));
     await newLedger.save();
     res.json({ success: true, message: "Ledger ban gaya hai!", ledger: newLedger });
   } catch (err) {
@@ -2456,7 +2469,7 @@ app.get('/api/ledgers', authenticateToken, async (req, res) => {
     if (Payment) {
       await reconcileAllDebtorLedgers(req.dataUserId, models, { force: true });
     }
-    const ledgers = await Ledger.find({ userId: req.dataUserId }).sort({ partyName: 1 });
+    const ledgers = await Ledger.find(uidFilter(req)).sort({ partyName: 1 });
     const enriched = await Promise.all(ledgers.map(async (ledger) => {
       const row = ledger.toObject();
       if (ledger.ledgerGroup === 'Sundry Debtor' && Payment) {
@@ -2591,7 +2604,7 @@ async function removeLedgerWithCascade(userId, ledger) {
 
 app.delete('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.LEDGER_DELETE), async (req, res) => {
   try {
-    const ledger = await Ledger.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const ledger = await Ledger.findOne(uidFilter(req, { _id: req.params.id }));
     if (!ledger) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
 
     const stats = await removeLedgerWithCascade(req.dataUserId, ledger);
@@ -2611,7 +2624,7 @@ app.delete('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.
 app.put('/api/ledgers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
     const { partyName, ledgerGroup, mobile, gstin, address } = req.body;
-    const ledger = await Ledger.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const ledger = await Ledger.findOne(uidFilter(req, { _id: req.params.id }));
     if (!ledger) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
     if (partyName && String(partyName).trim()) ledger.partyName = String(partyName).trim();
     if (ledgerGroup && LEDGER_GROUPS.includes(ledgerGroup)) {
@@ -2636,8 +2649,7 @@ app.post('/api/items', authenticateToken, requirePermission(PERMISSIONS.INVENTOR
     const { itemName, unit, hsnCode, gstRate, purchasePrice, sellingPrice, openingStock, godown, batchNo, reorderLevel } = req.body;
     if (!itemName) return res.status(400).json({ error: 'Item naam zaroori hai.' });
 
-    const newItem = new Item({
-      userId: req.dataUserId,
+    const newItem = new Item(uidDoc(req, {
       itemName, unit: unit || 'Pcs', hsnCode,
       gstRate: gstRate || 0,
       purchasePrice: purchasePrice || 0,
@@ -2647,7 +2659,7 @@ app.post('/api/items', authenticateToken, requirePermission(PERMISSIONS.INVENTOR
       godown: godown || 'Main Godown',
       batchNo: batchNo || '',
       reorderLevel: reorderLevel != null ? Number(reorderLevel) : 5
-    });
+    }));
     await newItem.save();
     res.json({ success: true, message: "Item ban gaya hai!", item: newItem });
   } catch (err) {
@@ -2657,7 +2669,7 @@ app.post('/api/items', authenticateToken, requirePermission(PERMISSIONS.INVENTOR
 
 app.get('/api/items', authenticateToken, async (req, res) => {
   try {
-    const items = await Item.find({ userId: req.dataUserId }).sort({ itemName: 1 });
+    const items = await Item.find(uidFilter(req)).sort({ itemName: 1 });
     res.json({ success: true, items });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -2666,7 +2678,7 @@ app.get('/api/items', authenticateToken, async (req, res) => {
 
 app.delete('/api/items/:id', authenticateToken, requirePermission(PERMISSIONS.ITEM_DELETE), async (req, res) => {
   try {
-    await Item.deleteOne({ _id: req.params.id, userId: req.dataUserId });
+    await Item.deleteOne(uidFilter(req, { _id: req.params.id }));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -2676,7 +2688,7 @@ app.delete('/api/items/:id', authenticateToken, requirePermission(PERMISSIONS.IT
 app.put('/api/items/:id', authenticateToken, requirePermission(PERMISSIONS.INVENTORY_WRITE), async (req, res) => {
   try {
     const { itemName, unit, hsnCode, gstRate, purchasePrice, sellingPrice, godown, batchNo, reorderLevel } = req.body;
-    const item = await Item.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const item = await Item.findOne(uidFilter(req, { _id: req.params.id }));
     if (!item) return res.status(404).json({ success: false, error: 'Item nahi mila.' });
 
     if (itemName) item.itemName = itemName;
@@ -2703,7 +2715,7 @@ app.post('/api/items/:id/adjust-stock', authenticateToken, requirePermission(PER
     if (!delta || Number.isNaN(delta)) {
       return res.status(400).json({ success: false, error: 'Qty change zaroori hai (+ stock in, - stock out).' });
     }
-    const item = await Item.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const item = await Item.findOne(uidFilter(req, { _id: req.params.id }));
     if (!item) return res.status(404).json({ success: false, error: 'Item nahi mila.' });
 
     const newQty = (item.stockQty || 0) + delta;
@@ -2855,8 +2867,7 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
       return res.status(400).json({ error: 'Amount zaroori hai.' });
     }
 
-    const newVoucher = new Voucher({
-      userId: req.dataUserId,
+    const newVoucher = new Voucher(uidDoc(req, {
       voucherType,
       partyId: finalPartyId,
       secondaryLedgerId: finalSecondaryId,
@@ -2868,7 +2879,7 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
       supplierGstin: supplierGstin || undefined,
       paymentMode: paymentMode || undefined,
       date: voucherDate ? new Date(voucherDate) : new Date()
-    });
+    }));
 
     const skipPartyLedger = voucherType === 'Sales' && !isCreditPayment(paymentMode, null);
     if (voucherType === 'Journal' && finalJournalEntries.length) {
@@ -2886,7 +2897,7 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
 
     const PaymentModel = mongoose.models.Payment;
     if (PaymentModel && finalPartyId) {
-      const partyLedger = await Ledger.findOne({ _id: finalPartyId, userId: req.dataUserId });
+      const partyLedger = await Ledger.findOne(uidFilter(req, { _id: finalPartyId }));
       if (partyLedger?.ledgerGroup === 'Sundry Debtor') {
         await reconcileAllDebtorLedgers(
           req.dataUserId,
@@ -2906,7 +2917,7 @@ app.post('/api/vouchers', authenticateToken, requirePermission(PERMISSIONS.KHATA
 app.get('/api/vouchers', authenticateToken, async (req, res) => {
   try {
     const { type, search, limit, fromDate, toDate } = req.query;
-    const filter = { userId: req.dataUserId };
+    const filter = uidFilter(req);
     if (type && VOUCHER_TYPES.includes(type)) filter.voucherType = type;
 
     if (fromDate || toDate) {
@@ -2951,7 +2962,7 @@ app.get('/api/vouchers', authenticateToken, async (req, res) => {
 
 app.get('/api/vouchers/:id', authenticateToken, async (req, res) => {
   try {
-    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId })
+    const voucher = await Voucher.findOne(uidFilter(req, { _id: req.params.id }))
       .populate('partyId', 'partyName ledgerGroup gstin mobile address')
       .populate('secondaryLedgerId', 'partyName');
     if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
@@ -2963,7 +2974,7 @@ app.get('/api/vouchers/:id', authenticateToken, async (req, res) => {
 
 app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
-    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const voucher = await Voucher.findOne(uidFilter(req, { _id: req.params.id }));
     if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
 
     const {
@@ -3017,7 +3028,7 @@ app.put('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KH
 
     const PaymentModel = mongoose.models.Payment;
     if (PaymentModel && voucher.partyId) {
-      const partyLedger = await Ledger.findOne({ _id: voucher.partyId, userId: req.dataUserId });
+      const partyLedger = await Ledger.findOne(uidFilter(req, { _id: voucher.partyId }));
       if (partyLedger?.ledgerGroup === 'Sundry Debtor') {
         await reconcileAllDebtorLedgers(
           req.dataUserId,
@@ -3054,7 +3065,7 @@ async function removeVoucherWithReversal(userId, voucher) {
 
 app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS.KHATA_WRITE), async (req, res) => {
   try {
-    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const voucher = await Voucher.findOne(uidFilter(req, { _id: req.params.id }));
     if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
 
     const Payment = mongoose.models.Payment;
@@ -3095,7 +3106,7 @@ app.delete('/api/vouchers/:id', authenticateToken, requirePermission(PERMISSIONS
 
 app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) => {
   try {
-    const party = await Ledger.findOne({ _id: req.params.partyId, userId: req.dataUserId });
+    const party = await Ledger.findOne(uidFilter(req, { _id: req.params.partyId }));
     if (!party) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
 
     const Payment = mongoose.models.Payment;
@@ -3111,10 +3122,9 @@ app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) =>
       return res.json({ success: true, ...statement, isDebtorStatement: false, isCreditorStatement: true });
     }
 
-    const transactions = await Voucher.find({
-      userId: req.dataUserId,
+    const transactions = await Voucher.find(uidFilter(req, {
       $or: [{ partyId: req.params.partyId }, { secondaryLedgerId: req.params.partyId }]
-    }).sort({ date: 1 });
+    })).sort({ date: 1 });
     res.json({
       success: true,
       partyName: party.partyName,
@@ -3134,7 +3144,7 @@ app.get('/api/ledger-statement/:partyId', authenticateToken, async (req, res) =>
 // ==================================================================================
 app.get('/api/reports/stock-summary', authenticateToken, async (req, res) => {
   try {
-    const items = await Item.find({ userId: req.dataUserId }).sort({ itemName: 1 });
+    const items = await Item.find(uidFilter(req)).sort({ itemName: 1 });
     const defaultThreshold = parseInt(req.query.lowThreshold, 10) || 5;
     let lowStockCount = 0;
     let outOfStockCount = 0;
@@ -3196,15 +3206,15 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
     const totalAmount = baseAmount + gstAmount;
 
     const ledger = await findOrCreateCustomerLedger(req.dataUserId, customer, {
-      gstin, mobile, ledgerGroup: 'Sundry Debtor'
+      gstin, mobile, ledgerGroup: 'Sundry Debtor',
+      companyId: req.activeCompanyId
     });
 
     const items = [];
     const escapedProduct = String(product).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    let stockItem = await Item.findOne({ userId: req.dataUserId, itemName: new RegExp(`^${escapedProduct}$`, 'i') });
+    let stockItem = await Item.findOne(uidFilter(req, { itemName: new RegExp(`^${escapedProduct}$`, 'i') }));
     if (!stockItem) {
-      stockItem = await Item.create({
-        userId: req.dataUserId,
+      stockItem = await Item.create(uidDoc(req, {
         itemName: product,
         hsnCode: hsn || '',
         gstRate: gstRate || 0,
@@ -3212,11 +3222,11 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
         purchasePrice: price,
         openingStock: 0,
         stockQty: 0
-      });
+      }));
     }
     items.push({ itemId: stockItem._id, itemName: product, qty: Number(qty), rate: Number(price), gstRate: gstRate || 0 });
     if (stockItem.stockQty > 0) {
-      await Item.updateOne({ _id: stockItem._id, userId: req.dataUserId }, { $inc: { stockQty: -Math.abs(qty) } });
+      await Item.updateOne(uidFilter(req, { _id: stockItem._id }), { $inc: { stockQty: -Math.abs(qty) } });
     }
 
     const payType = paymentType || 'Cash';
@@ -3226,8 +3236,7 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
     if (invoiceNo) noteParts.push(String(invoiceNo));
     if (!credit) noteParts.push('(Paid)');
 
-    const voucher = await Voucher.create({
-      userId: req.dataUserId,
+    const voucher = await Voucher.create(uidDoc(req, {
       voucherType: 'Sales',
       partyId: ledger._id,
       amount: totalAmount,
@@ -3236,11 +3245,11 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
       linkedSalesId: salesHistoryId || undefined,
       note: noteParts.join(' | '),
       syncedToTally: false
-    });
+    }));
 
     if (salesHistoryId) {
       await SalesHistory.updateOne(
-        { _id: salesHistoryId, userId: req.dataUserId },
+        uidFilter(req, { _id: salesHistoryId }),
         { linkedVoucherId: voucher._id }
       );
     }
@@ -3266,7 +3275,7 @@ app.post('/api/khata/record-sale', authenticateToken, requirePermission(PERMISSI
 // Khata Pro ledger ko Tally me master ke roop me bhejo
 app.post('/api/tally/sync-ledger/:id', authenticateToken, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
   try {
-    const ledger = await Ledger.findOne({ _id: req.params.id, userId: req.dataUserId });
+    const ledger = await Ledger.findOne(uidFilter(req, { _id: req.params.id }));
     if (!ledger) return res.status(404).json({ success: false, error: 'Ledger nahi mila.' });
 
     const xml = buildTallyLedgerMasterXml({
@@ -3289,7 +3298,7 @@ app.post('/api/tally/sync-ledger/:id', authenticateToken, requireBusinessPlan, r
 // Khata voucher ko Tally me bhejo (Sales type)
 app.post('/api/tally/sync-voucher/:id', authenticateToken, requireBusinessPlan, requirePermission(PERMISSIONS.TALLY_SYNC), async (req, res) => {
   try {
-    const voucher = await Voucher.findOne({ _id: req.params.id, userId: req.dataUserId }).populate('partyId', 'partyName gstin');
+    const voucher = await Voucher.findOne(uidFilter(req, { _id: req.params.id })).populate('partyId', 'partyName gstin');
     if (!voucher) return res.status(404).json({ success: false, error: 'Voucher nahi mila.' });
     if (voucher.syncedToTally) return res.json({ success: true, message: 'Yeh voucher pehle se Tally me sync hai.' });
 

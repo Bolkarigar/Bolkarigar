@@ -3,6 +3,7 @@
  */
 const { parseBankCsvRows } = require('./bank-csv-utils');
 const { autoMatchBankRecon } = require('./bank-recon-service');
+const { uidFilter } = require('./company-scope');
 
 function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, requireBusinessPlan }) {
   const { SalesHistory, Item, Ledger, Voucher, UserData, BusinessProfile } = models;
@@ -23,8 +24,8 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
     try {
       const uid = req.dataUserId;
       const { start, end } = todayRange();
-      const sales = await SalesHistory.find({ userId: uid, date: { $gte: start, $lte: end } });
-      const payments = await Payment().find({ userId: uid, date: { $gte: start, $lte: end } });
+      const sales = await SalesHistory.find(uidFilter(req, { date: { $gte: start, $lte: end } }));
+      const payments = await Payment().find(uidFilter(req, { date: { $gte: start, $lte: end } }));
 
       let cash = 0, upi = 0, credit = 0, totalSales = 0;
       sales.forEach((s) => {
@@ -84,12 +85,12 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
       const uid = req.dataUserId;
       const [profile, userData, sales, ledgers, items, vouchers, payments] = await Promise.all([
         BusinessProfile.findOne({ userId: uid }),
-        UserData.findOne({ userId: uid }),
-        SalesHistory.find({ userId: uid }).sort({ date: -1 }).limit(5000),
-        Ledger.find({ userId: uid }),
-        Item.find({ userId: uid }),
-        Voucher.find({ userId: uid }).sort({ date: -1 }).limit(5000),
-        Payment.find({ userId: uid }).sort({ date: -1 }).limit(5000)
+        UserData.findOne(uidFilter(req)),
+        SalesHistory.find(uidFilter(req)).sort({ date: -1 }).limit(5000),
+        Ledger.find(uidFilter(req)),
+        Item.find(uidFilter(req)),
+        Voucher.find(uidFilter(req)).sort({ date: -1 }).limit(5000),
+        Payment.find(uidFilter(req)).sort({ date: -1 }).limit(5000)
       ]);
       const payload = {
         exportedAt: new Date().toISOString(),
@@ -123,9 +124,9 @@ function setupLiveFeatures({ app, mongoose, authenticateToken, models, rbac, req
 
       const [profile, sales, vouchers, ledgers] = await Promise.all([
         BusinessProfile.findOne({ userId: uid }),
-        SalesHistory.find({ userId: uid, date: { $gte: from, $lte: to } }),
-        Voucher.find({ userId: uid, date: { $gte: from, $lte: to } }),
-        Ledger.find({ userId: uid })
+        SalesHistory.find(uidFilter(req, { date: { $gte: from, $lte: to } })),
+        Voucher.find(uidFilter(req, { date: { $gte: from, $lte: to } })),
+        Ledger.find(uidFilter(req))
       ]);
 
       let outTax = 0;

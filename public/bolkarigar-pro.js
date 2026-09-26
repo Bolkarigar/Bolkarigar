@@ -303,9 +303,10 @@
       row.querySelector('.activate-co-btn:not(.co-active-btn)')?.addEventListener('click', async () => {
         const res = await apiPost('/api/companies/' + id + '/activate', {});
         if (res.success) {
-          showToast('✅ Active company — Business Profile updated.');
+          showToast('✅ Active company — app is reloading this company\'s data.');
           loadCompanies();
           refreshProfileAfterCompanyChange();
+          setTimeout(() => window.location.reload(), 400);
         } else showToast('❌ ' + (res.error || 'Switch fail'), 'error');
       });
       row.querySelector('.delete-co-btn')?.addEventListener('click', async () => {
