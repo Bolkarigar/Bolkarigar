@@ -1,5 +1,5 @@
 (function () {
-  var LIVE_API = 'https://bolkarigar.onrender.com';
+  var LIVE_API = 'https://app.accountsorbit.com';
   var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   if (isNative) {
     window.API_URL = LIVE_API;

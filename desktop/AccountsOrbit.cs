@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 internal static class AccountsOrbit
 {
-    const string AppUrl = "https://bolkarigar.onrender.com/loginpage.html";
+    const string AppUrl = "https://app.accountsorbit.com/dashboard";
 
     [STAThread]
     static void Main()
@@ -16,10 +16,12 @@ internal static class AccountsOrbit
             Process.Start(new ProcessStartInfo { FileName = AppUrl, UseShellExecute = true });
             return;
         }
+        var profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AccountsOrbit", "ChromeProfile");
+        Directory.CreateDirectory(profile);
         Process.Start(new ProcessStartInfo
         {
             FileName = edge,
-            Arguments = "--app=\"" + AppUrl + "\" --window-size=1360,860",
+            Arguments = "--user-data-dir=\"" + profile + "\" --app=\"" + AppUrl + "\" --window-size=1360,860 --no-first-run --no-default-browser-check",
             UseShellExecute = false
         });
     }

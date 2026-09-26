@@ -1,7 +1,7 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
 
-const APP_URL = process.env.AO_APP_URL || "https://bolkarigar.onrender.com/loginpage.html";
+const APP_URL = process.env.AO_APP_URL || "https://app.accountsorbit.com/dashboard";
 
 function createWindow() {
   const win = new BrowserWindow({

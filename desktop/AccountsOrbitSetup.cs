@@ -9,12 +9,12 @@ using System.Windows.Forms;
 [assembly: AssemblyProduct("Accounts Orbit")]
 [assembly: AssemblyCompany("Accounts Orbit")]
 [assembly: AssemblyDescription("Accounts Orbit desktop app")]
-[assembly: AssemblyVersion("1.0.4.0")]
-[assembly: AssemblyFileVersion("1.0.4.0")]
+[assembly: AssemblyVersion("1.0.5.0")]
+[assembly: AssemblyFileVersion("1.0.5.0")]
 
 internal static class Program
 {
-    const string AppUrl = "https://app.accountsorbit.com/loginpage.html";
+    const string AppUrl = "https://app.accountsorbit.com/dashboard";
 
     [STAThread]
     static void Main()
@@ -90,15 +90,19 @@ internal static class Program
     static void LaunchApp()
     {
         var browser = FindBrowser();
-        var psi = browser == null
-            ? new ProcessStartInfo { FileName = AppUrl, UseShellExecute = true }
-            : new ProcessStartInfo
-            {
-                FileName = browser,
-                Arguments = "--app=\"" + AppUrl + "\" --window-size=1360,860",
-                UseShellExecute = true
-            };
-        Process.Start(psi);
+        if (browser == null)
+        {
+            Process.Start(new ProcessStartInfo { FileName = AppUrl, UseShellExecute = true });
+            return;
+        }
+        var profile = Path.Combine(AppDir(), "ChromeProfile");
+        Directory.CreateDirectory(profile);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = browser,
+            Arguments = "--user-data-dir=\"" + profile + "\" --app=\"" + AppUrl + "\" --window-size=1360,860 --no-first-run --no-default-browser-check",
+            UseShellExecute = false
+        });
     }
 
     static string FindBrowser()
