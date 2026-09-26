@@ -7030,12 +7030,12 @@ function getEWayBillDetails() {
       }
       return `
       <tr>
-        <td>${new Date(v.date).toLocaleDateString("en-IN")}</td>
-        <td>${escapeHtml(typeof bkVoucherTypeLabel === "function" ? bkVoucherTypeLabel(v.voucherType) : v.voucherType)}</td>
-        <td>${partyCol}</td>
-        <td>₹${v.amount.toFixed(2)}</td>
-        <td>${escapeHtml(v.note) || "-"}</td>
-        <td class="khata-act-group">
+        <td data-label="Date">${new Date(v.date).toLocaleDateString("en-IN")}</td>
+        <td data-label="Type">${escapeHtml(typeof bkVoucherTypeLabel === "function" ? bkVoucherTypeLabel(v.voucherType) : v.voucherType)}</td>
+        <td data-label="Party">${partyCol}</td>
+        <td data-label="Amount">₹${v.amount.toFixed(2)}</td>
+        <td data-label="Note">${escapeHtml(v.note) || "-"}</td>
+        <td data-label="Sync" class="khata-act-group">
           <button type="button" class="khata-act-btn" title="Voucher edit" onclick="typeof openModifyVoucherFromDaybook==='function'&&openModifyVoucherFromDaybook('${v._id}','${escapeHtml(v.voucherType || '')}')">✏️ Edit</button>
           ${v.syncedToTally ? "✅" : `<button type="button" onclick="syncKhataVoucherToTally('${v._id}')">📊 Sync</button>`}
         </td>

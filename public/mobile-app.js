@@ -152,7 +152,7 @@
   function skipTableWrap(wrap) {
     if (!wrap || wrap.classList.contains("inv-tax-table-wrap")) return true;
     if (wrap.closest(".inv-tax-footer")) return true;
-    if (wrap.closest("#ledgerPanel, #khataLedgersPanel, #mediaPanel, #calcPanel")) return true;
+    if (wrap.closest("#ledgerPanel, #khataLedgersPanel, #khataDaybookPanel, #mediaPanel, #calcPanel")) return true;
     var tb = wrap.querySelector("tbody");
     if (!tb) return true;
     return /^(invoiceBody|pvItemsBody|busyTaxSummaryBody|pvTaxSummaryBody|pvTaxBody|ledgerBody|khataLedgersBody)$/.test(tb.id || "");

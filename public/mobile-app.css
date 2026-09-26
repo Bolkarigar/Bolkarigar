@@ -1026,6 +1026,66 @@ html.ao-phone #teamGalleryShareList button {
   margin-left: auto;
 }
 
+html.ao-phone #khataDaybookPanel.panel.active {
+  display: block !important;
+  min-height: 0 !important;
+}
+html.ao-phone #khataDaybookPanel .daybook-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #d5deea;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="dark"].ao-phone #khataDaybookPanel .daybook-toolbar {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html.ao-phone #khataDaybookPanel .daybook-toolbar .sales-date-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html.ao-phone #khataDaybookPanel .daybook-toolbar input[type="date"] {
+  width: 100%;
+  min-height: 44px;
+}
+html.ao-phone #khataDaybookPanel .daybook-toolbar #khataDaybookTodayBtn {
+  flex: 0 0 auto;
+  min-width: 72px;
+  min-height: 44px;
+}
+html.ao-phone #khataDaybookPanel .daybook-table-wrap {
+  flex: none;
+  overflow: visible;
+  border: none;
+  background: transparent;
+}
+html.ao-phone #khataDaybookPanel .khata-pagination {
+  position: relative;
+  z-index: 3;
+  margin-top: 10px;
+  margin-bottom: calc(var(--ao-phone-bar) + 8px);
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #d5deea;
+  background: #fff;
+}
+html[data-theme="dark"].ao-phone #khataDaybookPanel .khata-pagination {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html.ao-phone #khataDaybookPanel .ao-phone-list-tools {
+  display: none !important;
+}
+
 @media (min-width: 821px) {
   html.ao-phone:not(.capacitor-native) .ao-phone-tabbar,
   html.ao-phone:not(.capacitor-native) .ao-phone-more {
