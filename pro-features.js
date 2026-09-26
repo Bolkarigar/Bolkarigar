@@ -46,7 +46,33 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
   const active = requireActivePlan || ((req, res, next) => next());
 
   // --- Schemas ---
-  const { uidFilter, uidDoc } = require('./company-scope');
+  const { uidFilter, uidDoc, deleteCompanyData } = require('./company-scope');
+  const {
+    sendCompanyDeleteOtp,
+    isEmailConfigured,
+    isRenderHost,
+    hasHttpsEmailProvider
+  } = require('./email-service');
+
+  function maskOwnerEmail(email) {
+    const e = String(email || '').trim().toLowerCase();
+    const at = e.indexOf('@');
+    if (at < 1) return 'your registered email';
+    const local = e.slice(0, at);
+    const domain = e.slice(at + 1);
+    if (!domain) return 'your registered email';
+    const maskedLocal = local.length <= 2
+      ? `${local[0] || '*'}***`
+      : `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local.slice(-1)}`;
+    return `${maskedLocal}@${domain}`;
+  }
+
+  function clearCompanyDeleteOtp(owner) {
+    owner.companyDeleteOtpHash = null;
+    owner.companyDeleteOtpExpiry = null;
+    owner.companyDeleteTargetId = null;
+    owner.companyDeleteOtpAttempts = 0;
+  }
 
   const paymentSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -729,12 +755,120 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     }
     res.json({ success: true, message: 'Company switch ho gayi.' });
   });
-  app.delete('/api/companies/:id', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+  app.post('/api/companies/:id/delete-otp', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
     try {
       const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
       if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
+
+      const owner = await User.findById(req.ownerId);
+      if (!owner) return res.status(404).json({ error: 'Account nahi mila.' });
+
+      const recipient = String(owner.email || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+        return res.status(400).json({
+          error: 'Is account ki registered email valid nahi hai. Pehle Profile / Sign Up wali email set karein.'
+        });
+      }
+
+      if (!isEmailConfigured()) {
+        return res.status(503).json({
+          error: 'OTP email server par set nahi hai. Delete abhi possible nahi.'
+        });
+      }
+
+      const targetId = String(co._id);
+      const remainingMs = owner.companyDeleteOtpExpiry
+        ? owner.companyDeleteOtpExpiry.getTime() - Date.now()
+        : 0;
+      if (
+        owner.companyDeleteTargetId === targetId &&
+        remainingMs > 8 * 60 * 1000
+      ) {
+        return res.status(429).json({
+          error: 'OTP abhi-abhi bheja gaya hai. Inbox / spam check karein, ya 2 minute baad resend karein.',
+          sentToMasked: maskOwnerEmail(recipient),
+          code: 'OTP_COOLDOWN'
+        });
+      }
+
+      const otp = String(crypto.randomInt(100000, 1000000));
+      owner.companyDeleteOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+      owner.companyDeleteOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      owner.companyDeleteTargetId = targetId;
+      owner.companyDeleteOtpAttempts = 0;
+      await owner.save();
+
+      try {
+        const delivery = await sendCompanyDeleteOtp(recipient, otp, co.companyName);
+        if (!delivery.sent) {
+          clearCompanyDeleteOtp(owner);
+          await owner.save();
+          const smtpBlocked = isRenderHost() && !hasHttpsEmailProvider();
+          return res.status(503).json({
+            error: smtpBlocked
+              ? 'Live server par email band hai. Owner ko Render par BREVO_API_KEY add karna hoga.'
+              : (delivery.error || 'OTP email nahi gaya. 1 minute baad try karein.'),
+            code: smtpBlocked ? 'RENDER_SMTP_BLOCKED' : 'EMAIL_SEND_FAILED'
+          });
+        }
+      } catch (mailErr) {
+        clearCompanyDeleteOtp(owner);
+        await owner.save();
+        return res.status(503).json({
+          error: 'OTP email nahi gaya. Thodi der baad try karein.'
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'OTP registered email par bhej diya gaya.',
+        sentToMasked: maskOwnerEmail(recipient),
+        companyName: co.companyName
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/companies/:id', authenticateToken, ownerMiddleware, requireOwner, active, requirePermission(PERMISSIONS.COMPANIES), async (req, res) => {
+    try {
+      const otp = String(req.body?.otp || '').trim();
+      if (!/^\d{6}$/.test(otp)) {
+        return res.status(400).json({ error: 'Pehle registered email ka 6-digit OTP bhejein. Bina OTP company delete nahi hogi.' });
+      }
+
+      const co = await Company.findOne({ _id: req.params.id, userId: req.ownerId });
+      if (!co) return res.status(404).json({ error: 'Company nahi mili.' });
+
+      const owner = await User.findById(req.ownerId);
+      if (!owner) return res.status(404).json({ error: 'Account nahi mila.' });
+
+      if (!owner.companyDeleteOtpHash || !owner.companyDeleteOtpExpiry || owner.companyDeleteOtpExpiry < new Date()) {
+        return res.status(400).json({ error: 'OTP expire ho gaya. Naya OTP maango.' });
+      }
+      if (String(owner.companyDeleteTargetId) !== String(co._id)) {
+        return res.status(400).json({ error: 'Yeh OTP is company ke liye nahi hai. Naya OTP maango.' });
+      }
+      if ((owner.companyDeleteOtpAttempts || 0) >= 5) {
+        clearCompanyDeleteOtp(owner);
+        await owner.save();
+        return res.status(429).json({ error: 'Bahut galat attempts. Naya OTP maango.' });
+      }
+
+      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+      if (otpHash !== owner.companyDeleteOtpHash) {
+        owner.companyDeleteOtpAttempts = (owner.companyDeleteOtpAttempts || 0) + 1;
+        await owner.save();
+        const left = Math.max(0, 5 - owner.companyDeleteOtpAttempts);
+        return res.status(400).json({ error: left ? `Galat OTP. ${left} attempts bachi hain.` : 'Galat OTP. Naya OTP maango.' });
+      }
+
       const wasActive = !!co.isActive;
+      await deleteCompanyData(req.ownerId, co._id);
       await Company.deleteOne({ _id: co._id, userId: req.ownerId });
+      clearCompanyDeleteOtp(owner);
+      await owner.save();
+
       if (wasActive) {
         const next = await Company.findOne({ userId: req.ownerId }).sort({ createdAt: 1 });
         if (next) {
@@ -746,7 +880,11 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
           );
         }
       }
-      res.json({ success: true, message: 'Company delete ho gayi.' });
+      res.json({
+        success: true,
+        message: 'Company aur uska saara data delete ho gaya.',
+        reloaded: wasActive
+      });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

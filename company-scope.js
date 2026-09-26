@@ -99,6 +99,23 @@ function runWithCompanyScope(req, fn) {
   );
 }
 
+async function deleteCompanyData(userId, companyId) {
+  const cid = companyObjectId(companyId);
+  if (!userId || !cid) return { deleted: {} };
+  const q = { userId, companyId: cid };
+  const deleted = {};
+  for (const name of SCOPED_MODELS) {
+    try {
+      const Model = mongoose.model(name);
+      const res = await Model.deleteMany(q);
+      deleted[name] = res?.deletedCount || 0;
+    } catch {
+      /* model not registered */
+    }
+  }
+  return { deleted };
+}
+
 module.exports = {
   scopedUser,
   scopedDoc,
@@ -107,5 +124,6 @@ module.exports = {
   attachCompanyScope,
   runWithCompanyScope,
   backfillLegacyToFirstCompany,
+  deleteCompanyData,
   companyObjectId
 };

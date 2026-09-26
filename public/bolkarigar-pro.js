@@ -26,8 +26,10 @@
     const r = await fetch(`${API()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
     return r.json();
   }
-  async function apiDelete(path) {
-    const r = await fetch(`${API()}${path}`, { method: 'DELETE', headers: headers() });
+  async function apiDelete(path, body) {
+    const opts = { method: 'DELETE', headers: headers() };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(`${API()}${path}`, opts);
     return r.json();
   }
 
@@ -309,17 +311,126 @@
           setTimeout(() => window.location.reload(), 400);
         } else showToast('❌ ' + (res.error || 'Switch fail'), 'error');
       });
-      row.querySelector('.delete-co-btn')?.addEventListener('click', async () => {
-        if (!confirm('Delete company "' + name + '"?')) return;
-        const del = await apiDelete('/api/companies/' + id);
-        if (del.success) {
-          showToast('✅ Company removed.');
-          loadCompanies();
-          refreshProfileAfterCompanyChange();
-        } else showToast('❌ ' + (del.error || 'Delete fail'), 'error');
+      row.querySelector('.delete-co-btn')?.addEventListener('click', () => {
+        openCompanyDeleteModal(id, name);
       });
     });
   }
+
+  let pendingDeleteCompany = null;
+
+  function companyDeleteEls() {
+    return {
+      modal: document.getElementById('companyDeleteModal'),
+      warn: document.getElementById('companyDeleteWarn'),
+      stepWarn: document.getElementById('companyDeleteStepWarn'),
+      stepOtp: document.getElementById('companyDeleteStepOtp'),
+      ack: document.getElementById('companyDeleteAck'),
+      hint: document.getElementById('companyDeleteOtpHint'),
+      otp: document.getElementById('companyDeleteOtpInput')
+    };
+  }
+
+  function closeCompanyDeleteModal() {
+    const els = companyDeleteEls();
+    pendingDeleteCompany = null;
+    if (els.modal) els.modal.classList.add('hidden');
+    if (els.ack) els.ack.checked = false;
+    if (els.otp) els.otp.value = '';
+    if (els.stepWarn) els.stepWarn.classList.remove('hidden');
+    if (els.stepOtp) els.stepOtp.classList.add('hidden');
+  }
+
+  function openCompanyDeleteModal(id, name) {
+    const els = companyDeleteEls();
+    if (!els.modal) {
+      showToast('❌ Delete confirm screen nahi khuli.', 'error');
+      return;
+    }
+    pendingDeleteCompany = { id, name };
+    els.warn.textContent = '"' + name + '" delete karoge to is company ka saara data permanently delete ho jayega — sales, purchase, stock, ledger, day book, invoices, photos. Wapas nahi aayega. Pehle registered email par OTP aayega.';
+    if (els.ack) els.ack.checked = false;
+    if (els.otp) els.otp.value = '';
+    els.stepWarn?.classList.remove('hidden');
+    els.stepOtp?.classList.add('hidden');
+    els.modal.classList.remove('hidden');
+  }
+
+  async function sendCompanyDeleteOtp(btn) {
+    if (!pendingDeleteCompany) return;
+    const els = companyDeleteEls();
+    if (els.ack && !els.ack.checked && !els.stepWarn?.classList.contains('hidden')) {
+      showToast('Pehle confirm box tick karo — saara data delete ho jayega.', 'error');
+      return;
+    }
+    const prev = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'OTP bhej rahe hain…'; }
+    try {
+      const res = await apiPost('/api/companies/' + pendingDeleteCompany.id + '/delete-otp', {});
+      if (!res.success) {
+        showToast('❌ ' + (res.error || 'OTP nahi gaya'), 'error');
+        return;
+      }
+      if (els.hint) {
+        els.hint.textContent = 'OTP ' + (res.sentToMasked || 'registered email') + ' par bhej diya. 10 minute valid hai.';
+      }
+      els.stepWarn?.classList.add('hidden');
+      els.stepOtp?.classList.remove('hidden');
+      els.otp?.focus();
+      showToast('✅ OTP email par chala gaya.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = prev || 'OTP email par bhejo'; }
+    }
+  }
+
+  async function confirmCompanyDelete(btn) {
+    if (!pendingDeleteCompany) return;
+    const els = companyDeleteEls();
+    const otp = String(els.otp?.value || '').replace(/\D/g, '');
+    if (otp.length !== 6) {
+      showToast('6-digit OTP daalo.', 'error');
+      return;
+    }
+    const prev = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    try {
+      const del = await apiDelete('/api/companies/' + pendingDeleteCompany.id, { otp });
+      if (!del.success) {
+        showToast('❌ ' + (del.error || 'Delete fail'), 'error');
+        return;
+      }
+      closeCompanyDeleteModal();
+      showToast('✅ Company aur uska data delete ho gaya.');
+      loadCompanies();
+      refreshProfileAfterCompanyChange();
+      if (del.reloaded) setTimeout(() => window.location.reload(), 400);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = prev || 'OTP verify karke delete'; }
+    }
+  }
+
+  document.getElementById('companyDeleteSendOtpBtn')?.addEventListener('click', function () {
+    sendCompanyDeleteOtp(this);
+  });
+  document.getElementById('companyDeleteResendBtn')?.addEventListener('click', function () {
+    const els = companyDeleteEls();
+    if (els.ack) els.ack.checked = true;
+    sendCompanyDeleteOtp(this);
+  });
+  document.getElementById('companyDeleteConfirmBtn')?.addEventListener('click', function () {
+    confirmCompanyDelete(this);
+  });
+  document.getElementById('companyDeleteCancelBtn')?.addEventListener('click', closeCompanyDeleteModal);
+  document.getElementById('companyDeleteCancel2Btn')?.addEventListener('click', closeCompanyDeleteModal);
+  document.getElementById('companyDeleteModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'companyDeleteModal') closeCompanyDeleteModal();
+  });
+  document.getElementById('companyDeleteOtpInput')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmCompanyDelete(document.getElementById('companyDeleteConfirmBtn'));
+    }
+  });
 
   // ==================== UDHAR PAYMENT ====================
   window.openUdharPayment = function (customerName) {

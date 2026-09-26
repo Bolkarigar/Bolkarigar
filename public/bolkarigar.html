@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <link rel="stylesheet" href="bolkarigar.css?v=20260926pg1">
+  <link rel="stylesheet" href="bolkarigar.css?v=20260926del1">
   <link rel="stylesheet" href="mobile-app.css?v=20260926pg1">
   <link rel="stylesheet" href="help-demo.css?v=20260918ui55">
   <link rel="stylesheet" href="modify.css?v=20260921modify2">
@@ -26,7 +26,7 @@
   <script src="native-config.js?v=20260827r2"></script>
   <script src="i18n.js?v=20260924brand2"></script>
   <script>
-    window.BK_APP_BUILD = '20260926co1';
+    window.BK_APP_BUILD = '20260926del1';
     if (/bolkarigar\.html/i.test(location.pathname)) {
       history.replaceState(null, '', '/dashboard' + location.search + location.hash);
     }
@@ -1769,6 +1769,7 @@
             <textarea id="coAddressInput" placeholder="Full Address *" rows="2" style="grid-column:1/-1"></textarea>
           </div>
           <button id="addCompanyBtn" type="button" style="margin-top: 10px;">➕ Add Company</button>
+          <p class="co-del-help" style="margin:10px 0 0;font-size:13px;color:#64748b;">Company delete ke liye registered email par OTP aayega. OTP ke bina delete nahi hoga — saara company data permanently hat jayega.</p>
           <div class="table-wrap companies-table-wrap" style="margin-top:12px;"><table class="companies-table"><thead><tr><th>Company</th><th>Phone</th><th>GSTIN</th><th>UPI</th><th>State</th><th>Address</th><th>Status</th><th>Action</th></tr></thead><tbody id="companiesBody"></tbody></table></div>
         </section>
 
@@ -2375,6 +2376,32 @@
   </div>
   <!-- 🟢 LIVE AI widget END -->
 
+  <div id="companyDeleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="companyDeleteTitle">
+    <div class="modal-box company-delete-modal">
+      <h3 id="companyDeleteTitle">Company delete?</h3>
+      <p class="co-del-warn" id="companyDeleteWarn"></p>
+      <div id="companyDeleteStepWarn">
+        <label class="co-del-check">
+          <input type="checkbox" id="companyDeleteAck" />
+          Haan, main samajh gaya — yeh company aur uska saara data permanently delete ho jayega.
+        </label>
+        <div class="btn-row">
+          <button type="button" id="companyDeleteSendOtpBtn" class="modal-btn btn-submit co-del-danger">OTP email par bhejo</button>
+          <button type="button" id="companyDeleteCancelBtn" class="modal-btn btn-cancel btn-close">Cancel</button>
+        </div>
+      </div>
+      <div id="companyDeleteStepOtp" class="hidden">
+        <p class="co-del-otp-hint" id="companyDeleteOtpHint"></p>
+        <input id="companyDeleteOtpInput" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit OTP" />
+        <div class="btn-row">
+          <button type="button" id="companyDeleteConfirmBtn" class="modal-btn btn-submit co-del-danger">OTP verify karke delete</button>
+          <button type="button" id="companyDeleteResendBtn" class="modal-btn btn-cancel">Resend OTP</button>
+          <button type="button" id="companyDeleteCancel2Btn" class="modal-btn btn-cancel btn-close">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Udhar Payment Modal -->
   <div id="udharPaymentModal" class="modal-overlay hidden">
     <div class="modal-box" style="max-width:400px;text-align:left;">
@@ -2529,7 +2556,7 @@
   <script src="messages-en.js?v=20260924mail4"></script>
   <script src="save-button-lock.js?v=20260918save2"></script>
   <script src="modify-ui.js?v=20260924suggest1"></script>
-  <script src="bolkarigar.js?v=20260926co1"></script>
+  <script src="bolkarigar.js?v=20260926del1"></script>
   <script src="mobile-app.js?v=20260926pg1"></script>
   <script src="name-item-suggest.js?v=20260924phone5"></script>
   <script>
@@ -2551,7 +2578,7 @@
   <script src="subscription-ui.js?v=20260920staffpack1"></script>
   <script src="dev-plan-toggle.js?v=20260925live2"></script>
   <script src="inventory-ui.js?v=20260918ui55"></script>
-  <script src="bolkarigar-pro.js?v=20260926co1"></script>
+  <script src="bolkarigar-pro.js?v=20260926del1"></script>
   <script src="pwa-install.js?v=20260924dl1"></script>
   <script src="payroll-ui.js?v=20260924suggest1"></script>
   <script src="estimate-ui.js?v=20260919est2"></script>

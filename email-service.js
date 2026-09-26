@@ -401,8 +401,33 @@ async function sendBusinessEmail({ to, subject, text, html, replyTo, senderName,
   return { sent: false, provider: null, error: errors.join(' | ') || 'Email not configured on server.' };
 }
 
-async function sendPasswordResetOtp(email, otp) {
-  const { subject, text, html } = buildOtpEmail(otp);
+function buildCompanyDeleteOtpEmail(otp, companyName) {
+  const name = companyName || 'company';
+  const subject = 'Accounts Orbit — Company delete OTP';
+  const text = [
+    'Namaste,',
+    '',
+    `"${name}" company delete karne ka OTP: ${otp}`,
+    '',
+    'Agar aap yeh company delete karoge to iska saara data permanently delete ho jayega.',
+    'Yeh OTP 10 minute ke liye valid hai.',
+    'Agar aapne yeh request nahi ki, is email ko ignore karein.',
+    '',
+    '— Accounts Orbit Team'
+  ].join('\n');
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+      <h2 style="color:#b91c1c;margin:0 0 12px;">Company delete confirmation</h2>
+      <p style="color:#334155;line-height:1.5;"><strong>${name}</strong> delete karne ka 6-digit OTP:</p>
+      <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
+      <p style="color:#b91c1c;font-size:14px;">Is company ka saara data permanently delete ho jayega.</p>
+      <p style="color:#64748b;font-size:14px;">Yeh OTP <strong>10 minute</strong> ke liye valid hai.</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Agar aapne request nahi ki, is email ko ignore karein.</p>
+    </div>`;
+  return { subject, text, html };
+}
+
+async function sendOtpMail(email, { subject, text, html }, logLabel) {
   const errors = [];
 
   if (isWrongBrevoSmtpKey()) {
@@ -416,33 +441,33 @@ async function sendPasswordResetOtp(email, otp) {
   if (getBrevoApiKey()) {
     try {
       await sendViaBrevo({ to: email, subject, text, html });
-      logger.info(`[Password Reset] OTP sent to ${email} via Brevo`);
+      logger.info(`[${logLabel}] OTP sent to ${email} via Brevo`);
       return { sent: true, provider: 'brevo' };
     } catch (err) {
       errors.push(`Brevo: ${err.message}`);
-      logger.error('[Password Reset] Brevo failed:', err.message);
+      logger.error(`[${logLabel}] Brevo failed:`, err.message);
     }
   }
 
   if (process.env.RESEND_API_KEY) {
     try {
       await sendViaResend({ to: email, subject, text, html });
-      logger.info(`[Password Reset] OTP sent to ${email} via Resend`);
+      logger.info(`[${logLabel}] OTP sent to ${email} via Resend`);
       return { sent: true, provider: 'resend' };
     } catch (err) {
       errors.push(`Resend: ${err.message}`);
-      logger.error('[Password Reset] Resend failed:', err.message);
+      logger.error(`[${logLabel}] Resend failed:`, err.message);
     }
   }
 
   if (getSmtpConfig()) {
     try {
       await sendViaSmtp({ to: email, subject, text, html });
-      logger.info(`[Password Reset] OTP sent to ${email} via SMTP`);
+      logger.info(`[${logLabel}] OTP sent to ${email} via SMTP`);
       return { sent: true, provider: 'smtp' };
     } catch (err) {
       errors.push(`SMTP: ${err.message}`);
-      logger.error('[Password Reset] SMTP failed:', err.message);
+      logger.error(`[${logLabel}] SMTP failed:`, err.message);
     }
   }
 
@@ -450,11 +475,21 @@ async function sendPasswordResetOtp(email, otp) {
     ? ' Render FREE plan par Gmail SMTP band hai — Render Environment me BREVO_API_KEY add karein (free, 300 email/day).'
     : '';
   if (process.env.NODE_ENV !== 'production') {
-    logger.warn(`[Password Reset OTP] ${email} => ${otp} (email failed — dev only log)`);
+    logger.warn(`[${logLabel} OTP] ${email} (email failed — dev only log)`);
   } else {
-    logger.error(`[Password Reset OTP] Email delivery failed for ${email}`);
+    logger.error(`[${logLabel} OTP] Email delivery failed for ${email}`);
   }
   return { sent: false, provider: null, error: (errors.join(' | ') || 'not_configured') + renderHint };
+}
+
+async function sendPasswordResetOtp(email, otp) {
+  const { subject, text, html } = buildOtpEmail(otp);
+  return sendOtpMail(email, { subject, text, html }, 'Password Reset');
+}
+
+async function sendCompanyDeleteOtp(email, otp, companyName) {
+  const { subject, text, html } = buildCompanyDeleteOtpEmail(otp, companyName);
+  return sendOtpMail(email, { subject, text, html }, 'Company Delete');
 }
 
 module.exports = {
@@ -465,6 +500,7 @@ module.exports = {
   verifyEmailTransport,
   createMailTransporter,
   sendPasswordResetOtp,
+  sendCompanyDeleteOtp,
   sendBusinessEmail,
   wrapBusinessEmailHtml,
   getBusinessSenderEmail

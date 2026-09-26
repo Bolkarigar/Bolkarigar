@@ -5374,6 +5374,44 @@ input[type="date"].inv-date-input-hidden {
 .companies-table .co-active-btn { opacity: 0.85; cursor: default; }
 .companies-add-grid textarea { resize: vertical; min-height: 52px; }
 
+.company-delete-modal { max-width: 460px; text-align: left; }
+.company-delete-modal h3 { margin: 0 0 10px; color: #b91c1c; }
+.co-del-warn {
+  margin: 0 0 14px;
+  color: #7f1d1d;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.co-del-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+  color: var(--text, #0f172a);
+}
+.co-del-check input { margin-top: 3px; flex-shrink: 0; }
+.co-del-otp-hint { font-size: 14px; margin: 0 0 10px; color: var(--muted, #475569); }
+#companyDeleteOtpInput {
+  letter-spacing: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.company-delete-modal .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.co-del-danger,
+button.co-del-danger {
+  background: #b91c1c !important;
+  border-color: #991b1b !important;
+  color: #fff !important;
+}
+
 .bk-team-alert-bar {
   position: fixed;
   bottom: 20px;
