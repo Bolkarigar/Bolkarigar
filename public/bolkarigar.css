@@ -1405,13 +1405,26 @@ textarea.form-input {
 .sales-date-filter-label {
   margin: 8px 0 0;
 }
-.daybook-filter-row {
-  margin-top: 0;
+#khataDaybookPanel.panel.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 170px);
 }
-.daybook-filter-row .sales-date-filter-label {
-  margin: 0;
-  align-self: center;
-  min-height: 1.2em;
+#khataDaybookPanel .daybook-table-wrap {
+  flex: 1 1 auto;
+}
+#khataDaybookPanel .khata-pagination {
+  margin-top: auto;
+  padding-top: 12px;
+}
+.daybook-header-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.daybook-header-filters .sales-date-field {
+  min-width: 160px;
 }
 .panel-pagination-bar {
   display: flex;
