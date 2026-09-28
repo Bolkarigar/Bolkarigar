@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
-  <script src="native-config.js?v=20260926clean1"></script>
+  <script src="native-config.js?v=20260928login1"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -355,7 +355,7 @@
           return dest;
         }
       }
-      return "/dashboard";
+      return (typeof window.bkAppHome === "function") ? window.bkAppHome() : "/dashboard";
     }
     if (localStorage.getItem("bk_token")) {
       window.location.href = bkLoginRedirectTarget();
@@ -364,7 +364,7 @@
     // OTP-based reset flow
     const setNewPasswordModal = document.getElementById("setNewPasswordModal");
 
-    const BK_API = () => window.API_URL || window.location.origin;
+    const BK_API = () => (typeof window.bkGetApiUrl === "function" ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));
 
     async function bkFetchJson(url, options = {}, timeoutMs = 90000) {
       const controller = new AbortController();

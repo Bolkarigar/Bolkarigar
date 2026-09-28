@@ -125,17 +125,38 @@ app.use('/api', (req, res, next) => {
 });
 
 app.use(express.json({ limit: '8mb' }));
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  const extra = String(process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const allow = new Set([
+    'https://localhost',
+    'http://localhost',
+    'capacitor://localhost',
+    'ionic://localhost',
+    'https://bolkarigar.onrender.com',
+    'https://app.accountsorbit.com',
+    'https://accountsorbit.com',
+    'https://www.accountsorbit.com',
+    ...extra
+  ]);
+  if (allow.has(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+  } catch (e) { /* ignore */ }
+  return false;
+}
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-    : (process.env.NODE_ENV === 'production'
-      ? [
-          'https://bolkarigar.onrender.com',
-          'https://app.accountsorbit.com',
-          'https://accountsorbit.com',
-          'https://www.accountsorbit.com'
-        ]
-      : true)
+  origin(origin, cb) {
+    if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
+      return cb(null, true);
+    }
+    cb(null, isAllowedCorsOrigin(origin));
+  }
 }));
 
 // Browser cache band — purani sidebar/JS files na dikhein
@@ -3568,18 +3589,18 @@ app.get(['/download-app', '/download-app.exe', '/download-app.zip'], (req, res) 
   const zip = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.zip');
   const installer = path.join(__dirname, 'public', 'downloads', 'AccountsOrbit-Setup.exe');
   const wantZip = req.path.endsWith('.zip') || req.query.format === 'zip';
+  // Main button must be a single .exe. Zip looks like malware to Chrome Safe Browsing.
   if (!wantZip && fs.existsSync(installer)) {
-    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Type', 'application/vnd.microsoft.portable-executable');
     return res.download(installer, 'AccountsOrbit-Setup.exe');
   }
-  if (fs.existsSync(zip)) {
+  if (wantZip && fs.existsSync(zip)) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Type', 'application/zip');
     return res.download(zip, 'AccountsOrbit-Setup.zip');
   }
-  if (fs.existsSync(installer)) {
-    return res.download(installer, 'AccountsOrbit-Setup.exe');
-  }
-  return res.status(404).send('Desktop installer is being prepared. Please try again shortly.');
+  return res.redirect(302, '/download.html?missing=1');
 });
 
 // --- Catch-all Fallback Route (Sabse Niche) ---

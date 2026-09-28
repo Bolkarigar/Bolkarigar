@@ -4,9 +4,19 @@ const LIVE_API = 'https://bolkarigar.onrender.com';
 
 const config: CapacitorConfig = {
   appId: 'com.bolkarigar.app',
-  appName: 'Accounts Orbit',
+  appName: 'AO',
   webDir: 'public',
   // Local files load from APK; API calls go to LIVE_API via public/native-config.js
+  server: {
+    androidScheme: 'https',
+    appStartPath: 'loginpage.html',
+    allowNavigation: [
+      'https://app.accountsorbit.com',
+      'https://accountsorbit.com',
+      'https://www.accountsorbit.com',
+      'https://bolkarigar.onrender.com'
+    ]
+  },
   android: {
     allowMixedContent: false,
     captureInput: true,

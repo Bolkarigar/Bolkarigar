@@ -1,14 +1,50 @@
 (function () {
   var LIVE_API = 'https://app.accountsorbit.com';
-  var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  function isNativeApp() {
+    try {
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        return true;
+      }
+    } catch (e) { /* ignore */ }
+    var proto = String(location.protocol || '');
+    if (proto === 'capacitor:' || proto === 'ionic:') return true;
+    var host = String(location.hostname || '');
+    var port = String(location.port || '');
+    if ((host === 'localhost' || host === '127.0.0.1') && proto === 'https:' && !port) return true;
+    return false;
+  }
+
+  var isNative = isNativeApp();
+  window.bkIsNativeApp = isNativeApp;
   if (isNative) {
     window.API_URL = LIVE_API;
     window.BK_LIVE_API = LIVE_API;
     document.documentElement.classList.add('capacitor-native');
   }
+
   window.bkGetApiUrl = function () {
+    if (isNativeApp()) return LIVE_API;
     return window.API_URL || window.BK_LIVE_API || window.location.origin;
   };
+
+  window.bkAppHome = function () {
+    return isNativeApp() ? 'bolkarigar.html' : '/dashboard';
+  };
+
+  var page = String(location.pathname || '').split('/').pop() || 'index.html';
+  if (!page || page === '/') page = 'index.html';
+  var marketing = { 'index.html': 1, 'pricing.html': 1, 'download.html': 1 };
+  if (isNative && marketing[page]) {
+    try {
+      if (localStorage.getItem('bk_token')) {
+        location.replace('bolkarigar.html');
+        return;
+      }
+    } catch (e) { /* ignore */ }
+    location.replace('loginpage.html');
+    return;
+  }
 
   var KEEP_LOCAL = {
     bk_app_build: 1,

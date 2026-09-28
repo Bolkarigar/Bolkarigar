@@ -66,15 +66,18 @@ function getBrevoApiKey() {
   return key;
 }
 
-function isEmailConfigured() {
-  return hasHttpsEmailProvider() || !!getSmtpConfig();
-}
-
 function hasHttpsEmailProvider() {
   return !!(
     String(process.env.RESEND_API_KEY || '').trim()
     || getBrevoApiKey()
+    || String(process.env.SENDGRID_API_KEY || '').trim()
   );
+}
+
+function isEmailConfigured() {
+  if (hasHttpsEmailProvider()) return true;
+  if (isRenderHost() && !process.env.ALLOW_RENDER_SMTP) return false;
+  return !!getSmtpConfig();
 }
 
 const SMTP_SEND_TIMEOUT_MS = Number(process.env.SMTP_SEND_TIMEOUT_MS) || 35000;
@@ -159,6 +162,11 @@ async function verifyEmailTransport() {
   if (process.env.RESEND_API_KEY) {
     logger.info('[Email] Resend API ready (HTTPS — works on Render free).');
     return { ok: true, provider: 'resend' };
+  }
+
+  if (String(process.env.SENDGRID_API_KEY || '').trim()) {
+    logger.info('[Email] SendGrid API ready (HTTPS — works on Render free).');
+    return { ok: true, provider: 'sendgrid' };
   }
 
   if (isWrongBrevoSmtpKey()) {
@@ -250,6 +258,41 @@ async function sendViaSmtp({ to, subject, text, html, replyTo }) {
   throw lastErr || new Error('SMTP send failed on all transports.');
 }
 
+async function sendViaSendgrid({ to, subject, text, html, replyTo }) {
+  const key = String(process.env.SENDGRID_API_KEY || '').trim();
+  if (!key) throw new Error('SENDGRID_API_KEY missing');
+  const fromEmail = String(process.env.SENDGRID_FROM || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim();
+  if (!fromEmail) throw new Error('Set SENDGRID_FROM or SMTP_USER');
+  const fromName = process.env.SMTP_FROM_NAME && !/bolkarigar/i.test(process.env.SMTP_FROM_NAME)
+    ? process.env.SMTP_FROM_NAME
+    : 'Accounts Orbit';
+  const payload = {
+    personalizations: [{ to: [{ email: to }] }],
+    from: { email: fromEmail.includes('<') ? fromEmail.replace(/^.*<([^>]+)>.*$/, '$1') : fromEmail, name: fromName },
+    subject,
+    content: [
+      { type: 'text/plain', value: text || '' },
+      { type: 'text/html', value: html || `<p>${String(text || '').replace(/</g, '&lt;')}</p>` }
+    ]
+  };
+  if (replyTo && String(replyTo).includes('@')) {
+    payload.reply_to = { email: String(replyTo).trim() };
+  }
+  const fetch = require('node-fetch');
+  const res = await withTimeout(fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  }), 20000, 'SendGrid API');
+  if (!res.ok && res.status !== 202) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`SendGrid API error ${res.status}: ${body}`);
+  }
+}
+
 async function sendViaResend({ to, subject, text, html, replyTo }) {
   const fetch = require('node-fetch');
   const from = process.env.RESEND_FROM || 'Accounts Orbit <onboarding@resend.dev>';
@@ -293,7 +336,8 @@ async function sendViaBrevo({ to, subject, text, html, replyTo, senderName, send
     to: [{ email: to }],
     subject,
     textContent: text,
-    htmlContent: html || undefined
+    htmlContent: html || undefined,
+    tags: ['transactional', 'otp']
   };
   if (replyTo && String(replyTo).includes('@')) {
     payload.replyTo = { email: String(replyTo).trim().toLowerCase(), name: fromName };
@@ -332,25 +376,16 @@ function getBusinessSenderEmail() {
 }
 
 function buildOtpEmail(otp) {
-  const subject = 'Accounts Orbit — Password Reset OTP';
+  const subject = 'Your Accounts Orbit password reset code';
   const text = [
-    'Namaste,',
+    `Your Accounts Orbit password reset code is ${otp}.`,
     '',
-    `Aapka password reset OTP hai: ${otp}`,
+    'This code expires in 10 minutes.',
+    'If you did not request this, ignore this message.',
     '',
-    'Yeh OTP 10 minute ke liye valid hai.',
-    'Agar aapne yeh request nahi ki, is email ko ignore karein.',
-    '',
-    '— Accounts Orbit Team'
+    'Accounts Orbit'
   ].join('\n');
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-      <h2 style="color:#2563eb;margin:0 0 12px;">Accounts Orbit Password Reset</h2>
-      <p style="color:#334155;line-height:1.5;">Aapka 6-digit OTP:</p>
-      <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
-      <p style="color:#64748b;font-size:14px;">Yeh OTP <strong>10 minute</strong> ke liye valid hai.</p>
-      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Agar aapne request nahi ki, is email ko ignore karein.</p>
-    </div>`;
+  const html = `<p>Your Accounts Orbit password reset code is <strong>${otp}</strong>.</p><p>This code expires in 10 minutes. If you did not request this, ignore this message.</p>`;
   return { subject, text, html };
 }
 
@@ -388,6 +423,14 @@ async function sendBusinessEmail({ to, subject, text, html, replyTo, senderName,
       return { sent: true, provider: 'resend' };
     } catch (err) {
       errors.push(`Resend: ${err.message}`);
+    }
+  }
+  if (String(process.env.SENDGRID_API_KEY || '').trim()) {
+    try {
+      await sendViaSendgrid(payload);
+      return { sent: true, provider: 'sendgrid' };
+    } catch (err) {
+      errors.push(`SendGrid: ${err.message}`);
     }
   }
   if (getSmtpConfig()) {
@@ -460,6 +503,17 @@ async function sendOtpMail(email, { subject, text, html }, logLabel) {
     }
   }
 
+  if (String(process.env.SENDGRID_API_KEY || '').trim()) {
+    try {
+      await sendViaSendgrid({ to: email, subject, text, html });
+      logger.info(`[${logLabel}] OTP sent to ${email} via SendGrid`);
+      return { sent: true, provider: 'sendgrid' };
+    } catch (err) {
+      errors.push(`SendGrid: ${err.message}`);
+      logger.error(`[${logLabel}] SendGrid failed:`, err.message);
+    }
+  }
+
   if (getSmtpConfig()) {
     try {
       await sendViaSmtp({ to: email, subject, text, html });
@@ -493,25 +547,16 @@ async function sendCompanyDeleteOtp(email, otp, companyName) {
 }
 
 function buildSignupOtpEmail(otp) {
-  const subject = 'Accounts Orbit — Verify your email';
+  const subject = 'Your Accounts Orbit verification code';
   const text = [
-    'Hello,',
+    `Your Accounts Orbit verification code is ${otp}.`,
     '',
-    `Your 6-digit OTP to create your Accounts Orbit account: ${otp}`,
+    'This code expires in 10 minutes.',
+    'If you did not request this, ignore this message.',
     '',
-    'This OTP is valid for 10 minutes.',
-    'If you did not request this, ignore this email.',
-    '',
-    '— Accounts Orbit Team'
+    'Accounts Orbit'
   ].join('\n');
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-      <h2 style="color:#1e3a5f;margin:0 0 12px;">Verify your email</h2>
-      <p style="color:#334155;line-height:1.5;">Enter this 6-digit OTP to create your Accounts Orbit account:</p>
-      <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:16px 0;">${otp}</p>
-      <p style="color:#64748b;font-size:14px;">This OTP is valid for <strong>10 minutes</strong>.</p>
-      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you did not request this, ignore this email.</p>
-    </div>`;
+  const html = `<p>Your Accounts Orbit verification code is <strong>${otp}</strong>.</p><p>This code expires in 10 minutes. If you did not request this, ignore this message.</p>`;
   return { subject, text, html };
 }
 

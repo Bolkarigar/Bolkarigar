@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="bolkarigar.css">
-  <script src="native-config.js?v=20260926clean1"></script>
+  <script src="native-config.js?v=20260928login1"></script>
   <style>
     :root {
       --primary-blue: #3b82f6;
@@ -248,10 +248,11 @@
       planBanner.innerHTML = `Selected plan: <strong>${planLabels[selectedPlan] || planLabels.pro}</strong><br>No payment required during the free trial.`;
     }
 
-    const BK_API = () => window.API_URL || window.location.origin;
+    const BK_API = () => (typeof window.bkGetApiUrl === "function" ? window.bkGetApiUrl() : (window.API_URL || window.location.origin));
+    const BK_HOME = () => (typeof window.bkAppHome === "function" ? window.bkAppHome() : "/dashboard");
 
     if (localStorage.getItem("bk_token")) {
-      window.location.href = "/dashboard";
+      window.location.href = BK_HOME();
     }
 
     const errorEl = document.getElementById("errorMsg");
@@ -317,12 +318,14 @@
           if (typeof window.bkBeginAccountSession === "function") window.bkBeginAccountSession(result.username || body.username);
           localStorage.setItem("bk_token", result.token);
           localStorage.setItem("bk_user", result.username || body.username);
-          window.location.href = "/dashboard";
+          window.location.href = BK_HOME();
           return;
         }
         throw new Error(result.error || "Could not send OTP");
       } catch (err) {
-        showErr(err.message);
+        showErr(err.message === "Failed to fetch"
+          ? "Could not reach the server. Check internet and try again."
+          : err.message);
       } finally {
         sendBtn.disabled = false;
         resendBtn.disabled = false;
@@ -354,7 +357,7 @@
           if (typeof window.bkBeginAccountSession === "function") window.bkBeginAccountSession(uname);
           localStorage.setItem("bk_token", result.token);
           localStorage.setItem("bk_user", uname);
-          setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+          setTimeout(() => { window.location.href = BK_HOME(); }, 800);
         } else {
           setTimeout(() => { window.location.href = "loginpage.html"; }, 1200);
         }
