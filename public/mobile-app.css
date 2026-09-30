@@ -72,6 +72,22 @@ html.ao-phone .topbar .voice-btn {
   font-size: 12px;
   border-radius: 999px;
 }
+html.ao-phone .topbar-ai-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+html.ao-phone .topbar-ai-btn .ai-btn-ico {
+  display: block;
+  font-size: 18px;
+  line-height: 1;
+  transform: translateY(1px);
+}
 html.ao-phone .topbar-more-btn {
   width: 36px;
   height: 36px;

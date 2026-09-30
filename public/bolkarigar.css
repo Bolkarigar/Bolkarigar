@@ -3294,12 +3294,22 @@ body.sidebar-open .sidebar-tally-card {
     text-overflow: ellipsis;
   }
   .topbar-toolbar .topbar-ai-btn {
-    min-width: 44px;
-    padding: 8px 10px;
-    font-size: 12px;
-    gap: 4px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
   .topbar-toolbar .topbar-ai-btn .ai-btn-text { display: none; }
+  .topbar-toolbar .topbar-ai-btn .ai-btn-ico {
+    display: block;
+    font-size: 18px;
+    line-height: 1;
+    transform: translateY(1px);
+  }
   .top-actions {
     display: none;
     position: absolute;
