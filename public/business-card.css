@@ -714,21 +714,22 @@
 .bc-preview-viewport {
   width: 100%;
   max-width: 525px;
-  aspect-ratio: 1.75;
+  aspect-ratio: 1050 / 600;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  container-type: inline-size;
 }
 .bc-preview-viewport .bc-card-export {
   width: 1050px;
   height: 600px;
-  transform: scale(0.5);
-  transform-origin: top left;
+  transform: none;
 }
 .bc-preview-scale-wrap {
-  width: 200%;
-  height: 200%;
-  overflow: hidden;
+  width: 1050px;
+  height: 600px;
+  transform-origin: top left;
+  transform: scale(calc(100cqw / 1050));
 }
 .bc-share-hint {
   color: #94a3b8;
@@ -1857,23 +1858,38 @@
     max-height: none;
   }
   .bc-preview-section {
-    padding: 16px;
+    padding: 12px;
   }
   .bc-preview-viewport {
-    max-width: 357px;
-  }
-  .bc-preview-viewport .bc-card-export {
-    transform: scale(0.34);
-  }
-  .bc-preview-scale-wrap {
-    width: 294%;
-    height: 294%;
+    max-width: 100%;
   }
   .bc-form-section {
     max-height: none;
   }
-  .bc-card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  .bc-card-grid,
+  .bc-card-grid.bc-premium-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .bc-thumb {
+    aspect-ratio: 1.55;
+    min-width: 0;
+  }
+  .bc-thumb .bc-tpv {
+    position: absolute;
+    inset: 0;
+  }
+  .bc-tpv-text,
+  .bc-tpv-crown {
+    display: none;
+  }
+  .bc-thumb-label {
+    font-size: 11px;
+    line-height: 1.2;
+    padding: 18px 6px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .bc-editor-actions button {
     min-width: 100%;

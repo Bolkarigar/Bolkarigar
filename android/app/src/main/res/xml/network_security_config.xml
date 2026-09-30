@@ -8,6 +8,7 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">bolkarigar.onrender.com</domain>
         <domain includeSubdomains="true">onrender.com</domain>
+        <domain includeSubdomains="true">accountsorbit.com</domain>
         <domain includeSubdomains="true">razorpay.com</domain>
     </domain-config>
 </network-security-config>

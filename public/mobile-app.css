@@ -112,7 +112,7 @@ html.ao-phone #ovCustomerViewBtn {
 html.ao-phone .page {
   max-width: none;
   margin: 0;
-  padding: 10px 10px calc(var(--ao-phone-bar) + 18px + env(safe-area-inset-bottom));
+  padding: 12px 10px calc(var(--ao-phone-bar) + 18px + env(safe-area-inset-bottom));
 }
 html.ao-phone .dashboard-layout {
   display: block;

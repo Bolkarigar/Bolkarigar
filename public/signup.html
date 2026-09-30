@@ -179,7 +179,13 @@
     .footer-text a:hover { text-decoration: underline; }
 
     @media (max-width: 480px) {
-      .login-container { padding: 16px; align-items: flex-start; padding-top: max(24px, env(safe-area-inset-top)); }
+      .login-container {
+        padding: 24px 16px;
+        align-items: center;
+        justify-content: center;
+        min-height: 100dvh;
+        overflow: auto;
+      }
       .login-card { padding: 24px 20px; border-radius: 14px; }
       .login-card h2 { font-size: 22px; }
       .input-group input { font-size: 16px; padding: 12px 14px; }
@@ -191,7 +197,6 @@
 
   <div class="login-container">
     <div class="login-card">
-      <p style="margin:0 0 12px;"><a href="/" style="color:#2563eb;font-size:13px;text-decoration:none;font-weight:600;">← Accounts Orbit website</a></p>
       <h2>Create New Account</h2>
       <p id="planBanner">🎁 <strong>30-day free trial</strong> on Pro — then ₹99/month or ₹999/year</p>
       <p style="margin-top:-16px;margin-bottom:22px;font-size:13px;">First we send a 6-digit OTP to your email. Your account is created only after you enter it.</p>

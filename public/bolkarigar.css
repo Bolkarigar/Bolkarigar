@@ -355,7 +355,13 @@
     order: 1;
   }
   .topbar-toolbar .voice-btn { order: 2; }
+  .topbar-toolbar .topbar-ai-btn { order: 2; }
   .topbar-toolbar .top-actions { order: 3; }
+  .topbar-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
   .topbar-more-btn {
     display: none;
     width: 40px;
@@ -1769,12 +1775,14 @@ button.bk-save-busy {
 }
 .live-ai-input-row input {
   flex: 1;
+  min-width: 0;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--card2);
-  color: var(--text);
+  background: #fff;
+  color: #111827;
+  caret-color: #2563eb;
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 16px;
 }
 .live-ai-mic-btn, .live-ai-send-btn {
   border: 0;
@@ -3227,7 +3235,8 @@ body.sidebar-open .sidebar-tally-card {
     right: max(16px, env(safe-area-inset-right));
     left: max(16px, env(safe-area-inset-left));
     width: auto;
-    height: min(70vh, 520px);
+    height: auto;
+    max-height: min(70dvh, 520px);
   }
 }
 
@@ -3284,6 +3293,13 @@ body.sidebar-open .sidebar-tally-card {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .topbar-toolbar .topbar-ai-btn {
+    min-width: 44px;
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  .topbar-toolbar .topbar-ai-btn .ai-btn-text { display: none; }
   .top-actions {
     display: none;
     position: absolute;
@@ -3615,7 +3631,8 @@ body.sidebar-open .sidebar-tally-card {
   }
 
   .live-ai-widget {
-    height: min(78vh, 560px);
+    height: auto;
+    max-height: min(70dvh, 520px);
     border-radius: 14px 14px 0 0;
     bottom: 0;
     left: 0;

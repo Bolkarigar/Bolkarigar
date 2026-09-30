@@ -6467,6 +6467,22 @@ function getEWayBillDetails() {
 
   if (!widget || !toggleBtn) return;
 
+  function pinAiAboveKeyboard() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    var inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    widget.style.bottom = inset + "px";
+    widget.style.maxHeight = Math.max(240, Math.floor(vv.height - 16)) + "px";
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", pinAiAboveKeyboard);
+    window.visualViewport.addEventListener("scroll", pinAiAboveKeyboard);
+  }
+  input?.addEventListener("focus", function () {
+    setTimeout(pinAiAboveKeyboard, 50);
+    setTimeout(pinAiAboveKeyboard, 300);
+  });
+
   const chatHistory = [];
   let liveConvMode = false;
   let liveMicBuffer = "";

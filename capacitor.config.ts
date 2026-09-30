@@ -9,12 +9,15 @@ const config: CapacitorConfig = {
   // Local files load from APK; API calls go to LIVE_API via public/native-config.js
   server: {
     androidScheme: 'https',
-    appStartPath: 'loginpage.html',
+    hostname: 'localhost',
+    appStartPath: '/loginpage.html',
     allowNavigation: [
       'https://app.accountsorbit.com',
       'https://accountsorbit.com',
       'https://www.accountsorbit.com',
-      'https://bolkarigar.onrender.com'
+      'https://bolkarigar.onrender.com',
+      'https://checkout.razorpay.com',
+      'https://api.razorpay.com'
     ]
   },
   android: {
