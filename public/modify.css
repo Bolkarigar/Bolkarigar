@@ -39,7 +39,7 @@
   gap: 10px;
 }
 .modify-type-grid.modify-type-grid--focused {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 .modify-type-unit {

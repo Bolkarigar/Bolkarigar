@@ -1027,18 +1027,21 @@
     border-radius: 16px;
     overflow: hidden;
     border: 1px solid var(--border);
-    background: var(--card2);
-    min-height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: #f8fafc;
+    min-height: 0;
+    display: none;
+  }
+  .gallery-viewer.has-photo {
+    display: block;
+    min-height: 180px;
   }
   .gallery-viewer img {
     width: 100%;
     height: auto;
-    max-height: 55vh;
+    max-height: 52vh;
     object-fit: contain;
     display: block;
+    background: #eef2f7;
   }
   .gallery-thumbs {
     display: grid;
@@ -5310,11 +5313,11 @@ input[type="date"].inv-date-input-hidden {
   input[type="date"]:not(.inv-date-input-hidden) {
     min-height: 44px;
     height: 44px;
-    padding: 10px 12px;
+    padding: 8px 12px;
     font-size: 16px;
     line-height: 1.2;
-    -webkit-appearance: none;
-    appearance: none;
+    color: var(--text);
+    background: var(--card);
     display: block;
   }
 

@@ -4162,13 +4162,47 @@ const galleryStatusText = document.getElementById("galleryStatusText");
 const galleryUploadBtn = document.getElementById("galleryUploadBtn");
 const galleryFileInput = document.getElementById("galleryFileInput");
 
+function showGalleryMainFromThumb(thumbImg, caption) {
+  if (!galleryMain) return;
+  const viewer = document.getElementById("galleryViewer") || galleryMain.parentElement;
+  galleryMain.alt = caption || "Product photo";
+  const reveal = (src) => {
+    if (!src) return;
+    galleryMain.src = src;
+    viewer?.classList.add("has-photo");
+  };
+  if (thumbImg && thumbImg.complete && thumbImg.naturalWidth > 0) {
+    try {
+      const canvas = document.createElement("canvas");
+      const maxW = 1400;
+      const scale = Math.min(1, maxW / thumbImg.naturalWidth);
+      canvas.width = Math.max(1, Math.round(thumbImg.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(thumbImg.naturalHeight * scale));
+      canvas.getContext("2d").drawImage(thumbImg, 0, 0, canvas.width, canvas.height);
+      reveal(canvas.toDataURL("image/jpeg", 0.9));
+      return;
+    } catch (err) {
+      /* token image can be tainted — fall back to the same URL the thumb already loaded */
+    }
+  }
+  const url = thumbImg?.currentSrc || thumbImg?.src || "";
+  galleryMain.onerror = () => {
+    galleryMain.alt = "Photo could not be previewed. Tap it again.";
+  };
+  reveal(url);
+}
+
 function renderGalleryThumbs(photos) {
   if (!galleryThumbsBox) return;
   galleryThumbsBox.innerHTML = "";
 
   if (!photos.length) {
     if (galleryStatusText) galleryStatusText.textContent = "No photos uploaded yet — click Upload Photo.";
-    if (galleryMain) galleryMain.style.display = "none";
+    if (galleryMain) {
+      galleryMain.removeAttribute("src");
+      galleryMain.alt = "";
+    }
+    document.getElementById("galleryViewer")?.classList.remove("has-photo");
     return;
   }
 
@@ -4179,16 +4213,14 @@ function renderGalleryThumbs(photos) {
 
     const img = document.createElement("img");
     img.className = "thumb";
+    img.crossOrigin = "anonymous";
+    img.alt = photo.caption || "Product photo";
+    img.loading = idx === 0 ? "eager" : "lazy";
     img.src = galleryImageUrl(photo.fileId);
-    img.crossOrigin = 'anonymous';
-    img.loading = 'lazy';
     img.onerror = function () {
       this.alt = 'Photo failed to load — check your connection';
       this.style.opacity = '0.5';
     };
-    img.alt = photo.caption || "Product photo";
-    img.loading = "lazy";
-
     const delBtn = document.createElement("button");
     delBtn.textContent = "✕";
     delBtn.title = "Delete photo";
@@ -4200,13 +4232,14 @@ function renderGalleryThumbs(photos) {
       await deleteGalleryPhoto(photo._id);
     });
 
-    card.addEventListener("click", () => {
-      if (galleryMain) {
-        galleryMain.src = galleryImageUrl(photo.fileId);
-        galleryMain.style.display = "block";
-      }
+    const selectThis = () => {
       document.querySelectorAll(".gallery-thumb-card").forEach((t) => t.classList.remove("active-thumb"));
       card.classList.add("active-thumb");
+      showGalleryMainFromThumb(img, photo.caption);
+    };
+    card.addEventListener("click", selectThis);
+    img.addEventListener("load", () => {
+      if (card.classList.contains("active-thumb")) showGalleryMainFromThumb(img, photo.caption);
     });
 
     card.appendChild(img);
@@ -4214,7 +4247,6 @@ function renderGalleryThumbs(photos) {
     galleryThumbsBox.appendChild(card);
   });
 
-  if (galleryMain) { galleryMain.src = galleryImageUrl(photos[0].fileId); galleryMain.style.display = "block"; }
   if (galleryStatusText) galleryStatusText.textContent = `${photos.length} photo(s) uploaded.`;
 }
 window.bkRenderGalleryThumbs = renderGalleryThumbs;

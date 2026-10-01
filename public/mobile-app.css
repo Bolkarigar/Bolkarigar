@@ -186,6 +186,10 @@ html.ao-phone .overview-tool-grid {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+html.ao-phone .modify-type-grid.modify-type-grid--focused {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0;
+}
 html.ao-phone .modify-type-card,
 html.ao-phone .overview-tool-card {
   min-height: 88px;
@@ -1128,4 +1132,71 @@ html.ao-phone #khataDaybookPanel .ao-phone-list-tools {
   html.ao-phone:not(.capacitor-native) .ao-phone-more {
     display: none !important;
   }
+}
+
+/* Modification Center + gallery — phone sheet must use the full width */
+html.ao-phone #modifyPanel .modify-panel-card,
+html.ao-phone #modifyPanel .modify-type-expand,
+html.ao-phone #modifyPanel .modify-search-in-card,
+html.ao-phone #modifyPanel .modify-edit-card,
+html.ao-phone #modifyPanel .modify-form-grid,
+html.ao-phone #modifyPanel .modify-date-filters {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+html.ao-phone .modify-type-grid--focused .modify-type-unit.is-active {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+html.ao-phone .modify-date-filters,
+html.ao-phone .modify-form-grid {
+  grid-template-columns: 1fr !important;
+}
+html.ao-phone .modify-date-field input[type="date"],
+html.ao-phone .modify-form-grid input,
+html.ao-phone .modify-form-grid select,
+html.ao-phone .modify-form-grid textarea,
+html.ao-phone .modify-search-input {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+html.ao-phone .modify-date-field input[type="date"] {
+  color: #0f172a;
+  background: #fff;
+  color-scheme: light;
+  height: 44px;
+  min-height: 44px;
+}
+html.ao-phone .modify-hint,
+html.ao-phone .modify-date-hint,
+html.ao-phone .modify-type-desc,
+html.ao-phone .modify-type-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html.ao-phone #modifyPanel {
+  padding-bottom: 12px;
+}
+html.ao-phone .gallery-viewer:not(.has-photo) {
+  display: none !important;
+}
+html.ao-phone .gallery-viewer.has-photo {
+  display: block !important;
+  min-height: 180px;
+  background: #f8fafc;
+}
+html.ao-phone .gallery-viewer img {
+  width: 100%;
+  max-height: 52vh;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+html.ao-phone .gallery-thumbs {
+  grid-template-columns: 1fr 1fr;
 }
