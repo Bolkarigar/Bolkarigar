@@ -729,7 +729,6 @@
   width: 1050px;
   height: 600px;
   transform-origin: top left;
-  transform: scale(calc(100cqw / 1050));
 }
 .bc-share-hint {
   color: #94a3b8;

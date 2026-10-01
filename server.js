@@ -1263,8 +1263,8 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
 app.post('/api/profile', authenticateToken, requirePermission(PERMISSIONS.PROFILE_EDIT), async (req, res) => {
   try {
     const { companyName, gstin, phone, upiId, statePincode, fullAddress } = req.body;
-    if (!companyName || !gstin || !fullAddress) {
-      return res.status(400).json({ error: 'Company Name, GSTIN aur Address zaroori hain.' });
+    if (!companyName || !fullAddress) {
+      return res.status(400).json({ error: 'Company Name and Address are required. GSTIN is optional.' });
     }
     const profile = await BusinessProfile.findOneAndUpdate(
       { userId: req.dataUserId },

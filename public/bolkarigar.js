@@ -6288,8 +6288,8 @@ async function saveCompanyProfile(event) {
   const gstin = gstinInput?.value.trim();
   const address = addressInput?.value.trim();
 
-  if (!name || !gstin || !address) {
-    alert("⚠️ Please enter Company Name, GSTIN and Address.");
+  if (!name || !address) {
+    alert("Please enter Company Name and Address. GSTIN is optional.");
     return;
   }
 

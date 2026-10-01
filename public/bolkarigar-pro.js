@@ -595,7 +595,6 @@
       const statePincode = document.getElementById('coStateInput')?.value.trim();
       const fullAddress = document.getElementById('coAddressInput')?.value.trim();
       if (!companyName) { showToast('Company name required.', 'error'); return; }
-      if (!gstin) { showToast('GSTIN required.', 'error'); return; }
       if (!fullAddress) { showToast('Full address required.', 'error'); return; }
       const res = await apiPost('/api/companies', { companyName, gstin, phone, upiId, statePincode, fullAddress });
       if (res.success) {

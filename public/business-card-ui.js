@@ -1227,6 +1227,19 @@
     return FREE_TEMPLATES.filter((t) => String(t.id).startsWith("f"));
   }
 
+  function fitCardPreview() {
+    const viewport = document.querySelector(".bc-preview-viewport");
+    const wrap = document.querySelector(".bc-preview-scale-wrap");
+    if (!viewport || !wrap) return;
+    const width = viewport.clientWidth;
+    if (!width) return;
+    const scale = width / 1050;
+    wrap.style.width = "1050px";
+    wrap.style.height = "600px";
+    wrap.style.transformOrigin = "top left";
+    wrap.style.transform = "scale(" + scale + ")";
+  }
+
   function updatePreview() {
     const tpl = getTemplate(currentTemplateId);
     const data = getFormData();
@@ -1237,6 +1250,7 @@
     if (exportHost) exportHost.innerHTML = html;
     hydrateCardQrs(preview);
     hydrateCardQrs(exportHost);
+    fitCardPreview();
     const hint = document.getElementById("bcQrHint");
     if (hint) hint.textContent = getQrModeHint(data);
   }
@@ -1385,6 +1399,7 @@
     document.getElementById("bcEditorTitle").textContent = getTemplate(templateId).name;
     document.body.classList.add("bc-editor-open");
     document.body.style.overflow = "hidden";
+    requestAnimationFrame(() => fitCardPreview());
   }
 
   function closeEditor() {
@@ -1481,27 +1496,23 @@
       const file = new File([blob], "business-card.png", { type: "image/png" });
       const msg = `Namaste! Mera business card — ${data.businessName || data.name}\n📞 +91 ${data.mobile || ""}`;
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Business Card", text: msg });
-        return;
+      if (navigator.share) {
+        try {
+          await navigator.share({ files: [file], title: "Business Card", text: msg });
+          return;
+        } catch (shareErr) {
+          if (shareErr && shareErr.name === "AbortError") return;
+        }
       }
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "business-card.png";
+      a.download = "AccountsOrbit-Card.png";
       a.click();
-
-      const phone = (data.mobile || "").replace(/\D/g, "");
-      const waUrl = phone.length >= 10
-        ? `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`
-        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-        window.open(waUrl, "_blank");
-      }, 400);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
       if (typeof showToast === "function") {
-        showToast("Card downloaded — WhatsApp opened. Attach the image and send!", "info");
+        showToast("Card image saved. Open WhatsApp and attach AccountsOrbit-Card.png — do not send the text box.", "info");
       }
     } catch (err) {
       if (typeof showToast === "function") showToast("❌ " + err.message, "error");
@@ -1569,6 +1580,7 @@
       el.addEventListener("input", updatePreview);
       el.addEventListener("change", updatePreview);
     });
+    window.addEventListener("resize", fitCardPreview);
 
     document.querySelector('.tab-btn[data-tab="businessCardPanel"]')?.addEventListener("click", () => {
       openBusinessCardPanel();
