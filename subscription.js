@@ -47,7 +47,7 @@ const PRO_PLAN_TABS = [
   'overviewPanel', 'businessRecordsPanel', 'invoicePanel', 'purchasePanel', 'paymentVoucherPanel', 'receiptVoucherPanel',
   'voicePanel', 'inventoryPanel',
   'ledgerPanel', 'khataLedgersPanel', 'khataItemsPanel', 'khataVoucherPanel', 'khataDaybookPanel',
-  'modifyPanel',
+  'modifyPanel', 'companiesPanel',
   'galleryPanel', 'todoPanel', 'businessCardPanel', 'securityPanel', 'helpPanel', 'myPlanPanel'
 ];
 

@@ -151,7 +151,7 @@ function setupProFeatures({ app, mongoose, authenticateToken, models, helpers, J
     createdAt: { type: Date, default: Date.now }
   });
 
-  const COMPANY_LIMIT_PRO = 4;
+  const COMPANY_LIMIT_PRO = 2;
   const COMPANY_LIMIT_BUSINESS = 10;
 
   async function companyLimitForOwner(ownerId) {

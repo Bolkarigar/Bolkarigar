@@ -12,13 +12,13 @@ const PRO_TABS = [
   "overviewPanel", "businessRecordsPanel", "invoicePanel", "purchasePanel", "paymentVoucherPanel", "receiptVoucherPanel",
   "voicePanel", "inventoryPanel",
   "ledgerPanel", "khataLedgersPanel", "khataItemsPanel", "khataVoucherPanel", "khataDaybookPanel",
-  "modifyPanel",
+  "modifyPanel", "companiesPanel",
   "galleryPanel", "todoPanel", "businessCardPanel", "securityPanel", "helpPanel", "myPlanPanel"
 ];
 
 const BUSINESS_ONLY = [
   "reportsProPanel", "bankReconPanel", "estimatePanel", "businessMailPanel", "projectPanel",
-  "contractorPanel", "companiesPanel", "payrollPanel", "teamMeetingPanel", "staffPanel",
+  "contractorPanel", "payrollPanel", "teamMeetingPanel", "staffPanel",
   "qrPanel", "calcPanel", "notesPanel", "mediaPanel"
 ];
 

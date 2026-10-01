@@ -280,6 +280,11 @@ function bkCanAccessTab(me, tabId) {
     }
     return false;
   }
+  // Companies — Pro ₹99: 2 extra, Business ₹299: 10. Stale allowedTabs se tab hide na ho.
+  if (tabId === "companiesPanel") {
+    if (me?.isStaff) return false;
+    return !!(sub?.fullAccess || sub?.isActive);
+  }
   // Business Card — Pro FREE par bhi (12 free cards), server allowedTabs stale ho to bhi
   if (tabId === "businessCardPanel") {
     if (sub?.fullAccess || sub?.isActive) {
@@ -461,7 +466,7 @@ async function loadServerData(opts = {}) {
     if (meRes.ok) {
       const me = await meRes.json();
       if (me.subscription && !me.subscription.fullAccess && Array.isArray(me.subscription.allowedTabs)) {
-        ["businessCardPanel", "securityPanel", "purchasePanel", "businessRecordsPanel"].forEach((tab) => {
+        ["businessCardPanel", "securityPanel", "purchasePanel", "businessRecordsPanel", "companiesPanel"].forEach((tab) => {
           if (!me.subscription.allowedTabs.includes(tab)) me.subscription.allowedTabs.push(tab);
         });
       }

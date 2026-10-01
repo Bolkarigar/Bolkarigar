@@ -8,7 +8,7 @@ const mobile = fs.readFileSync(path.join(__dirname, "../public/mobile-app.js"), 
 const PRO = new Set([
   "overviewPanel", "businessRecordsPanel", "invoicePanel", "purchasePanel", "paymentVoucherPanel", "receiptVoucherPanel",
   "voicePanel", "inventoryPanel", "ledgerPanel", "khataLedgersPanel", "khataItemsPanel", "khataVoucherPanel",
-  "khataDaybookPanel", "modifyPanel", "galleryPanel", "todoPanel", "businessCardPanel", "securityPanel", "helpPanel", "myPlanPanel"
+  "khataDaybookPanel", "modifyPanel", "companiesPanel", "galleryPanel", "todoPanel", "businessCardPanel", "securityPanel", "helpPanel", "myPlanPanel"
 ]);
 
 const MODULES = [
@@ -103,7 +103,7 @@ else ok("Pro More has no Business modules", proMore.length + " items");
 if (bizMore.length > proMore.length) ok("Business More has extra modules", bizMore.length + " vs Pro " + proMore.length);
 else bad("Business More extra", "biz=" + bizMore.length + " pro=" + proMore.length);
 
-const mustHideOnPro = ["contractorPanel", "payrollPanel", "calcPanel", "mediaPanel", "companiesPanel", "staffPanel"];
+const mustHideOnPro = ["contractorPanel", "payrollPanel", "calcPanel", "mediaPanel", "staffPanel"];
 const stillOnPro = mustHideOnPro.filter((id) => proMore.includes(id));
 if (stillOnPro.length) bad("Pro still shows Business modules", stillOnPro.join(","));
 else ok("Pro hides Contractor/Payroll/Calc/Media/Companies/Staff");

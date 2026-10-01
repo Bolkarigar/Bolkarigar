@@ -379,7 +379,7 @@
       ]
     },
     {
-      id: "companiesPanel", panelId: "companiesPanel", plans: ["business"], color: "#1d4ed8",
+      id: "companiesPanel", panelId: "companiesPanel", plans: ["pro", "business"], color: "#1d4ed8",
       title: "🏢 Companies (Multi-Firm)",
       hindi: "Manage multiple companies with separate GSTIN and profiles.",
       english: "Manage multiple companies with separate GSTIN and profiles.",
