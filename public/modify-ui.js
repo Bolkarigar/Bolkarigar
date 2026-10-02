@@ -612,6 +612,51 @@
       window.aoAttachNameSuggest("mdfItemName", "item");
       window.aoAttachNameSuggest("mdfProduct", "item");
     }
+    enhanceModifyDates(area);
+  }
+
+  function formatModifyDate(value) {
+    if (!value) return "";
+    const d = new Date(value + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  function enhanceModifyDates(root) {
+    const scope = root || document.getElementById("modifyPanel");
+    if (!scope) return;
+    scope.querySelectorAll('input[type="date"]').forEach((input) => {
+      if (input.dataset.aoDate === "1" || input.classList.contains("inv-date-input-hidden")) return;
+      const parent = input.parentNode;
+      if (!parent) return;
+      input.dataset.aoDate = "1";
+      const wrap = document.createElement("div");
+      wrap.className = "ao-date-wrap";
+      const face = document.createElement("button");
+      face.type = "button";
+      face.className = "ao-date-face";
+      const sync = () => {
+        const label = formatModifyDate(input.value);
+        face.textContent = label || "Choose date";
+        face.classList.toggle("is-empty", !label);
+      };
+      parent.insertBefore(wrap, input);
+      wrap.appendChild(face);
+      wrap.appendChild(input);
+      input.classList.add("ao-date-native");
+      sync();
+      face.addEventListener("click", () => {
+        try {
+          if (typeof input.showPicker === "function") input.showPicker();
+          else input.click();
+        } catch (err) {
+          input.focus();
+          input.click();
+        }
+      });
+      input.addEventListener("change", sync);
+      input.addEventListener("input", sync);
+    });
   }
 
   function setupModifyPartyAutocomplete() {
@@ -970,4 +1015,5 @@
 
   renderTypeCards();
   setStep(1);
+  enhanceModifyDates();
 })();
