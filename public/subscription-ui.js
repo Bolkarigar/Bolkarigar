@@ -80,6 +80,33 @@
     wireBillingToggles();
   }
 
+  function razorpayCheckoutExtras() {
+    return {
+      method: {
+        upi: true,
+        card: true,
+        netbanking: true,
+        wallet: true
+      },
+      config: {
+        display: {
+          blocks: {
+            upi_qr: {
+              name: "Pay using UPI QR",
+              instruments: [{ method: "upi", flows: ["qr"] }]
+            },
+            upi_app: {
+              name: "Pay using UPI app",
+              instruments: [{ method: "upi", flows: ["intent", "collect"] }]
+            }
+          },
+          sequence: ["block.upi_qr", "block.upi_app"],
+          preferences: { show_default_blocks: true }
+        }
+      }
+    };
+  }
+
   function loadRazorpayScript() {
     if (razorpayScriptLoaded || window.Razorpay) {
       razorpayScriptLoaded = true;
@@ -370,6 +397,7 @@
           contact: contactPhone || undefined
         },
         theme: { color: "#3b82f6" },
+        ...razorpayCheckoutExtras(),
         handler: async function (response) {
           try {
             const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
@@ -476,6 +504,7 @@
         order_id: orderData.orderId,
         prefill: { email: me.email || "", name: me.username || "" },
         theme: { color: "#3b82f6" },
+        ...razorpayCheckoutExtras(),
         handler: async function (response) {
           try {
             const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
