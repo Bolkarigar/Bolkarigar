@@ -169,6 +169,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get(['/privacy', '/privacy.html', '/privacy/'], (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.set('X-Robots-Tag', 'index, follow');
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bolkarigar.html'));
 });
@@ -3580,8 +3586,8 @@ setupDevPlanToggle({ app, User, authenticateToken });
 
 // Explicit HTML routes (static ke baad bhi safe fallback)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-['/index.html', '/loginpage.html', '/signup.html', '/pricing.html', '/download.html', '/privacy.html'].forEach((page) => {
-  app.get(`/${page}`, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
+['index.html', 'loginpage.html', 'signup.html', 'pricing.html', 'download.html', 'privacy.html'].forEach((page) => {
+  app.get('/' + page, (req, res) => res.sendFile(path.join(__dirname, 'public', page)));
 });
 
 app.get(['/download-app', '/download-app.exe', '/download-app.zip'], (req, res) => {
